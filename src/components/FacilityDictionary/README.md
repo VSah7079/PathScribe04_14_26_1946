@@ -1,3 +1,5 @@
+**Batch 734:** `DirectPrintingSetting.tsx` on the Printing tab (performing labs): the facility's **Allow direct printing from the browser** switch (`config:direct-device-printing:manage`, saved at once, audited by the service).
+
 # components/FacilityDictionary/
 
 User-facing screen title is **Facility Configuration** (renamed from

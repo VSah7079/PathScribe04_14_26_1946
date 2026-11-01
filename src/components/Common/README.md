@@ -1,3 +1,7 @@
+**Batch 736:** `QuickReasonPicks` takes the Reason Dictionary's reasons for a bench category (`hooks/useBenchReasons.ts`) and a `BenchReasonChoice` (code, label, note); tapping chooses or clears a reason, and the reason box beside it is an optional note.
+
+**Batch 735 (touch spec T3):** `QuickReasonPicks.tsx` (+ `.css`): preset reasons as one-tap chips above a reason box (sets in `services/reasons/quickReasonSets.ts`). Used by the Microtome Block exhausted window, `BatchReasonModal`, and Add-On Orders (builder and dashboard).
+
 ## Batch 612 (part C)
 
 - `FontSizeField.tsx`: a report style's font size box. A size in points shows what it prints at; a size saved in pixels says so and points at Convert to points.

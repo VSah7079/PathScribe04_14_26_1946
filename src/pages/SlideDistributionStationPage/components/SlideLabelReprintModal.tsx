@@ -1,7 +1,7 @@
 // src/pages/SlideDistributionStationPage/components/SlideLabelReprintModal.tsx
 // ─────────────────────────────────────────────────────────────────────────────
 // Batch 402 (PS-359, Pete). Reprinting a slide label at the Slide distribution
-// station now needs a reason, as it does at Microtomy and Embedding: a
+// station now needs a reason, as it does at the Microtome and Embedding: a
 // reprinted label is a possible duplicate, so the reason goes on the slide's
 // chain-of-custody record. Field Requirements page "slideDistribution" lists it
 // as locked. Choose the reason, then press Reprint; Reprint stays off, with
@@ -29,7 +29,7 @@ const SlideLabelReprintModal: React.FC<SlideLabelReprintModalProps> = ({ require
 
   return (
     <div className="ps-overlay" onClick={onCancel}>
-      <div className="ps-modal-dark" onClick={e => e.stopPropagation()}>
+      <div className="ps-modal-dark" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         <div className="ps-batch-modal-header"><div className="ps-batch-modal-title">{t('slideDistribution.reprintReason.title')}</div></div>
         <div className="ps-batch-modal-body">
           <p>{t('slideDistribution.reprintReason.body')}</p>

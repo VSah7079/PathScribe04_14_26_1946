@@ -41,7 +41,7 @@ export interface MolecularOrderPayload {
   reflexFromMessageId?: string;
 }
 
-/** Real, per the story's own "processing order to Hologic at batch
+/** Real, per the story's own "processing order to the processor at batch
  *  creation" — genuinely case/specimen-independent (the instrument
  *  doesn't run against one case, it runs a physical batch of vials),
  *  so this payload is deliberately scoped to the real Batch itself,
@@ -50,11 +50,13 @@ export interface InstrumentOrderPayload {
   /** Batch.masterBarcode (services/batches/IBatchService.ts) — the
    *  real, physical carrier this instrument order is for. */
   masterBarcode: string;
-  /** Real, closed set of one today (Hologic ThinPrep) — kept as a
-   *  literal union, not a bare string, so a second real instrument
-   *  vendor added later is a real, deliberate type change, not a
-   *  silent free-text drift. */
-  instrumentVendor: 'Hologic';
+  /** Batch 739 (Pete, fluid decision 4): the processor the batch was made for, from the Equipment register
+   *  (kind 'lbc_processor'): its code, make and model. Absent when no processor was chosen; then the lab's
+   *  interface engine routes the order by the batch alone. Before Batch 739 this was a fixed `instrumentVendor:
+   *  'Hologic'`, which named one vendor for every liquid-based processor. */
+  processorCode?: string;
+  processorMake?: string;
+  processorModel?: string;
 }
 
 export interface MolecularOrderOutboundQueueEntry {

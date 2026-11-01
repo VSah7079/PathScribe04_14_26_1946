@@ -1,9 +1,13 @@
+**Batch 740:** the Cytology Preparation tile (reuses `/cytology.webp`).
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # pages/PathologyWorkspacePage/
 
 - **`PathologyWorkspacePage.tsx`** (`/pathology-workspace`) — the real
   destination behind Home's "Pathology Workspace" tile: a small,
   second-level hub grouping the sub-workspaces that don't need their own
-  flat top-level Home tile (Cytology, Microtomy, Embedding, Slide
+  flat top-level Home tile (Cytology, Microtome, Embedding, Slide
   Distribution, Molecular, Batch Management, Margin Exception Review: seven
   tiles in all, each shown only if the user may open its screen). See the file's own header
   for the full "Homepage Changes part 1" direct-request account and why

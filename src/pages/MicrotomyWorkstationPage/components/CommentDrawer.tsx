@@ -45,7 +45,7 @@ const CommentDrawer: React.FC<CommentDrawerProps> = ({ title, comments, showPrin
 
   return (
     <div className="ps-overlay" onClick={onClose}>
-      <div className="ps-modal-dark" onClick={e => e.stopPropagation()}>
+      <div className="ps-modal-dark" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         <div className="ps-batch-modal-header">
           <div className="ps-batch-modal-title">{title}</div>
         </div>

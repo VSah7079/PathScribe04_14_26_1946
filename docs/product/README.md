@@ -1,3 +1,7 @@
+**Batch 725:** the in-app User Guide page scrolls (contents list and article each have their own scroll area). Styles only. See `src/i18n/README.md`.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 **Batch 668:** the Help buttons moved from floating buttons over the screen into the top bar, beside the microphone; see `docs/product/GUIDE_UPDATES.md`.
 
 **Batch 666:** `PHRASE_REVIEW_LIST.md` regenerated from the live registry (286 commands, with a Spanish column); `GUIDE_UPDATES.md` has the Batch 666 entry; `KNOWN_GAPS.md` lists the User Guide's remaining gaps.
@@ -51,7 +55,7 @@ New folder README. New `DEMO_GUIDE.md`.
 
 ## Batch 460
 
-`DEMO_GUIDE.md`: demo steps for billing in the Cytology Workspace and at Microtomy, a matrix block at Microtomy, and Label Designer resize.
+`DEMO_GUIDE.md`: demo steps for billing in the Cytology Workspace and at the Microtome, a matrix block at the Microtome, and Label Designer resize.
 
 ## Batch 463 — Mohs
 
@@ -207,3 +211,91 @@ New `GUIDE_UPDATES.md`, with entries for Batches 521–527. `FEATURE_OVERVIEW.md
 `RECALL_SIGNOFF.md` is now the recall values and engine handoff (no sign-off needed for windows or wording).
 
 `FEATURE_OVERVIEW.md` (Batch 644, Oct 20, 2026): every feature section now opens with four voices (practitioner, system administrator, marketing, FormedrixAI and partners), followed by the technical detail. New sections should do the same.
+
+## Batch 726
+
+`GUIDE_UPDATES.md` and `FEATURE_OVERVIEW.md`: carriers at the workstations and station tracking.
+
+## Batch 727
+
+`GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`: add-ons on the wall display and the Stations view.
+
+## Batch 728
+
+`GUIDE_UPDATES.md` and `FEATURE_OVERVIEW.md`: research cases and batch purposes.
+
+## Batch 729
+
+`GUIDE_UPDATES.md` and `FEATURE_OVERVIEW.md`: station tracking part 2.
+
+## Batch 730
+
+`powerbi/` (new): `PathScribeFeed.pq`, `PathScribeMeasures.dax`, `POWER_BI_KIT.md` (not tested). `GUIDE_UPDATES.md` and `FEATURE_OVERVIEW.md`: Batch 730.
+
+## Batch 731
+
+`GUIDE_UPDATES.md` and `FEATURE_OVERVIEW.md`: exhausted-block rule, end states, lineage. `powerbi/PathScribeFeed.pq`: ItemEndStates query (untested).
+
+## Batch 732
+
+Batch 732: `GUIDE_UPDATES.md` and `FEATURE_OVERVIEW.md`: megablocks and multi-piece blocks.
+
+## Batch 745
+
+Batch 745: `DEMO_SEED_DATA.md`, `DEMO_GUIDE.md` (Video 4), `GUIDE_UPDATES.md`.
+
+## Batch 744
+
+Batch 744: `DEMO_SEED_DATA.md`, `DEMO_GUIDE.md` (Video 8), `GUIDE_UPDATES.md`.
+
+## Batch 743
+
+Batch 743: `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`, `DEMO_SEED_DATA.md` (Assist finding withdrawn).
+
+## Batch 742
+
+Batch 742: `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`, `CAPABILITIES.md` (the `report:case-images:attach` row), `DEMO_SEED_DATA.md`.
+
+## Batch 741
+
+Batch 741: `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`, `DEMO_SEED_DATA.md`.
+
+## Batch 740
+
+Batch 740: `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md` (Cytology preparation), `DEMO_SEED_DATA.md`.
+
+## Batch 739
+
+Batch 739: `GUIDE_UPDATES.md` entry, `DEMO_SEED_DATA.md` (fluid decisions recorded), `CAPABILITY_INVENTORY.md` (instrument order).
+
+## Batch 738
+
+Batch 738: `DEMO_SEED_DATA.md` (new), `DEMO_GUIDE.md` (demo videos section, new users), `GUIDE_UPDATES.md` entry.
+
+## Batch 737
+
+Batch 737: `GUIDE_UPDATES.md` entry; `FEATURE_OVERVIEW.md` Megablocks and multi-piece blocks updated.
+
+## Batch 736
+
+Batch 736: `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`, `STATION_TOUCH.md` (reasons in the Reason Dictionary; header search decision).
+
+## Batch 735
+
+Batch 735: `STATION_TOUCH.md` (new), `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`.
+
+## Batch 734
+
+Batch 734: `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md` (carriers, label printing).
+
+## Batch 733
+
+Batch 733: `GUIDE_UPDATES.md`.
+
+## Batch 746
+
+Batch 746: `DEMO_SEED_DATA.md`, `DEMO_GUIDE.md` (Video 5), `GUIDE_UPDATES.md`.
+
+## Batch 747
+
+Batch 747: `DEMO_SEED_DATA.md`, `DEMO_GUIDE.md` (Video 6), `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`.

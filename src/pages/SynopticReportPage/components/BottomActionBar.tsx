@@ -17,6 +17,7 @@ import { VOICE_CONTEXT } from '@/constants/systemActions';
 import { bottomBarVisibility } from '@/services/reports/bottomBarActions';
 import { useBottomBarActionEvents } from '../hooks/useBottomBarActionEvents';
 import { useRevisionReleaseAvailability } from '../hooks/useRevisionReleaseAvailability';
+import { useCaseAttachmentCount } from '@/hooks/useCaseAttachments';
 import { revisionEntryDisabledTitle } from '@/services/reports/revisionReleaseCapability';
 import './BottomActionBar.css';
 import { formatDate } from '@/utils/formatDate';
@@ -171,6 +172,8 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const { availability: revisionAvailability } = useRevisionReleaseAvailability(caseData);
+  // Batch 742: the case's Attachments badge counts its photos, files and links.
+  const attachmentCount = useCaseAttachmentCount(caseData, caseData?.id, caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber);
   const { user } = useAuth();
   const navigate = useNavigate();
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -381,16 +384,17 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
             <Divider />
           </>
         )}
-        {/* Batch 609 (PS-44): attach images to the report; greyed without report:case-images:attach. */}
+        {/* Batch 609 (PS-44): attach images to the report; greyed without report:case-images:attach.
+            Batch 742: the case's Attachments badge, "Attachments (n)" or "Add Attachments", opens the Attachments window. */}
         {onAttachImages && !isPool && (
           <CapabilityButton
             capability="report:case-images:attach"
             context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
             className="ps-bab-action-btn ps-bab-action-btn--outline"
-            title={t('bottomActionBar.attachImages.title')}
+            title={t('bottomActionBar.attachments.title')}
             onClick={onAttachImages}
           >
-            🖼️ {t('bottomActionBar.attachImages.label')}
+            📎 {attachmentCount > 0 ? t('bottomActionBar.attachments.label', { number: attachmentCount }) : t('bottomActionBar.attachments.add')}
           </CapabilityButton>
         )}
         {/* Pool case — show Claim button only */}

@@ -16,6 +16,8 @@ export type SlaState = 'normal' | 'warning' | 'overdue';
 export interface DashboardStatTile {
   id: string;
   label: string;
+  /** Batch 727: the label as a locale key; the wall display shows it in its own language. `label` stays as English fallback. */
+  labelKey?: string;
   value: number;
   state?: SlaState;
 }
@@ -32,8 +34,12 @@ export interface DashboardAlert {
   /** Real, human-facing label for what kind of alert this is, e.g.
    *  "STAT", "Cold-Chain Excursion", "QC Failed" — shown as a badge. */
   kind: string;
+  /** Batch 727: `kind` and `detail` as locale keys (detail values: a `node` is shown through batchManagement.nodes.*). */
+  kindKey?: string;
   title: string;
   detail?: string;
+  detailKey?: string;
+  detailValues?: Record<string, string | number>;
   /** Real elapsed age in minutes since the alert-worthy event, when
    *  known — lets the UI show "12m ago" without a second lookup. */
   ageMinutes?: number;
@@ -52,7 +58,16 @@ export interface DashboardAlert {
 export interface DashboardQueueItem {
   id: string;
   label: string;
+  /** Batch 727: locale keys for the label and detail, as on the alerts. */
+  labelKey?: string;
   detail?: string;
+  detailKey?: string;
+  detailValues?: Record<string, string | number>;
+  /** Batch 727 (spec Decision 3): 'addOn' shows the ADD-ON tag beside the STAT tag; subLabelKey is the order type beneath it. */
+  tags?: 'addOn'[];
+  subLabelKey?: string;
+  /** Batch 727: pinned to the top (an add-on that is STAT or past the profile's time X). */
+  pinned?: boolean;
   ageMinutes?: number;
   slaState?: SlaState;
   remainingMinutes?: number;
@@ -70,4 +85,14 @@ export interface DashboardSummary {
   stats: DashboardStatTile[];
   queue: DashboardQueueItem[];
   alerts: DashboardAlert[];
+}
+
+/** Batch 727 (spec Decision 2): what a view reads from the Display Profile besides the facility. */
+export interface DashboardViewOptions {
+  /** X: minutes an add-on (or, on the Stations view, a carrier) may wait before it turns red and is pinned. */
+  addOnAgeLimitMinutes?: number;
+  /** Batch 728 (spec Decision 4a): show only carriers of these purposes; empty or absent shows all. */
+  batchPurposeIds?: readonly string[];
+  /** Batch 729 (spec §7.5): the Stations view's "not scanned for longer than" time, in minutes. */
+  staleScanMinutes?: number;
 }

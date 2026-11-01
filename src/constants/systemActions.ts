@@ -737,7 +737,7 @@ export const ACTION_GROUPS: ActionGroup[] = [
     id: 'workstations',
     title: 'Workstations',
     actions: [
-      { id: 'workstation.microtomyComment', label: 'Add Comment (Microtomy)', internalKey: 'F26+PS016' },
+      { id: 'workstation.microtomyComment', label: 'Add Comment (Microtome)', internalKey: 'F26+PS016' },
       { id: 'workstation.microtomyStain', label: 'Add Stain to Slide Grid', internalKey: 'F26+PS017' },
       { id: 'workstation.embeddingConfirm', label: 'Confirm Embedding (Piece Count)', internalKey: 'F28+PS001' },
       { id: 'workstation.embeddingComment', label: 'Add Comment (Embedding)', internalKey: 'F28+PS002' },
@@ -957,7 +957,7 @@ export const VOICE_CONTEXT = {
   CYTOLOGY:      'CYTOLOGY',
   /** Batch 378: the Grossing screen (/case/:id/grossing), a page of its own. */
   GROSSING:      'GROSSING',
-  /** Batch 388: the Microtomy workstation (/workstations/microtomy), a page of its own. */
+  /** Batch 388: the Microtome workstation (/workstations/microtomy), a page of its own. */
   MICROTOMY:     'MICROTOMY',
   /** Batch 401: the Embedding station (/workstations/embedding), a page of its own. */
   EMBEDDING:     'EMBEDDING',

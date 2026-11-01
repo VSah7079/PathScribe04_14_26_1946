@@ -16,7 +16,7 @@
 //                       wash and a repeat ThinPrep, coverslipped (Nadia Rahman)
 //   Decants (non-GYN FNA, mockCaseService.ts)
 //     S26-5005-CYT-001  D1 needle rinse, 6 mL → D2 cell block split from it,
-//                       green/mesh cassette, H&E pending cut (Microtomy)
+//                       green/mesh cassette, H&E pending cut (Microtome)
 //   Matrix block (mockCaseService.ts)
 //     S26-4404          M1: the left-sided prostate cores D, E and F, inked
 //                       by site and embedded in one cassette; H&E level
@@ -31,6 +31,7 @@ import type { Case } from '@/types/case/Case';
 import type { Decant } from '@/types/case/Material';
 import type { MatrixBlock } from '@/types/case/MatrixBlock';
 import { decantIdentifier, decantSlideIdentifier, matrixSlideIdentifier } from '@/types/labels/LabelData';
+import { migrateLegacyHpvAliquots } from '@/utils/aliquotMigration';
 
 
 export const DEMO_DECANT_CASE_IDS = ['S26-4650-CYT-001', 'S26-4651-CYT-001', 'S26-4652-CYT-001', 'S26-5005-CYT-001'] as const;
@@ -40,6 +41,8 @@ export const DEMO_MATRIX_BLOCK_ID = 'mtx-S26-4404-demo';
 const HOUR = 3_600_000;
 
 export function withMaterialDemo(cases: Case[], now: number = Date.now()): Case[] {
+  // Batch 739 (fluid decision 6): HPV aliquots stored as cell blocks are retyped as aliquots at seeding (Full Reset).
+  cases = cases.map(migrateLegacyHpvAliquots);
   const hoursAgo = (h: number) => new Date(now - h * HOUR).toISOString();
   const comment = (id: string, authorId: string, authorName: string, text: string, h: number) =>
     ({ id, authorId, authorName, text, createdAt: hoursAgo(h) });
@@ -80,6 +83,8 @@ export function withMaterialDemo(cases: Case[], now: number = Date.now()): Case[
       const rinse = decant(c, 'D1', { decantType: 'residual_fluid', totalVolumeMl: 6, appearance: 'Bloody', yieldPelletSize: 'High' }, 20, 'Priya Desai');
       const cellBlock = decant(c, 'D2', {
         decantType: 'cell_block', parentDecantId: rinse.id, cassetteColorId: 'color-green-mesh',
+        // Batch 740 (fluid decision 1): handed off from Cytology Preparation, so the Microtome takes it.
+        handoff: { at: hoursAgo(19), byId: 'CT-001', byName: 'Priya Desai', sourceItemId: rinse.displayId ?? rinse.id, stationId: 'station-cytoprep-1' },
         stains: [{ id: 'stn-demo-5005-d2-1', stainName: 'H&E', status: 'Pending Cut', preparationMethod: 'Cell Block' } as any],
         comments: [comment('mc-demo-5005-d2', 'CT-001', 'Priya Desai', 'Cell block from the needle rinse pellet. Fragile: green mesh cassette.', 18)],
       }, 18, 'Priya Desai');

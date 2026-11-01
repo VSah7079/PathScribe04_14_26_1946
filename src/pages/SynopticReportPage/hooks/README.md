@@ -1,3 +1,9 @@
+**Batch 738:** `useSignOutWorkflow.ts`: `buildSynopticsForReview` calls `services/reports/synopticReviewEntries.ts` (1,801 → 1,747 lines). Test `__tests__/useSpecimenBlockManagement.test.ts` sets the seeded printer to QZ Tray for its QZ Tray cases.
+
+**Batch 737:** `useSpecimenBlockManagement.ts` passes `blockType` to the cassette label print (same line; the file did not grow).
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 **Batch 650:** `useBottomBarActionEvents.ts` (+ test): listens for the bar's commands and calls the button's own handler, once, only when `resolveBottomBarCommand` allows it.
 
 **Batch 649 (Amendment window):** new `useRevisionReleaseAvailability.ts`, the release capabilities for this case and facility as `{ availability, loading }`; the decision is `services/reports/revisionReleaseCapability.ts`.

@@ -7,7 +7,7 @@
 <form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Search screens, fields, error codes" aria-label="Search the guide" autocomplete="off"><ul id="results" hidden></ul></form>
 <select id="lang" class="langsel" aria-label="Language"><option value="en" selected>English</option></select>
 <button class="print" type="button" onclick="window.print()">Print / PDF</button></header>
-<div class="layout"><nav class="side" aria-label="Guide chapters"><a href="index.html">Contents</a><a href="setup-sequence.html">Setup order</a><a href="01-system-overview.html">1. System Overview and Architecture</a><a href="02-tier1-primary-prerequisites.html">2. Tier 1: Primary System Prerequisites (Configure First)</a><a href="03-tier2-master-dictionaries.html" aria-current=page>3. Tier 2: Master Dictionaries and Clinical Foundational Data (Configure Second)</a><a href="04-tier3-workflow-engines.html">4. Tier 3: Workflow Engines and Operational Configuration (Configure Third)</a><a href="05-tier4-ai-framework.html">5. Tier 4: The PathScribe Embedded AI Framework</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Tier 5: Reporting, Synoptic Forms and Scheduler Configuration</a><a href="07-tier6-interface-engine.html">7. Tier 6: Interface Engine and External System Integrations</a><a href="08-tier7-billing-registry.html">8. Tier 7: Billing, Revenue Cycle Management and Registry Reporting</a><a href="09-appendices.html">9. Appendices: Troubleshooting and Audit Log Verification</a><a href="10-procedures-reporting.html">10. Step-by-step procedures: report templates, synoptic templates, JSON files and scheduled reports</a><a href="11-procedures-labels-billing.html">11. Step-by-step procedures: labels, billing and charge capture</a><a href="99-glossary.html">99. Appendix: Glossary of Terms and Abbreviations</a></nav><main id="main"><aside class="pagetoc" aria-label="On this page"><b>On this page</b><ul><li class="l2"><a href="#ch3-anatomic-specialties">Part A: Anatomic Pathology Specialties</a></li><li class="l3"><a href="#screen-departments">Departments</a></li><li class="l3"><a href="#screen-subspecialties">Subspecialties</a></li><li class="l3"><a href="#screen-tab-cytology">Cytology tab</a></li><li class="l3"><a href="#screen-cytology_nomenclature">Nomenclature System</a></li><li class="l3"><a href="#screen-cytology_categories">Interpretation and Recommendations</a></li><li class="l3"><a href="#screen-non_gyn_cytology_categories">Non-GYN Classification (Milan/Paris)</a></li><li class="l3"><a href="#screen-cytology_screening_strategy">Screening Strategy</a></li><li class="l3"><a href="#screen-cytology_routing">Non-GYN Routing</a></li><li class="l3"><a href="#screen-cytology_compliance_features">Country and laboratory rules</a></li><li class="l3"><a href="#screen-cytology_instrumentation">Assisted Instrumentation</a></li><li class="l3"><a href="#screen-snomed_histology_severity_mapping">Cyto-Histologic Correlation (SNOMED)</a></li><li class="l2"><a href="#ch3-specimen-tissue">Part B: Master Specimen and Tissue Type Dictionaries</a></li><li class="l3"><a href="#screen-specimens">Specimen Dictionary</a></li><li class="l3"><a href="#screen-organ_maps">Organ maps</a></li><li class="l3"><a href="#screen-flags">Flags</a></li><li class="l3"><a href="#screen-asset_locations">Asset Location Dictionary</a></li><li class="l3"><a href="#screen-cold_chain">Cold Chain</a></li><li class="l3"><a href="#screen-deficiencies">Specimen Deficiencies</a></li><li class="l2"><a href="#ch3-container-cassette">Part C: Container, Cassette and Slide Type Configurations</a></li><li class="l3"><a href="#screen-container_types">Container Types</a></li><li class="l3"><a href="#screen-cassette_colors">Cassette Colors</a></li><li class="l3"><a href="#screen-cassette_routing_rules">Cassette Routing Rules</a></li><li class="l3"><a href="#screen-ink_colors">Ink Colors</a></li><li class="l2"><a href="#ch3-stains-protocols">Part D: Processing Protocols, Stains, Antibodies and Special Stains Masters</a></li><li class="l3"><a href="#screen-stains">Diagnostic Catalog</a></li><li class="l3"><a href="#screen-protocols">Protocol Dictionary</a></li><li class="l3"><a href="#screen-reagent_lots">Reagent &amp;amp; Solution Lots</a></li><li class="l2"><a href="#ch3-code-libraries">Part E: Diagnostic Code Libraries</a></li><li class="l3"><a href="#screen-code_systems">Code Systems</a></li><li class="l3"><a href="#screen-terminology">Terminology Services</a></li><li class="l3"><a href="#screen-code_import">Code Import (Bulk)</a></li><li class="l2"><a href="#ch3-physicians-clients">Part F: Ordering Physicians, Client Accounts and Distribution Preferences</a></li><li class="l3"><a href="#screen-physicians">Physicians</a></li><li class="l3"><a href="#screen-clients">Facility Configuration</a></li><li class="l3"><a href="#screen-client_sla">Client service levels</a></li><li class="l3"><a href="#screen-abnormal_trigger_rules">Abnormal Trigger Rules</a></li><li class="l3"><a href="#screen-governing_bodies">[FORMEDRIXAI INTERNAL ONLY] Governing Bodies</a></li></ul></aside><article><h1 id="ch3"><a class="anchor" href="#ch3" aria-label="Link to this section">#</a> Tier 2: Master Dictionaries and Clinical Foundational Data (Configure Second)</h1>
+<div class="layout"><nav class="side" aria-label="Guide chapters"><a href="index.html">Contents</a><a href="setup-sequence.html">Setup order</a><a href="01-system-overview.html">1. System Overview and Architecture</a><a href="02-tier1-primary-prerequisites.html">2. Tier 1: Primary System Prerequisites (Configure First)</a><a href="03-tier2-master-dictionaries.html" aria-current=page>3. Tier 2: Master Dictionaries and Clinical Foundational Data (Configure Second)</a><a href="04-tier3-workflow-engines.html">4. Tier 3: Workflow Engines and Operational Configuration (Configure Third)</a><a href="05-tier4-ai-framework.html">5. Tier 4: The PathScribe Embedded AI Framework</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Tier 5: Reporting, Synoptic Forms and Scheduler Configuration</a><a href="07-tier6-interface-engine.html">7. Tier 6: Interface Engine and External System Integrations</a><a href="08-tier7-billing-registry.html">8. Tier 7: Billing, Revenue Cycle Management and Registry Reporting</a><a href="09-appendices.html">9. Appendices: Troubleshooting and Audit Log Verification</a><a href="10-procedures-reporting.html">10. Step-by-step procedures: report templates, synoptic templates, JSON files and scheduled reports</a><a href="11-procedures-labels-billing.html">11. Step-by-step procedures: labels, billing and charge capture</a><a href="99-glossary.html">99. Appendix: Glossary of Terms and Abbreviations</a></nav><main id="main"><aside class="pagetoc" aria-label="On this page"><b>On this page</b><ul><li class="l2"><a href="#ch3-anatomic-specialties">Part A: Anatomic Pathology Specialties</a></li><li class="l3"><a href="#screen-departments">Departments</a></li><li class="l3"><a href="#screen-subspecialties">Subspecialties</a></li><li class="l3"><a href="#screen-tab-cytology">Cytology tab</a></li><li class="l3"><a href="#screen-cytology_nomenclature">Nomenclature System</a></li><li class="l3"><a href="#screen-cytology_categories">Interpretation and Recommendations</a></li><li class="l3"><a href="#screen-non_gyn_cytology_categories">Non-GYN Classification (Milan/Paris)</a></li><li class="l3"><a href="#screen-cytology_screening_strategy">Screening Strategy</a></li><li class="l3"><a href="#screen-cytology_routing">Non-GYN Routing</a></li><li class="l3"><a href="#screen-cytology_compliance_features">Country and laboratory rules</a></li><li class="l3"><a href="#screen-cytology_instrumentation">Assisted Instrumentation</a></li><li class="l3"><a href="#screen-snomed_histology_severity_mapping">Cyto-Histologic Correlation (SNOMED)</a></li><li class="l2"><a href="#ch3-specimen-tissue">Part B: Master Specimen and Tissue Type Dictionaries</a></li><li class="l3"><a href="#screen-specimens">Specimen Dictionary</a></li><li class="l3"><a href="#screen-organ_maps">Organ maps</a></li><li class="l3"><a href="#screen-flags">Flags</a></li><li class="l3"><a href="#screen-asset_locations">Asset Location Dictionary</a></li><li class="l3"><a href="#screen-cold_chain">Cold Chain</a></li><li class="l3"><a href="#screen-research_cases">Research Cases &amp;amp; Batch Purposes</a></li><li class="l3"><a href="#screen-deficiencies">Specimen Deficiencies</a></li><li class="l2"><a href="#ch3-container-cassette">Part C: Container, Cassette and Slide Type Configurations</a></li><li class="l3"><a href="#screen-container_types">Container Types</a></li><li class="l3"><a href="#screen-cassette_colors">Cassette Colors</a></li><li class="l3"><a href="#screen-cassette_routing_rules">Cassette Routing Rules</a></li><li class="l3"><a href="#screen-ink_colors">Ink Colors</a></li><li class="l2"><a href="#ch3-stains-protocols">Part D: Processing Protocols, Stains, Antibodies and Special Stains Masters</a></li><li class="l3"><a href="#screen-stains">Diagnostic Catalog</a></li><li class="l3"><a href="#screen-protocols">Protocol Dictionary</a></li><li class="l3"><a href="#screen-reagent_lots">Reagent &amp;amp; Solution Lots</a></li><li class="l2"><a href="#ch3-code-libraries">Part E: Diagnostic Code Libraries</a></li><li class="l3"><a href="#screen-code_systems">Code Systems</a></li><li class="l3"><a href="#screen-terminology">Terminology Services</a></li><li class="l3"><a href="#screen-code_import">Code Import (Bulk)</a></li><li class="l2"><a href="#ch3-physicians-clients">Part F: Ordering Physicians, Client Accounts and Distribution Preferences</a></li><li class="l3"><a href="#screen-physicians">Physicians</a></li><li class="l3"><a href="#screen-clients">Facility Configuration</a></li><li class="l3"><a href="#screen-client_sla">Client service levels</a></li><li class="l3"><a href="#screen-abnormal_trigger_rules">Abnormal Trigger Rules</a></li><li class="l3"><a href="#screen-governing_bodies">[FORMEDRIXAI INTERNAL ONLY] Governing Bodies</a></li></ul></aside><article><h1 id="ch3"><a class="anchor" href="#ch3" aria-label="Link to this section">#</a> Tier 2: Master Dictionaries and Clinical Foundational Data (Configure Second)</h1>
 <p>Tier 2 is the set of lists the laboratory's daily work picks from: departments, <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> types, stains, protocols, containers, <a class="term" href="99-glossary.html#g-cassette" title="The plastic holder in which a tissue block is embedded and labelled for cutting.">cassette</a> colours, physicians, client service levels and the code and classification lists used on reports. None of these lists works alone. A specimen type points at a <a class="term" href="99-glossary.html#g-department" title="The coarse class of a specimen at intake, such as surgical tissue or fluid cytology. It steers the grossing template, the case mask and any retention override.">department</a>, a <a class="term" href="99-glossary.html#g-subspecialty" title="An area of pathology, such as breast or gastrointestinal, used to route cases. A subspecialty can be switched to pool mode.">subspecialty</a> and a <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a>. A cassette rule points at a protocol and a colour. A <a class="term" href="99-glossary.html#g-client-service-level" title="The agreed time in which a client&#x27;s cases should be reported, held per client facility.">client service level</a> points at a client <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>. This is why Tier 2 comes after Tier 1 (the facilities, people and devices in <a href="02-tier1-primary-prerequisites.html#ch2">Chapter 2</a>) and has its own order.</p>
 <p>Configure Tier 2 in the order below. Each screen carries a <strong>Setup sequence</strong> box with the same information, and the builder checks that no screen requires one that comes after it.</p>
 <ol>
@@ -43,6 +43,7 @@
 <li><a href="#screen-cytology_compliance_features">Country and laboratory rules</a>: workload cap, look-back, urgent signature and screening intervals.</li>
 <li><a href="#screen-cytology_instrumentation">Assisted Instrumentation</a>: whole slide imaging or traditional review.</li>
 <li><a href="#screen-snomed_histology_severity_mapping">Cyto-Histologic Correlation (SNOMED)</a>: the SNOMED severity ranks used in correlation.</li>
+<li><a href="#screen-research_cases">Research Cases &amp; Batch Purposes</a>: how research cases are recognised and kept out of clinical work, and what a carrier can be for (Batch 728).</li>
 </ol>
 <p>The parts below follow the subject, not the setup order: <a href="#ch3-anatomic-specialties">Part A</a> the anatomic pathology specialties, <a href="#ch3-specimen-tissue">Part B</a> specimens and tissue, <a href="#ch3-container-cassette">Part C</a> containers, cassettes and ink, <a href="#ch3-stains-protocols">Part D</a> stains and protocols, <a href="#ch3-code-libraries">Part E</a> code libraries, and <a href="#ch3-physicians-clients">Part F</a> physicians, clients and governing bodies.</p>
 <p><strong>Status words.</strong> Each screen shows one of the five status words from the authoring standard: Built, Demonstration, Partial, Planned, Not built. Almost every dictionary in this chapter has a production service and a written <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> contract, so most are <strong>Built</strong>. The exceptions are named on the screen: the <a href="#screen-organ_maps">Organ maps</a> settings and the <a href="#screen-code_systems">Code Systems</a> policy are kept in the browser only, and the <a href="#screen-cold_chain">Cold Chain</a> readings are simulated.</p>
@@ -2243,6 +2244,114 @@
 </table>
 <p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Add, edit, deactivate, remove: <code>config:cold-chain:manage</code> (high risk, audited). Admin, Lab Director and Superadmin hold it by default. Sending a simulated reading is checked separately: a person who lacks permission sees "You don't have permission to send a simulated reading."</p>
 <p><strong>Known limits.</strong> No sensor feed is connected. Every reading comes from the Simulated control and is labelled Simulated everywhere. That is why the status is Partial: the unit and type dictionaries are built, the live readings are not. Seeded types are Frozen Tissue (at most -20 °C) and Fresh Tissue (at most 8 °C).</p>
+<h3 id="screen-research_cases"><a class="anchor" href="#screen-research_cases" aria-label="Link to this section">#</a> Research Cases &amp; Batch Purposes</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Lab Materials &amp; Workflows &gt; Research Cases &amp; Batch Purposes"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Lab Materials &amp; Workflows</span> <span aria-hidden="true">›</span> <span>Research Cases &amp; Batch Purposes</span></nav>
+
+<p><strong>Status:</strong> Partial</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Lab Materials &amp; Workflows</strong>
+<strong>2. Maintenance item:</strong> Research Cases &amp; Batch Purposes</p>
+<p><strong>3. Business purpose and scope.</strong> Two settings for work that is not routine patient care.</p>
+<p><em>Research cases.</em> Until research items can be handled without an <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a>, a research <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> is accessioned as a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> for a dummy research patient. This card says how PathScribe recognises those cases: by accession prefix (for example <code>RES</code>) or by the research patient's <a class="term" href="99-glossary.html#g-mrn" title="Medical record number, the identifier a facility gives a patient.">MRN</a> prefix (for example <code>RSCH-</code>). A research case is then:</p>
+<ul>
+<li>left off the clinical worklists (tiles and lists alike; find it with Case Search);</li>
+<li>left out of the turnaround, volume and quality figures on the Contribution dashboards;</li>
+<li>never sent to the EHR as a result (final, preliminary, amended or cytology), and never delivered by fax or file drop. The <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> records each result that was not sent and why;</li>
+<li>never sent to billing: its charges are refused at the billing queue, and its financial-class message carries the <strong>no-charge financial class</strong> with no coverage;</li>
+<li>never submitted to a cancer or screening <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a>;</li>
+<li>kept for the <strong><a class="term" href="99-glossary.html#g-retention" title="How long a kind of data or material is kept. Retention periods are set by jurisdiction, with an optional override.">retention</a> days</strong> counted from accessioning, then listed on the Disposal queue. Retention holds still apply. A research case never gets a signed clinical report, so the ordinary clock (which starts at sign-out) would never start.</li>
+</ul>
+<p><em>Batch purposes.</em> What a carrier is for. Six are built in: Routine, Research, Teaching, Clinical Trial, Biobank, <a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> / Validation. Built-in purposes can be switched off but not removed; Routine is always on. Add the lab's own purposes by name. A new carrier is Routine unless another purpose is chosen in <strong>New Container</strong>. A carrier with a purpose other than Routine shows it on Batch Detail. Each <a href="04-tier3-workflow-engines.html#screen-display_profiles">Display Profile</a> can show only carriers of chosen purposes.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> None for the settings themselves. To use the research workaround, register the dummy research patient (with an MRN that starts with the prefix) and, if the lab uses one, an accession format with the research prefix.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 2, step 33</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot missing"><div class="ph">SCREENSHOT PLACEHOLDER: system-research_cases - Research cases card and Batch purposes card</div></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<h4>Research cases card</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-research_cases-treat-matching-cases-as-research-cases"><td>Treat matching cases as research cases</td>
+<td>Check box</td>
+<td>Optional</td>
+<td>Off: no <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> is treated as a research case.</td>
+<td>On</td>
+</tr>
+<tr id="f-research_cases-accession-prefixes"><td>Accession prefixes</td>
+<td>Text, comma-separated</td>
+<td>Required when on (this or the <a class="term" href="99-glossary.html#g-mrn" title="Medical record number, the identifier a facility gives a patient.">MRN</a> prefixes)</td>
+<td>A case matches when its <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a> prefix equals one, or its full accession starts with one. Capital letters are ignored. No spaces; at most 20 characters each.</td>
+<td>RES</td>
+</tr>
+<tr id="f-research_cases-research-patient-mrn-prefixes"><td>Research patient MRN prefixes</td>
+<td>Text, comma-separated</td>
+<td>Required when on (this or the accession prefixes)</td>
+<td>A case matches when its patient's MRN starts with one.</td>
+<td>RSCH-</td>
+</tr>
+<tr id="f-research_cases-no-charge-financial-class"><td>No-charge financial class</td>
+<td>Text</td>
+<td>Required when on</td>
+<td>Sent as the account billing type in the financial-class message for a research case.</td>
+<td>Research - No Charge</td>
+</tr>
+<tr id="f-research_cases-keep-material-for-days-after-accessioning"><td>Keep material for (days after accessioning)</td>
+<td>Whole number, 0 to 36500</td>
+<td>Required</td>
+<td>When the case's blocks and slides are listed for disposal.</td>
+<td>365</td>
+</tr>
+<tr id="f-research_cases-save"><td>Save</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Refused without the permission below, or when a value fails the checks (each problem is listed).</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Batch purposes card</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-research_cases-purpose-rows"><td>Purpose rows</td>
+<td>Name and Active check box</td>
+<td>Not applicable</td>
+<td>Built-in names are shown in the reader's language and marked Built-in. A lab purpose's name is edited in place (unique, at most 40 characters). Routine's check box cannot be cleared.</td>
+<td>Six built-in purposes, all active</td>
+</tr>
+<tr id="f-research_cases-new-purpose-add"><td>New purpose, Add</td>
+<td>Text and button</td>
+<td>Optional</td>
+<td>Adds a lab purpose (Enter also adds it).</td>
+<td>Blank</td>
+</tr>
+<tr id="f-research_cases-save"><td>Save</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Refused without the permission below, or when a name is blank, too long or repeated.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Saving the research <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> settings: <code>config:research-cases:manage</code>. Saving the batch purposes: <code>config:batch-purposes:manage</code>. Both high risk; Admin, Lab Director and Superadmin hold them by default.</p>
+<p><strong>Known limits.</strong> The report screen does not yet mark a research case as "research, not a clinical report"; it can still be signed out (nothing is sent anywhere). There is no research worklist (use Case Search). Quality figures outside the Contribution dashboards, and the <a class="term" href="99-glossary.html#g-bi-feed" title="The reporting feed that supplies datasets to a business-intelligence tool such as Power BI. It can be de-identified or identified, and identified use needs an approval on record.">BI feed</a> on the server, are not yet filtered in this build. Research items without an <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a> are a later phase. These are why the status is Partial.</p>
 <h3 id="screen-deficiencies"><a class="anchor" href="#screen-deficiencies" aria-label="Link to this section">#</a> Specimen Deficiencies</h3>
 <nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations &gt; Specimen Deficiencies"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span> <span aria-hidden="true">›</span> <span>Specimen Deficiencies</span></nav>
 

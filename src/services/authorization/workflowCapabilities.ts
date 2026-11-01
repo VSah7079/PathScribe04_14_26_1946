@@ -50,7 +50,7 @@ export const WORKFLOW_CAPABILITIES = [
   // Batch 659: submitting a Management Review of closed deficiencies.
   { key: 'qa:management-review:submit', labelId: 'qaManagementReviewSubmit', group: 'qaOperations', risk: 'high', requires: ['screen:quality-assurance:open'] },
   // Batch 669 (ws-19, Pete: strict gates): flagging a block exception (Block exhausted and the other reasons, on the Add-On
-  // Orders tracking list and the Microtomy workstation) and marking a block retrieved for an add-on order. Both were open
+  // Orders tracking list and the Microtome workstation) and marking a block retrieved for an add-on order. Both were open
   // to everyone who could reach the screen. Checked in services/addOnOrders/addOnOrderActions.ts.
   { key: 'add-on:exception:flag', labelId: 'addOnExceptionFlag', group: 'casework', risk: 'standard', requires: [] },
   { key: 'add-on:block:mark-retrieved', labelId: 'addOnBlockMarkRetrieved', group: 'casework', risk: 'standard', requires: [] },

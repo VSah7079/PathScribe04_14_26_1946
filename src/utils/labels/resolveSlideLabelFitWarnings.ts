@@ -1,6 +1,6 @@
 // src/utils/labels/resolveSlideLabelFitWarnings.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// Real, per PS-284 (Microtomy Workstation)'s own suggestion: "a
+// Real, per PS-284 (Microtome Workstation)'s own suggestion: "a
 // slide-label equivalent [of resolveCassetteLabelFitWarning.ts] may
 // be worth the same treatment." Same real, pure safety check, same
 // honest limits — see that file's own header for the full reasoning

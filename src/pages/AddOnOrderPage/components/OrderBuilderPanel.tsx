@@ -39,6 +39,9 @@ const OrderBuilderPanel: React.FC<OrderBuilderPanelProps> = ({ stainTypes, onAdd
   const [selectedStainId, setSelectedStainId] = useState('');
   const [selectedPanelId, setSelectedPanelId] = useState('');
   const [levelDepthMicrons, setLevelDepthMicrons] = useState<string>('4');
+  // Batch 732 (spec §11.3): a level range, and how many levels go on each slide.
+  const [levelCount, setLevelCount] = useState<string>('1');
+  const [levelsPerSlide, setLevelsPerSlide] = useState<string>('1');
   const [controlMode, setControlMode] = useState<ControlMode>('none');
 
   const availableStains = useMemo(() => filterStainsForKind(stainTypes, orderKind, search), [stainTypes, orderKind, search]);
@@ -53,7 +56,7 @@ const OrderBuilderPanel: React.FC<OrderBuilderPanelProps> = ({ stainTypes, onAdd
     setControlMode('none');
   };
 
-  const lines = buildAddOnLines({ orderKind, stain: selectedStain, panel: orderKind === 'ihc' ? selectedPanel : undefined, stainTypes, levelDepth: levelDepthMicrons, controlMode });
+  const lines = buildAddOnLines({ orderKind, stain: selectedStain, panel: orderKind === 'ihc' ? selectedPanel : undefined, stainTypes, levelDepth: levelDepthMicrons, controlMode, levelCount, levelsPerSlide });
   // Batch 669 (ws-20): a panel stain that is not in the stain dictionary is left out; the builder says so instead of dropping it without a word.
   const panelMissingNames = orderKind === 'ihc' && selectedPanel ? missingPanelStainNames(selectedPanel, stainTypes) : [];
   const missing = lines.length === 0 ? [] : [...new Set(lines.flatMap(l => addOnLineMissing(l, requirements)))];
@@ -122,6 +125,10 @@ const OrderBuilderPanel: React.FC<OrderBuilderPanelProps> = ({ stainTypes, onAdd
         <>
           <label className="ps-addon-field-label" htmlFor="addon-level-depth">{t('addOnOrder.builder.levelDepth')}{addOnOrderFieldRequired(requirements, 'levelDepth') && <span className="ps-conf-required"> *</span>}</label>
           <input id="addon-level-depth" className="ps-addon-field-input" type="number" min={1} value={levelDepthMicrons} onChange={e => setLevelDepthMicrons(e.target.value)} />
+          <label className="ps-addon-field-label" htmlFor="addon-level-count">{t('addOnOrder.builder.levelCount')}</label>
+          <input id="addon-level-count" className="ps-addon-field-input" type="number" min={1} value={levelCount} onChange={e => setLevelCount(e.target.value)} />
+          <label className="ps-addon-field-label" htmlFor="addon-levels-per-slide">{t('addOnOrder.builder.levelsPerSlide')}</label>
+          <input id="addon-levels-per-slide" className="ps-addon-field-input" type="number" min={1} value={levelsPerSlide} onChange={e => setLevelsPerSlide(e.target.value)} />
         </>
       )}
 

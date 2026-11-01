@@ -1,3 +1,19 @@
+**Batch 747:** `wallDisplayDemoBatches.ts` (new): the wall views' open batches (decal, processing, embedding, microtome, staining, referral, and the second facility's) and the scanner runs, from `cases/demoWallVolumeCases.ts`; added to stored batches when missing. `computePendingBatchQueue.ts` resolves a case's legacy tenant id to its facility (`facilityOpsDashboard/caseFacility.ts`).
+
+**Batch 744:** `batchDemoSeeds.ts`: open Liquid-Based Cytology Processing (ThinPrep and SurePath processors), Cytology Staining and Cytology Imaging batches with items (`LBC_DEMO_BATCH_BARCODES`).
+
+**Batch 740:** `stationCarrierRules.ts`: a Cytology Preparation station works on Liquid-Based Cytology Processing carriers.
+
+**Batch 739:** `Batch.processorEquipmentId` (a Cytology Processing batch's processor, from Equipment); the instrument order sends its code, make and model instead of a fixed "Hologic".
+
+**Batch 737:** `addItemByScan` adds an Exhausted block or matrix block with `warning: 'blockExhausted'` (audited "Exhausted Block Scanned Into Batch") and refuses a large-format slide on a Staining batch without `largeFormat` (`slide-too-large`). `create` takes `largeFormat`; a registered rack with `supportsLargeFormat` sets it.
+
+**Batch 736:** `abort`, `overrideAndComplete` and `acknowledgeColdChainExcursion` take an optional `reasonCode` (the bench reason picked) and store it (`abortReasonCode`, `override.reasonCode`, `coldChainExcursion.acknowledgedReasonCode`); the audit detail ends `[reason code …]`.
+
+**Batch 734:** `stationCarrierRules.carrierMovesHere(batch, stationId)` (an open ad-hoc carrier last opened at another station); `mockBatchService.recordCarrierScan` then sets `stationId`, appends to `Batch.stationMoves` and records "Ad-hoc carrier moved here from station …". The mismatch rule still asks when the step does not fit.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # services/batches/
 
 Container/batch chain-of-custody for cassettes and slides moving through downstream histology processing nodes (Decal/Special Processing, Processing, Embedding, Microtomy/Sectioning, Staining, Checkout) — real scan-based tracking, reconciliation, and QA discrepancy logging via container barcodes (`CONT-`/`RACK-` prefixes).
@@ -78,3 +94,20 @@ Test files here no longer set their own time limit below the suite's 60 s (`vite
 
 ## Batch 669 (finding batch-1)
 `batchListView.ts` gained `reconciliationScanOutcome(before, after)`: a reconciliation scan is Matched (an item newly became Matched), Already matched (nothing changed) or Unexpected (the Unexpected list grew). A rescan of a Matched item no longer flashes the red Unexpected warning (`BatchDetailView.tsx`; message `batchDetail.alreadyMatchedFlash`). Tests in `batchListView.test.ts`.
+
+## Batch 726 — carriers at the workstations (Lab Workflow & Batch spec)
+
+- `stationCarrierRules.ts` (+ test, pure): which steps a station works on (`STATION_STAGE_NODES`, `WORKSTATION_NODES`), the open carriers on a station's list (`carriersForStation`), what a carrier scan means (`resolveCarrierScan`: unknown, closed, no station, open, hand-off, output tray, mismatch), the next step a carrier may move to (`NEXT_NODE`, including Decal to Processing), sealing (`sealProblem`, `acceptsItems`), item scans against a loaded carrier (`decideItemScan`, `manifestProgress`) and the per-item "from carrier" events (`carrierItemEvents`).
+- `IBatchService`: `sealedAt`/`sealedBy…` and `nodeHistory` on a batch; new `sealManifest`, `advanceToNode`, `recordCarrierScan`; optional `stationId` on `addItemByScan`, `scanItemOut` and `overrideAndComplete`; `addItemByScan` answers `not-accepting` for a sealed or closed batch; `removeItem`/`moveItem` refuse a sealed batch (`batchSealed`).
+- Decision 9 (spec 10.2): a carrier keeps its batch as it moves on. `transferToProcessing` now moves the same Decal batch to Processing (no new batch, same barcode) and needs `batch:carrier:advance`.
+- `disposableBarcode.ts`: the disposable barcode generator, moved out of `mockBatchService.ts` unchanged (file-size rule).
+- Demo seed `CONT-PRC-DEMO-EMBED`: a sealed processor basket with S26-4403-A1 and A2, routed to the Embedding station, for the hand-off.
+- Tests: `stationCarrierRules.test.ts`, `batchCarrierOps.test.ts`; `httpBatchService.test.ts` covers the new routes.
+
+## Batch 728
+
+- `batchPurposes.ts` (new, tested): the configurable batch purposes (six built in, plus the lab's own), saved with `config:batch-purposes:manage`; `Batch.purposeId` (Routine when absent); `batchMatchesPurposeFilter` for the wall displays; `batchPurposeBadge` for Batch Detail. `batchFormHelpers.ts`: `NodeChoice` / `nodeIsChosen` (New Container starts with no step). `mockBatchService.create` stores the purpose.
+
+## Batch 731
+
+- `mockBatchService.ts`: completing an External Referral batch records every item's end state "sent out".

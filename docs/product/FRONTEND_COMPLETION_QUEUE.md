@@ -348,7 +348,7 @@ Entries: 33; tasks: 43 (S 18, M 25, L 0).
 
 Status: DELIVERED (Jira Test PS-771). All 15 entries are Built (Demo). The Python report renderers (`functions/main.py`, `cytology_report.py`) do not yet read the new page-setup and technical-branding fields (see KNOWN_GAPS).
 
-A labelled Simulated site agent and network printing, label designer layouts that actually drive printed output, label layout admin, microtomy and grossing hardware capture.
+A labelled Simulated site agent and network printing, label designer layouts that actually drive printed output, label layout admin, microtome and grossing hardware capture.
 
 Entries: 15; tasks: 23 (S 6, M 15, L 2).
 
@@ -361,12 +361,12 @@ Entries: 15; tasks: 23 (S 6, M 15, L 2).
 
 ### #14 Scanner listener, material scan tracking and scan beep
 
-- Was: Partial (Demo) — dispatchMaterialScanEvent to external LIS/middleware is a stub; a placeholder slide label still prints from the global tracker at Microtomy stations regardless of printer support (two
+- Was: Partial (Demo) — dispatchMaterialScanEvent to external LIS/middleware is a stub; a placeholder slide label still prints from the global tracker at the Microtome stations regardless of printer support (two
 - [S] Make the material-scan dispatch a clearly labelled SIMULATED send that shows a small result (toast/log panel) and writes an audit entry.
-- [M] Reconcile the two microtomy slide-label paths so a scan prints/engraves once through the station's configured printer route, or shows a labelled simulated result and audit entry.
+- [M] Reconcile the two microtome slide-label paths so a scan prints/engraves once through the station's configured printer route, or shows a labelled simulated result and audit entry.
 - Waiting on (server side, not built here): Receive MaterialScanEventPayload from the interface engine/middleware.
 
-### #15 Microtomy workstation
+### #15 Microtome workstation
 
 - Was: Partial (Demo) — SlideLabelLayoutConfig (20 x 8 mm, 0.2 mm module, 1.2 mm font) drives preview aspect and fit warnings only; buildSlideZplTemplate keeps hard-coded coordinates and no admin editor exis
 - [M] Slide print output follows the configured slide label size/layout, and an admin screen edits it with a visible preview.
@@ -667,8 +667,8 @@ Status: DELIVERED (Jira Test PS-783). All 18 entries are Built (Demo), except #1
 
 ### #16 Block exhaustion exception and pathologist response
 
-- Was: Partial (Demo) — the tech flag is not wired into the Microtomy workstation (verified: no block-exhaust code in pages/MicrotomyWorkstationPage).
-- [S] Add a 'Block exhausted' button on the Microtomy workstation that calls flagAddOnException and shows the result.
+- Was: Partial (Demo) — the tech flag is not wired into the Microtome workstation (verified: no block-exhaust code in pages/MicrotomyWorkstationPage).
+- [S] Add a 'Block exhausted' button on the Microtome workstation that calls flagAddOnException and shows the result.
 - [M] Make the pathologist decision act: Cancel/Modify restore the block status, and an exhausted block blocks cutting until Approve Destructive Cutting is recorded.
 - Waiting on (server side, not built here): Mail transport for the pathologist e-mail (see simulated mail).
 

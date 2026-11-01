@@ -1,3 +1,5 @@
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 ## Batch 645
 
 `lockboxActionGroup.ts`: the 7 Role Dictionary actions of Lockbox Drop-Off (group F36: go to it, focus the scan field, mark the next drop urgent, show Drop-Off, show the Overnight folder, mark accessioned, link a placeholder), `LockboxActionId` and `LOCKBOX_VOICE_CONTEXT` (`LOCKBOX`). Added through `addedActionGroups.ts`; `systemActions.ts` (over 1,000 lines) did not grow. Grants in `defaultActionGrants.ts`: Accessioner all 7; Admin go to, show the folder and mark accessioned. The last two have no voice phrase or hotkey and are classified in `services/actionRegistry/permissionOnlyActions.ts`.
@@ -169,7 +171,7 @@ consuming side of this fix.
 - **Batch 382:** `diagnosis.recordDiscordance` (F17+PS059), `billing.confirmPostSignoutChange` (F24+PS053) and `billing.correctAppliedCode` (F24+PS054): the reconciliation, post-sign-out reason and applied-code correction modals' buttons.
 - **Batch 383:** `case.recordAutopsyAuthorization` (F19+PS014), `case.releaseAutopsyBody` (F19+PS015), `specimen.continueFixativeGate` (F20+PS011) and `specimen.continuePreAnalyticGate` (F20+PS012): the two autopsy forms' and the two sign-out gates' buttons.
 - **Batch 384:** `messages.submitSecureEmail` (F18+PS025): the Secure email window's Send button.
-- **Batch 388:** `VOICE_CONTEXT.MICROTOMY` for the Microtomy workstation (used by the two new `MICROTOMY_*` actions in `services/actionRegistry/`).
+- **Batch 388:** `VOICE_CONTEXT.MICROTOMY` for the Microtome workstation (used by the two new `MICROTOMY_*` actions in `services/actionRegistry/`).
 - **Batch 401:** `VOICE_CONTEXT.EMBEDDING` for the Embedding station (used by the two new `EMBEDDING_*` actions in `services/actionRegistry/`).
 - **Batch 402:** `VOICE_CONTEXT.SLIDE_DISTRIBUTION` for the Slide distribution station (used by the two new `SLIDE_DIST_*` actions).
 - **Batch 403:** `VOICE_CONTEXT.ADD_ON_ORDER` for the Add-On Orders page.
@@ -261,3 +263,7 @@ Config search entries `protocols-library` and `tpl-builder` no longer say "CAP-c
 
 ## Batch 720
 `grossingBenchActionGroup.ts`: four Grossing screen actions (F38+PS001 to PS004), spread through `addedActionGroups.ts`; granted in `defaultActionGrants.ts` to Pathologist, Fellow, Resident and Pathologists Assistant.
+
+## Batch 728
+
+- `configSearchIndex.ts`: `sys-research-cases`.

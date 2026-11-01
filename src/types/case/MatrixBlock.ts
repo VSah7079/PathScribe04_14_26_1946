@@ -43,6 +43,11 @@ export interface MatrixBlockParticipant {
    *  honest reasoning as every other free-text clinical field in this
    *  app (MaterialLocation.location, ScanStation.workflowStage). */
   tissueType?: string;
+  /** Batch 732 (spec §11.2, §11.5): the piece's orientation or ink, and when it was used up (partial exhaustion). */
+  orientation?: string;
+  ink?: string;
+  exhaustedAt?: string;
+  exhaustedByName?: string;
 }
 
 /**
@@ -165,9 +170,21 @@ export interface MatrixBlock {
    *  this deliberately uses plain-text MaterialComment, not rich-text
    *  CaseComment. */
   comments?: import('./MaterialComment').MaterialComment[];
-  /** Batch 460: the Microtomy alert badges, as on HistologyBlock (a shared
+  /** Batch 460: the Microtome alert badges, as on HistologyBlock (a shared
    *  cassette can be fragile, tiny or need decalcification too). */
   tinyTissue?: boolean;
   fragile?: boolean;
   requiresDecal?: boolean;
+  /** Batch 729 (Lab Workflow spec §11.6): the Embedding Station fields, as on HistologyBlock
+   *  (types/case/Specimen.ts), so a matrix block is embedded like any other block
+   *  (utils/embeddingMatrixView.ts). */
+  moldSize?: import('./Specimen').EmbeddingMoldSize;
+  orientationInstructions?: string;
+  lastDiscrepancyReason?: import('./Specimen').EmbeddingDiscrepancyReason;
+  lastDiscrepancyReportedBy?: string;
+  lastDiscrepancyReportedAt?: string;
+  lastCassetteReprintReason?: import('./Specimen').CassetteReprintReason;
+  lastCassetteReprintOrderedBy?: string;
+  lastCassetteReprintOrderedAt?: string;
+  cassetteReprintCount?: number;
 }

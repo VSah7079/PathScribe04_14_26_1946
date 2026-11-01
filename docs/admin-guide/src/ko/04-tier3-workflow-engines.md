@@ -48,6 +48,7 @@ title: 3단계: 워크플로 엔진 및 운영 구성 (세 번째로 설정)
 29. [기여도 설정](#screen-contribution_settings): 내 기여도 페이지입니다.
 30. [피드백](#screen-feedback): QA 피드백 버튼입니다.
 31. [연구 피드](#screen-research_feed): 홈의 PubMed 헤드라인입니다.
+32. [작업대 사유](#screen-bench_reasons): 작업대에서 누르는 사유를 검사실 표현으로 관리합니다.
 
 참조 페이지이며 설정에 포함되지 않음: [배치 관리](#screen-batch-management), [포매 스테이션](#screen-embedding-station), [미세절편 워크스테이션](#screen-microtomy-workstation), [슬라이드 배포 스테이션](#screen-slide-distribution-station), [홈](#screen-home), [락박스 투입](#screen-lockbox-drop-off), [품질 보증](#screen-quality-assurance), [절제연 예외 검토](#screen-margin-exception-review), [세포검사 QC 대기열](#screen-cytology-qc-queue).
 
@@ -991,6 +992,31 @@ Unlocks: 없음.
 
 **7. 권한.** 화면 열기: `screen:configuration:open`. 변경: `config:revision-reasons:manage`(고위험, Admin과 Lab Director).
 **알려진 제한 사항.** 제품의 시작 값은 진단, 절제연, 병기, 조직 재분류는 켜짐, 사무적 정정은 꺼짐입니다(`revisionReasonRules.ts`). 서비스는 사유의 추가, 편집, 비활성화, 재활성화를 허용하지만 이 화면에는 해당 버튼이 없으며, 이 사항은 `open-questions/ch4.md`에 Pete를 위해 기재되어 있습니다. 계약: `docs/architecture/LAB_DICTIONARIES_API.md`.
+
+### 작업대 사유 {#screen-bench_reasons}
+Breadcrumb: 홈 > 구성 > 시스템 > 관리 및 규정 준수 > 작업대 사유
+
+**상태:** 구축됨(배치 736)
+
+**1. 탐색:** 구성 탭 **시스템** > 그룹 **관리 및 규정 준수**
+**2. 유지관리 항목:** 작업대 사유
+
+**3. 업무 목적 및 범위.** 직원이 작업대에서 입력하는 대신 누르는 사유로, 다섯 그룹이 있습니다: 마이크로톰(블록 소진), 소진된 블록의 추가 오더(오더 및 병리의사 답변, 파괴적 절편 승인 포함), 배치 중단, 예외 포함 배치 완료, 콜드체인 이탈. 각 검사실이 자체 표현으로 바꿀 수 있습니다. 표현을 바꿔도 사유는 **코드**를 유지하며, 모든 기록과 감사 항목에 텍스트와 함께 코드가 저장되므로 보고서(대사 예외 보고서의 **사유 코드** 열)에서 표현 변경 전후에 같은 방식으로 집계됩니다. 메모는 선택 사항입니다.
+
+**4. 전제 조건 및 종속성.** 없음. 기본 사유는 6개 언어로 제공됩니다.
+
+Setup step: Tier 3, step 32
+Requires: None.
+Unlocks: None.
+
+**5. 화면.**
+
+[SCREENSHOT PLACEHOLDER: system-bench_reasons - 다섯 그룹의 작업대 사유]
+
+**6. 필드.** 표현(**표현 변경** 포함; 기본 사유는 각 사용자의 언어로, 변경된 사유는 입력한 그대로 표시), 코드(읽기 전용, 변경되지 않음), ↑ / ↓(순서), **기본 표현 사용**, **사용 중지** / **복원**, **사유 추가**.
+
+**7. 권한.** 화면 열기: `screen:configuration:open`. 변경: `config:bench-reasons:manage`(고위험, 관리자 및 검사실 책임자).
+**알려진 제한.** 조직 전체에 하나의 목록이며, 시설별 표현은 아직 지원되지 않습니다.
 
 ### 종양위원회 규칙 {#screen-tumor_board_rules}
 Breadcrumb: 홈 > 구성 > 시스템 > 관리 및 규정 준수 > 종양위원회 자동 플래그 규칙

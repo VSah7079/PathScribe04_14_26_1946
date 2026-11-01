@@ -1,3 +1,11 @@
+**Batch 725:** the in-app User Guide page scrolls (contents list and article each have their own scroll area). Styles only. See `src/i18n/README.md`.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
+**Batch 723:** `user-guide/img/home-overview.png` replaced with a current capture. Documentation only.
+
+**Batch 722:** `user-guide/` Home article covers the PubMed article line and paste box (new capture `home-pubmed`); `product/GUIDE_UPDATES.md` entry. Documentation only.
+
 **Batch 711:** `architecture/PASSWORD_RESET_REQUEST_API.md` (new), the password reset request on the demo sign-in screen and what a server version would need; the User Guide Sign In article and the Administrator Guide (Members, Troubleshooting) describe it (English).
 
 **Batch 698:** `developer/HANDOVER_FIRST_RELEASE.md`, the handover note for the development team: what is finished, what remains for a code-complete first release (front end, server, decisions, outside parties, process), and how to check the work. The Batch 697 sign-ins for the technical writers (Helen Schollars, Shelly Krill) are in `product/DEMO_GUIDE.md`.
@@ -325,3 +333,91 @@ Batch 644 (Oct 20, 2026): `docs/product/FEATURE_OVERVIEW.md` now opens each of i
 - Batch 685: mismatch evidence quotes are saved with the QA record; forced-colors cue for unreviewed AI values.
 
 - Oct 28, 2026: `architecture/FEEDBACK_DESTINATION.md` (new): enhancement request destination and AI / Template validation feedback. User Guide (Personal Settings) and Administrator Guide (Feedback screen, audit events appendix) updated.
+
+## Batch 726
+
+Architecture: `STATION_TRACKING_API.md`. User Guide: Embedding, Microtome, Slide Distribution and Batch Management articles (carriers). Administrator Guide: Scan Stations stages, Decal transfer.
+
+## Batch 727
+
+User Guide: Facility Operations Display (add-ons, Stations). Administrator Guide: Display Profiles (time limit X, Stations).
+
+## Batch 728
+
+Admin Guide chapter 3 (all six languages): Research Cases & Batch Purposes; chapter 4: the Display Profile purpose filter. User Guide: Batch Management (step and purpose), Facility Operations (purpose filter). `architecture/BI_FEED_API.md` and `AUTHORIZATION_API.md`.
+
+## Batch 729
+
+User Guide: Embedding, Microtome, Slide Distribution, Grossing, Facility Operations; Admin Guide chapter 4 (not-scanned time); `architecture/STATION_TRACKING_API.md` (`activitySummary`, the bench events).
+
+## Batch 730
+
+`product/powerbi/` (new): the Power BI kit (queries, measures, guide; untested). User Guide: Lab Workflow Reports (new article), Add-On Orders, Equipment Log; Admin Guide chapter 2 (equipment temperature range, all six languages); `architecture/BI_FEED_API.md`, `ASYNC_EXPORT_API.md`, `CASE_WORKFLOWS_API.md`, `AUTHORIZATION_API.md`.
+
+## Batch 731
+
+User Guide: Add-On Orders, Embedding, Microtome, Slide Distribution (exhausted blocks, end states); Admin Guide chapter 2 (the three permissions, English); `architecture/CASE_WORKFLOWS_API.md` (IItemEndStateService, exhausted-block orders), `AUTHORIZATION_API.md`, `BI_FEED_API.md`; `product/powerbi/` (ItemEndStates query).
+
+## Batch 732
+
+Batch 732: User Guide Grossing, Add-On Orders, Embedding, Microtome, Slide Distribution; Admin Guide chapter 2 (Equipment: Takes large-format slides, all six languages); `architecture/CASE_WORKFLOWS_API.md`, `BI_FEED_API.md`.
+
+## Batch 745
+
+Batch 745: `product/DEMO_SEED_DATA.md` (S6 done), `product/DEMO_GUIDE.md` (Video 4 cases), `product/GUIDE_UPDATES.md`.
+
+## Batch 744
+
+Batch 744: `product/DEMO_SEED_DATA.md` (S14 done, manifest), `product/DEMO_GUIDE.md` (Video 8 script changes), `product/GUIDE_UPDATES.md`.
+
+## Batch 743
+
+Batch 743: `architecture/CASE_ATTACHMENTS_API.md` §6a (Assist; LIS-pushed attachment URLs, Planned), `product/GUIDE_UPDATES.md` (and Batch 742's Assist finding withdrawn), `product/FEATURE_OVERVIEW.md`, `product/DEMO_SEED_DATA.md`, User Guide (report).
+
+## Batch 742
+
+Batch 742: `architecture/CASE_ATTACHMENTS_API.md` (new), `architecture/BLOB_STORAGE_API.md`, `architecture/AUTHORIZATION_API.md`, `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`, `product/CAPABILITIES.md` (one row), `product/DEMO_SEED_DATA.md`, User Guide (report, cytology screening).
+
+## Batch 741
+
+Batch 741: User Guide (grossing, cytology preparation), `architecture/CASE_WORKFLOWS_API.md`, `architecture/AUTHORIZATION_API.md`, `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`, `product/DEMO_SEED_DATA.md`.
+
+## Batch 740
+
+Batch 740: User Guide `workstations/cytology-prep.md` (new), `architecture/AUTHORIZATION_API.md`, `architecture/CASE_WORKFLOWS_API.md`, `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`, `product/DEMO_SEED_DATA.md`.
+
+## Batch 739
+
+Batch 739: `architecture/CASE_WORKFLOWS_API.md` and `architecture/INTERFACE_TRANSACTIONS.md` (aliquots, migration, instrument order), Admin Guide (equipment kind), User Guide notes, `product/GUIDE_UPDATES.md`, `product/DEMO_SEED_DATA.md`, `product/CAPABILITY_INVENTORY.md`.
+
+## Batch 738
+
+Batch 738: `product/DEMO_SEED_DATA.md` (new: seed-data status and manifest for the demo videos), `product/DEMO_GUIDE.md`, `product/GUIDE_UPDATES.md`.
+
+## Batch 737
+
+Batch 737: Admin Guide (Equipment → Staining racks, six languages), User Guide notes (add-on orders, batch management, microtomy), `architecture/CASE_WORKFLOWS_API.md`, `architecture/AUTHORIZATION_API.md`, `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`.
+
+## Batch 736
+
+Batch 736: Admin Guide (System → Bench Reasons, six languages), User Guide notes, `architecture/LAB_DICTIONARIES_API.md` §7, `architecture/CASE_WORKFLOWS_API.md`, `architecture/AUTHORIZATION_API.md`, `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`, `product/STATION_TOUCH.md`.
+
+## Batch 735
+
+Batch 735: `product/STATION_TOUCH.md` (new: the touch spec with its build status and re-audit), User Guide (sign-in, grossing, embedding, microtomy, slide distribution, add-on orders, batch management: using a tablet at the bench), `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`.
+
+## Batch 734
+
+Batch 734: Admin Guide (Facility Printing tab: direct printing switch), User Guide Batch Management (ad-hoc carriers move), `architecture/AUTHORIZATION_API.md`, `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`.
+
+## Batch 733
+
+Batch 733: User Guide Add-On Orders and Microtome; `architecture/CASE_WORKFLOWS_API.md`.
+
+## Batch 746
+
+Batch 746: `product/DEMO_SEED_DATA.md` (S7 done), `product/DEMO_GUIDE.md` (Video 5 data), `product/GUIDE_UPDATES.md`.
+
+## Batch 747
+
+Batch 747: `product/DEMO_SEED_DATA.md` (S8 done, findings), `product/DEMO_GUIDE.md` (Video 6), `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md` (wall display access).

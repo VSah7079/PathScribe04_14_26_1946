@@ -1,3 +1,7 @@
+**Batch 739:** kind `lbc_processor` (liquid-based cytology processor); seeds LBC_PROC_01 (ThinPrep) and LBC_PROC_02 (SurePath).
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # services/equipment/
 
 **The lab's equipment register (Batch 358).**
@@ -127,3 +131,11 @@ Seed `inst-pcr-01` (PCR_01, "Real-time PCR 1", QuantStudio 5) at Desert Valley: 
 ## Batch 617 (part B): server version (PS-514)
 
 The equipment and equipment log services now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/EQUIPMENT_MIGRATION_API.md`.
+
+## Batch 730
+
+- `temperature_check` log type with `temperatureCelsius` and the range it was checked against (copied from the device); `Equipment.temperatureMinCelsius/MaxCelsius`; `equipmentLogRules.temperatureOutcome` (pass inside, fail outside) and the checks in `validateEquipmentLogEntry` / `validateEquipmentDraft`.
+
+## Batch 732
+
+- Batch 732: `Equipment.supportsLargeFormat` (stainers and slide scanners; spec §11.1).

@@ -22,6 +22,7 @@ import '../pathscribe.css';
 import { useAuth } from '@contexts/AuthContext';
 import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import { caseService, batchService, molecularBatchService } from '@/services';
+import { withoutResearchCasesNow } from '@/services/researchCases/researchCaseSettings';
 import { DailyAccessioningChart } from '@/components/Contribution/DailyAccessioningChart';
 import {
   computeAccessioningRate,
@@ -68,7 +69,8 @@ export default function BenchContributionDashboardPage() {
     const now = new Date();
 
     caseService.getAll().then(res => {
-      const cases = res.ok ? res.data : [];
+      // Batch 728 (Lab Workflow spec, Decision 4): research cases are not in the volume or TAT figures.
+      const cases = res.ok ? withoutResearchCasesNow(res.data) : [];
       setAccessioning(computeAccessioningRate(cases, user.id, config.facilityTimezone, now, WINDOW_DAYS));
       // Stage-to-stage TAT also needs the real case list for its own
       // accessioning→first-stage join — fetched once here, reused below

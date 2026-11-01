@@ -12,7 +12,9 @@
 //
 // A block/slide qualifies only when ALL of the following are true:
 //   1. Its case has been signed out (finalizedAt set) — no real
-//      retention clock runs before that.
+//      retention clock runs before that. Batch 728: a research case
+//      instead counts the lab's research retention days from
+//      accessioning (resolveCaseDisposalDate.ts).
 //   2. No active RetentionHold on that case (types/case/RetentionHold.ts)
 //      — always wins, checked first.
 //   3. The jurisdiction's own retention period has elapsed
@@ -53,7 +55,8 @@ import { slideLevelOf } from '@/services/material/slideLevels';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { getCurrentJurisdiction } from './RetentionPolicy';
 import type { RetainableMaterialType } from './RetentionPolicy';
-import { resolveMostConservativeEligibleDate, resolveFacilityIdForLocation } from './resolveRetentionEligibility';
+import { resolveFacilityIdForLocation } from './resolveRetentionEligibility';
+import { caseDisposalClock, resolveCaseDisposalDate } from './resolveCaseDisposalDate';
 import { cassetteIdentifier, slideIdentifier, matrixBlockIdentifier, matrixSlideIdentifier, specimenIdentifier, decantIdentifier, decantSlideIdentifier } from '@/types/labels/LabelData';
 import type { Case } from '@/types/case/Case';
 import type { MaterialLocation } from '@/types/case/Material';
@@ -103,12 +106,13 @@ async function evaluateItem(
   facilityId: string | undefined,
 ): Promise<DisposalQueueItem | null> {
   if (disposedAt) return null;
-  if (!c.finalizedAt) return null;
+  // Batch 728: a research case runs on its own clock from accessioning (resolveCaseDisposalDate.ts).
+  if (caseDisposalClock(c) === 'notStarted') return null;
   const activeHold = (c.retentionHolds ?? []).some(h => h.active);
   if (activeHold) return null;
 
   const jurisdiction = getCurrentJurisdiction();
-  const eligibleDate = await resolveMostConservativeEligibleDate(materialType, jurisdiction, c.finalizedAt, specimenDictionaryEntryIds);
+  const eligibleDate = await resolveCaseDisposalDate(c, materialType, jurisdiction, specimenDictionaryEntryIds);
   if (!eligibleDate || eligibleDate.getTime() > Date.now()) return null;
 
   const lastLocation = mostRecentLocation(locationHistory);

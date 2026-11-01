@@ -5,6 +5,7 @@
 // doesn't match how this service is actually used elsewhere in the
 // app. No new methods needed — instanceId is just a field now, and the
 // banner can filter getByCaseId()'s results client-side.
+import { skipResearchCaseDispatch } from '../interfaceDispatch/resolveDispatchOrganisation';
 import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ReportVersionRecord } from '@/types/reports/ReportVersionRecord';
@@ -150,6 +151,8 @@ export const mockReportVersionService: IReportVersionService = {
       (async () => {
         try {
           const caseData = await caseRouter.getCase(newRecord.caseId);
+          // Batch 728 (Decision 4): a research case sends no result to the EHR.
+          if (caseData && await skipResearchCaseDispatch(caseData, 'Surgical', resultState === 'FINAL' ? 'final' : 'amended')) return;
           const patientId = (caseData as any)?.patient?.id;
           const patient = patientId ? await mockPatientIndexService.getById(patientId) : null;
           if (!patient) return; // Honest, non-blocking skip — no real organisationId to enqueue against.

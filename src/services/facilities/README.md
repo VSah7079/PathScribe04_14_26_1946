@@ -1,3 +1,5 @@
+**Batch 734:** `Facility.allowDirectDevicePrinting` and `setDirectDevicePrinting(id, allowed)` (capability `config:direct-device-printing:manage`, audit "Direct Device Printing Changed"; route `POST /api/facilities/facility/set-direct-device-printing`). Ordinary `add`/`update` never change it.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/facilities/

@@ -1,3 +1,7 @@
+**Batch 743:** `caseReportImages.ts`: `reportEditProblem` answers `assistCase` on an Assist case, so `insertIntoReport` refuses; `takeOutOfReport` still clears an older placement.
+
+**Batch 742:** `caseReportImages.ts` placements now carry a report section (`sectionId`, `sectionLabel`), an `origin` (an attachment or a photo already on the case) and `mimeType`; `insertIntoReport` and `takeOutOfReport` keep a signed report unchanged without an amendment or addendum; `applyCaseReportImagesToPdf` leaves images placed in a section to the renderer. New: `reportSectionImages.ts` (the renderer's `sectionImages`), `placementLinks.ts` (a fresh read link for a file in the hospital's storage). `resolveImageAssociationEmbedKind` takes the recorded file type. See `docs/architecture/CASE_ATTACHMENTS_API.md`.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/imageAssociation/

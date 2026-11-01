@@ -4,7 +4,8 @@
 // storage, like every mock service). The API server keeps them in SQL Server
 // (docs/architecture/MOLECULAR_ORDERS_API.md). Seeded with the demo's orders: S26-4493's in-house EGFR mutation PCR
 // (queued for Desert Valley's PCR plate), S26-4401's HER2 FISH (sent out to Summit) and (Batch 467b) MFT26-8801's MSI
-// by PCR (send-out, its reference lab still to be chosen). A seed order missing from
+// by PCR (send-out, its reference lab still to be chosen). Batch 746 (S7): twelve more in-house orders waiting for a plate
+// (EGFR and KRAS) and three resulted ones (services/molecular/molecularRunHistoryDemoSeed.ts). A seed order missing from
 // storage is added (orders are never deleted, only cancelled).
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -12,6 +13,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import { withMissingSeedRecords } from '../mockSeedMerge';
 import { REFERENCE_LAB_IDS } from '../facilities/referenceLabSeeds';
 import type { MolecularOrder } from './molecularOrderTypes';
+import { MOLECULAR_RUN_HISTORY_ORDERS } from '../molecular/molecularRunHistoryDemoSeed';
 
 const STORE_KEY = 'molecular_orders_v1';
 const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
@@ -35,6 +37,7 @@ export const MOLECULAR_ORDER_SEED: readonly MolecularOrder[] = [
     blockId: '', blockLabel: '', assayTarget: 'st-msi-pcr', assayName: 'MSI by PCR', routing: 'SEND_OUT',
     orderedBy: 'PATH-001', orderedByName: 'Pete Nimmo', orderedAt: hoursAgo(5), status: 'QUEUED',
   },
+  ...MOLECULAR_RUN_HISTORY_ORDERS,
 ];
 
 type Keyed = MolecularOrder & { id: string };

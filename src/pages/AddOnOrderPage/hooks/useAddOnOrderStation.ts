@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Real, per PS-287 (Pathologist-Initiated Add-On Orders). Genuinely
 // different shape from every prior workstation this session built
-// (Microtomy/Embedding/Slide Distribution): this is CASE-scoped, not
+// (Microtome/Embedding/Slide Distribution): this is CASE-scoped, not
 // block/slide-scoped — a pathologist reviewing one case places one or
 // more add-on orders against that case's own real blocks, same real
 // "search or scan an accession to open it" convention
@@ -45,6 +45,10 @@
 // hooks/useWorkstationSave.ts): the action is run on the newest copy of the case and run again if someone else saved
 // first (up to 3 tries). A save that still fails comes back as `notSaved` ("Not saved" on the page) and the case is
 // reloaded from the store, instead of the change staying on screen as if it were saved.
+//
+// Batch 731 (spec §10.6): an order on an exhausted block carries each line's alternative and the reason
+// (`exhaustedChoices`); a "Block exhausted" flag can be answered with the same alternatives. Both are audited, and an
+// answer that confirms the block has no tissue left records its "exhausted" end state (services/itemEndStates/).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useCallback, useEffect } from 'react';
@@ -52,7 +56,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import {
   userService, facilityService, stainTypeService, scanStationService, authorizationService, activeReferenceLabs, molecularOrderEngine,
+  auditService,
 } from '@/services';
+import { recordEndStateFromAction } from '@/services/itemEndStates/recordEndStateFromAction';
+import type { ExhaustedBlockChoice } from '@/utils/exhaustedBlockRules';
 import { sendEmail } from '@/services/communications/notificationService';
 import { resolveCasePerformingLab } from '@/services/cases/casePoolAssignmentService';
 import {
@@ -73,6 +80,8 @@ import {
   type AddOnOrderLineInput, type AddOnOrderSubmissionInput, type AddOnTrackingStage,
 } from '@/utils/addOnOrderOperations';
 import type { BlockExceptionReason } from '@/types/case/AddOnOrder';
+import { printAddOnLabelsAt, newSlideIds, type PrintAtOutcome } from '@/services/labelPrintRoutes/printAddOnLabelsAt';
+import { printAtDeps } from '@/services/labelPrintRoutes/printAtDeps';
 
 export interface TrackedAddOnOrder {
   specimenId: string;
@@ -147,6 +156,9 @@ export function useAddOnOrderStation() {
     saveSpecimens: async () => {},
     // Batch 467: molecular lines become orders the molecular order engine routes and queues.
     ingestMolecularOrders: requests => molecularOrderEngine.ingest(requests),
+    // Batch 731: orders on an exhausted block and the answers to a "Block exhausted" flag are audited.
+    audit: entry => auditService.logEvent(entry),
+    recordEndState: entry => recordEndStateFromAction([entry]),
   };
 
   /** Batch 669 (ws-8): runs an action on the newest copy of the case (run again if someone else saved first), shows
@@ -156,7 +168,7 @@ export function useAddOnOrderStation() {
   ): Promise<AddOnActionResult> => {
     if (!caseData) return { ok: false, failed: true };
     const outcome = await runAction(caseData.id, (current: Case, save: SpecimenSaver) =>
-      run(current, { ...baseDeps, saveSpecimens: (_c, specimens) => save(specimens) }));
+      run(current, { ...baseDeps, saveSpecimens: (_c, specimens, matrixBlocks) => save(specimens, matrixBlocks ? { matrixBlocks } : undefined) }));
     if (outcome.status === 'failed') {
       if (outcome.latest) setCaseData(outcome.latest);
       return { ok: false, notSaved: outcome.reason };
@@ -165,13 +177,24 @@ export function useAddOnOrderStation() {
     return outcome.value;
   }, [caseData, runAction]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /** Places the order on every chosen block (services/addOnOrders). */
+  /** Places the order on every chosen block (services/addOnOrders). Batch 730: with `printAtStationId`, the new slides'
+   *  labels are then printed at that station (services/labelPrintRoutes/printAddOnLabelsAt.ts); the result says how it went. */
   const submitOrder = useCallback(async (
-    blockIds: string[], lines: AddOnOrderLineInput[], submission: AddOnOrderSubmissionInput,
-  ): Promise<AddOnActionResult> => {
+    blockIds: string[], lines: AddOnOrderLineInput[], submission: AddOnOrderSubmissionInput, printAtStationId?: string,
+    exhaustedChoices?: Record<string, ExhaustedBlockChoice>,
+    pieceIdsByBlock?: Record<string, string[]>,
+  ): Promise<AddOnActionResult & { printedAt?: PrintAtOutcome }> => {
     if (!caseData) return { ok: false, failed: true };
-    return act((current, deps) => placeAddOnOrders({ caseData: current, blockIds, lines, submission, actor, performingLabFacilityId, requirements }, deps));
+    const before = caseData;
+    const result = await act((current, deps) => placeAddOnOrders({ caseData: current, blockIds, lines, submission, actor, performingLabFacilityId, requirements, exhaustedChoices, pieceIdsByBlock }, deps));
+    if (!result.ok || !printAtStationId || !result.specimens) return result;
+    const after = { ...before, specimens: result.specimens } as Case;
+    const printedAt = await printAddOnLabelsAt({ caseData: after, slideIds: newSlideIds(before, after), stationId: printAtStationId, actor }, printAtDeps);
+    return { ...result, printedAt };
   }, [caseData, performingLabFacilityId, requirements, act]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Batch 730: stations whose slide printer an add-on's labels can be sent to ("print labels at"). */
+  const printStations = stations.filter(st => st.status === 'Active' && st.supportsPrinting && !!st.cassetteSlidePrinterProfileId);
 
   /** Real, per §4 — every real StainOrder anywhere on this case that
    *  this flow itself created (orderedByPathologistId set), with its
@@ -188,6 +211,13 @@ export function useAddOnOrderStation() {
           if (!order.orderedByPathologistId && !order.exception) continue;
           rows.push({ specimenId: specimen.id, specimenLabel: specimen.label, blockId: block.id, blockLabel: block.label, order, stage: computeAddOnTrackingStage(order) });
         }
+      }
+    }
+    // Batch 737 (spec §11.4): orders on a matrix block (no specimen letter; the block label reads M1).
+    for (const mb of caseData.matrixBlocks ?? []) {
+      for (const order of mb.slides ?? []) {
+        if (!order.orderedByPathologistId && !order.exception) continue;
+        rows.push({ specimenId: mb.id, specimenLabel: '', blockId: mb.id, blockLabel: mb.label, order, stage: computeAddOnTrackingStage(order) });
       }
     }
     return rows.sort((a, b) => (b.order.orderedAt ?? '').localeCompare(a.order.orderedAt ?? ''));
@@ -214,9 +244,12 @@ export function useAddOnOrderStation() {
   const handleResolveException = useCallback(async (
     stainOrderId: string, action: AddOnExceptionResponse, responseNote: string,
     modifyChanges?: { levelDepthMicrons?: number; cuttingInstructions?: string },
+    alternative?: { slideId?: string; blockId?: string },
+    individually?: boolean,
+    reasonCode?: string,
   ): Promise<AddOnActionResult> => {
     if (!caseData) return { ok: false, failed: true };
-    return act((current, deps) => respondToAddOnException({ caseData: current, stainOrderId, action, responseNote, modifyChanges, actor, requirements }, deps));
+    return act((current, deps) => respondToAddOnException({ caseData: current, stainOrderId, action, responseNote, modifyChanges, alternative, individually, reasonCode, actor, requirements }, deps));
   }, [caseData, requirements, act]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Real, per §3 — which real stations this order's routed workflow
@@ -230,7 +263,7 @@ export function useAddOnOrderStation() {
 
   return {
     caseData, searchError, stainTypes, stations, referenceLabs, performingLabFacilityId, actor, requirements, primaryPathologistName,
-    loadDirectories, openCase, closeCase, submitOrder, trackedOrders,
+    loadDirectories, openCase, closeCase, submitOrder, trackedOrders, printStations,
     handleMarkBlockRetrieved, handleFlagException, handleResolveException, stationsForRouting,
   };
 }

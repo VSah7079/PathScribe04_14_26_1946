@@ -39,13 +39,17 @@ export const SEED_EQUIPMENT: readonly Equipment[] = [
   // Batch 467: the in-house real-time PCR analyser at Desert Valley (runs EGFR mutation PCR, services/molecularOrders/).
   { id: 'inst-pcr-01', code: 'PCR_01', name: 'Real-time PCR 1', kind: 'analyser', make: 'Thermo Fisher', model: 'QuantStudio 5', maintenanceIntervalDays: 30, calibrationIntervalDays: 180, facilityId: 'c-ent-dvmc', status: 'Active' },
   // Batch 359: the physical printer behind the seeded Zebra printer profile
-  // (printer-zt411-example), shared by Grossing Station 1 and Microtomy Bench 1.
+  // (printer-zt411-example), shared by Grossing Station 1 and Microtome Bench 1.
   { id: 'eq-zebra-zt411-01', code: 'ZEBRA_ZT411_01', name: 'Zebra ZT411 label printer', kind: 'label_printer', make: 'Zebra', model: 'ZT411', facilityId: 'c-fenwick-general', status: 'Active' },
   // Batch 434: the slide scanners WSI scan batches are loaded on (their code is
   // WsiScanBatch.scannerInstrumentId and StainOrder.scannerAssignment.scannerInstrumentId).
   { id: 'eq-aperio-gt450-01', code: 'APERIO_GT450_01', name: 'Leica Aperio GT450 #1', kind: 'slide_scanner', make: 'Leica', model: 'Aperio GT450', facilityId: 'c-ent-dvmc', status: 'Active' },
   { id: 'eq-aperio-gt450-02', code: 'APERIO_GT450_02', name: 'Leica Aperio GT450 #2', kind: 'slide_scanner', make: 'Leica', model: 'Aperio GT450', facilityId: 'c-ent-dvmc', status: 'Active' },
   { id: 'eq-genius-01', code: 'GENIUS_01', name: 'Hologic Genius Digital Diagnostics System', kind: 'slide_scanner', make: 'Hologic', model: 'Genius', facilityId: 'c-ent-dvmc', status: 'Active' },
+  // Batch 739 (fluid decision 4): the liquid-based cytology processors a Liquid-Based Cytology Processing batch is
+  // made for. Which one is chosen goes on the instrument order; no vendor is assumed.
+  { id: 'eq-lbc-proc-01', code: 'LBC_PROC_01', name: 'ThinPrep processor', kind: 'lbc_processor', make: 'Hologic', model: 'ThinPrep 5000', facilityId: 'c-fenwick-general', status: 'Active' },
+  { id: 'eq-lbc-proc-02', code: 'LBC_PROC_02', name: 'SurePath processor', kind: 'lbc_processor', make: 'BD', model: 'PrepStain', facilityId: 'c-fenwick-general', status: 'Active' },
 ];
 
 export const EQUIPMENT_STORAGE_KEY = 'equipment';

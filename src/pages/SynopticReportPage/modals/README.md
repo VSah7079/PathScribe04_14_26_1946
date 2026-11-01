@@ -1,3 +1,5 @@
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 **Batch 650:** `PreFinalisationModal.tsx` answers Cancel finalise (Ctrl+Alt+Escape) while shown; there is deliberately no command to confirm (the signature check needs typed credentials).
 
 **Batch 649 (Amendment window):** `AmendmentModal.tsx` takes `caseId` and `facilityId`; the mode choices for kinds the person cannot release are disabled with the refusal text as the title, the mode moves to a permitted kind on opening, the primary button (Save draft / Release addendum) and Continue are disabled with the missing permission as the title, and with none of the three a note says so. Test: `AmendmentModal.capability.test.tsx`.
@@ -190,7 +192,7 @@ PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a
 
 ## Batch 460
 
-`ManageReprintsModal.tsx` and `MaterialTrackingHistoryModal.tsx` use each slide's printed level. Before, a reprint after Microtomy reordered the slides printed another slide's barcode.
+`ManageReprintsModal.tsx` and `MaterialTrackingHistoryModal.tsx` use each slide's printed level. Before, a reprint after Microtome reordered the slides printed another slide's barcode.
 
 ## Batch 483 — new: SignatureHistoryModal.tsx (PS-359 tracker follow-up)
 

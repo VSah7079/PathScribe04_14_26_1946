@@ -10,22 +10,24 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Decant } from '@/types/case/Material';
 import { formatList } from '@/utils/formatList';
-import { computeCytologyPrepSuggestions } from '@/services/cytology/computeCytologyPrepSuggestions';
+import { computeCytologyPrepSuggestions, isCsfSpecimen } from '@/services/cytology/computeCytologyPrepSuggestions';
 import { remainingPrepSuggestions } from '@/utils/microtomyOperations';
 
 export interface CytologyPanelProps {
   decant: Decant;
+  /** Batch 739: the decant's specimen (a CSF gets cytospins). */
+  specimen?: { specimenDictionaryEntryId?: string; description?: string };
   onUpdateFields: (fields: { totalVolumeMl?: number; appearance?: Decant['appearance']; yieldPelletSize?: Decant['yieldPelletSize'] }) => void;
   onApplySuggestions: (suggestions: ReturnType<typeof computeCytologyPrepSuggestions>) => void;
 }
 
-const CytologyPanel: React.FC<CytologyPanelProps> = ({ decant, onUpdateFields, onApplySuggestions }) => {
+const CytologyPanel: React.FC<CytologyPanelProps> = ({ decant, specimen, onUpdateFields, onApplySuggestions }) => {
   const { t, i18n } = useTranslation();
   const [volumeInput, setVolumeInput] = useState(decant.totalVolumeMl?.toString() ?? '');
 
   const suggested = useMemo(
-    () => computeCytologyPrepSuggestions({ totalVolumeMl: decant.totalVolumeMl, yieldPelletSize: decant.yieldPelletSize }),
-    [decant.totalVolumeMl, decant.yieldPelletSize],
+    () => computeCytologyPrepSuggestions({ totalVolumeMl: decant.totalVolumeMl, yieldPelletSize: decant.yieldPelletSize, csf: isCsfSpecimen(specimen) }),
+    [decant.totalVolumeMl, decant.yieldPelletSize, specimen],
   );
   // Batch 669 (ws-5): only the suggested slides not already on the decant are offered; Accept adds just those.
   const suggestions = useMemo(() => remainingPrepSuggestions(decant.stains, suggested), [decant.stains, suggested]);

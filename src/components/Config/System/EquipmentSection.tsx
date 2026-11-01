@@ -17,6 +17,7 @@
 // profile for Rack Loading's deck-slot checks, is edited and saved here.
 // ─────────────────────────────────────────────────────────────────────────────
 import React, { useEffect, useMemo, useState } from 'react';
+import './EquipmentSection.css';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import { equipmentService, equipmentLogService, scanStationService, printerProfileService, grossingHardwareProfileService, EQUIPMENT_KINDS } from '../../../services';
@@ -28,6 +29,7 @@ import { formatCalendarDate } from '../../../utils/search/caseSearchCsv';
 import { earliestDue, equipmentServiceState, groupLogByEquipment, isServiceAlert } from '../../../services/equipment/equipmentLogRules';
 import EquipmentLogModal from './EquipmentLogModal';
 import DeckLayoutEditor from './DeckLayoutEditor';
+import StainingRacksPanel from './StainingRacksPanel';
 import type { Equipment, EquipmentDraft, EquipmentKind, Facility, GrossingHardwareProfile, PrinterProfile, ScanStation } from '../../../services';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
 import {
@@ -40,6 +42,7 @@ const emptyDraft: Draft = { code: '', name: '', kind: 'analyser', make: '', mode
 
 /** An interval field's text as days; empty = not scheduled. */
 const toDays = (v: string): number | undefined => (v.trim() === '' ? undefined : Number(v));
+const toCelsius = (v: string): number | undefined => (v.trim() === '' ? undefined : Number(v));
 
 interface ModalProps {
   mode: 'add' | 'edit';
@@ -60,6 +63,7 @@ const EquipmentModal: React.FC<ModalProps> = ({ mode, item, items, labs, station
           code: item.code, name: item.name, kind: item.kind, make: item.make ?? '', model: item.model ?? '', serialNumber: item.serialNumber ?? '',
           facilityId: item.facilityId, scanStationId: item.scanStationId ?? '', active: item.status === 'Active',
           maintenanceIntervalDays: item.maintenanceIntervalDays, calibrationIntervalDays: item.calibrationIntervalDays,
+          temperatureMinCelsius: item.temperatureMinCelsius, temperatureMaxCelsius: item.temperatureMaxCelsius, supportsLargeFormat: item.supportsLargeFormat,
           deckSlots: item.deckSlots?.map(sl => ({ ...sl, rackTypes: [...sl.rackTypes] })),
         }
       : { ...emptyDraft, facilityId: defaultFacilityId ?? '' },
@@ -165,9 +169,33 @@ const EquipmentModal: React.FC<ModalProps> = ({ mode, item, items, labs, station
           </div>
           <span className="ps-conf-field-hint">{t('equipmentSection.modal.intervalHint')}</span>
 
+          {/* Batch 730: the range a temperature check in the Equipment Log is held to. */}
+          <div className="ps-conf-form-row">
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label" htmlFor="eq-temp-min">{t('equipmentSection.modal.temperatureMinLabel')}</label>
+              <input id="eq-temp-min" type="number" step="0.1" className="ps-conf-input"
+                value={draft.temperatureMinCelsius ?? ''} onChange={e => set('temperatureMinCelsius', toCelsius(e.target.value))} />
+            </div>
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label" htmlFor="eq-temp-max">{t('equipmentSection.modal.temperatureMaxLabel')}</label>
+              <input id="eq-temp-max" type="number" step="0.1" className={`ps-conf-input ${errors.temperatureMaxCelsius ? 'ps-conf-input--error' : ''}`}
+                value={draft.temperatureMaxCelsius ?? ''} onChange={e => set('temperatureMaxCelsius', toCelsius(e.target.value))} />
+              {errorText('temperatureMaxCelsius')}
+            </div>
+          </div>
+          <span className="ps-conf-field-hint">{t('equipmentSection.modal.temperatureHint')}</span>
+
           {draft.kind === 'analyser' && (
             <DeckLayoutEditor slots={draft.deckSlots ?? []} onChange={slots => set('deckSlots', slots)}
               error={errors.deckSlots ? t(`equipmentSection.errors.${errors.deckSlots}`) : null} />
+          )}
+
+          {/* Batch 732 (spec §11.1): a stainer or slide scanner that takes large-format slides. */}
+          {(draft.kind === 'stainer' || draft.kind === 'slide_scanner') && (
+            <label className="ps-conf-checkbox-row">
+              <input type="checkbox" checked={!!draft.supportsLargeFormat} onChange={e => set('supportsLargeFormat', e.target.checked || undefined)} />
+              {t('equipmentSection.modal.largeFormatLabel')}
+            </label>
           )}
 
           <div className="ps-conf-form-field">
@@ -243,6 +271,8 @@ const EquipmentSection: React.FC<{ selectedFacilityId?: string }> = ({ selectedF
           name: rest.name, kind: rest.kind, make: rest.make, model: rest.model, serialNumber: rest.serialNumber,
           facilityId: rest.facilityId, scanStationId: rest.scanStationId, status,
           maintenanceIntervalDays: rest.maintenanceIntervalDays, calibrationIntervalDays: rest.calibrationIntervalDays,
+          temperatureMinCelsius: rest.temperatureMinCelsius, temperatureMaxCelsius: rest.temperatureMaxCelsius,
+          supportsLargeFormat: rest.kind === 'stainer' || rest.kind === 'slide_scanner' ? rest.supportsLargeFormat : undefined,
           // Batch 406: the deck layout, for analysers only.
           deckSlots: rest.kind === 'analyser' ? rest.deckSlots : undefined,
         })
@@ -335,6 +365,8 @@ const EquipmentSection: React.FC<{ selectedFacilityId?: string }> = ({ selectedF
           </table>
         </div>
       </div>
+      {/* Batch 737 (spec §11.1): reusable staining racks that take large-format slides. */}
+      <StainingRacksPanel />
 
       {logFor && (
         <EquipmentLogModal item={logFor} entries={logByDevice.get(logFor.id) ?? []} today={today}

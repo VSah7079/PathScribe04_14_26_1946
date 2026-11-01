@@ -1,3 +1,7 @@
+**Batch 739:** billing rule PAP-SUREPATH (88175, beside PAP-THINPREP).
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/billing/
@@ -282,11 +286,11 @@ PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a
 
 Billing correction's case-coding save is versioned; a save that never lands is noted in the audit.
 
-## Batch 460 — Billing review on the Cytology Workspace and at Microtomy
+## Batch 460 — Billing review on the Cytology Workspace and at the Microtome
 
-Pete: full billing review in the Cytology Workspace; read-only charges at the Microtomy bench, with a switch to full review for people allowed to change billing; a permission of its own for reviewing codes.
+Pete: full billing review in the Cytology Workspace; read-only charges at the Microtome bench, with a switch to full review for people allowed to change billing; a permission of its own for reviewing codes.
 
-**Shared by all three screens** (report page, Cytology Workspace, Microtomy). These were inline in `SynopticReportPage.tsx`; the page now calls them too.
+**Shared by all three screens** (report page, Cytology Workspace, Microtome). These were inline in `SynopticReportPage.tsx`; the page now calls them too.
 - **`caseBillingCoding.ts`** (pure): every coding change the billing panel makes.
   - `codingWithApproved`, `codingWithRejected`, `codingWithOverride`, `codingWithoutCode`, `codingWithCorrection`, `groupApprovalsByUnit`.
   - Specimen base codes: `specimensWithBaseCodeAdded`, `specimensWithBaseCodeRemoved`, `specimensWithBaseCodeCorrected`.
@@ -313,7 +317,7 @@ Pete: full billing review in the Cytology Workspace; read-only charges at the Mi
 - **Microtomy:** the Billing box under Prior history lists each slide's codes and their status, with any warnings. "$ Full billing review" opens the full panel. It's greyed out without the permission, and the tooltip says why.
 - Without the permission, a change is refused with a message and nothing changes.
 
-**Admin Guide:** to stop a role changing billing (for example histotechs), remove "Review a case's billing codes" from it in the Role Dictionary. Its users keep the read-only charges at Microtomy.
+**Admin Guide:** to stop a role changing billing (for example histotechs), remove "Review a case's billing codes" from it in the Role Dictionary. Its users keep the read-only charges at the Microtome.
 
 Tests: `caseBillingCoding.test.ts`, `caseBillingCharges.test.ts`, `materialChargePreview.test.ts`, and `hooks/useCaseBillingReview.test.ts`.
 
@@ -360,3 +364,7 @@ Each service here (the billing and charge-capture services) now has an API-serve
 `resolveChargeFacilities.ts` (+ test): `resolveSplitTechnicalFacility` (a technical lab that is a different lab from the reporting lab) and `resolveChargePerformingFacilityId` (TC goes to the technical lab on a split case; 26 and Global to the reporting lab). `jsonWebhookBuilder.ts` adds `performingFacilityId` per charge and `technicalComponentFacility` on a split case. Release rules are unchanged (`codeMapTable.ts`); the test proves TC at grossing and 26 at sign-out.
 
 - Batch 663: `canDraftOrApproveBillingCharge.ts` was removed (no caller passed a role). Charges are guarded by `billing:charge:approve` in `chargeApproval.ts`; the `actorRole` parameter on submit, approve and reject is ignored and kept only so the API contract is unchanged.
+
+## Batch 728
+
+- `mockOutboundChargeQueueService.ts`: `enqueue` refuses a research case's charge (`RESEARCH_NO_CHARGE`). The API server applies the same rule.

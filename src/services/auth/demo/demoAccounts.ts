@@ -92,6 +92,9 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
   // may do comes from those staff roles.
   { email: 'rachel.okafor@demo.pathscribe.ai', id: 'LD-001', name: 'Dr. Rachel Okafor', role: 'admin', initials: 'RO', voiceProfile: 'EN-US',
     password: { iterations: 600000, salt: 'BRs+bgTOn+h9O7QJQo/K+g==', hash: 'JXgVWl7/CcR45ynpfRQ0ZEY7ROUArQnSPQybJKEoEsg=' } },
+  // Batch 738 (Demo Seed Data S13): an administrator with no clinical role, for the demo videos (fictional).
+  { email: 'jordan.ellis@demo.pathscribe.ai', id: 'ADM-001', name: 'Jordan Ellis', role: 'admin', initials: 'JE', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: 'ViiIsYPOd8vNjaGu/25XAA==', hash: 'NnFSCzBuJr6r3UVr6JDawB+X7jVidenA9B6K83KeEwA=' } },
   { email: 'james.okafor@demo.pathscribe.ai', id: '2', name: 'Dr. James Okafor', role: 'pathologist', initials: 'JO', voiceProfile: 'EN-US',
     password: { iterations: 600000, salt: '9dJCrOwDXXASeVNr08zdqQ==', hash: 'QZ9TtRQGYt15AMr5i4z00toCalq7YH2WH8Qv0nZdf+0=' } },
   { email: 'lucas.moreau@demo.pathscribe.ai', id: 'FEL-001', name: 'Dr. Lucas Moreau', role: 'pathologist', initials: 'LM', voiceProfile: 'EN-US',

@@ -3,7 +3,7 @@
 // Batch 460: a slide's level ("L3") is the one printed on its label: the end
 // of its displayId, fixed when the slide was ordered. Before, every scan
 // resolver and location update worked the level out from the slide's
-// position in the list, so after Microtomy reordered the slides (batch mode)
+// position in the list, so after Microtome reordered the slides (batch mode)
 // or deleted an unprinted one, scanning a printed slide found a different
 // slide, and a new slide could reuse a level (and barcode) already printed.
 //

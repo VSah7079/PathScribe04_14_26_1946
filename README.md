@@ -1,3 +1,25 @@
+**Batch 747:** demo seed row S8 (wall displays: profiles, demo display tokens, a busy day on every view) and a fix so the wall views find their facility's work. See `docs/product/DEMO_SEED_DATA.md`.
+
+**Batch 746:** demo seed row S7 (molecular orders, runs, lots and a resulted case for Video 5). See `docs/product/DEMO_SEED_DATA.md`.
+
+**Batch 745:** demo seed row S6 (autopsy stages for Video 4). See `docs/product/DEMO_SEED_DATA.md`.
+
+**Batch 744:** demo seed row S14 (fluids and FNAs) and patient names on the Cytology Worklist. See `docs/product/DEMO_SEED_DATA.md`.
+
+**Batch 743:** on an Assist case the Attachments window keeps references only (the LIS writes the report). See `docs/architecture/CASE_ATTACHMENTS_API.md` §6a.
+
+**Batch 742:** case attachments (Pete's Release 1): one Attachments window per case, files sent to the hospital's own storage through a storage adapter (PathScribe keeps pointers only), and images printed inside their report section by the renderer (`functions/main.py`; redeploy). See `docs/architecture/CASE_ATTACHMENTS_API.md`.
+
+**Batch 725:** the in-app User Guide page scrolls (contents list and article each have their own scroll area). Styles only. See `src/i18n/README.md`.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
+**Batch 723:** the User Guide's Home screenshot (`home-overview`) is replaced with a current capture. Documentation only.
+
+**Batch 722:** the User Guide's Home article describes the PubMed article line and paste box, with a picture. Documentation only. See `docs/product/GUIDE_UPDATES.md`.
+
+**Batch 721:** the Accession screen shows Case & Patient and Specimens side by side on a wide window. See `docs/product/GUIDE_UPDATES.md`.
+
 **Batch 714 (Oct 28, 2026):** the Accession screen's Clinical Indication shows which order field it came from (OBR-31, ORC-16, DG1, NTE, FHIR reasonCode/reasonReference) and whether it was edited; the case keeps the order's original text. The mapping rule is built and tested here, but no inbound HL7/FHIR parser exists in this repo; the server applies it (`docs/architecture/ACCESSIONING_API.md` section 1a).
 
 **Batch 711:** the demo sign-in screen has "Ask my administrator to reset my password" (password sign-in only; SSO deployments do not use it): an audit entry and an urgent message to the administrators who can set staff passwords, marked handled when one is set; see `docs/architecture/PASSWORD_RESET_REQUEST_API.md`.
@@ -553,7 +575,7 @@ Specimen pipeline gaps closed in the demonstration build; the server-side repeat
 
 ## Batch 652 (defect fixes)
 
-Defect fixes in My Contribution peer averages, microtomy scan labels, multi-recipient delegation, https-only External Resources and the report footer barcode. See `src/i18n/README.md` and `docs/product/GUIDE_UPDATES.md`.
+Defect fixes in My Contribution peer averages, microtome scan labels, multi-recipient delegation, https-only External Resources and the report footer barcode. See `src/i18n/README.md` and `docs/product/GUIDE_UPDATES.md`.
 
 **Batch 663:** report voice commands (Maximise, Minimise, Preview, Internal Note, Skip Field, Add Addendum), Worklist "go to row N" and "open accession X", macro access by capability, dead billing role check removed, four multi-row Worklist commands switched off.
 
@@ -585,3 +607,67 @@ Batch 670: audit writes (and the rest of the audit path) now go through the swit
 - Feedback destination and validation routing (Oct 28, 2026): Enhancement Requests can be delivered to a website address set in Configuration > System > Feedback or pre-seeded in config.json (`VITE_ENHANCEMENT_REQUEST_URL`); QA feedback has an AI / Template validation category that links a validation study and template and goes to its own recipients (`FEEDBACK_ROUTED_TO_VALIDATION`). See `docs/architecture/FEEDBACK_DESTINATION.md`.
 
 **Batch 715 (Oct 28, 2026):** specimens, blocks and slides can be labelled with letters or numbers, chosen separately for each (enterprise default, performing-lab override); new cases only. See `src/services/labeling/README.md` and the Administrator Guide chapter 11.
+
+## Batch 726
+
+Lab Workflow & Batch Management spec, Batch 726 of 726–732: the Embedding, Microtome and Slide Distribution workstations read batches; every station scan is a recorded event (`src/services/stationScans/`, `docs/architecture/STATION_TRACKING_API.md`); a carrier keeps its batch from step to step.
+
+## Batch 727
+
+Wall displays: add-ons waiting at the microtome on Embedding & Microtome (ADD-ON tag, time X per lab, pinned when STAT or late), a Stations view with the live minimum set, every label in the display's language.
+
+## Batch 728
+
+Research cases and batch purposes (Lab Workflow & Batch spec, Decision 4): a research case (recognised by accession or research-patient MRN prefix) stays off clinical worklists and statistics, sends no result, report, charge or registry submission, and is kept for its own retention days; carriers carry a configurable purpose, and wall displays can show chosen purposes. New Container no longer defaults the step to Decal.
+
+## Batch 729
+
+Station tracking, part 2 (Lab Workflow & Batch spec 7.3–7.5, 10.1, 11.6): the Embedding Station and Slide Distribution accept matrix blocks; a scan history at the Grossing, Embedding, Microtome and Slide Distribution screens; "printed" and "completed" station events; a wrong-case warning at Grossing; the Stations wall view lists items not scanned recently and counts items with no carrier; the Microtome says when other blocks of the case are still waiting.
+
+## Batch 730
+
+Lab Workflow & Batch spec §9 and §9.3: seven built-in Lab Workflow Reports (turnaround by step, volume per station, STAT performance, add-ons, recut and rework, reconciliation exceptions, batch duration) with CSV export, each behind its own permissions; three new reporting-feed datasets (station scans, carriers, add-on orders) and a Power BI kit (queries, measures, guide; not tested); "print labels at" for add-on orders; temperature checks in the Equipment Log.
+
+## Batch 731
+
+Lab Workflow & Batch spec §10.4–10.6: the exhausted-block rule as decided (an exhausted block can be ordered from only through an alternative per line: an unstained slide already cut, re-embedding, or another block of the same part, with a reason, audited; the same choices answer a Microtome "Block exhausted" flag; the stations warn and say what remains; the Embedding Station releases orders waiting for re-embedding), item end states with a reason, user and time (recorded at the Microtome and Slide Distribution, and automatically on disposal, referral and confirmed exhaustion), and lineage (a slide's scan events name its block; reporting-feed dataset `item_end_states`).
+
+## Batch 732
+
+Megablocks and multi-piece blocks (Lab Workflow & Batch spec §11): a block type (standard, megablock, multi-piece; matrix blocks as before) that sets the mold, the slide size and the label template; a piece map set at grossing (part, description, orientation, ink, position); slides that record how many levels they carry and the pieces they were ordered for; add-on orders for a piece or a level range; a piece marked used up at the Microtome (partial exhaustion, with the exhausted-block choices per piece); large-format slides only on hardware marked for them.
+
+## Batch 741
+
+Batch 741: Divide specimen (Pete's fluid decisions 2 and 3): aliquots with the starting volume accounted for, each with a destination and a status up to Result back with the receiving accession.
+
+## Batch 740
+
+Batch 740: the Cytology Preparation bench (Pete's fluid decision 1): fluids prepared on their own screen, and every cell block handed off to histology with two scans before the Microtome takes it.
+
+## Batch 739
+
+Batch 739: Pete's fluid decisions 4 to 6: aliquots as their own decant type (HPV aliquots no longer called cell blocks), ThinPrep and SurePath Pap protocols, a vendor-neutral Liquid-Based Cytology Processing step with its processor chosen from Equipment, cytospins suggested for a CSF or small fluid.
+
+## Batch 738
+
+Batch 738: demo seed data part 1 for Pete's demo videos (a sign-out-ready colon case, surgical grossing protocols, Video 1's order, printing benches, a demo administrator, local received time) and the Review before finalising window showing answers in words. Status of every seed row: `docs/product/DEMO_SEED_DATA.md`.
+
+## Batch 737
+
+Batch 737: add-on orders on a matrix block or some of its parts, a matrix part marked used up at the Microtome, megablock cassettes on their own label template, and Batch Management warning on an exhausted block and refusing a large-format slide on a staining carrier that does not take it (racks set in Equipment).
+
+## Batch 736
+
+Batch 736: the bench's tap-to-pick reasons are in the Reason Dictionary (Configuration → System → Bench Reasons), worded by each lab, with translated defaults and stable codes saved in every record and audit entry; the header search's results stay above the on-screen keyboard. See `src/i18n/README.md`.
+
+## Batch 735
+
+Batch 735: the station screens work by touch (Pete's Station Touch Specification v1): shared scan field without the on-screen keyboard, touch layout (Auto on a touch device, per-computer override), one-tap reasons, Move up / Move down, header and windows fixed, Save kept above the keyboard. See `docs/product/STATION_TOUCH.md` and `src/i18n/README.md`.
+
+## Batch 734
+
+Batch 734: ad-hoc carriers move to the station that scans them without a question; direct browser-to-printer printing is off in a server deployment unless a facility allows it (new capability `config:direct-device-printing:manage`, audited). See `src/i18n/README.md`.
+
+## Batch 733
+
+Pete's decisions of Oct 30, 2026: one Block exhausted flag covers every slide on the block still waiting to be cut, and one answer applies to all of them (or slide by slide); Approve Destructive Cutting is offered only while tissue may remain, needs a reason and warns what it costs.

@@ -9,7 +9,8 @@
 
 import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
-import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { permitConfigChange, CONFIG_NOT_PERMITTED } from '../authorization/guardConfigWrites';
+import { BENCH_REASON_SEEDS, isBenchReasonCategory } from './benchReasons';
 import { withMissingSeedRecords } from '../mockSeedMerge';
 import type { ReasonDictionaryEntry, IReasonDictionaryService } from '@/types/reasons/ReasonDictionaryEntry';
 
@@ -143,6 +144,8 @@ const SEED_REASONS: ReasonDictionaryEntry[] = [
     name: 'Other',
     description: 'Any other reason. A note is required.',
   },
+  // Batch 736 (Pete): the bench's tap-to-pick reasons, which each lab can reword (services/reasons/benchReasons.ts).
+  ...BENCH_REASON_SEEDS,
 ];
 
 const STORAGE_KEY = 'reason_dictionary_entries_v1';
@@ -154,13 +157,26 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 80));
 
-const reasonDictionaryServiceUnchecked: IReasonDictionaryService = {
+/** Batch 438 / 736: changing a reason needs its category's Configuration capability: the bench's reasons
+ *  config:bench-reasons:manage, the others config:revision-reasons:manage. The keys are written out so the
+ *  capabilities guard finds them. */
+async function permitReasonChange(category: ReasonDictionaryEntry['category'] | undefined): Promise<boolean> {
+  const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+  return category && isBenchReasonCategory(category)
+    ? permitConfigChange(authorizationService.enforce('config:bench-reasons:manage'), 'config:bench-reasons:manage')
+    : permitConfigChange(authorizationService.enforce('config:revision-reasons:manage'), 'config:revision-reasons:manage');
+}
+
+const categoryOf = (id: string) => load().find(r => r.id === id)?.category;
+
+export const mockReasonDictionaryService: IReasonDictionaryService = {
   async getAll(category) {
     await delay();
     return ok(load().filter(r => r.category === category));
   },
 
   async add(entry) {
+    if (!(await permitReasonChange(entry.category))) return err(CONFIG_NOT_PERMITTED);
     await delay();
     const all = load();
     const newEntry: ReasonDictionaryEntry = { ...entry, id: 'reason-' + Date.now() };
@@ -169,22 +185,20 @@ const reasonDictionaryServiceUnchecked: IReasonDictionaryService = {
   },
 
   async update(id, changes) {
+    if (!(await permitReasonChange(categoryOf(id)))) return err(CONFIG_NOT_PERMITTED);
     await delay();
     const all = load();
     const idx = all.findIndex(r => r.id === id);
     if (idx === -1) return err(`Reason dictionary entry ${id} not found`);
-    const updated = { ...all[idx], ...changes };
+    // The id (the reason's code) and its category never change.
+    const { id: _id, category: _category, ...allowed } = changes as Partial<ReasonDictionaryEntry>;
+    const updated = { ...all[idx], ...allowed };
     const next = [...all];
     next[idx] = updated;
     persist(next);
     return ok(updated);
   },
 
-  async deactivate(id) { return reasonDictionaryServiceUnchecked.update(id, { status: 'Inactive' }); },
-  async reactivate(id) { return reasonDictionaryServiceUnchecked.update(id, { status: 'Active' }); },
+  async deactivate(id) { return mockReasonDictionaryService.update(id, { status: 'Inactive' }); },
+  async reactivate(id) { return mockReasonDictionaryService.update(id, { status: 'Active' }); },
 };
-
-/** Batch 438 (PS-146): changing the dictionary needs its Configuration capability. */
-export const mockReasonDictionaryService: IReasonDictionaryService = guardConfigWrites(reasonDictionaryServiceUnchecked, [
-  ['config:revision-reasons:manage', ['add', 'update', 'deactivate', 'reactivate']],
-]);

@@ -41,14 +41,14 @@ export const CYTOLOGY_DEMO_SPECIMENS: SpecimenEntry[] = [
   // ── GYN ───────────────────────────────────────────────────────────────────
   {
     id: 'sp-cyto-pap-thinprep', name: 'Pap Test, Liquid-Based (ThinPrep)',
-    description: 'Liquid-based Pap test collected into a PreservCyt (ThinPrep) vial. No HPV co-test. No processing protocol: a Pap slide is not a decant.',
+    description: 'Liquid-based Pap test collected into a PreservCyt (ThinPrep) vial. No HPV co-test. Batch 739: its protocol makes the vial and its Pap slide.', protocolId: CYTOLOGY_DEMO_PROTOCOL_IDS.gynThinPrep,
     procedure: 'Pap Smear', site: 'Cervix', ...gyn,
     normalizedLabel: 'Pap Test, Liquid-Based (ThinPrep)', synonyms: ['ThinPrep Pap Test', 'LBC Pap, ThinPrep'],
     ...base,
   },
   {
     id: 'sp-cyto-pap-surepath', name: 'Pap Test, Liquid-Based (SurePath)',
-    description: 'Liquid-based Pap test collected into a CytoRich (SurePath) vial. No HPV co-test. No processing protocol is seeded for this vial type.',
+    description: 'Liquid-based Pap test collected into a CytoRich (SurePath) vial. No HPV co-test. Batch 739: its protocol makes the vial and its Pap slide.', protocolId: CYTOLOGY_DEMO_PROTOCOL_IDS.gynSurePath,
     procedure: 'Pap Smear', site: 'Cervix', ...gyn,
     normalizedLabel: 'Pap Test, Liquid-Based (SurePath)', synonyms: ['SurePath Pap Test', 'LBC Pap, SurePath'], ...base,
   },

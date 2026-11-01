@@ -1,3 +1,13 @@
+**Batch 741:** `specimenDivision.ts` (new): Divide specimen (volume accounted for) and aliquot status (forward only, receiving accession at Result back), with permissions and audit. Test: `specimenDivision.test.ts`.
+
+**Batch 740:** `materialDemoSeed.ts`: the S26-5005 cell block is seeded as handed off.
+
+**Batch 739:** `materialDemoSeed.ts` applies `utils/aliquotMigration.ts` when it seeds (Full Reset).
+
+**Batch 737:** `pieceExhaustion.ts` marks a matrix block's part used up through the matrix block's one-block view (audit material type `matrix_block`).
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # services/material/
 
 Batch 452 (Pete, Oct 4 2026): a case's material tree on the client, with one source of truth, events, and optimistic updates that roll back.
@@ -31,7 +41,7 @@ Batch 452 (Pete, Oct 4 2026): a case's material tree on the client, with one sou
 
 ## Open
 
-*Superseded (Batch 460):* "neither the Cytology Workspace nor the Microtomy workstation shows billing" is out of date. The Workspace has a Billing drawer (full review), and Microtomy shows the block's charges (read-only, with full review for people with `billing:applied-code:review`). Since Batch 453 both save decants through the atomic, versioned change and publish `MATERIAL_DECANTED` (at Batch 452 they changed decants on their own).
+*Superseded (Batch 460):* "neither the Cytology Workspace nor the Microtome workstation shows billing" is out of date. The Workspace has a Billing drawer (full review), and Microtome shows the block's charges (read-only, with full review for people with `billing:applied-code:review`). Since Batch 453 both save decants through the atomic, versioned change and publish `MATERIAL_DECANTED` (at Batch 452 they changed decants on their own).
 
 ## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
 
@@ -39,15 +49,15 @@ Batch 452 (Pete, Oct 4 2026): a case's material tree on the client, with one sou
 
 ## Batch 453 — The Batch 452 open items, and the native-speaker review register
 
-- `materialTree.ts`: `decantOnlyUpdates(before, after)` finds the decant changes when a save changes nothing else. The Microtomy workstation uses it to send each one through `applyDecantChangeLive`. Tests are in `materialSync.test.ts`.
+- `materialTree.ts`: `decantOnlyUpdates(before, after)` finds the decant changes when a save changes nothing else. The Microtome workstation uses it to send each one through `applyDecantChangeLive`. Tests are in `materialSync.test.ts`.
 - The Cytology Workspace now uses the same atomic save (see `services/cytology/`).
 
 ## Batch 456 — Sign-in lockout, password screening, demo seeds
 
 `materialDemoSeed.ts` (`withMaterialDemo`, applied to the seed cases in `mockCaseService.ts`):
 - Decants on S26-4650, S26-4651 (with a p16/Ki-67 slide being stained) and S26-4652 (repeat ThinPrep after an acid wash).
-- S26-5005 (thyroid FNA): a needle-rinse decant and a cell block made from it (`S26-5005-CYT-001-AD2`), H&E pending cut, for Microtomy.
-- S26-4404: matrix block M1 holding cores D, E and F, with an H&E slide ready for review (Material tab → Biopsy Arrays). Microtomy opens it (Batch 460; this line used to say it couldn't).
+- S26-5005 (thyroid FNA): a needle-rinse decant and a cell block made from it (`S26-5005-CYT-001-AD2`), H&E pending cut, for Microtome.
+- S26-4404: matrix block M1 holding cores D, E and F, with an H&E slide ready for review (Material tab → Biopsy Arrays). Microtome opens it (Batch 460; this line used to say it couldn't).
 
 ## Batch 458 — PS-71: every case save carries its version
 
@@ -55,10 +65,10 @@ PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a
 
 `blockCaseChanges.ts`: block, stain, placeholder and Biopsy Array changes as functions of the saved case, plus `saveScreenCaseChange` (the report page's first try with its own version, then a rebuild on a conflict). These replace nine force-writes in `useSpecimenBlockManagement` that overwrote other people's changes.
 
-## Batch 460 — Slide levels, matrix blocks at Microtomy, bench billing saves
+## Batch 460 — Slide levels, matrix blocks at the Microtome, bench billing saves
 
 - **`slideLevels.ts`:** a slide's level ("L3") is the one printed on its label, taken from the end of its `displayId`. Older slides without one fall back to their position.
-  - Before this batch, scan resolution, location updates (`hl7/materialLocationMutation.ts`), disposal by scan, the disposal queue and report, the pending batch queue, the global scan tracker and reprinted labels all used the slide's position. So once Microtomy reordered slides or removed an unprinted one, scanning a printed slide found a different slide, and a new slide could reuse a printed level and its barcode.
+  - Before this batch, scan resolution, location updates (`hl7/materialLocationMutation.ts`), disposal by scan, the disposal queue and report, the pending batch queue, the global scan tracker and reprinted labels all used the slide's position. So once Microtome reordered slides or removed an unprinted one, scanning a printed slide found a different slide, and a new slide could reuse a printed level and its barcode.
   - `stainIndexAtLevel`, `stainAtLevel` and `isSlideAtLevel` now match by the printed level. `nextSlideLevelNumber` is one past the highest level used, so a removed level is never reused.
 - **`materialBillingWrites.ts`:** Microtomy's full-review saves, against the case as saved.
   - A block's codes: `updateCaseWithRetry`.
@@ -87,3 +97,15 @@ Before, Manage Reprints could reprint another slide's barcode after a reorder.
 - **`materialComments.ts`** (Batch 611, #10): `buildMaterialComment`, `appendMaterialComment`, `newMaterialComments`: plain-text comments on a matrix block (also used for blocks and stains' shape). The matrix editor's Details tab shows `components/Common/MaterialCommentThread.tsx`; each new comment is audited as `Matrix Block Comment Added` (no text). Test: `materialComments.test.ts`.
 
 **Batch 715:** `blockCaseChanges.ts`: the ordinary block a specimen gets back when it leaves a Biopsy Array takes the next unused label in the case's letters/numbers style (was always a number).
+
+## Batch 729
+
+- `incompleteSectioning.ts` (new, pure, tested): `sectioningProgress`, `sectioningIncomplete`, `otherBlocksWaiting` (spec 7.5: not all blocks sectioned). Add-ons, controls and cancelled slides are left out.
+
+## Batch 731
+
+- `materialLineage.ts` (new, pure, tested; spec §10.4): `caseLineage` (every item with its parent: container → block → slide → aliquot, decant → slide, matrix block → slide), `parentItemIdOf`, `childItemsOf`, `ancestryOf`, `benchParentItemId` (what the stations record as a printed slide's parent).
+
+## Batch 732
+
+- `pieceExhaustion.ts` (new, tested; spec §11.5): `markBlockPieceExhausted` — needs `material:end-state:record`, audited; the last piece makes the block Exhausted and records its end state.

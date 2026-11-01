@@ -1,7 +1,7 @@
 // src/utils/embeddingOperations.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Real, per PS-285 (Embedding Station) — the ticket's own "sibling,
-// bench-focused workstation" to PS-284's Microtomy Workstation. Pure,
+// bench-focused workstation" to PS-284's Microtome Workstation. Pure,
 // testable functions, same real shape as microtomyOperations.ts's own
 // extraction — the caller (useEmbeddingStation.ts) is responsible for
 // persisting the returned Specimen via caseRouter.updateCase and for

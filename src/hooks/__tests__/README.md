@@ -1,3 +1,5 @@
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # hooks/__tests__/
 
 Tests for hooks in the parent `hooks/` folder that don't have their own dedicated per-hook test file elsewhere.

@@ -249,3 +249,16 @@ describe('generateDefaultMaterial — letters or numbers for blocks (Batch 715)'
     expect(r.blocks[0].stains.map(s => s.displayId)).toEqual(['S26-1-A1-L1', 'S26-1-A1-L2']);
   });
 });
+
+// Batch 739 (Pete, fluid decision 6): a decant track says what it makes; an aliquot carries its purpose and no cassette.
+describe('generateDefaultMaterial — aliquot tracks (Batch 739)', () => {
+  it('makes an HPV aliquot from the Pap with HPV co-test protocol, and a cell block when the track does not say', async () => {
+    const { CYTOLOGY_DEMO_PROTOCOLS, CYTOLOGY_DEMO_PROTOCOL_IDS } = await import('@/services/protocols/cytologyDemoProtocols');
+    const hpv = await generateDefaultMaterial({ id: 'e', protocolId: CYTOLOGY_DEMO_PROTOCOL_IDS.gynThinPrepHpv } as never, 'SP', undefined, [], CYTOLOGY_DEMO_PROTOCOLS);
+    expect(hpv.decants.map(d => [d.decantType, d.aliquotPurpose, d.cassetteColorId])).toEqual([['aliquot', 'hpv', undefined]]);
+    const fluid = await generateDefaultMaterial({ id: 'f', protocolId: CYTOLOGY_DEMO_PROTOCOL_IDS.fluidCellBlock } as never, 'SP', undefined, [], CYTOLOGY_DEMO_PROTOCOLS);
+    expect(fluid.decants.map(d => d.decantType)).toEqual(['cell_block', 'cell_block']);
+    const pap = await generateDefaultMaterial({ id: 'p', protocolId: CYTOLOGY_DEMO_PROTOCOL_IDS.gynSurePath } as never, 'SP', undefined, [], CYTOLOGY_DEMO_PROTOCOLS);
+    expect(pap.decants.map(d => [d.decantType, d.stains.length])).toEqual([['residual_fluid', 1]]);
+  });
+});

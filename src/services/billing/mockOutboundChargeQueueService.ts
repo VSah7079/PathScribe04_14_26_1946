@@ -6,6 +6,14 @@ import type { OutboundChargeQueueEntry } from '@/types/billing/OutboundChargeQue
 import { auditService } from '../auditlog/auditServiceInstance';
 
 const KEY = 'outbound_charge_queue_v1';
+/** Batch 728: the refusal code for a research case's charge. */
+export const RESEARCH_NO_CHARGE = 'RESEARCH_NO_CHARGE';
+
+/** Whether the case is a research case (looked up lazily: the case router imports this queue's neighbours). */
+async function isResearchCaseId(caseId: string): Promise<boolean> {
+  const [{ caseRouter }, { isResearchCaseNow }] = await Promise.all([import('../cases/CaseRouter'), import('../researchCases/researchCaseSettings')]);
+  return isResearchCaseNow(await caseRouter.getCase(caseId).catch(() => null));
+}
 
 const load    = (): OutboundChargeQueueEntry[] => storageGet<OutboundChargeQueueEntry[]>(KEY, []);
 const persist = (data: OutboundChargeQueueEntry[]) => storageSet(KEY, data);
@@ -33,6 +41,8 @@ export const mockOutboundChargeQueueService: IOutboundChargeQueueService = {
 
   async enqueue(entry) {
     await delay();
+    // Batch 728 (Lab Workflow spec, Decision 4): a research case's charges are never queued for billing.
+    if (await isResearchCaseId(entry.caseId)) return err(RESEARCH_NO_CHARGE);
     const newEntry: OutboundChargeQueueEntry = {
       ...entry,
       id: crypto.randomUUID(),

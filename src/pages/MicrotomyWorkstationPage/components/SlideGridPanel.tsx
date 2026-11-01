@@ -32,6 +32,7 @@ import { MICROTOMY_REPRINT_REASONS, MICROTOMY_REASON_KEYS } from '@/utils/microt
 import { actionRegistryService, microtomyAddStainMissing, microtomyFieldRequired, microtomyReprintMissing } from '@/services';
 import type { ResolvedFieldRequirement } from '@/services/fieldRequirements/fieldRequirementRules';
 import { formatList } from '@/utils/formatList';
+import { moveIdOnto, moveIdBy } from '@/utils/listOrder';
 
 const PICKER_CATEGORIES: { key: string; match: (s: StainType) => boolean }[] = [
   { key: 'special', match: s => s.category === 'Special Stain' },
@@ -66,11 +67,13 @@ export interface SlideGridPanelProps {
   onReorder: (orderedStainIds: string[]) => void;
   supportsControlPairing: boolean;
   requirements: readonly ResolvedFieldRequirement[];
+  /** Batch 732: the size of the slides the block produces (a slide with its own size keeps it). */
+  blockSlideSize?: 'standard' | 'large_format';
 }
 
 const SlideGridPanel: React.FC<SlideGridPanelProps> = ({
   stains, stainTypes, printMode, batchSelection, onToggleSelect, onPrintOne, onReprint,
-  onAddLevel, onRemove, onAddStain, onOpenComments, onReorder, supportsControlPairing, requirements,
+  onAddLevel, onRemove, onAddStain, onOpenComments, onReorder, supportsControlPairing, requirements, blockSlideSize,
 }) => {
   const { t, i18n } = useTranslation();
   const [activeCategory, setActiveCategory] = useState<string>('special');
@@ -113,14 +116,10 @@ const SlideGridPanel: React.FC<SlideGridPanelProps> = ({
     const draggedId = dragIdRef.current;
     dragIdRef.current = null;
     if (!draggedId || draggedId === targetId) return;
-    const ids = stains.map(s => s.id);
-    const fromIdx = ids.indexOf(draggedId);
-    const toIdx = ids.indexOf(targetId);
-    if (fromIdx === -1 || toIdx === -1) return;
-    ids.splice(fromIdx, 1);
-    ids.splice(toIdx, 0, draggedId);
-    onReorder(ids);
+    onReorder(moveIdOnto(stains.map(s => s.id), draggedId, targetId));
   };
+  // Touch spec T4 (Batch 735): a finger cannot drag a row reliably, so each row also has Move up and Move down.
+  const moveBy = (id: string, delta: number) => onReorder(moveIdBy(stains.map(s => s.id), id, delta));
 
   return (
     <div className="ps-microtomy-panel">
@@ -151,17 +150,25 @@ const SlideGridPanel: React.FC<SlideGridPanelProps> = ({
             >
               {printMode === 'batch' && (
                 <td>
-                  <input
-                    type="checkbox" checked={batchSelection.has(stain.id)}
-                    disabled={stain.printStatus === 'Printed' || stain.printStatus === 'Canceled'}
-                    onChange={() => onToggleSelect(stain.id)}
-                  />
+                  {/* Batch 735 (touch spec T2): in a label, so the whole 44 px cell is the target. */}
+                  <label className="ps-microtomy-select-cell">
+                    <input
+                      type="checkbox" checked={batchSelection.has(stain.id)}
+                      aria-label={t('microtomyWorkstation.slideGrid.selectForBatch')}
+                      disabled={stain.printStatus === 'Printed' || stain.printStatus === 'Canceled'}
+                      onChange={() => onToggleSelect(stain.id)}
+                    />
+                  </label>
                 </td>
               )}
               <td>{t('microtomyWorkstation.slideGrid.levelShort', { n: slideLevelOf(stain, idx).slice(1) })}{stain.levelDepthMicrons ? ` (${stain.levelDepthMicrons}µm)` : ''}</td>
               <td>
                 {stain.stainName}
                 {stain.isControlSlide && <span className="ps-microtomy-control-badge">{t('microtomyWorkstation.slideGrid.control')}</span>}
+                {/* Batch 732 (spec §11.1, §11.3, §11.4): several levels on one slide, a large-format slide, the pieces it is for. */}
+                {(stain.levelCount ?? 1) > 1 && <span className="ps-microtomy-control-badge">{t('microtomyWorkstation.slideGrid.levelsOnSlide', { count: stain.levelCount })}</span>}
+                {(stain.slideSize ?? blockSlideSize) === 'large_format' && <span className="ps-microtomy-control-badge">{t('blockPieces.slideSizes.large_format')}</span>}
+                {stain.pieceIds?.length ? <span className="ps-microtomy-control-badge">{t('microtomyWorkstation.slideGrid.forPieces', { count: stain.pieceIds.length })}</span> : null}
                 {stain.commentPrintsOnLabel && stain.comments?.length ? (
                   <span className="ps-microtomy-control-badge" title={t('microtomyWorkstation.slideGrid.commentOnLabelTitle')}>{t('microtomyWorkstation.slideGrid.onLabel')}</span>
                 ) : null}
@@ -179,6 +186,16 @@ const SlideGridPanel: React.FC<SlideGridPanelProps> = ({
               </td>
               <td>
                 <div className="ps-microtomy-row-actions">
+                  {printMode === 'batch' && (
+                    <>
+                      <button type="button" className="ps-microtomy-row-btn" disabled={idx === 0} onClick={() => moveBy(stain.id, -1)} aria-label={t('microtomyWorkstation.slideGrid.moveUp')}>
+                        {t('microtomyWorkstation.slideGrid.moveUpShort')}
+                      </button>
+                      <button type="button" className="ps-microtomy-row-btn" disabled={idx === stains.length - 1} onClick={() => moveBy(stain.id, 1)} aria-label={t('microtomyWorkstation.slideGrid.moveDown')}>
+                        {t('microtomyWorkstation.slideGrid.moveDownShort')}
+                      </button>
+                    </>
+                  )}
                   {printMode === 'on_demand' && stain.printStatus !== 'Printed' && stain.printStatus !== 'Canceled' && (
                     <button type="button" className="ps-microtomy-row-btn ps-microtomy-row-btn--primary" onClick={() => onPrintOne(stain)}>
                       {t('microtomyWorkstation.slideGrid.print')}

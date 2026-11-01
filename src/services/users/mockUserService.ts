@@ -65,11 +65,13 @@ const SEED_USERS: StaffUser[] = [
   // record for Michelle Nimmo's pathologist-admin sign-in, which had none and
   // so held no role at all.
   { id: 'ACC-001', firstName: 'Maria', lastName: 'Lopez', credentials: '', email: 'maria.lopez@demo.pathscribe.ai', roles: ['Accessioner'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
-  { id: 'HT-001', firstName: 'Kevin', lastName: 'Brooks', credentials: 'HT(ASCP)', email: 'kevin.brooks@demo.pathscribe.ai', roles: ['Histotechnologist'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
+  // Batch 738 (Demo Seed Data S3): a home bench, so the header is not "No station" after Full Reset.
+  { id: 'HT-001', firstName: 'Kevin', lastName: 'Brooks', credentials: 'HT(ASCP)', email: 'kevin.brooks@demo.pathscribe.ai', roles: ['Histotechnologist'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC', defaultScanStationId: 'station-micro-1' },
   { id: 'CT-001', firstName: 'Priya', lastName: 'Desai', credentials: 'CT(ASCP)', canViewOrchestration: true, email: 'priya.desai@demo.pathscribe.ai', roles: ['Cytotechnologist'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
   { id: 'MT-001', firstName: 'Daniel', lastName: 'Kim', credentials: 'MB(ASCP)', email: 'daniel.kim@demo.pathscribe.ai', roles: ['Molecular Technologist'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
   { id: 'PATH-MN-001', firstName: 'Michelle', lastName: 'Nimmo', credentials: '', canViewOrchestration: true, email: 'michelle.nimmo@ai.com', roles: ['Pathologist', 'Admin'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
-  { id: 'PA-001', firstName: 'Connor', lastName: 'Whitlock', credentials: "PA(ASCP)", canViewOrchestration: true, canViewPediatric: false, email: 'connor.whitlock@pathscribe.ai', roles: ["Pathologists' Assistant (PA)"], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
+  // Batch 738 (Demo Seed Data S3): a home bench, so the header is not "No station" after Full Reset.
+  { id: 'PA-001', firstName: 'Connor', lastName: 'Whitlock', credentials: "PA(ASCP)", canViewOrchestration: true, canViewPediatric: false, email: 'connor.whitlock@pathscribe.ai', roles: ["Pathologists' Assistant (PA)"], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC', defaultScanStationId: 'station-gross-1' },
 ];
 
 // Increment USERS_VERSION whenever SEED_USERS is changed.
@@ -88,6 +90,8 @@ if (dataStorage.getItem(USERS_VERSION_KEY) !== USERS_VERSION) {
 // gives her app access, as single sign-on would.
 export const LATER_SEED_USERS: StaffUser[] = [
   { id: 'LD-001', firstName: 'Rachel', lastName: 'Okafor', credentials: 'MD, FCAP', canViewPediatric: true, canViewOrchestration: true, email: 'rachel.okafor@demo.pathscribe.ai', roles: ['Lab Director'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' } as StaffUser,
+  // Batch 738 (Demo Seed Data S13): administrator only, no clinical role (fictional).
+  { id: 'ADM-001', firstName: 'Jordan', lastName: 'Ellis', credentials: '', canViewPediatric: false, canViewOrchestration: false, email: 'jordan.ellis@demo.pathscribe.ai', roles: ['Admin'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' } as StaffUser,
   // Batch 455 (Pete: two-person workflows need a second person with the right
   // role): a fellow, a second cytotechnologist (QC rescreens Priya Desai's
   // primary screens), a template author and approver, and a QA reviewer. Each

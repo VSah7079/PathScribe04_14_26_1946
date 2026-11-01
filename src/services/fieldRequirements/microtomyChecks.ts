@@ -1,6 +1,6 @@
 // src/services/fieldRequirements/microtomyChecks.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// PS-359, Batch 388. What the Microtomy workstation's comment drawer and slide
+// PS-359, Batch 388. What the Microtome workstation's comment drawer and slide
 // grid need before they act, per the organisation's Field Requirements (page
 // "microtomy"):
 //   - a comment                       microtomyCommentMissing
@@ -21,7 +21,7 @@ const filled = (v: string): string => v.trim();
 const inGroup = (requirements: readonly ResolvedFieldRequirement[], group: FieldGroup) =>
   requirements.filter(f => f.group === group);
 
-/** Whether a Microtomy field is required (drives the "*" beside a label). */
+/** Whether a Microtome field is required (drives the "*" beside a label). */
 export function microtomyFieldRequired(requirements: readonly ResolvedFieldRequirement[], fieldId: string): boolean {
   return requirements.find(f => f.id === fieldId)?.required ?? false;
 }

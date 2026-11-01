@@ -24,6 +24,11 @@ import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router';
 
 vi.mock('./GrossingBenchTools', () => ({ default: () => null }));
+// Batch 729: the scan trail and the wrong-case check have their own tests (services/stationScans/).
+vi.mock('@/components/Workstation/ScanTrailPanel', () => ({ default: () => null }));
+vi.mock('@/components/Workstation/WrongCaseScanBanner', () => ({ default: () => null }));
+vi.mock('@/hooks/useWrongCaseScanCheck', () => ({ useWrongCaseScanCheck: () => ({ flag: null, choose: () => undefined }) }));
+vi.mock('@/hooks/useEffectiveScanStation', () => ({ useEffectiveScanStation: () => ({ effectiveStationId: null }) }));
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key), i18n: { language: 'en' } }),
 }));

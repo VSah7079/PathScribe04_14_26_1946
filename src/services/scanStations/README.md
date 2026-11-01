@@ -1,3 +1,9 @@
+**Batch 740:** stage `Cytology Preparation` (key `cytologyPreparation`); seed `station-cytoprep-1` (CYTOPREP-01).
+
+**Batch 738:** every seeded histology station (grossing, embedding, microtome, staining, processor, slide distribution) prints through `printer-zt411-example`.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/scanStations/
@@ -60,3 +66,7 @@ Batch 616 (part D, PS-506): server version of ScanStationService (`http<Name>Ser
 - **`stationAvailability.ts`**: in-memory list of the station ids (stored on this computer, or the user's default) that this user may not use. `useCurrentScanStation` and `utils/effectiveScanStation` treat them as "no station", so nothing is scanned against them; the stored value is kept for the next person.
 - **Used by:** `hooks/useSelectableScanStations.ts` (sign-in prompt, header station list) and `hooks/useGlobalStationSwitch.ts` (a `STATION:` barcode for another facility is refused). The OR terminal picker binds a Location, not a scan station, so it is unaffected. No Configuration screen picks "my station" today; `EquipmentSection` and `GrossingHardwareSection` list all stations because they are admin screens.
 - **Not built:** server-side enforcement. The API server must apply the same rule when it records a scan against a station.
+
+## Batch 726
+
+Workflow stages gained Decal / Special Processing, Slide Distribution, Checkout, External Referral and the three cytology steps (spec 7.2), with their labels in six languages (`scanStationsSection.stages.*`). Two demo stations: `station-proc-1` (Tissue Processor 1, Processing) and `station-slidedist-1` (Slide Distribution — Desk 1). Which carriers a stage works on: `services/batches/stationCarrierRules.ts`.

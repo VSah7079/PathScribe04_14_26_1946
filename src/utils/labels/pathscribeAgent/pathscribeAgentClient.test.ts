@@ -227,15 +227,17 @@ describe('dispatchZplLabel with a pathscribe_agent printer', () => {
   it('explains a missing agent and a printer fault in plain English', async () => {
     // Batch 606: in the demo a missing agent answers Simulated; with an API server it is explained.
     setDataMayPersistInBrowserForTests(false);
+    // Batch 734: a server deployment blocks direct printing unless the facility allows it; this facility does.
+    const allowed = { demo: () => false, facilityAllows: async () => true, audit: () => undefined };
     const none = fakeLoopback([]);
-    expect(await dispatchZplLabel(printer, '^XA^XZ', 1, none.client)).toEqual({ ok: false, message: expect.stringContaining('not running on this workstation') });
+    expect(await dispatchZplLabel(printer, '^XA^XZ', 1, none.client, undefined, allowed)).toEqual({ ok: false, message: expect.stringContaining('not running on this workstation') });
     // Batch 346: the message names the ports actually tried, the configured one first.
     const custom = fakeLoopback([]);
-    const r = await dispatchZplLabel({ ...printer, agentPort: 9200 }, '^XA^XZ', 1, custom.client);
+    const r = await dispatchZplLabel({ ...printer, agentPort: 9200 }, '^XA^XZ', 1, custom.client, undefined, allowed);
     expect(r).toEqual({ ok: false, message: expect.stringContaining('9200, 9100, 9101, and 9102') });
     expect(custom.opened[0]).toBe('wss://127.0.0.1:9200');
     const paper = fakeLoopback([{ port: 9100, kind: 'agent' }], { printOutcome: () => ({ errorCode: 'PAPER_OUT' }) });
-    expect(await dispatchZplLabel(printer, '^XA^XZ', 1, paper.client)).toEqual({ ok: false, message: 'The label printer is out of labels.' });
+    expect(await dispatchZplLabel(printer, '^XA^XZ', 1, paper.client, undefined, allowed)).toEqual({ ok: false, message: 'The label printer is out of labels.' });
     setDataMayPersistInBrowserForTests(null);
   });
 });

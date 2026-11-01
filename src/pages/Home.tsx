@@ -157,7 +157,7 @@ export default function Home() {
       image: '/my_contributions.webp'
     },
     // ⭐ New tile — real, per "Homepage Changes part 1" (direct
-    // request): Cytology Workspace, Microtomy Workstation (renamed
+    // request): Cytology Workspace, Microtome Workstation (renamed
     // "Microtomy Workspace"), Embedding Station (renamed "Embedding
     // Workspace"), and Slide Distribution Station (renamed "Slide
     // Distribution Workspace") were each their own flat top-level tile
@@ -180,7 +180,7 @@ export default function Home() {
     // audience — Molecular Workspace's own molecular-tech bench
     // workflow is genuinely distinct from the other four tiles' own
     // histology-bench/cytology-screening audiences, same real
-    // reasoning already true of e.g. Cytology vs. Microtomy within
+    // reasoning already true of e.g. Cytology vs. Microtome within
     // this same hub. Molecular Order Queue (/molecular-order-queue)
     // deliberately NOT moved — per direct guidance, only "Molecular"
     // itself was named for this move.

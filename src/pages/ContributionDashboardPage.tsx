@@ -40,6 +40,7 @@ import { useNavigate } from 'react-router';
 import { actionRegistryService, userService, flagService, rvuCodeMapService, tatTargetService, performanceTargetService, clientSlaService, facilityService, specimenDeficiencyService, deficiencyTypeService, qaActivityRecordService, intraoperativeService, subspecialtyService, countersignService, qaSupervisionAssignmentService, qaSupervisionAssignmentTypeService } from '../services';
 import type { Subspecialty } from '../services';
 import { caseRouter } from '../services/cases/CaseRouter';
+import { withoutResearchCasesNow } from '@/services/researchCases/researchCaseSettings';
 import { FROZEN_FINAL_ACTIVITY_TYPE_ID } from '../services/quality/reconciliationRecordMapping';
 import { computeOverviewKpis, computePeerKpiAverages, peerValuesByTile, type PeerKpiAverages, computeCaseMixData, computeOrgWideTatPerformance, computeRvu30, computeWeeklyDaily, computeTargetAmounts, computeTopQualityFlags, qualityFlagText, type RealOverviewKpis, type RealCaseMixData, type RealTatPerformance, type RealRvu30, type RealDailyRvu } from './contributionDashboardCalculations';
 import { specimenDictionaryService } from '@/services';
@@ -424,7 +425,7 @@ const ContributionDashboardPage: React.FC = () => {
         typeNameById,
         discRes.ok ? discRes.data : [],
         FROZEN_FINAL_ACTIVITY_TYPE_ID,
-        casesRes.ok ? casesRes.data : [],
+        casesRes.ok ? withoutResearchCasesNow(casesRes.data) : [],
         user.id,
         3,
         Date.now(),
@@ -466,29 +467,31 @@ const ContributionDashboardPage: React.FC = () => {
       facilityService.getAll(),
     ]).then(([res, versionsRes, dictionaryRes, tatRes, targetsRes, slasRes, facilitiesRes]) => {
       if (!res.ok) return;
+      // Batch 728 (Lab Workflow spec, Decision 4): research cases are not in the TAT, volume or quality figures.
+      const cases = withoutResearchCasesNow(res.data);
       const versions = versionsRes.ok ? versionsRes.data : [];
       const dictionaryEntries = dictionaryRes.ok ? dictionaryRes.data : [];
-      setOverviewKpis(computeOverviewKpis(res.data, user.id));
+      setOverviewKpis(computeOverviewKpis(cases, user.id));
       if (canSeePeer) {
         userService.getAll().then(usersRes => {
           if (!usersRes.ok) return;
           const staff = usersRes.data;
-          setPeerAverages(computePeerKpiAverages(res.data, staff.find(u => u.id === user.id), staff));
+          setPeerAverages(computePeerKpiAverages(cases, staff.find(u => u.id === user.id), staff));
         });
       } else {
         setPeerAverages(null);
       }
-      setCaseMixData(computeCaseMixData(res.data, user.id));
-      setRvu30(computeRvu30(res.data, user.id, versions, new Date(), dictionaryEntries));
-      setWeeklyDaily(computeWeeklyDaily(res.data, user.id, config.facilityTimezone, versions, new Date(), dictionaryEntries));
+      setCaseMixData(computeCaseMixData(cases, user.id));
+      setRvu30(computeRvu30(cases, user.id, versions, new Date(), dictionaryEntries));
+      setWeeklyDaily(computeWeeklyDaily(cases, user.id, config.facilityTimezone, versions, new Date(), dictionaryEntries));
       const now = new Date();
-      setTargetRows(buildTargetProgress(targetsRes.ok ? targetsRes.data : [], computeTargetAmounts(res.data, user.id, versions, dictionaryEntries), now));
-      setSlaRows(buildClientSlaRows(res.data, slasRes.ok ? slasRes.data : [], facilitiesRes.ok ? facilitiesRes.data : [], now));
+      setTargetRows(buildTargetProgress(targetsRes.ok ? targetsRes.data : [], computeTargetAmounts(cases, user.id, versions, dictionaryEntries), now));
+      setSlaRows(buildClientSlaRows(cases, slasRes.ok ? slasRes.data : [], facilitiesRes.ok ? facilitiesRes.data : [], now));
       const tatEntries = tatRes.ok ? tatRes.data : [];
       // Real fix: org-wide aggregate, deliberately not filtered to this
       // user's own cases the way overviewKpis/caseMixData are - matches
       // TatPerformanceTile's own "weighted across N clients" framing.
-      setTatPerformance(computeOrgWideTatPerformance(res.data, tatEntries));
+      setTatPerformance(computeOrgWideTatPerformance(cases, tatEntries));
     });
   }, [user?.id, config.facilityTimezone, canSeePeer]);
 

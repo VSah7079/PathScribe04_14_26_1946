@@ -16,7 +16,7 @@ function makeDeps(over: Partial<ScanSlideLabelDeps> = {}): ScanSlideLabelDeps & 
   };
 }
 
-describe('dispatchScanSlideLabel (Batch 652): the scan at microtomy really prints', () => {
+describe('dispatchScanSlideLabel (Batch 652): the scan at microtome really prints', () => {
   beforeEach(() => _resetDispatchedSlideLabelsForTests());
 
   it('a printing station sends the slide to the print service with the printer profile and GTIN', async () => {

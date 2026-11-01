@@ -13,7 +13,7 @@ import { resolveIntraopTatStatus } from './resolveIntraopTatStatus';
 import type { IntraoperativeEntry, MilestoneType } from '@/types/intraop/IntraoperativeEntry';
 
 /** Real, per the OR Suite Live Board spec's own State 1 ask: "Displays
- *  the current laboratory workflow step (e.g., Grossing, Microtomy,
+ *  the current laboratory workflow step (e.g., Grossing, Microtome,
  *  Pathologist Review)." Derived from this app's own real, existing
  *  milestones[] (types/intraop/IntraoperativeEntry.ts) — the step
  *  shown is the real step that logically follows the most recently

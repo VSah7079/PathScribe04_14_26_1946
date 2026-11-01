@@ -1,3 +1,7 @@
+**Batch 736 (Pete):** the bench's tap-to-pick reasons are Reason Dictionary categories `BENCH_*` (`benchReasons.ts`: 18 seeds whose id is the stable code, translated while the wording is the default, `benchReasonText` / `benchReasonCode` / `withReasonCode`; `benchReasonAdmin.ts`: the Bench Reasons screen's rules). `mockReasonDictionaryService.ts` checks `config:bench-reasons:manage` for those categories and `config:revision-reasons:manage` for the rest (`permitReasonChange`, by category; no longer `guardConfigWrites`); the id and category never change on update. `quickReasonSets.ts` (Batch 735) is deleted.
+
+**Batch 735 (touch spec T3):** `quickReasonSets.ts`: the preset one-tap reasons (Add-On exhausted answers, Microtome Block exhausted, batch Abort / Override / cold chain), as locale keys `quickReasons.<set>.<key>`. Fixed in code; a later batch could move them into this folder's Reason Dictionary so labs edit them.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 

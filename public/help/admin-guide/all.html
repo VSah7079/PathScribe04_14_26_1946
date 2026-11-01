@@ -951,11 +951,11 @@
 <td>The facility's identifier with a national screening registry.</td>
 <td>Blank</td>
 </tr>
-<tr id="f-facility-dictionary-specimen-block-labeling"><td>Specimen / Block Labeling</td>
-<td>Choice: alpha (Specimen A, B, C and Block A1, A2, A3) or numeric (Specimen 1, 2, 3 and Block 1A, 1B, 1C)</td>
-<td>Required</td>
-<td>How new specimens and blocks are lettered.</td>
-<td>Alpha</td>
+<tr id="f-facility-dictionary-letters-or-numbers-for-labels"><td>Letters or numbers for labels</td>
+<td>Three choices, <strong>Specimens</strong>, <strong>Blocks</strong> and <strong>Slides</strong>, each Letters or Numbers (a Preset menu offers the old pair: "Specimen A, B, C / Block A1, A2, A3" and "Specimen 1, 2, 3 / Block 1A, 1B, 1C")</td>
+<td>Optional</td>
+<td>On the Enterprise facility the choice is the default for every lab under it. On any other facility each choice can also be "Same as enterprise (value)", which is the default for a new facility. A live example ("Specimen A · Block 1 · Slide L1") shows the result. A note appears when Specimens and Blocks both use letters or both use numbers, because a label such as AA or 11 can then be read two ways. A change applies to new cases only. See <a href="11-procedures-labels-billing.html#ch11-lbl-numbering">Choose letters or numbers for specimens, blocks and slides</a>.</td>
+<td>Specimens letters, Blocks numbers, Slides numbers (Specimen A, Block 1, Slide L1)</td>
 </tr>
 <tr id="f-facility-dictionary-enterprise"><td>Enterprise</td>
 <td>Check box: "This is a top-level Enterprise institution"</td>
@@ -1374,6 +1374,12 @@
 <td>Any facility.</td>
 <td>Report default</td>
 </tr>
+<tr id="f-facility-dictionary-allow-direct-printing-from-the-browser-batch-734"><td>Allow direct printing from the browser (Batch 734)</td>
+<td>Yes/No switch, saved at once</td>
+<td>Optional</td>
+<td>Performing Lab only. Lets bench screens send labels straight from the browser to a printer on the bench (QZ Tray, the PathScribe agent, Zebra Browser Print, BarTender). Off: in a server deployment those prints are refused and the bench uses the interface engine or the browser print dialog. Every direct print and every refused one is recorded in the <a class="term" href="#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a>. The demo always allows it. The printer's own address stays on its <a class="term" href="#g-printer-profile" title="The saved settings for one model of printer, including its connection method (bridge).">printer profile</a>.</td>
+<td>Off</td>
+</tr>
 </tbody>
 </table>
 <h4>Editor window: Secure messaging tab (edit mode only, Enterprise only)</h4>
@@ -1441,7 +1447,7 @@
 </tbody>
 </table>
 <p><strong>How spell check uses this list.</strong> The checker tries a word against, in order: the person's own dictionary, this facility word list (the list of the <a class="term" href="#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>'s performing laboratory), the regional spelling rule, PathScribe's pathology word list, and the language's standard dictionary. The first list that accepts the word wins. Words with digits, capital-letter abbreviations of up to six letters, and web or e-mail addresses are never checked. The language comes from the case, then the pathologist's <strong>Spelling language</strong> on the Staff record, then the facility's <a class="term" href="#g-jurisdiction" title="A country or national health system whose rules PathScribe applies, such as the United States, England and Wales or Germany. It sets code systems, signing rules, retention floors and formats.">jurisdiction</a>, then US English. Each addition or removal here is recorded in the <a class="term" href="#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> under "Facility spelling dictionary word added" or "removed". Only single words can be added. The pathology word lists for French, German, Dutch, Spanish and Korean are starter lists that still need native-speaker review, so expect some correct specialist terms to be underlined until you add them here.</p>
-<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Add, change, deactivate, reactivate and verify: <code>config:facilities:manage</code>. Printing tab: <code>config:print-settings:manage</code>. Secure messaging tab: <code>config:secure-messaging:manage</code>. Admin and Lab Director hold these by default. Field-level changes the page audits are listed above.
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Add, change, deactivate, reactivate and verify: <code>config:facilities:manage</code>. Printing tab: <code>config:print-settings:manage</code>; the direct-printing switch: <code>config:direct-device-printing:manage</code>. Secure messaging tab: <code>config:secure-messaging:manage</code>. Admin and Lab Director hold these by default. Field-level changes the page audits are listed above.
 <strong>Known limits.</strong> Sending by secure messaging is simulated: <code>messageService.sendSecureEmail</code> records the message but no real gateway transport exists yet (PS-332). The AI &amp; Performance tab text points the release buffer default at "Configuration &gt; System &gt; <a class="term" href="#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a> Integration", but that default lives on <a href="#screen-release_buffer">Post-Sign-Out Release Buffer</a>.</p>
 <h3 id="screen-scope_reference"><a class="anchor" href="#screen-scope_reference" aria-label="Link to this section">#</a> Scope reference</h3>
 <nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Scope reference"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Scope reference</span></nav>
@@ -1801,6 +1807,7 @@
 <p><strong>6. Field reference.</strong></p>
 <h4>List page</h4>
 <p><strong>Permissions added in October 2026 (Batches 654 to 669).</strong> Give these to the roles that need them: <em>Print a report during its release hold (supervisor override)</em> (Lab Director and Admin have it by default; used by the Release Hold Print Policy), <code>qa:management-review:submit</code>, <code>config:molecular-control-rules:view</code> (seeded to Administrator, Laboratory Director, Quality Reviewer and Molecular Technologist; changing the rules still needs the manage permission), <code>add-on:exception:flag</code> and <code>add-on:block:mark-retrieved</code> (offered once to Pathologist, Fellow, Resident, Histotechnologist and custom roles with <a class="term" href="#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> access), and <code>config:macros:manage</code> (replaces the role-name test for seeing every <a class="term" href="#g-macro" title="A saved piece of text or a set of settings, such as a report phrase or a stain order, that can be inserted in one step.">macro</a> and creating Enterprise macros). A facility-limited person can now act on cases at their own <a class="term" href="#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> (Batch 653); a case with no facility on record is still refused.</p>
+<p><strong>Permissions added in Batch 731 (exhausted blocks and end states).</strong> <code>material:end-state:record</code> (record a <a class="term" href="#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a>'s or slide's end state with a reason; seeded to roles with the Microtome or Slide Distribution screen), <code>material:reembed:request</code> (ask for an exhausted block to be re-embedded from Add-On Orders; Pathologist, Fellow, Resident) and <code>material:reembed:complete</code> (mark the block re-embedded at the Embedding Station; roles with the Embedding screen). Give them to any custom <a class="term" href="#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> that needs them.</p>
 <table>
 <thead>
 <tr>
@@ -1833,7 +1840,7 @@
 <tr id="f-staff-roles-case-access"><td>Case Access</td>
 <td>Yes/No</td>
 <td>Not applicable</td>
-<td>Whether the <a class="term" href="#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> works on cases.</td>
+<td>Whether the role works on cases.</td>
 <td>Not applicable</td>
 </tr>
 <tr id="f-staff-roles-config-access"><td>Config Access</td>
@@ -2108,7 +2115,7 @@
 <tr id="f-staff-members-sign-in-password"><td>Sign-in password</td>
 <td>Text, 12 to 128 characters</td>
 <td>Optional</td>
-<td>Edit only. Refused if breached, common or patterned. Options: "must change at next sign-in", and remove. Needs <code>config:staff-password:manage</code>.</td>
+<td>Edit only. Refused if breached, common or patterned. Options: "must change at next sign-in", and remove. Needs <code>config:staff-password:manage</code>. Setting it also closes any open reset request from that person (see Known limits).</td>
 <td>None</td>
 </tr>
 <tr id="f-staff-members-linked-sign-in-accounts"><td>Linked sign-in accounts</td>
@@ -2134,7 +2141,7 @@
 <p>Which of first name, middle name, last name, role, subspecialties, facilities, email, phone, credentials, NPI, GMC number, licence and signature are required is set on <a href="#screen-field_requirements">Field Requirements</a>, page <strong>Staff</strong>. Role is always required.</p>
 <p>Saving checks the capabilities above and refuses a change that breaks <a class="term" href="#g-separation-of-duties" title="A rule that two powers must not rest with one person, such as changing the clinical mismatch rules and approving the AI instructions.">separation of duties</a>. Changing roles, facilities or the access flags writes "Staff access changed" to the <a class="term" href="#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a>. Changing credentials writes "Staff credentials changed".</p>
 <p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Edit the record: <code>config:staff:edit</code>. Roles, facilities, access flags and credentials: <code>config:staff-access:assign</code> (needs <code>config:staff:edit</code>). Passwords: <code>config:staff-password:manage</code>. All high risk. Admin and Superadmin hold them by default.
-<strong>Known limits.</strong> The Quick Auth PIN is for the OR Staff role only.</p>
+<strong>Known limits.</strong> The Quick Auth PIN is for the OR Staff role only. <strong>Reset requests (demonstration, password sign-in only).</strong> On the sign-in screen a person who forgot their password selects <strong>Forgot password?</strong>, then <strong>Ask my administrator to reset my password</strong>. PathScribe writes "PASSWORD_RESET_REQUESTED" to the audit log and sends an urgent message to every other active staff member who holds <code>config:staff-password:manage</code>. The message names the person and email and its link opens their Staff record. Open the record, use <strong>Sign-in password</strong>, set a temporary one and tick "must change at next sign-in". The request is then marked handled: each administrator's message gets a reply "Handled: a new sign-in password was set in Staff" and the audit log records "PASSWORD_RESET_REQUEST_HANDLED". The same confirmation shows whether or not the email has an account, one request per email is accepted every 10 minutes, and an email with no active staff record is audited but sends nothing. Confirm the person's identity before you pass the password on. Not built: a handled <a class="term" href="#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a> on the message itself, a list of open requests on the Staff screen, and any notice outside PathScribe (email or text). With <a class="term" href="#g-single-sign-on" title="Signing in once with an organisation&#x27;s identity provider instead of a PathScribe password. Also written SSO.">single sign-on</a> there is no PathScribe password and no request action; the <a class="term" href="#g-identity-provider" title="The service that signs people in for single sign-on, such as a hospital&#x27;s Microsoft Entra directory.">identity provider</a> resets it.</p>
 <h3 id="screen-delegation_types"><a class="anchor" href="#screen-delegation_types" aria-label="Link to this section">#</a> Delegation Types</h3>
 <nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Delegation Types"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Delegation Types</span></nav>
 
@@ -2709,7 +2716,7 @@
 <td>Blank</td>
 </tr>
 <tr id="f-equipment-kind"><td>Kind</td>
-<td>Choice: Analyser, Stainer, Tissue processor, Slide scanner, Camera, Scale, Label printer, Engraver, Storage unit, Other</td>
+<td>Choice: Analyser, Stainer, Tissue processor, Liquid-based cytology processor, Slide scanner, Camera, Scale, Label printer, Engraver, Storage unit, Other</td>
 <td>Required</td>
 <td>Active analysers are what molecular batches can target.</td>
 <td>Analyser</td>
@@ -2749,6 +2756,18 @@
 <td>Optional</td>
 <td>Same rule.</td>
 <td>Blank</td>
+</tr>
+<tr id="f-equipment-lowest-temperature-c-highest-temperature-c"><td>Lowest temperature (°C), Highest temperature (°C)</td>
+<td>Numbers, lowest below highest; either may be blank</td>
+<td>Optional</td>
+<td>Batch 730: the range a Temperature check in the Equipment Log is held to. A reading outside it is a Fail; the range is copied onto each entry when it is made.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-equipment-takes-large-format-slides"><td>Takes large-format slides</td>
+<td>Tick box, stainers and slide scanners only</td>
+<td>Optional</td>
+<td>Batch 732: the device takes large-format (megablock) slides. Slide Distribution sends a large-format slide only to a scanner with this ticked.</td>
+<td>Not ticked</td>
 </tr>
 <tr id="f-equipment-status"><td>Status</td>
 <td>Active / Inactive</td>
@@ -2814,6 +2833,8 @@
 </tr>
 </tbody>
 </table>
+<h4>Staining racks</h4>
+<p>Batch 737. Shown below the register when the lab has reusable staining racks (engraved RACK- ids). Each row is a rack with the tick box <strong>Takes large-format slides</strong>, saved at once (needs <code>config:equipment:manage</code>). Batch Management refuses a large-format slide (cut from a megablock) scanned onto a staining carrier that does not take large-format slides; a disposable staining carrier takes them when <strong>Takes large-format slides (megablocks)</strong> is ticked in New Container. The demo has one such rack, RACK-STAIN-LF-01.</p>
 <p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Add, edit, deactivate: <code>config:equipment:manage</code>. Record a service log entry: <code>equipment:maintenance:record</code>. Both high risk. Admin and Lab Director hold both. The Histotechnologist, Cytotechnologist and Molecular Technologist roles also hold the log permission.
 <strong>Known limits.</strong> Service due dates are worked out in the <a class="term" href="#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>'s time zone on the Contribution Dashboard settings.</p>
 <h3 id="screen-printer_profiles"><a class="anchor" href="#screen-printer_profiles" aria-label="Link to this section">#</a> Printer Profiles</h3>
@@ -3209,6 +3230,7 @@
 <p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Workstation &amp; Hardware</strong> &gt; <strong>Scan Stations</strong>
 <strong>2. Maintenance item:</strong> Scan Stations</p>
 <p><strong>3. Business purpose and scope.</strong> The physical benches a terminal can identify itself as, at sign-in and in the top bar, and that a printed station label switches to mid-workflow. Eight stations are set up to start with. Name, barcode code and workflow stage are yours to set. Equipment can sit at a station, and Workstation Groups group stations.</p>
+<p><strong>Who sees which station.</strong> A person is offered only the active stations at the facilities on their staff record (Staff &gt; Facilities). An empty list means all facilities, which is also how a ForMedrixAI support sign-in resolves, so they see every station. "No station" is always offered. If the station stored on a computer belongs to a <a class="term" href="#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> the signed-in person is not assigned to, it counts as no station for them and the sign-in station window appears again; the stored setting is kept for the next person. A station barcode scan for such a station is refused. This is a screen rule today; the production <a class="term" href="#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server must apply the same rule when it records a scan.</p>
 <p><strong>4. Prerequisites and dependencies.</strong> The Facility list reads the Facility Dictionary (performing labs only). A station that supports printing needs a <a class="term" href="#g-cassette" title="The plastic holder in which a tissue block is embedded and labelled for cutting.">cassette</a> and slide <a class="term" href="#g-printer-profile" title="The saved settings for one model of printer, including its connection method (bridge).">printer profile</a> from <a href="#screen-printer_profiles">Printer Profiles</a>. Skip it and the save is refused: "Required when Supports Printing is on."</p>
 <aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 1, step 12</p><dl><dt>Configure first</dt><dd><a href="#screen-facility-dictionary">Facility Dictionary</a>, <a href="#screen-printer_profiles">Printer Profiles</a></dd><dt>This unlocks</dt><dd><a href="#screen-print_settings">Print Settings</a>, <a href="#screen-workstation_groups">Workstation Groups</a>, <a href="#screen-grossing_hardware">Grossing Hardware</a></dd></dl></aside>
 
@@ -3291,9 +3313,9 @@
 <td>Selected site</td>
 </tr>
 <tr id="f-scan_stations-workflow-stage"><td>Workflow Stage</td>
-<td>Choice: Accessioning, Grossing, Processing, Embedding, Microtomy / Sectioning, Staining, Slide Archival, Other</td>
+<td>Choice: Accessioning, Grossing, Decal / Special Processing, Processing, Embedding, Microtome / Sectioning, Staining, Slide Distribution, Checkout, External Referral, Cytology Processing, Cytology Staining, Cytology Imaging, Slide Archival, Other</td>
 <td>Required</td>
-<td></td>
+<td>Batch 726: the stage decides which carriers the station's <a class="term" href="#g-workstation" title="A registered computer at a facility, with its discipline, area and bound printers.">workstation</a> lists and opens (Slide Distribution works on Checkout and External Referral carriers). Set it on every bench that scans carriers. Without a station on a computer, nothing scanned there is recorded.</td>
 <td>Accessioning</td>
 </tr>
 <tr id="f-scan_stations-printer-ip"><td>Printer IP</td>
@@ -4231,7 +4253,7 @@
 </thead>
 <tbody>
 <tr id="f-field_requirements-page"><td>Page</td>
-<td>Picklist of 16 pages: Accession, Add-On Orders, Batch Management, Clinical history (cytology), Cytology screening, Embedding station, Facility editor, Grossing, Intraoperative consultation, Messaging, Microtomy <a class="term" href="#g-workstation" title="A registered computer at a facility, with its discipline, area and bound printers.">workstation</a>, Molecular plate builder, Molecular rack loading, Case report, Slide distribution station, Staff</td>
+<td>Picklist of 16 pages: Accession, Add-On Orders, Batch Management, Clinical history (cytology), Cytology screening, Embedding station, Facility editor, Grossing, Intraoperative consultation, Messaging, Microtome <a class="term" href="#g-workstation" title="A registered computer at a facility, with its discipline, area and bound printers.">workstation</a>, Molecular plate builder, Molecular rack loading, Case report, Slide distribution station, Staff</td>
 <td>Required</td>
 <td>Shows the fields of one page, in groups.</td>
 <td>Accession</td>
@@ -4372,6 +4394,7 @@
 <li><a href="#screen-cytology_compliance_features">Country and laboratory rules</a>: workload cap, look-back, urgent signature and screening intervals.</li>
 <li><a href="#screen-cytology_instrumentation">Assisted Instrumentation</a>: whole slide imaging or traditional review.</li>
 <li><a href="#screen-snomed_histology_severity_mapping">Cyto-Histologic Correlation (SNOMED)</a>: the SNOMED severity ranks used in correlation.</li>
+<li><a href="#screen-research_cases">Research Cases &amp; Batch Purposes</a>: how research cases are recognised and kept out of clinical work, and what a carrier can be for (Batch 728).</li>
 </ol>
 <p>The parts below follow the subject, not the setup order: <a href="#ch3-anatomic-specialties">Part A</a> the anatomic pathology specialties, <a href="#ch3-specimen-tissue">Part B</a> specimens and tissue, <a href="#ch3-container-cassette">Part C</a> containers, cassettes and ink, <a href="#ch3-stains-protocols">Part D</a> stains and protocols, <a href="#ch3-code-libraries">Part E</a> code libraries, and <a href="#ch3-physicians-clients">Part F</a> physicians, clients and governing bodies.</p>
 <p><strong>Status words.</strong> Each screen shows one of the five status words from the authoring standard: Built, Demonstration, Partial, Planned, Not built. Almost every dictionary in this chapter has a production service and a written <a class="term" href="#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> contract, so most are <strong>Built</strong>. The exceptions are named on the screen: the <a href="#screen-organ_maps">Organ maps</a> settings and the <a href="#screen-code_systems">Code Systems</a> policy are kept in the browser only, and the <a href="#screen-cold_chain">Cold Chain</a> readings are simulated.</p>
@@ -6572,6 +6595,114 @@
 </table>
 <p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Add, edit, deactivate, remove: <code>config:cold-chain:manage</code> (high risk, audited). Admin, Lab Director and Superadmin hold it by default. Sending a simulated reading is checked separately: a person who lacks permission sees "You don't have permission to send a simulated reading."</p>
 <p><strong>Known limits.</strong> No sensor feed is connected. Every reading comes from the Simulated control and is labelled Simulated everywhere. That is why the status is Partial: the unit and type dictionaries are built, the live readings are not. Seeded types are Frozen Tissue (at most -20 °C) and Fresh Tissue (at most 8 °C).</p>
+<h3 id="screen-research_cases"><a class="anchor" href="#screen-research_cases" aria-label="Link to this section">#</a> Research Cases &amp; Batch Purposes</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Lab Materials &amp; Workflows &gt; Research Cases &amp; Batch Purposes"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Lab Materials &amp; Workflows</span> <span aria-hidden="true">›</span> <span>Research Cases &amp; Batch Purposes</span></nav>
+
+<p><strong>Status:</strong> Partial</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Lab Materials &amp; Workflows</strong>
+<strong>2. Maintenance item:</strong> Research Cases &amp; Batch Purposes</p>
+<p><strong>3. Business purpose and scope.</strong> Two settings for work that is not routine patient care.</p>
+<p><em>Research cases.</em> Until research items can be handled without an <a class="term" href="#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a>, a research <a class="term" href="#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> is accessioned as a <a class="term" href="#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> for a dummy research patient. This card says how PathScribe recognises those cases: by accession prefix (for example <code>RES</code>) or by the research patient's <a class="term" href="#g-mrn" title="Medical record number, the identifier a facility gives a patient.">MRN</a> prefix (for example <code>RSCH-</code>). A research case is then:</p>
+<ul>
+<li>left off the clinical worklists (tiles and lists alike; find it with Case Search);</li>
+<li>left out of the turnaround, volume and quality figures on the Contribution dashboards;</li>
+<li>never sent to the EHR as a result (final, preliminary, amended or cytology), and never delivered by fax or file drop. The <a class="term" href="#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> records each result that was not sent and why;</li>
+<li>never sent to billing: its charges are refused at the billing queue, and its financial-class message carries the <strong>no-charge financial class</strong> with no coverage;</li>
+<li>never submitted to a cancer or screening <a class="term" href="#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a>;</li>
+<li>kept for the <strong><a class="term" href="#g-retention" title="How long a kind of data or material is kept. Retention periods are set by jurisdiction, with an optional override.">retention</a> days</strong> counted from accessioning, then listed on the Disposal queue. Retention holds still apply. A research case never gets a signed clinical report, so the ordinary clock (which starts at sign-out) would never start.</li>
+</ul>
+<p><em>Batch purposes.</em> What a carrier is for. Six are built in: Routine, Research, Teaching, Clinical Trial, Biobank, <a class="term" href="#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> / Validation. Built-in purposes can be switched off but not removed; Routine is always on. Add the lab's own purposes by name. A new carrier is Routine unless another purpose is chosen in <strong>New Container</strong>. A carrier with a purpose other than Routine shows it on Batch Detail. Each <a href="#screen-display_profiles">Display Profile</a> can show only carriers of chosen purposes.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> None for the settings themselves. To use the research workaround, register the dummy research patient (with an MRN that starts with the prefix) and, if the lab uses one, an accession format with the research prefix.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 2, step 33</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot missing"><div class="ph">SCREENSHOT PLACEHOLDER: system-research_cases - Research cases card and Batch purposes card</div></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<h4>Research cases card</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-research_cases-treat-matching-cases-as-research-cases"><td>Treat matching cases as research cases</td>
+<td>Check box</td>
+<td>Optional</td>
+<td>Off: no <a class="term" href="#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> is treated as a research case.</td>
+<td>On</td>
+</tr>
+<tr id="f-research_cases-accession-prefixes"><td>Accession prefixes</td>
+<td>Text, comma-separated</td>
+<td>Required when on (this or the <a class="term" href="#g-mrn" title="Medical record number, the identifier a facility gives a patient.">MRN</a> prefixes)</td>
+<td>A case matches when its <a class="term" href="#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a> prefix equals one, or its full accession starts with one. Capital letters are ignored. No spaces; at most 20 characters each.</td>
+<td>RES</td>
+</tr>
+<tr id="f-research_cases-research-patient-mrn-prefixes"><td>Research patient MRN prefixes</td>
+<td>Text, comma-separated</td>
+<td>Required when on (this or the accession prefixes)</td>
+<td>A case matches when its patient's MRN starts with one.</td>
+<td>RSCH-</td>
+</tr>
+<tr id="f-research_cases-no-charge-financial-class"><td>No-charge financial class</td>
+<td>Text</td>
+<td>Required when on</td>
+<td>Sent as the account billing type in the financial-class message for a research case.</td>
+<td>Research - No Charge</td>
+</tr>
+<tr id="f-research_cases-keep-material-for-days-after-accessioning"><td>Keep material for (days after accessioning)</td>
+<td>Whole number, 0 to 36500</td>
+<td>Required</td>
+<td>When the case's blocks and slides are listed for disposal.</td>
+<td>365</td>
+</tr>
+<tr id="f-research_cases-save"><td>Save</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Refused without the permission below, or when a value fails the checks (each problem is listed).</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Batch purposes card</h4>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-research_cases-purpose-rows"><td>Purpose rows</td>
+<td>Name and Active check box</td>
+<td>Not applicable</td>
+<td>Built-in names are shown in the reader's language and marked Built-in. A lab purpose's name is edited in place (unique, at most 40 characters). Routine's check box cannot be cleared.</td>
+<td>Six built-in purposes, all active</td>
+</tr>
+<tr id="f-research_cases-new-purpose-add"><td>New purpose, Add</td>
+<td>Text and button</td>
+<td>Optional</td>
+<td>Adds a lab purpose (Enter also adds it).</td>
+<td>Blank</td>
+</tr>
+<tr id="f-research_cases-save"><td>Save</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Refused without the permission below, or when a name is blank, too long or repeated.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Saving the research <a class="term" href="#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> settings: <code>config:research-cases:manage</code>. Saving the batch purposes: <code>config:batch-purposes:manage</code>. Both high risk; Admin, Lab Director and Superadmin hold them by default.</p>
+<p><strong>Known limits.</strong> The report screen does not yet mark a research case as "research, not a clinical report"; it can still be signed out (nothing is sent anywhere). There is no research worklist (use Case Search). Quality figures outside the Contribution dashboards, and the <a class="term" href="#g-bi-feed" title="The reporting feed that supplies datasets to a business-intelligence tool such as Power BI. It can be de-identified or identified, and identified use needs an approval on record.">BI feed</a> on the server, are not yet filtered in this build. Research items without an <a class="term" href="#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a> are a later phase. These are why the status is Partial.</p>
 <h3 id="screen-deficiencies"><a class="anchor" href="#screen-deficiencies" aria-label="Link to this section">#</a> Specimen Deficiencies</h3>
 <nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations &gt; Specimen Deficiencies"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span> <span aria-hidden="true">›</span> <span>Specimen Deficiencies</span></nav>
 
@@ -8873,8 +9004,9 @@
 <li><a href="#screen-contribution_settings">Contribution Settings</a>: the My Contribution page.</li>
 <li><a href="#screen-feedback">Feedback</a>: the QA feedback button.</li>
 <li><a href="#screen-research_feed">Research Feed</a>: the PubMed headline on Home.</li>
+<li><a href="#screen-bench_reasons">Bench Reasons</a>: the tap-to-pick reasons used at the bench, in your lab's words.</li>
 </ol>
-<p>Reference pages, not part of setup: <a href="#screen-batch-management">Batch Management</a>, <a href="#screen-embedding-station">Embedding Station</a>, <a href="#screen-microtomy-workstation">Microtomy Workstation</a>, <a href="#screen-slide-distribution-station">Slide Distribution Station</a>, <a href="#screen-home">Home</a>, <a href="#screen-lockbox-drop-off">Lockbox Drop-Off</a>, <a href="#screen-quality-assurance">Quality Assurance</a>, <a href="#screen-margin-exception-review">Margin Exception Review</a> and <a href="#screen-cytology-qc-queue">Cytology QC Queue</a>.</p>
+<p>Reference pages, not part of setup: <a href="#screen-batch-management">Batch Management</a>, <a href="#screen-embedding-station">Embedding Station</a>, <a href="#screen-microtomy-workstation">Microtome Workstation</a>, <a href="#screen-slide-distribution-station">Slide Distribution Station</a>, <a href="#screen-home">Home</a>, <a href="#screen-lockbox-drop-off">Lockbox Drop-Off</a>, <a href="#screen-quality-assurance">Quality Assurance</a>, <a href="#screen-margin-exception-review">Margin Exception Review</a> and <a href="#screen-cytology-qc-queue">Cytology QC Queue</a>.</p>
 <h2 id="ch4-order-entry"><a class="anchor" href="#ch4-order-entry" aria-label="Link to this section">#</a> Order Entry and Accessioning: routing and action bundles</h2>
 <nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span></nav>
 
@@ -9384,6 +9516,7 @@
 <nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span></nav>
 
 <p>This part covers the commands, text shortcuts and voice settings that speed up <a class="term" href="#g-grossing" title="The examination and cutting of a surgical specimen by a pathologist or pathologists&#x27; assistant, describing it and choosing the pieces to process.">grossing</a> and dictation, and the two grossing controls (route overrides and the <a class="term" href="#g-inking" title="Marking the surface of a specimen with colored ink so margins can be recognised on the slide.">inking</a> check). The three grossing routes (Route A Standard Tissue, Route B Fluid / Cell Block, Route C Histology-Only / Direct Triage) are built in and cannot be added to. A <a class="term" href="#g-department" title="The coarse class of a specimen at intake, such as surgical tissue or fluid cytology. It steers the grossing template, the case mask and any retention override.">department</a>'s starting route is set on <a href="#screen-departments">Departments</a>. The grossing templates themselves are report templates that are marked non-diagnostic; they are authored on the <a href="#screen-tab-templates">Report Templates tab</a>, not here.</p>
+<p><strong>Grossing tile and bench tools (Batch 720).</strong> Grossing has its own tile under Pathology Workspace (<code>/workstations/grossing</code>), opened by the permission <code>screen:grossing:open</code> (Role Dictionary &gt; Screens; seeded to Pathologist, Fellow, Resident and Pathologists Assistant). It lists the cases waiting to be grossed. The Grossing screen carries a Bench tools card (print cassettes, gross photo, decal batch, Add-On Orders) and four actions that can be granted in the Role Dictionary: <code>grossing.printCassettes</code> (Alt+Shift+1), <code>grossing.takePhoto</code> (Alt+Shift+2), <code>grossing.assignDecal</code> (Alt+Shift+3) and <code>grossing.addOnOrder</code> (Alt+Shift+4). Foot pedal 1 takes a photo and pedal 2 prints the cassettes, using the <a class="term" href="#g-workstation" title="A registered computer at a facility, with its discipline, area and bound printers.">workstation</a>'s foot pedal bindings. Printing cassettes still follows Print Settings. Separately, Configuration &gt; Print Settings has the checkbox "Print labels when a <a class="term" href="#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> is accessioned" (default on; a <a class="term" href="#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> may override it).</p>
 <h3 id="screen-tab-actions"><a class="anchor" href="#screen-tab-actions" aria-label="Link to this section">#</a> Action Registry (tab)</h3>
 <nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Action Registry"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span><a class="term" href="#g-action-registry" title="The list of voice and keyboard commands PathScribe knows. The commands are not access control; capabilities are.">Action Registry</a></span></nav>
 
@@ -9802,7 +9935,7 @@
 <tr id="f-tab-voice-pedal-2-advance-next"><td>Pedal 2, Advance / Next</td>
 <td>Bound key or pedal button</td>
 <td>Optional</td>
-<td>Next field on sign-out, print or etch next on <a class="term" href="#g-microtomy" title="Cutting thin sections from a block with a microtome to make slides.">microtomy</a>.</td>
+<td>Next field on sign-out, print or etch next on the <a class="term" href="#g-microtome" title="The instrument that cuts thin sections from a block to make slides, and the bench where this is done.">microtome</a>.</td>
 <td>Not bound</td>
 </tr>
 <tr id="f-tab-voice-pedal-3-pause-replay-last-segment"><td>Pedal 3, Pause / Replay Last Segment</td>
@@ -9971,7 +10104,7 @@ The difference between the screen text and the gate is listed for Pete in <code>
 </table>
 <p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Change the mode: <code>config:inking-validation-mode:manage</code> (high risk, audited; checked in the service for that facility). Admin and Lab Director hold it by default. Overriding a Severity 3 stop at sign-out: <code>case:inking-gate:override</code>, held by Admin and Lab Director.
 <strong>Known limits.</strong> Partial for the reason above: the mode is saved and shown, but Strict Enforce does not add a hard stop at Complete grossing. The setting is held in the browser's site-settings store; no server contract for site settings exists in <code>docs/architecture/</code> yet.</p>
-<h2 id="ch4-histology"><a class="anchor" href="#ch4-histology" aria-label="Link to this section">#</a> Histology worklists, embedding, microtomy and staining stations</h2>
+<h2 id="ch4-histology"><a class="anchor" href="#ch4-histology" aria-label="Link to this section">#</a> Histology worklists, embedding, microtome and staining stations</h2>
 <nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Batch Management"><span>Home</span> <span aria-hidden="true">›</span> <span>Batch Management</span></nav>
 
 <p>This part covers the bench screens of the histology workflow. They are day-to-day workbench screens, not maintenance screens, so each uses the reference layout: what it shows, what it needs configured first, and which settings change its behaviour. There is no separate configuration screen for the stations themselves. A station's behaviour is set on screens in other chapters: the <a href="#screen-scan_stations">Scan Stations</a> and <a href="#screen-printer_profiles">Printer Profiles</a> screens (which printer a station uses), the <a href="#screen-label_designer">Label Designer</a> (what the printed label shows), <a href="#screen-field_requirements">Field Requirements</a> (which fields must be filled, by page: <code>batchManagement</code>, <code>embedding</code>, <code>microtomy</code>, <code>slideDistribution</code>), and the <a href="#screen-tab-voice">Voice tab</a> (foot pedal). A staining station has no screen of its own: staining runs are batches (see Batch Management), and the <a class="term" href="#g-stain" title="A dye or antibody applied to a slide so a feature of the tissue can be seen.">stain</a> list is the <a href="#screen-stains">Diagnostic Catalog</a>.</p>
@@ -9981,7 +10114,7 @@ The difference between the screen text and the gate is listed for Pete in <code>
 <p><strong>Status:</strong> Built</p>
 <p><strong>1. Navigation:</strong> Home &gt; <strong>Batch Management</strong> (not in Configuration). Opens with <code>screen:batch-management:open</code>.
 <strong>2. Maintenance item:</strong> Not applicable. This is a workbench <a class="term" href="#g-hub" title="The SignalR service that pushes live updates from the API server to open screens.">hub</a>.</p>
-<p><strong>3. Business purpose and scope.</strong> Batch Management tracks groups of cassettes and slides through the processing nodes (Decal / Special Processing, Processing, Embedding, Microtomy / Sectioning, Staining, Checkout, External Referral, Cytology Processing, Cytology Staining, Cytology Imaging) by container barcode. It gives chain-of-custody scanning, reconciliation, and a set of queue and report pages reached from tiles. A batch is a container (a staining rack, tissue processor basket, archive storage tray, decal vessel or ad-hoc batch) with a master barcode and a manifest of the items scanned into it.</p>
+<p><strong>3. Business purpose and scope.</strong> Batch Management tracks groups of cassettes and slides through the processing nodes (Decal / Special Processing, Processing, Embedding, Microtome / Sectioning, Staining, Checkout, External Referral, Cytology Processing, Cytology Staining, Cytology Imaging) by container barcode. It gives chain-of-custody scanning, reconciliation, and a set of queue and report pages reached from tiles. A batch is a container (a staining rack, tissue processor basket, archive storage tray, decal vessel or ad-hoc batch) with a master barcode and a manifest of the items scanned into it.</p>
 <p><strong>4. Prerequisites and dependencies.</strong> The screen reads the <a class="term" href="#g-scan-station" title="A named bench computer setup, with its printers and display, that a person selects so labels and scans go to the right place.">scan station</a> set for this computer (to pre-fill the target <a class="term" href="#g-workstation" title="A registered computer at a facility, with its discipline, area and bound printers.">workstation</a> and to scope the Disposal Queue and Pending Load to the station's <a class="term" href="#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>), the reagent lots and stains for staining and cytology batches, and the facilities with the Reference Lab <a class="term" href="#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> for referral batches. With none of these the page still opens, but the matching fields of <strong>New Container</strong> stay empty.</p>
 <aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><a href="#screen-scan_stations">Scan Stations</a>, <a href="#screen-facility-dictionary">Facility Dictionary</a>, <a href="#screen-reagent_lots">Reagent &amp; Solution Lots</a>, <a href="#screen-stains">Diagnostic Catalog</a>, <a href="#screen-field_requirements">Field Requirements</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
 
@@ -10194,7 +10327,7 @@ The difference between the screen text and the gate is listed for Pete in <code>
 <tr id="f-batch-management-transfer-to-processing"><td>Transfer to Processing</td>
 <td>Button</td>
 <td>Not applicable</td>
-<td>Moves the items to a new Processing batch.</td>
+<td>Moves the same batch, with its items, to Processing (Batch 726; it used to create a new Processing batch). Needs <code>batch:carrier:advance</code>.</td>
 <td>Not applicable</td>
 </tr>
 <tr id="f-batch-management-release-rack"><td>Release Rack</td>
@@ -10624,18 +10757,18 @@ The difference between the screen text and the gate is listed for Pete in <code>
 </table>
 <p><strong>7. Permissions.</strong> Open the screen: <code>screen:embedding:open</code>. Protected steps (reprint, comments) are recorded with the person; no separate configuration <a class="term" href="#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> applies.
 <strong>Known limits.</strong> The reprint-reason, mold-size and discrepancy lists are fixed in the product and are not editable.</p>
-<h3 id="screen-microtomy-workstation"><a class="anchor" href="#screen-microtomy-workstation" aria-label="Link to this section">#</a> Microtomy Workstation</h3>
-<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Microtomy Workstation"><span>Home</span> <span aria-hidden="true">›</span> <span>Microtomy Workstation</span></nav>
+<h3 id="screen-microtomy-workstation"><a class="anchor" href="#screen-microtomy-workstation" aria-label="Link to this section">#</a> Microtome Workstation</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Microtome Workstation"><span>Home</span> <span aria-hidden="true">›</span> <span>Microtome Workstation</span></nav>
 
 <p><strong>Status:</strong> Built</p>
-<p><strong>1. Navigation:</strong> Home &gt; <strong>Microtomy Workstation</strong>. Opens with <code>screen:microtomy:open</code> (Histotechnologist).
+<p><strong>1. Navigation:</strong> Home &gt; <strong>Microtome Workstation</strong>. Opens with <code>screen:microtomy:open</code> (Histotechnologist).
 <strong>2. Maintenance item:</strong> Not applicable. This is a workbench screen.</p>
 <p><strong>3. Business purpose and scope.</strong> The sectioning bench screen. A technologist scans a <a class="term" href="#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> (or a decant or fluid container for cytology), adds the slides to cut by <a class="term" href="#g-stain" title="A dye or antibody applied to a slide so a feature of the tissue can be seen.">stain</a> and level, prints or etches slide labels one at a time or as a batch, reprints with a reason, flags a block as exhausted, and watches billing for the block.</p>
 <p><strong>4. Prerequisites and dependencies.</strong> The stain picklist is the <a href="#screen-stains">Diagnostic Catalog</a>. Slide label printing needs a <a class="term" href="#g-scan-station" title="A named bench computer setup, with its printers and display, that a person selects so labels and scans go to the right place.">scan station</a> with slide printing and a <a class="term" href="#g-printer-profile" title="The saved settings for one model of printer, including its connection method (bridge).">printer profile</a>. Mandatory entries come from <a href="#screen-field_requirements">Field Requirements</a> (page <code>microtomy</code>).</p>
 <aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><a href="#screen-scan_stations">Scan Stations</a>, <a href="#screen-printer_profiles">Printer Profiles</a>, <a href="#screen-stains">Diagnostic Catalog</a>, <a href="#screen-field_requirements">Field Requirements</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
 
 <p><strong>5. Screen.</strong></p>
-<figure class="shot"><img src="img/screen-microtomy-workstation.webp" alt="Microtomy Workstation with slide grid and print panel" loading="lazy"><figcaption>Microtomy Workstation with slide grid and print panel</figcaption></figure>
+<figure class="shot"><img src="img/screen-microtomy-workstation.webp" alt="Microtome Workstation with slide grid and print panel" loading="lazy"><figcaption>Microtome Workstation with slide grid and print panel</figcaption></figure>
 
 <p><strong>6. Field reference.</strong> Reference page: the controls on the screen.</p>
 <table>
@@ -11283,6 +11416,72 @@ The difference between the screen text and the gate is listed for Pete in <code>
 </table>
 <p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Change: <code>config:revision-reasons:manage</code> (high risk; Admin and Lab Director).
 <strong>Known limits.</strong> In the product the starting values are: diagnosis, margin, stage and tissue reclassification on; clerical corrections off (<code>revisionReasonRules.ts</code>). The service allows adding, editing, deactivating and reactivating reasons, but this screen has no button for them; that is listed for Pete in <code>open-questions/ch4.md</code>. Contract: <code>docs/architecture/LAB_DICTIONARIES_API.md</code>.</p>
+<h3 id="screen-bench_reasons"><a class="anchor" href="#screen-bench_reasons" aria-label="Link to this section">#</a> Bench Reasons</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Bench Reasons"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Bench Reasons</span></nav>
+
+<p><strong>Status:</strong> Built (Batch 736)</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Administration &amp; Compliance</strong>
+<strong>2. Maintenance item:</strong> Bench Reasons</p>
+<p><strong>3. Business purpose and scope.</strong> The reasons staff tap at the bench instead of typing, in five groups: Microtome: Block exhausted; Add-On Orders: order or answer on an exhausted <a class="term" href="#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> (the builder's reason and the pathologist's answer to a <a class="term" href="#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a>, including Approve Destructive Cutting); Batch Management: Abort Batch; Batch Management: complete with exceptions; Batch Management: acknowledge a cold-chain excursion. Each lab words them its own way. A reason keeps its <strong>code</strong> when it is reworded, and every record and audit entry stores the code beside the words, so reports (for example the Reconciliation exceptions report's <strong>Reason code</strong> column) count a reason the same way before and after it is reworded. Staff may add a note to a tapped reason; with no reason tapped, a typed note alone is accepted where the lab's Field Requirements allow it.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> None. PathScribe ships default reasons in all six languages.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 3, step 32</p><dl><dt>Configure first</dt><dd><span class="none">None.</span></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot missing"><div class="ph">SCREENSHOT PLACEHOLDER: system-bench_reasons - Bench Reasons in five groups with Reword, move, Retire and Add reason</div></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-bench_reasons-wording"><td>Wording</td>
+<td>Text, with <strong>Reword</strong></td>
+<td>Required to reword</td>
+<td>The words staff see. A default reason shows "Default wording, shown in each user's language" and appears in each person's language; once reworded it shows "Your lab's wording, shown as entered" and appears exactly as typed, in every language. Must differ from the group's other active reasons.</td>
+<td>The defaults below</td>
+</tr>
+<tr id="f-bench_reasons-code"><td>Code</td>
+<td>Text</td>
+<td>Not applicable</td>
+<td>Read only. A default reason's code (for example <code>BE_NO_TISSUE</code>); a reason the lab adds gets a code automatically. Never changes.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-bench_reasons-x"><td>↑ / ↓</td>
+<td>Buttons</td>
+<td>Optional</td>
+<td>The order on the bench.</td>
+<td>Shipped order</td>
+</tr>
+<tr id="f-bench_reasons-use-the-default-wording"><td>Use the default wording</td>
+<td>Button</td>
+<td>Optional</td>
+<td>Puts a reworded default reason back to its shipped, translated wording.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-bench_reasons-retire-restore"><td>Retire / Restore</td>
+<td>Button</td>
+<td>Optional</td>
+<td>A retired reason is no longer offered; its code stays in old records.</td>
+<td>Active</td>
+</tr>
+<tr id="f-bench_reasons-add-reason"><td>Add reason</td>
+<td>Text and button</td>
+<td>Optional</td>
+<td>A new reason for the group, in your lab's words, placed last.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>Default reasons: Block exhausted: No tissue left in the block (<code>BE_NO_TISSUE</code>), Only a few sections left (<code>BE_FEW_SECTIONS</code>), Cannot get a full face (<code>BE_INCOMPLETE_FACE</code>), Block damaged (<code>BE_BLOCK_DAMAGED</code>). Exhausted block on Add-On Orders: Requested by the pathologist (<code>AE_PATHOLOGIST_REQUEST</code>), Last material available (<code>AE_LAST_MATERIAL</code>), Needed to complete the diagnosis (<code>AE_DIAGNOSIS_NEEDED</code>). Abort Batch: Created in error (<code>BA_CREATED_IN_ERROR</code>), Wrong container or rack (<code>BA_WRONG_CONTAINER</code>), Equipment failure (<code>BA_EQUIPMENT_FAILURE</code>), Run cancelled by the lab (<code>BA_RUN_CANCELLED</code>). Complete with exceptions: Items accounted for elsewhere (<code>BO_ACCOUNTED_ELSEWHERE</code>), Checked by hand: barcode would not scan (<code>BO_SCANNED_BY_HAND</code>), Approved by the supervisor (<code>BO_SUPERVISOR_APPROVED</code>), Label damaged, identity checked by eye (<code>BO_LABEL_DAMAGED</code>). Cold chain: Temperature back in range on arrival (<code>CC_BACK_IN_RANGE</code>), Packaging intact; logger fault (<code>CC_LOGGER_FAULT</code>), Courier delay; contents checked (<code>CC_COURIER_DELAY</code>).</p>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Change: <code>config:bench-reasons:manage</code> (high risk; Admin and Lab Director).
+<strong>Known limits.</strong> One list for the whole organisation; a <a class="term" href="#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> cannot yet have its own wording. A reworded reason is shown as typed in every language. Contract: <code>docs/architecture/LAB_DICTIONARIES_API.md</code> (the Reason Dictionary, categories <code>BENCH_*</code>).</p>
 <h3 id="screen-tumor_board_rules"><a class="anchor" href="#screen-tumor_board_rules" aria-label="Link to this section">#</a> Tumor Board Rules</h3>
 <nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Tumor Board Rules"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Tumor Board Rules</span></nav>
 
@@ -11936,10 +12135,28 @@ The difference between the screen text and the gate is listed for Pete in <code>
 <td>None</td>
 </tr>
 <tr id="f-display_profiles-assigned-dashboard-view-s"><td>Assigned Dashboard View(s)</td>
-<td>Checkboxes: Grossing &amp; Intake; Embedding &amp; Microtomy; Staining &amp; <a class="term" href="#g-ihc" title="Immunohistochemistry, a stain that uses antibodies to show specific proteins in tissue.">IHC</a>; Send-Out &amp; Reference Laboratory; Diagnostic Sign-Out / Scanner</td>
+<td>Checkboxes: Grossing &amp; Intake; Embedding &amp; Microtome; Staining &amp; <a class="term" href="#g-ihc" title="Immunohistochemistry, a stain that uses antibodies to show specific proteins in tissue.">IHC</a>; Send-Out &amp; Reference Laboratory; Diagnostic Sign-Out / Scanner; Stations (Batch 727)</td>
 <td>Required (at least one)</td>
 <td>More than one view makes the profile cycle.</td>
 <td>None ticked</td>
+</tr>
+<tr id="f-display_profiles-time-limit-x-minutes"><td>Time limit X (minutes)</td>
+<td>Whole number, 15 to 1440</td>
+<td>Optional; shown when Embedding &amp; Microtome or Stations is ticked</td>
+<td>Batch 727 (Lab Workflow &amp; Batch spec, Decision 2): one time per lab. An add-on waiting longer turns red and is pinned to the top of Embedding &amp; Microtome; it turns amber in the last 30 minutes before (half of X when X is an hour or less). The Stations view counts carriers and add-ons past it. Outside 15 to 1440 the profile can't be saved.</td>
+<td>Blank (120 minutes)</td>
+</tr>
+<tr id="f-display_profiles-not-scanned-warning-minutes"><td>Not-scanned warning (minutes)</td>
+<td>Whole number, 30 to 10080</td>
+<td>Optional; shown when Stations is ticked</td>
+<td>Batch 729 (spec 7.5): the Stations view lists cassettes, blocks and slides not scanned at any station for longer than this (finished items left out), as a tile and alerts. Outside 30 to 10080 the profile can't be saved.</td>
+<td>Blank (240 minutes)</td>
+</tr>
+<tr id="f-display_profiles-show-carriers-for-these-purposes"><td>Show carriers for these purposes</td>
+<td>Check boxes, one per active <a href="#screen-research_cases">batch purpose</a></td>
+<td>Optional; shown when a view with carriers is ticked (all but Diagnostic Sign-Out / Scanner)</td>
+<td>Batch 728 (Decision 4a): only carriers of the ticked purposes are shown and counted. None ticked shows every purpose. A carrier made before Batch 728 counts as Routine. Add-on orders are not carriers and always show.</td>
+<td>None ticked (all)</td>
 </tr>
 <tr id="f-display_profiles-carousel-interval-seconds"><td>Carousel Interval (seconds)</td>
 <td>Whole number (example 20)</td>
@@ -12766,7 +12983,7 @@ The difference between the screen text and the gate is listed for Pete in <code>
 <p><strong>Status:</strong> Built</p>
 <p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Administration &amp; Compliance</strong>
 <strong>2. Maintenance item:</strong> Feedback</p>
-<p><strong>3. Business purpose and scope.</strong> The <a class="term" href="#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> feedback button lets testers report a problem from any screen, with a screenshot and no patient details. This screen chooses when the button shows and who receives the reports. By default the button is hidden on a production instance and shown on a validation instance.</p>
+<p><strong>3. Business purpose and scope.</strong> The <a class="term" href="#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> feedback button lets testers report a problem from any screen, with a screenshot and no patient details. This screen chooses when the button shows and who receives the reports. By default the button is hidden on a production instance and shown on a validation instance. It also holds the <strong>validation recipients</strong> (who receives QA feedback in the <em>AI / Template validation</em> category) and the <strong>enhancement request destination URL</strong> (where the light-bulb Enhancement Request is delivered instead of by email).</p>
 <p><strong>4. Prerequisites and dependencies.</strong> None.</p>
 <aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 3, step 30</p><dl><dt>Configure first</dt><dd><span class="none">None.</span></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
 
@@ -12800,8 +13017,20 @@ The difference between the screen text and the gate is listed for Pete in <code>
 <tr id="f-feedback-administrator-copy-cc"><td>Administrator copy (cc)</td>
 <td>E-mail addresses separated by commas</td>
 <td>Optional</td>
-<td></td>
+<td>Copied on QA and validation feedback.</td>
 <td>Blank</td>
+</tr>
+<tr id="f-feedback-validation-recipients"><td>Validation recipients</td>
+<td>E-mail addresses separated by commas</td>
+<td>Optional</td>
+<td>Receive QA feedback in the <strong>AI / Template validation</strong> category, with the validation study and template the sender linked (ids, names and template version are in the message). Empty: that feedback goes to the QA recipients and the sender's confirmation says so. If both lists are empty the sender sees "No recipients configured." An invalid address is refused.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-feedback-enhancement-request-destination-url"><td>Enhancement request destination URL</td>
+<td>Web address (https only)</td>
+<td>Optional</td>
+<td>Where the Enhancement Request (light bulb) is delivered, as <a class="term" href="#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> in a POST. Empty: the address the deployment was set up with (<code>VITE_ENHANCEMENT_REQUEST_URL</code> in <code>config.json</code>), and with neither, enhancement requests are emailed. A line under the field shows the host in use. Refused: http, an address with a user name, password or <code>#</code> part. The address may carry a path and a query (a form id), so one field is enough.</td>
+<td>Blank (deployment default)</td>
 </tr>
 <tr id="f-feedback-save"><td>Save</td>
 <td>Button</td>
@@ -12813,6 +13042,8 @@ The difference between the screen text and the gate is listed for Pete in <code>
 </table>
 <p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Change: <code>config:feedback:manage</code> (high risk; Admin and Lab Director; the Save button is permission-gated).
 <strong>Known limits.</strong> Contract: <code>docs/architecture/CONFIG_DICTIONARIES_API.md</code>.</p>
+<p><strong>Destination, step by step.</strong> (1) Ask IT to add the website's origin to the security policy (<code>connect-src</code>): put <code>VITE_ENHANCEMENT_REQUEST_URL</code> in the deployment's <code>config.json</code> and the generator adds it (<code>docs/architecture/FEEDBACK_DESTINATION.md</code>); an address typed here for a different site is refused by the browser until its origin is added. (2) Type the address, or leave it empty to use the deployment's. (3) Save. (4) Send a test enhancement request: the confirmation reads "Delivered to" and the host. What is sent: the title, description, category, priority, the system details if the sender included them (without their user id), and the screenshot only if the sender included it (patient data masked). The sender's PathScribe sign-in token is never sent. The website should answer with 204 or a JSON object; the website must also allow the request from PathScribe's address (CORS). Any other reply, a refusal or no connection is reported as "The request could not be delivered to the destination. Nothing was sent.", with no text from the website.
+<strong>What is not built.</strong> The <a class="term" href="#g-demonstration-build" title="A build of PathScribe that holds its data in the browser and carries demonstration accounts. It never connects to a real API server.">demonstration build</a> never sends to the destination: it keeps the request in the Simulated mail outbox and says nothing was sent. QA and validation feedback is always emailed (the destination is for enhancement requests). No list of feedback is kept inside PathScribe and the validation study page does not show linked feedback; the e-mail and the audit entry are the record. Sending feedback needs no <a class="term" href="#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a>; changing these settings needs <code>config:feedback:manage</code>.</p>
 <h3 id="screen-research_feed"><a class="anchor" href="#screen-research_feed" aria-label="Link to this section">#</a> Research Feed</h3>
 <nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Research Feed"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Research Feed</span></nav>
 
@@ -12958,7 +13189,7 @@ The difference between the screen text and the gate is listed for Pete in <code>
 <tr id="f-home-pathology-workspace"><td>Pathology Workspace</td>
 <td>Hub tile</td>
 <td>Not applicable</td>
-<td>Leads to Cytology Workspace, Microtomy, Embedding, Slide Distribution, Molecular, Batch Management and Margin Exception Review. Shows if any is granted.</td>
+<td>Leads to Cytology Workspace, Microtome, Embedding, Slide Distribution, Molecular, Batch Management and Margin Exception Review. Shows if any is granted.</td>
 <td>Not applicable</td>
 </tr>
 <tr id="f-home-quality-amp-compliance"><td>Quality &amp; Compliance</td>
@@ -13314,7 +13545,7 @@ The difference between the screen text and the gate is listed for Pete in <code>
 <p><strong>Status:</strong> Built in the browser on the demonstration data. The server must repeat the sign-out rule below before production (contract in <code>docs/product/REGULATORY_PROFILE.md</code>).</p>
 <p>PathScribe treats AI output as a draft that a pathologist must vouch for. These rules apply on every install; none of them is a setting on a screen.</p>
 <ul>
-<li><strong>Regulatory profile.</strong> A build setting, <code>VITE_REGULATORY_PROFILE</code>, chooses <code>documentation</code> (the default) or <code>clinical_support</code> (kept for later, not validated). In the documentation profile the clinical screens show no AI confidence percentage (a plain "Check source" prompt or "Strong match" / "Possible match" label appears instead), and a clinical mismatch is a plain low-risk <a class="term" href="#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a> that is logged and never holds sign-out. The thresholds and <strong>Block</strong> rules on <a href="#screen-clinical_mismatch_rules">Clinical Mismatch Rules</a> are kept for <code>clinical_support</code>. The profile is read when the application starts; changing it needs a new build.</li>
+<li><strong>Regulatory profile.</strong> A build setting, <code>VITE_REGULATORY_PROFILE</code>, chooses <code>documentation</code> (the default) or <code>clinical_support</code> (kept for later, not validated). From Batch 706 (Pete, Oct 28 2026) no clinical screen shows an AI confidence percentage in either profile (a plain "Check source" prompt, "Source found in report text" or a "Strong match" / "Possible match" label appears instead). The <strong>Confidence Threshold</strong> settings below remain numeric because they are settings you type, not displays of an AI result. In the documentation profile a clinical mismatch is a plain low-risk <a class="term" href="#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a> that is logged and never holds sign-out. The thresholds and <strong>Block</strong> rules on <a href="#screen-clinical_mismatch_rules">Clinical Mismatch Rules</a> are kept for <code>clinical_support</code>. The profile is read when the application starts; changing it needs a new build.</li>
 <li><strong>AI-drafted narrative must be accepted.</strong> Sign-out stops while any AI-drafted narrative section has not been accepted, edited, or kept as the earlier text.</li>
 <li><strong>Unconfirmed AI values stay out of the signed report.</strong> Before the sign-out or Finalize window opens, every optional <a class="term" href="#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> or <a class="term" href="#g-grossing" title="The examination and cutting of a surgical specimen by a pathologist or pathologists&#x27; assistant, describing it and choosing the pieces to process.">grossing</a> field that still holds an unchanged, unverified AI value is cleared. The AI suggestion stays, so the pathologist can cancel and Confirm. Required fields with an unverified AI value stop the sign-out as before. Values filled by auto-insert or by the Orchestrator button start as unverified.</li>
 <li><strong>What is written to the <a class="term" href="#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> (counts and names only, never clinical text):</strong> <code>AI_NARRATIVE_ACCEPTED</code>, <code>AI_NARRATIVE_ACCEPTED_EDITED</code>, <code>AI_NARRATIVE_REJECTED</code>, <code>AI_CODE_BOUND</code>, <code>AI_VALUES_AUTOFILLED</code>, <code>AI_VALUES_OMITTED_AT_SIGNOUT</code>. Each <code>AI_CODE_BOUND</code> entry also records the code's wording from the terminology dictionary, the model and provider, the model's own confidence, whether the code was found in the dictionary (or the billing code table), which part of the <a class="term" href="#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> it was taken from (and the <a class="term" href="#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a>), and whether the pathologist changed it before binding it.</li>
@@ -21343,7 +21574,7 @@ The difference between the screen text and the gate is listed for Pete in <code>
 <td><a href="#screen-printer_profiles">Printer Profiles</a></td>
 </tr>
 <tr>
-<td>An <a class="term" href="#g-embedding" title="The step where processed tissue is set in wax in a cassette to make a block.">embedding</a> or <a class="term" href="#g-microtomy" title="Cutting thin sections from a block with a microtome to make slides.">microtomy</a> station says <strong>No printer configured</strong> or <strong>The configured printer profile no longer exists</strong>. A slide-distribution station says <strong>This station isn't set up for slide-label printing.</strong></td>
+<td>An <a class="term" href="#g-embedding" title="The step where processed tissue is set in wax in a cassette to make a block.">embedding</a> or <a class="term" href="#g-microtome" title="The instrument that cuts thin sections from a block to make slides, and the bench where this is done.">microtome</a> station says <strong>No printer configured</strong> or <strong>The configured printer profile no longer exists</strong>. A slide-distribution station says <strong>This station isn't set up for slide-label printing.</strong></td>
 <td>The station has no printer profile, or its profile was deleted.</td>
 <td>Open the station and choose a printer profile that still exists.</td>
 <td><a href="#screen-scan_stations">Scan Stations</a>, <a href="#screen-printer_profiles">Printer Profiles</a></td>
@@ -21588,9 +21819,9 @@ The difference between the screen text and the gate is listed for Pete in <code>
 <td><a href="#screen-staff-members">Members</a></td>
 </tr>
 <tr>
-<td><strong>Ask your administrator to reset your password from the Staff screen.</strong></td>
-<td>The person forgot the password. There is no self-service reset in the sign-in form.</td>
-<td>Set a temporary password on the person's record. The person must choose their own at next sign-in.</td>
+<td><strong>If that email belongs to an active account, your administrators have been told...</strong></td>
+<td>The person selected <strong>Ask my administrator to reset my password</strong> on the sign-in screen (password sign-in only). They get this message whether or not the email has an account.</td>
+<td>Open the urgent message "Password reset requested", follow its link to the Staff record and set a temporary password. The person must choose their own at next sign-in. Setting it marks the request handled.</td>
 <td><a href="#screen-staff-members">Members</a></td>
 </tr>
 <tr>
@@ -22644,7 +22875,7 @@ The difference between the screen text and the gate is listed for Pete in <code>
 <li><strong>Every check of a high-risk <a class="term" href="#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a></strong>, allowed or refused. The event is <strong>Capability allowed</strong> or <strong>Capability refused</strong>. The detail names the capability key, the roles that granted it or the reason it was refused, the person's session <a class="term" href="#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> and the facility. The <a class="term" href="#g-capability-catalog" title="The complete list of capabilities, with each one&#x27;s risk level and any capability it requires.">capability catalog</a> marks which capabilities are high risk. A configuration screen's save is one of these checks.</li>
 <li><strong>Role and staff changes.</strong> <strong>Role capabilities changed</strong> lists what was granted and removed for a role. <strong>Staff access changed</strong> records a change to a person's roles, facilities, pediatric access, orchestration access or cross-tenant <a class="term" href="#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> access, each from and to. <strong>Staff credentials changed</strong> records credential edits.</li>
 <li><strong>Sign-in events.</strong> <strong>Signed in</strong>, <strong>Sign-in failed</strong> (attempt n of 5), <strong>Sign-in locked</strong>, <strong>Sign-in refused</strong>, <strong><a class="term" href="#g-sso" title="Single sign-on. See single sign-on.">SSO</a> account linked</strong>, <strong>SSO account unlinked</strong> and <strong>SSO sign-in refused</strong>. The log never records what was typed.</li>
-<li><strong>Named change events for some settings.</strong> For example <code>AI_VENDOR_POLICY_CHANGED</code>, <code>CLINICAL_MISMATCH_RULE_CHANGED</code>, <code>AI_PROMPT_EDITED</code>, <code>AI_PROMPT_APPROVED</code>, <code>FEEDBACK_SETTINGS_CHANGED</code>, <code>RECALL_SETTINGS_CHANGED</code>, <code>QA_TREND_POLICY_CHANGED</code>, <code>CODE_SYSTEM_POLICY_CHANGED</code>, <code>PEER_REVIEW_GATE_CHANGED</code>, <strong>Template review settings changed</strong>, <strong>Organ map colours changed</strong>, <strong>Signing-authority country profile changed</strong> and the four <strong>Signing-authority facility override</strong> events (added, changed, removed, justification updated). The facility override events carry each changed <a class="term" href="#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a> from and to, and the administrator's justification or "Justification: none given".</li>
+<li><strong>Named change events for some settings.</strong> For example <code>AI_VENDOR_POLICY_CHANGED</code>, <code>CLINICAL_MISMATCH_RULE_CHANGED</code>, <code>AI_PROMPT_EDITED</code>, <code>AI_PROMPT_APPROVED</code>, <code>FEEDBACK_SETTINGS_CHANGED</code>, <code>FEEDBACK_ROUTED_TO_VALIDATION</code> (QA feedback in the AI / Template validation category was sent: the title, the study and template ids and whether the QA recipients took it because no validation recipients are set; never the feedback text), <code>RECALL_SETTINGS_CHANGED</code>, <code>QA_TREND_POLICY_CHANGED</code>, <code>CODE_SYSTEM_POLICY_CHANGED</code>, <code>PEER_REVIEW_GATE_CHANGED</code>, <strong>Template review settings changed</strong>, <strong>Organ map colours changed</strong>, <strong>Signing-authority country profile changed</strong> and the four <strong>Signing-authority facility override</strong> events (added, changed, removed, justification updated). The facility override events carry each changed <a class="term" href="#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a> from and to, and the administrator's justification or "Justification: none given".</li>
 <li><strong>Spoken commands.</strong> <strong>Voice command executed</strong> and <strong>Voice command refused</strong>. The detail names the action id and the screen, for example <code>Voice command executed: action TABLE_DELETE on screen WORKLIST; confirmed by repeating the phrase</code>; a refusal gives the reason (not available on this screen, the phrase was not repeated to confirm, or not repeated in time). The person is the acting user. The log never records what was said, and no entry names a case.</li>
 <li><strong>Prints and exports.</strong> <code>DOCUMENT_PRINTED</code>, <code>DOCUMENT_REPRINTED</code>, <code>DOCUMENT_RENDERED</code>, <code>DOCUMENT_EXPORTED</code>, <code>DOCUMENT_FAXED</code>: who, the <a class="term" href="#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a>, the destination, the status and, for an export, the row count.</li>
 <li><strong>Case events</strong>, such as <a class="term" href="#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> generation, field updates, finalization, <a class="term" href="#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> selection, drift detection and correction, billing corrections and patient management (<code>mpi.*</code>).</li>
@@ -23733,6 +23964,52 @@ The difference between the screen text and the gate is listed for Pete in <code>
 <li>When it ends, read the summary: "Printed N; failed N; blocked by the on-demand guardrail N." Select <strong>Retry N failed labels</strong> to try the failures again.</li>
 </ol>
 <p>Every label is audited. The permission is <code>label:batch:reprint</code> (Histotechnologist and Admin hold it by default). Without it the screen says "You don’t have permission to reprint labels in a batch." Reference: <a href="#screen-batch-management">Batch Management</a>.</p>
+<h3 id="ch11-lbl-numbering"><a class="anchor" href="#ch11-lbl-numbering" aria-label="Link to this section">#</a> Choose letters or numbers for specimens, blocks and slides</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations &gt; Facility Configuration"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span> <span aria-hidden="true">›</span> <span>Facility Configuration</span></nav>
+
+<p>The Label Designer decides how a label looks. This setting decides what the <a class="term" href="#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a>, <a class="term" href="#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> and slide labels say. It is set separately for <strong>Specimens</strong>, <strong>Blocks</strong> and <strong>Slides</strong>, each <strong>Letters</strong> or <strong>Numbers</strong>, on the <a class="term" href="#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> as the default and, if a lab needs it, per lab.</p>
+<ol>
+<li>Open <strong>Configuration &gt; System &gt; Integrations &gt; Facility Configuration</strong> and edit the <strong>Enterprise</strong> <a class="term" href="#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> (the one with "This is a top-level Enterprise institution" ticked). On the <strong>General</strong> tab find <strong>Letters or numbers for labels</strong>.</li>
+<li>Set <strong>Specimens</strong>, <strong>Blocks</strong> and <strong>Slides</strong>. The line under the selectors shows the result, for example "Specimen A · Block 1 · Slide L1" and "Cassette A1 · slide label A1 L1". <strong>Preset</strong> sets Specimens and Blocks together to one of the two original pairs and leaves Slides alone.</li>
+<li>Save. Every lab under the enterprise follows these choices.</li>
+<li>To give one <a class="term" href="#g-performing-lab" title="The facility that does the testing and issues the report, as opposed to a client that only sends specimens.">performing lab</a> its own labels, edit that lab (<strong>Parent Enterprise</strong> set to the enterprise) and change only the selectors that differ. A selector left on <strong>Same as enterprise (value)</strong> keeps following the enterprise, and shows its current value in brackets.</li>
+</ol>
+<p>What each choice does:</p>
+<table>
+<thead>
+<tr>
+<th>Choice</th>
+<th>Letters</th>
+<th>Numbers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Specimens</td>
+<td>A, B, C... then AA, AB...</td>
+<td>1, 2, 3...</td>
+</tr>
+<tr>
+<td>Blocks</td>
+<td>A, B, C... (joined to the specimen: A<strong>A</strong>, 1<strong>A</strong>)</td>
+<td>1, 2, 3... (A<strong>1</strong>, A<strong>2</strong>)</td>
+</tr>
+<tr>
+<td>Slides</td>
+<td>The printed level reads La, Lb, Lc</td>
+<td>The printed level reads L1, L2, L3 (as before)</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Slides change the printed text only.</strong> The code inside a slide's barcode and its slide ID stays L1, L2, L3 whichever you choose, so scanning, reprints and every existing slide keep working. Screens that list a slide's level (for example the Microtome Workstation) still show L1, L2.</li>
+<li><strong>New cases only.</strong> The choice in force when a <a class="term" href="#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> is accessioned is saved on the case. Specimens, blocks and slides added to that case later (Add Block at Grossing, Add Block on the report page, a specimen leaving a Biopsy Array) follow it, even if the facility changes afterwards. Nothing already printed, scanned or signed out is relabelled. There is no "Relabel existing" action: <strong>Not built</strong>. Relabelling would change <a class="term" href="#g-cassette" title="The plastic holder in which a tissue block is embedded and labelled for cutting.">cassette</a> and slide barcodes that are already on tissue.</li>
+<li><strong>Same kind for Specimens and Blocks.</strong> You may choose letters for both or numbers for both. A label such as AA or 11 can then mean two things (specimen A block A, or a specimen past Z; specimen 1 block 1, or specimen 11). The screen says so; it does not stop you.</li>
+<li><strong>Existing facilities keep their labels.</strong> A facility that had the old single choice keeps it: it opens as the matching Specimens and Blocks choices, with Slides following the enterprise (numbers unless set).</li>
+<li>Each change is written to the <a class="term" href="#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> ("Facility label style changed" or "Enterprise label style changed", with the old and new choice per level).</li>
+</ul>
+<p>Expected result: the next case accessioned for that lab shows specimens labelled in the chosen style, and Add Block at Grossing or on the report page continues the sequence.</p>
+<p>Permission: saving a facility needs <code>config:facilities:manage</code>. Reference: <a href="#screen-facility-dictionary">Facility Dictionary</a>.</p>
 <h2 id="ch11-billing"><a class="anchor" href="#ch11-billing" aria-label="Link to this section">#</a> Part B: Billing and charge capture</h2>
 <nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span></nav>
 
@@ -24182,7 +24459,7 @@ The difference between the screen text and the gate is listed for Pete in <code>
 <li id="g-macro"><strong>macro</strong>: A saved piece of text or a set of settings, such as a report phrase or a stain order, that can be inserted in one step.</li>
 <li id="g-mdt"><strong>MDT</strong>: Multidisciplinary team meeting, also called a tumor board, where specialists discuss a patient's care.</li>
 <li id="g-mfa"><strong>MFA</strong>: Multi-factor authentication, signing in with a second proof such as a code from an authenticator app, as well as a password.</li>
-<li id="g-microtomy"><strong>microtomy</strong>: Cutting thin sections from a block with a microtome to make slides.</li>
+<li id="g-microtome"><strong>microtome</strong>: The instrument that cuts thin sections from a block to make slides, and the bench where this is done.</li>
 <li id="g-mips"><strong>MIPS</strong>: The Merit-based Incentive Payment System, a US Medicare program that adjusts payment by reported quality measures.</li>
 <li id="g-milan-system"><strong>Milan System</strong>: The reporting system for salivary gland fine-needle aspiration cytology.</li>
 <li id="g-modifier"><strong>modifier</strong>: A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.</li>

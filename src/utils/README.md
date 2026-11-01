@@ -1,3 +1,13 @@
+**Batch 739:** `aliquotMigration.ts` (legacy HPV aliquots retyped), `decantTypeText.ts` (a decant's type on screen, aliquots by purpose), `generateDefaultMaterial.ts` (the track's decant type).
+
+**Batch 737:** `microtomyOperations.ts` (matrix view carries the parts as pieces and writes back status and `exhaustedAt`), `addOnOrderOperations.ts` (`matrixExhausted`), `blockExceptionStates.ts` (`exhaustedOnScan`), `blockPieceRules.ts` (`slideSizeOnScan`, `slideFitsCarrier`); test `carrierFit.test.ts`. Labels: see `labels/README.md`.
+
+**Batch 736:** `exhaustedBlockRules.ts`: `flagBlockExhaustedOnce` takes `reasonCode`; `CartExhaustedChoice.pick` and `choicesForSubmit(…, textOf)` carry the picked bench reason and its code.
+
+**Batch 735:** `touch/` (new: `touchLayout.ts`, `scanFieldFocus.ts`, `keyboardVisibility.ts`, `tapTitle.ts`, the touch spec's rules) and `listOrder.ts` (`moveIdOnto`, `moveIdBy`: drag and Move up / Move down).
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # src/utils/
 
 **Batch 650:** `modalFocus.ts` (`isModalOpen`): true while a window that owns focus is on screen, so a screen's voice and key commands are ignored behind it. Test: `modalFocus.test.ts`.
@@ -844,3 +854,23 @@ Batch 669: `embeddingOperations.ts` gains `hasOpenEmbeddingDiscrepancy`, `clearE
 **Batch 713:** `effectiveScanStation.ts` ignores a station the signed-in user may not use (`services/scanStations/stationAvailability.ts`).
 
 **Batch 715:** `specimenLabeling.ts` now covers specimen, block and slide labels as independent letters-or-numbers choices (`nextBlockLabel` never repeats a label; `slideLevelText` prints `La` for letters). `generateDefaultMaterial.ts` and `grossingScreenOperations.addGrossingBlock` take the resolved style. See `services/labeling/README.md`.
+
+## Batch 729
+
+- `embeddingMatrixView.ts` (new, tested): a matrix block as a one-block specimen for the embedding operations, and written back to `Case.matrixBlocks` (spec 11.6).
+
+## Batch 731
+
+- `exhaustedBlockRules.ts` (new, pure, tested): the exhausted-block rule (spec §10.6): `whatRemains`, `unstainedSlidesOf`, `lineNeedsNewSection`, `checkExhaustedLines` / `exhaustedChoiceProblems` (per-line check: a recut or levels can never use an existing slide), `orderOnUnstainedSlide`, `copyOrderToBlock`, `resolveExhaustionWithAlternative` (answers a "Block exhausted" flag), `completeReembed`, and the builder's form helpers. `blockExceptionStates.cuttingBlockedByExhaustion` also holds an order waiting for re-embedding. `addOnOrderOperations.ts`: `createAddOnOrder(..., { holdForReembed })`, `addOnLineFields`, the stage "Awaiting Re-embedding".
+
+## Batch 732
+
+- `blockPieceRules.ts` (new, pure, tested; spec §11): `BLOCK_TYPE_PROFILES` (what a block type sets: cassette, mold, slide size, label templates), `blockTypeOf`, `slideSizeOf`, `piecesOf` (a block's pieces; a matrix block's parts), `pieceMapProblems`, `setBlockPieceMap`, `markPieceExhausted` (the last piece makes the block Exhausted), `onExhaustedTissue` / `mixesExhaustedPieces` (§11.5), `slideFitsHardware`. `addOnOrderOperations.ts`: level ranges (`expandLevelRanges`, `levelCount` / `levelsPerSlide`), slide size and `pieceIds` on new slides. `exhaustedBlockRules.ts`: the alternative "another piece of the block" (`otherPiece`) and per-piece re-embedding. `blockExceptionStates.cuttingBlockedByExhaustion`: an order waiting for re-embedding holds the block even when only pieces were used up.
+
+## Batch 734
+
+- Batch 734: `labels/dispatchZplLabel.ts` refuses a direct browser-to-printer print the facility has not allowed (server deployments only); see `services/printing/directDevicePrinting.ts`.
+
+## Batch 733
+
+- Batch 733: `exhaustedBlockRules.ts` — one Block exhausted flag per block (`flagBlockExhaustedOnce`), the group answer (`openExhaustionFlags`, `unstainedSlidesForGroup`) and `destructiveCutAllowed` (only while tissue may remain).

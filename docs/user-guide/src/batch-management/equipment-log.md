@@ -7,7 +7,7 @@ role: [Histotechnologist, Cytotechnologist, Molecular Technologist, Laboratory M
 keywords: [equipment log, maintenance, calibration, service log, malfunction, repair, function check, overdue, due soon, instrument]
 routes: [/batch-management/equipment-log]
 previous: batch-management/wsi-scan
-next: batch-management/retention-holds
+next: batch-management/workflow-reports
 related: [batch-management, batch-management/engraver-monitor, batch-management/wsi-scan]
 status: Draft
 ---
@@ -63,12 +63,13 @@ When several apply, the worst one is shown, in that order: Malfunction, Overdue,
 |---|---|
 | Open malfunction notice | "Open malfunction: no passing repair or function check has been recorded since." Shown when the state is Malfunction. |
 | Maintenance, Calibration lines | For each: Up to date, Due soon, Overdue or Not yet done, "Last done (date)" and "Due (date)", or "Not scheduled". |
-| Type | Maintenance, Calibration, Function check, Malfunction or Repair. Starts on Maintenance. |
+| Type | Maintenance, Calibration, Function check, Malfunction, Repair or Temperature check (Batch 730). Starts on Maintenance. |
+| Temperature (°C) | For a Temperature check only, and required. Below it, the device's range ("Acceptable: 2 to 8 °C. The outcome is set from the reading."); the outcome is set to Pass or Fail from the reading and must match it. With no range on the device it says so and you choose the outcome. The range is kept with the entry as it was that day. |
 | Date Done | The day it was done. Starts today. It cannot be in the future. |
 | Outcome | Pass, Fail or Not applicable. Starts on Pass. |
 | Done By | Who did it. Starts with your name. Change it for a service engineer's name. Required. |
 | Notes | Free text. Required for a Fail outcome or a Malfunction type. |
-| History | A table of earlier entries: Date, Type, Outcome, By and Notes, newest first. |
+| History | A table of earlier entries: Date, Type (with the reading for a temperature check, for example "(4.5 °C)"), Outcome, By and Notes, newest first. |
 
 ### Toolbar
 

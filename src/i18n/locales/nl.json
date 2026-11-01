@@ -890,6 +890,8 @@
       "fragile": "Breekbaar",
       "levelsCut": "{{count}} niveau(s) al gesneden",
       "lost": "Zoekgeraakt",
+      "matrixParts": "delen {{parts}}",
+      "matrixTitle": "Gedeelde blokken (matrix)",
       "noBlocks": "Geen blokken voor dit specimen.",
       "specimen": "Specimen {{label}} {{description}}",
       "tinyTissue": "Zeer klein weefsel",
@@ -909,7 +911,9 @@
         "recut": "Hersnede / dieptecoupe",
         "special_stain": "Speciale kleuring"
       },
+      "levelCount": "Niveaus",
       "levelDepth": "Coupediepte (µm)",
+      "levelsPerSlide": "Niveaus per coupe",
       "noStains": "Geen overeenkomende kleuringen.",
       "panelPicker": "IHC-panel",
       "panelStainsMissingAll": "Geen van de kleuringen van dit panel staat in het kleuringenwoordenboek ({{stains}}); er kan niets worden toegevoegd. Vraag uw beheerder ze toe te voegen.",
@@ -924,28 +928,69 @@
       "primaryPathologistLine": "Hoofdpatholoog: {{name}}"
     },
     "errors": {
+      "alternativeRefused": {
+        "needsNewSection": "Een van de wachtende coupes heeft een nieuwe coupe nodig en kan niet op een ongekleurde coupe. Vink “Alleen voor deze coupe antwoorden” aan en antwoord per coupe.",
+        "notEnoughSlides": "Er zijn niet genoeg ongekleurde coupes voor alle wachtende coupes. Vink “Alleen voor deze coupe antwoorden” aan en antwoord per coupe.",
+        "nothingLeft": "Het blok was al uitgeput, destructief snijden is niet mogelijk. Kies een alternatief."
+      },
       "blockCancelled": "Blok {{block}} is geannuleerd.",
       "blockDamaged": "Blok {{block}} is als beschadigd gemarkeerd; er kan pas besteld worden na herinbedding.",
-      "blockExhausted": "Blok {{block}} is uitgeput; er kunnen geen snijbestellingen meer op worden geplaatst.",
+      "blockExhausted": "Blok {{block}} is uitgeput. Kies in het vak boven de bestelbouwer per regel wat er moet gebeuren: een al gesneden ongekleurde coupe, opnieuw inbedden, of een ander blok van hetzelfde preparaat.",
       "blockLost": "Blok {{block}} is als verloren gemarkeerd; er kan pas besteld worden als het gevonden is.",
       "blockNotFound": "Blok {{block}} is niet gevonden in deze casus.",
       "caseNotFound": "Geen casus gevonden voor ‘{{query}}’.",
       "enterAccession": "Voer een accessienummer in of scan het.",
+      "exhaustedNeedsChoice_one": "Blok {{block}} is uitgeput: {{count}} regel heeft nog een alternatief nodig.",
+      "exhaustedNeedsChoice_other": "Blok {{block}} is uitgeput: {{count}} regels hebben nog een alternatief nodig.",
+      "exhaustedReasonRequired": "Blok {{block}} is uitgeput: geef de reden voor deze bestelling op.",
       "failed": "Dat is niet gelukt. De bestelling is mogelijk gewijzigd; open de casus opnieuw en probeer het nogmaals.",
       "inHouseNotAvailable": "Het lab van deze casus voert {{tests}} niet intern uit. Kies extern uitbesteden.",
+      "matrixExhausted": "Matrixblok {{block}}: het gekozen weefsel is op. Bestel van een ander blok van het deel, of vraag om herinbedding.",
+      "mixedPieces": "Blok {{block}}: sommige gekozen stukken zijn opgebruikt. Kies alleen resterende stukken, of alleen opgebruikte om de alternatieven te zien.",
       "noLines": "Voeg ten minste één bestelregel toe voor blok {{block}}.",
-      "notPermitted": "U hebt hiervoor geen toestemming. Vraag het uw beheerder."
+      "notPermitted": "U hebt hiervoor geen toestemming. Vraag het uw beheerder.",
+      "pieceExhausted": "Blok {{block}}: de gekozen stukken zijn opgebruikt. Kies in het vak boven de bestelbouwer per regel wat er moet gebeuren."
     },
     "exceptionReasons": {
       "blockExhausted": "Blok uitgeput",
       "insufficientTissue": "Onvoldoende weefsel voor het panel",
       "requiresRegrossing": "Opnieuw snijden vereist"
     },
+    "exhausted": {
+      "addLines": "Voeg de bestelregels toe; wat er met elke regel op dit blok gebeurt, ziet u hier.",
+      "choose": "Kies een alternatief…",
+      "controlsNote": "Voor een kleuring op een al gesneden coupe wordt niet automatisch een controlecoupe toegevoegd. De bestelling en de reden worden in het auditlogboek vastgelegd.",
+      "noAlternative": "Er blijft niets over om aan te bieden: verwijder deze regel.",
+      "otherBlock": "In plaats daarvan bestellen op blok {{block}}",
+      "otherPiece": "In plaats daarvan bestellen op stuk {{position}} ({{part}})",
+      "problem": {
+        "blockUnusable": "Dat blok kan niet meer worden gesneden.",
+        "chooseAlternative": "Kies een al gesneden ongekleurde coupe, opnieuw inbedden of een ander blok.",
+        "needsNewSection": "Vereist een nieuwe coupe uit dit blok. Kies opnieuw inbedden of een ander blok.",
+        "pieceUnusable": "Dat stuk is opgebruikt of zit niet meer in het blok.",
+        "slideUnavailable": "Die coupe is niet meer vrij, of een andere regel gebruikt hem al."
+      },
+      "reason": "Reden voor bestellen op een uitgeput blok",
+      "reembed": "Opnieuw inbedden aanvragen (de bestelling wacht tot dat gebeurd is)",
+      "useSlide": "Ongekleurde coupe {{level}} gebruiken (al gesneden)"
+    },
     "pageTitle": "Aanvullende-opdrachtbouwer",
     "panels": {
       "panel-breast": "Borstpanel (ER/PR/HER2/Ki-67)",
       "panel-lynch-mmr": "Lynch/MMR-panel (MLH1/MSH2/MSH6/PMS2)",
       "panel-renal-if": "Nier-IF-panel (IgG/IgA/IgM/C3/C1q/Kappa/Lambda)"
+    },
+    "printAt": {
+      "atMicrotome": "Bij de microtoom wanneer het blok wordt gesneden",
+      "hint": "De etiketten worden nu bij dat station afgedrukt. De microtoom legt het snijden vast zonder ze opnieuw af te drukken.",
+      "label": "Etiketten afdrukken bij",
+      "noPrinter": "De etiketten zijn niet afgedrukt bij {{station}}: daar is geen coupeprinter ingesteld. Ze worden bij de microtoom afgedrukt.",
+      "notPermitted": "De etiketten zijn niet afgedrukt bij {{station}}: u hebt geen toestemming om afdruktaken naar een ander station te sturen. Ze worden bij de microtoom afgedrukt.",
+      "printedSomeFailed_one": "{{count}} etiket afgedrukt bij {{station}}; {{failed}} niet afgedrukt, die worden bij de microtoom afgedrukt.",
+      "printedSomeFailed_other": "{{count}} etiketten afgedrukt bij {{station}}; {{failed}} niet afgedrukt, die worden bij de microtoom afgedrukt.",
+      "printed_one": "{{count}} etiket afgedrukt bij {{station}}.",
+      "printed_other": "{{count}} etiketten afgedrukt bij {{station}}.",
+      "withPlaced": "{{placed}} {{printed}}"
     },
     "priority": {
       "Research_Protocol": "Onderzoek / protocol",
@@ -975,6 +1020,8 @@
       "inHouseQueue": "Gaat naar de orderwachtrij van de moleculaire werkplek.",
       "labsAll": "Er is nog geen lab aan deze test gekoppeld, dus alle referentielabs worden getoond.",
       "labsApprovedForTest": "Alleen de labs die voor deze test zijn goedgekeurd, worden getoond.",
+      "levelRange_one": "{{count}} niveau, {{perSlide}} per coupe",
+      "levelRange_other": "{{count}} niveaus, {{perSlide}} per coupe",
       "microns": "{{count}} µm niveaus",
       "molecularRouting": "Uitvoering",
       "noPerformingLab": "Het uitvoerend laboratorium van dit dossier kon niet worden bepaald — orders worden toch aangemaakt, zonder labgebonden stationmatch.",
@@ -994,11 +1041,22 @@
       "title": "Ordersamenvatting & routering"
     },
     "tracking": {
+      "alternative": "Of een alternatief gebruiken",
+      "alternativeNeedsNote": "Typ eerst een antwoordnotitie: dat is de reden voor het alternatief.",
+      "answerAppliesToAll_one": "Dit antwoord geldt voor de {{count}} wachtende coupe op {{block}}.",
+      "answerAppliesToAll_other": "Dit antwoord geldt voor alle {{count}} wachtende coupes op {{block}}.",
+      "answerIndividually": "Alleen voor deze coupe antwoorden",
+      "answerThisOnly": "Dit antwoord geldt alleen voor deze coupe.",
+      "answeredCount_one": "Antwoord toegepast op {{count}} wachtende coupe.",
+      "answeredCount_other": "Antwoord toegepast op {{count}} wachtende coupes.",
+      "applyAlternative": "Toepassen",
       "approveDestructive": "Destructieve coupe goedkeuren",
       "cancelFlag": "Annuleren",
       "cancelOrder": "Order annuleren",
       "confirmFlag": "Uitzondering markeren",
       "count": "{{count}}",
+      "destructiveNotOffered": "Het blok was al uitgeput vóór deze melding, er is niets meer te snijden: destructief snijden wordt niet aangeboden.",
+      "destructiveWarning": "Doorsnijden gebruikt het laatste weefsel in dit blok. Daarna zijn er geen hersnijding, biomarker- of moleculaire test meer mogelijk uit dit blok, wat vooral telt bij een kleine biopsie. Een antwoordnotitie is verplicht.",
       "empty": "Nog geen aanvullende orders geplaatst voor dit dossier.",
       "exceptionNote": "Optionele notitie…",
       "exceptionNoteLabel": "Notitie",
@@ -1015,6 +1073,7 @@
       "resubmit": "Opnieuw indienen",
       "sendOutTo": "Externe verzending: {{lab}}",
       "stage": {
+        "AwaitingRe-embedding": "Wacht op opnieuw inbedden",
         "BlockRetrieved": "Blok opgehaald",
         "Cancelled": "Geannuleerd",
         "CheckedOutScanned": "Uitgecheckt / gescand",
@@ -2268,6 +2327,18 @@
     "unexpectedError": "Onverwachte fout bij het scannen van de barcode",
     "unknownError": "onbekende fout"
   },
+  "batchCarrier": {
+    "closedAborted": "Deze drager is gesloten: afgebroken op {{at}}.",
+    "closedComplete": "Deze drager is gesloten: voltooid op {{at}}.",
+    "historyLabel": "Stappen die deze drager heeft doorlopen",
+    "historyStep": "{{from}} → {{to}}, {{name}}, {{at}}",
+    "moveTo": "Naar {{node}} verplaatsen",
+    "movedToast": "{{barcode}} verplaatst naar {{node}}. Items: {{count}}.",
+    "otherStep": "De werkplek van deze computer ({{station}}) werkt aan {{stationSteps}}; deze drager staat bij {{node}}.",
+    "seal": "Manifest verzegelen",
+    "sealedBy": "Manifest verzegeld door {{name}} op {{at}}.",
+    "sealedToast": "{{barcode}} verzegeld."
+  },
   "batchDetail": {
     "abortBatch": "Charge afbreken",
     "abortModalText": "Deze charge en het manifest worden bewaard voor audit, maar gemarkeerd als Afgebroken en kunnen geen scans meer accepteren.",
@@ -2290,7 +2361,10 @@
     "completeDisabledTitle": "{{missing}} ontbrekend, {{unexpected}} onverwacht — oplossen of overschrijven",
     "emptyManifest": "Er zijn nog geen items in deze charge gescand.",
     "errors": {
+      "alreadySealed": "{{barcode}} is al verzegeld.",
       "batchNotFound": "Deze batch bestaat niet meer. Ga terug naar de lijst en open hem opnieuw.",
+      "batchSealed": "{{barcode}} is verzegeld: er kan niets worden toegevoegd of verwijderd.",
+      "cannotAdvance": "{{barcode}} kan niet naar die stap.",
       "coldChainUnacknowledged": "Deze batch heeft een niet-bevestigde onderbreking van de koudeketen. Bevestig die of gebruik een overschrijving door een supervisor.",
       "destinationNotActive": "Items kunnen alleen naar een actieve batch worden verplaatst.",
       "excursionAlreadyOpen": "Batch {{barcode}} heeft al een niet-bevestigde onderbreking van de koudeketen. Bevestig die eerst.",
@@ -2301,7 +2375,7 @@
       "noItemsToTransfer": "Deze batch heeft geen items om over te dragen.",
       "noRack": "Deze batch heeft geen herbruikbaar rek om vrij te geven.",
       "notActive": "Batch {{barcode}} is niet meer actief. Hij is mogelijk al afgestemd, overgedragen of gesloten.",
-      "notCytologyProcessing": "Instrumentstatus geldt alleen voor een batch cytologieverwerking.",
+      "notCytologyProcessing": "Instrumentstatus geldt alleen voor een batch verwerking vloeibare cytologie.",
       "notDecal": "Overdracht naar verwerking geldt alleen voor een batch ontkalking / speciale verwerking.",
       "notReconciling": "Start eerst de afstemming van batch {{barcode}}.",
       "notStaining": "Dit geldt alleen voor een kleuringsbatch.",
@@ -2310,9 +2384,11 @@
       "rackNotRegistered": "Rek {{rackId}} is niet geregistreerd. Controleer de ID of registreer het rek eerst.",
       "sameBatch": "Het item zit al in deze batch. Kies een andere batch.",
       "sourceNotActive": "Items kunnen alleen uit een actieve batch worden verplaatst.",
+      "stationRequired": "Stel eerst de werkplek van deze computer in.",
       "unexpectedScans_one": "{{count}} item dat niet bij deze batch hoort is gescand. Los het op of gebruik een overschrijving door een supervisor.",
       "unexpectedScans_other": "{{count}} items die niet bij deze batch horen zijn gescand. Los ze op of gebruik een overschrijving door een supervisor."
     },
+    "exhaustedWarning": "{{displayId}} is uitgeput: er zit geen weefsel meer in dit blok. Het is aan de batch toegevoegd; overleg met de patholoog voordat het verwerkt of gesneden wordt.",
     "forceCompletedToast": "Charge {{barcode}} geforceerd voltooid met override.",
     "instrumentReports": "Instrument meldt: {{status}}",
     "manifestSection": "Manifest ({{count}})",
@@ -2363,15 +2439,19 @@
     "removedToast": "{{displayId}} verwijderd uit charge.",
     "scanHintActive": "Scan de barcode van een cassette of objectglaasje om het aan deze charge toe te voegen. Handsfree — geen klik in een veld nodig.",
     "scanHintReconcile": "Verificatie buiten proces: scan elk fysiek item terwijl u het van de drager verwijdert.",
+    "scanHintSealed": "Het manifest is verzegeld. Start de verificatie om items uit te scannen.",
     "scanRejected": {
       "alreadyInBatch": "{{displayId}} zit al in deze batch.",
       "inOtherActiveBatch": "{{displayId}} zit al in actieve batch {{barcode}}.",
-      "notFound": "‘{{value}}’ komt niet overeen met een cassette of coupe van een casus."
+      "notAccepting": "{{barcode}} neemt geen items meer aan.",
+      "notFound": "‘{{value}}’ komt niet overeen met een cassette of coupe van een casus.",
+      "sealed": "{{barcode}} is verzegeld: er kunnen geen items meer worden toegevoegd.",
+      "slideTooLarge": "{{displayId}} is een grootformaatglaasje en {{barcode}} neemt geen grootformaatglaasjes. Gebruik een grootformaat kleuringsrek."
     },
     "startReconciliation": "Afstemming starten",
     "supervisorOverrideLink": "Supervisor-override…",
     "transferToProcessing": "Overdragen naar verwerking",
-    "transferredToast": "{{count}} item(s) overgedragen naar nieuwe verwerkingscharge {{barcode}}.",
+    "transferredToast": "{{barcode}} als dezelfde charge naar Verwerking verplaatst. Items: {{count}}.",
     "unexpected": "Onverwacht",
     "unexpectedFlash": "Onverwacht — niet op het manifest van deze charge",
     "unexpectedSection": "Onverwacht / extra ({{count}})"
@@ -2395,12 +2475,13 @@
     "labelReprintTile": "Etiketten herdrukken",
     "labelReprintTitle": "Etiketten voor veel casussen tegelijk herdrukken",
     "loading": "Batches laden…",
+    "lookupButton": "Opzoeken",
     "lookupPlaceholder": "Scan of voer een hoofdbatchbarcode in…",
     "newContainer": "Nieuwe container",
     "nodeTileLabel": {
       "Checkout": "Controle",
       "Cytology Imaging": "Cyto-beeldvorming",
-      "Cytology Processing": "Cyto-verwerking",
+      "Cytology Processing": "Vloeibare cyto",
       "Cytology Staining": "Cyto-kleuring",
       "Decal / Special Processing": "Decal / Speciaal",
       "Embedding": "Inbedding",
@@ -2412,7 +2493,7 @@
     "nodes": {
       "Checkout": "Eindcontrole",
       "Cytology Imaging": "Cytologie-beeldvorming",
-      "Cytology Processing": "Cytologie-verwerking",
+      "Cytology Processing": "Verwerking vloeibare cytologie",
       "Cytology Staining": "Cytologie-kleuring",
       "Decal / Special Processing": "Decalcificatie / Speciale verwerking",
       "Embedding": "Inbedding",
@@ -2437,6 +2518,17 @@
     },
     "wsiScanTile": "Glaasjes scannen",
     "wsiScanTitle": "Glaasjes in een scanner laden, de batch sturen, eruit halen"
+  },
+  "batchPurposes": {
+    "builtIn": {
+      "biobank": "Biobank",
+      "clinical-trial": "Klinische studie",
+      "qa-validation": "QA / Validatie",
+      "research": "Onderzoek",
+      "routine": "Routine",
+      "teaching": "Onderwijs"
+    },
+    "label": "Doel"
   },
   "batchRegistryFeedSection": {
     "addProgram": "Programma toevoegen",
@@ -2607,6 +2699,62 @@
     "title": "Werkplekbijdragen",
     "windowLabel": "Laatste {{days}} dagen"
   },
+  "benchReasons": {
+    "AE_DIAGNOSIS_NEEDED": "Nodig om de diagnose af te ronden",
+    "AE_LAST_MATERIAL": "Laatste beschikbare materiaal",
+    "AE_PATHOLOGIST_REQUEST": "Op verzoek van de patholoog",
+    "BA_CREATED_IN_ERROR": "Per vergissing aangemaakt",
+    "BA_EQUIPMENT_FAILURE": "Storing van apparatuur",
+    "BA_RUN_CANCELLED": "Run geannuleerd door het lab",
+    "BA_WRONG_CONTAINER": "Verkeerde container of rek",
+    "BE_BLOCK_DAMAGED": "Blok beschadigd",
+    "BE_FEW_SECTIONS": "Nog maar enkele coupes over",
+    "BE_INCOMPLETE_FACE": "Geen volledig snijvlak te krijgen",
+    "BE_NO_TISSUE": "Geen weefsel meer in het blok",
+    "BO_ACCOUNTED_ELSEWHERE": "Items elders verantwoord",
+    "BO_LABEL_DAMAGED": "Etiket beschadigd, identiteit visueel gecontroleerd",
+    "BO_SCANNED_BY_HAND": "Met de hand gecontroleerd: barcode niet leesbaar",
+    "BO_SUPERVISOR_APPROVED": "Goedgekeurd door de leidinggevende",
+    "CC_BACK_IN_RANGE": "Temperatuur bij aankomst weer binnen bereik",
+    "CC_COURIER_DELAY": "Vertraging koerier; inhoud gecontroleerd",
+    "CC_LOGGER_FAULT": "Verpakking intact; storing van de logger"
+  },
+  "benchReasonsSection": {
+    "add": "Reden toevoegen",
+    "addAria": "Nieuwe reden voor {{category}}",
+    "addPlaceholder": "Een nieuwe reden, in de woorden van uw lab",
+    "categories": {
+      "BENCH_ADDON_EXHAUSTED": "Aanvullende orders: order of antwoord bij een uitgeput blok",
+      "BENCH_BATCH_ABORT": "Batchbeheer: Batch afbreken",
+      "BENCH_BATCH_COLD_CHAIN": "Batchbeheer: koudeketenafwijking bevestigen",
+      "BENCH_BATCH_OVERRIDE": "Batchbeheer: afronden met afwijkingen",
+      "BENCH_BLOCK_EXHAUSTED": "Microtoom: Blok uitgeput"
+    },
+    "columns": {
+      "actions": "Acties",
+      "code": "Code",
+      "wording": "Formulering"
+    },
+    "defaultWording": "Standaardformulering, getoond in de taal van elke gebruiker",
+    "errors": {
+      "duplicate": "Deze categorie heeft al een reden met die formulering.",
+      "required": "Voer de formulering in."
+    },
+    "labWording": "Formulering van uw lab, getoond zoals ingevoerd",
+    "moveDown": "Deze reden omlaag",
+    "moveDownShort": "↓",
+    "moveUp": "Deze reden omhoog",
+    "moveUpShort": "↑",
+    "notSaved": "Niet opgeslagen. Mogelijk mag u werkbankredenen niet wijzigen; vraag het uw beheerder.",
+    "restore": "Herstellen",
+    "retire": "Intrekken",
+    "reword": "Herformuleren",
+    "rewordAria": "Nieuwe formulering voor ‘{{reason}}’",
+    "saved": "Opgeslagen.",
+    "subtitle": "De redenen die medewerkers aan de werkbank aantikken. Herformuleer ze in de taal van uw lab, voeg eigen redenen toe, zet ze op volgorde of trek ze in. Elke reden houdt haar code, zodat rapporten haar na herformulering op dezelfde manier tellen. Een notitie blijft optioneel.",
+    "title": "Redenen aan de werkbank",
+    "useDefault": "Standaardformulering gebruiken"
+  },
   "biFeed": {
     "approval": {
       "approver": "Goedgekeurd door",
@@ -2646,9 +2794,17 @@
     "copy": "Kopiëren",
     "copyFailed": "Kopiëren is niet gelukt. Selecteer het token en kopieer het handmatig.",
     "datasets": {
+      "add_on_orders": {
+        "description": "Aanvullende bestellingen met type, prioriteit, bestel- en snijtijd, status en wachtrij.",
+        "name": "Aanvullende bestellingen"
+      },
       "audit": {
         "description": "Dagelijkse aantallen toegestane en geweigerde acties per gebeurtenistype. Alleen aantallen, geen gebruikers- of patiëntdetails.",
         "name": "Auditsamenvattingen"
+      },
+      "batches": {
+        "description": "Elke drager met doel, huidige stap, stapgeschiedenis, tijden, doel en afstemmingsaantallen. Geen casusgegevens.",
+        "name": "Dragers en charges"
       },
       "billing": {
         "description": "Kostenregistratie en factureringsgebeurtenissen naar het factureringssysteem, met CPT-code, hoeveelheid, bedrag en financiële klasse.",
@@ -2658,6 +2814,10 @@
         "description": "Dossiers met registratie- en autorisatietijden, status, prioriteit, patholoog, diagnosecodes en doorlooptijd in uren.",
         "name": "Dossiers en doorlooptijden"
       },
+      "item_end_states": {
+        "description": "Elke eindstatus die voor een blok of coupe is vastgelegd (uitgeput, terug naar opslag, gearchiveerd, verzonden, verbruikt, vernietigd), met het item waar het uit kwam, wie en wanneer. De vrije-tekstreden wordt verwijderd bij de-identificatie.",
+        "name": "Eindstatussen van items"
+      },
       "qa": {
         "description": "Kwaliteitsgebeurtenissen zoals discordantie, tekortkomingen en wijzigingen, met ernst, uitkomst en timing.",
         "name": "Kwaliteit en discordantie"
@@ -2665,6 +2825,10 @@
       "specimens": {
         "description": "Specimens met type, afname- en ontvangsttijden en aantallen blokjes, glaasjes en kleuringen.",
         "name": "Specimens"
+      },
+      "station_events": {
+        "description": "Elke scan van een cassette, blok of coupe op een station: wanneer, waar, welke stap, wat er gebeurde en of hij uit een dragerscan komt.",
+        "name": "Stationsscans"
       },
       "workload": {
         "description": "Per persoon en dag verwerkte dossiers, specimens, blokjes en glaasjes. Geen patiëntgegevens.",
@@ -3407,6 +3571,53 @@
     "entirelySubmittedRange_one": "Volledig ingezonden in blok {{range}}",
     "entirelySubmittedRange_other": "Volledig ingezonden in blokken {{range}}"
   },
+  "blockPieces": {
+    "addPiece": "+ Stuk toevoegen",
+    "cols": {
+      "description": "Beschrijving",
+      "ink": "Inkt",
+      "orientation": "Oriëntatie",
+      "part": "Preparaat",
+      "position": "Positie",
+      "remove": "Stuk verwijderen"
+    },
+    "edit": "Type en stukken",
+    "exhausted": "Opgebruikt",
+    "lastPieceUsed": "Dat was het laatste stuk: het blok is nu uitgeput.",
+    "markExhausted": "Stuk opgebruikt",
+    "notPermitted": "U hebt geen toestemming om dit vast te leggen. Vraag het uw beheerder.",
+    "notSaved": "Niet opgeslagen. Controleer de stukken en probeer het opnieuw.",
+    "orderFor": "Stukken",
+    "pieceCount_one": "{{count}} stuk",
+    "pieceCount_other": "{{count}} stukken",
+    "pieceLabel": "Stuk {{position}} ({{part}})",
+    "pieceMarked": "Stuk gemarkeerd als opgebruikt.",
+    "problems": {
+      "partMissing": "Elk stuk heeft zijn preparaat nodig.",
+      "pieceInUse": "Een opgebruikt stuk of een stuk dat in een bestelling staat, kan niet worden verwijderd.",
+      "piecesNeedMultiPiece": "Meerdere stukken vereisen het type Blok met meerdere stukken of Megablok.",
+      "positionInvalid": "Elke positie moet een geheel getal vanaf 1 zijn.",
+      "positionRepeated": "Twee stukken hebben dezelfde positie.",
+      "typeUnknown": "Kies een bloktype."
+    },
+    "save": "Opslaan",
+    "saved": "Opgeslagen.",
+    "slideSizes": {
+      "large_format": "Grootformaatcoupe",
+      "standard": "Standaardcoupe"
+    },
+    "slidesAre": "Coupes: {{size}}",
+    "title": "Bloktype en stukken",
+    "typeLabel": "Bloktype",
+    "typeNote": "Coupes uit dit blok: {{slideSize}}.",
+    "types": {
+      "matrix": "Matrixblok",
+      "megablock": "Megablok",
+      "multi_piece": "Blok met meerdere stukken",
+      "standard": "Standaardblok"
+    },
+    "wholeBlockHint": "Vink niets aan om op het hele blok te bestellen."
+  },
   "blockStainEditorModal": {
     "addPhotoButton": "📷 Foto toevoegen",
     "blockCommentsLabel": "Opmerkingen over het blok",
@@ -3539,9 +3750,10 @@
       "label": "Gefinaliseerd — gestructureerde gegevens compleet, LIS beheert de officiële afmelding",
       "title": "Casussen in Assist-modus worden voltooid via Finaliseren — het LIS beheert de officiële afmelding voor deze rapportagemodus, niet PathScribe."
     },
-    "attachImages": {
-      "label": "Afbeeldingen toevoegen",
-      "title": "Afbeeldingen aan dit verslag toevoegen; ze worden na de pagina's afgedrukt"
+    "attachments": {
+      "add": "Bijlagen toevoegen",
+      "label": "Bijlagen ({{number}})",
+      "title": "Foto’s, bestanden en links van deze casus en wat in het verslag staat"
     },
     "common": {
       "synopticPendingTitle": "Uitgeschakeld — fase 1-beoordeling van synoptische toewijzing loopt of wacht op toetsing"
@@ -3853,6 +4065,10 @@
         "description": "Het resultaat van een aangevraagd postmortaal toxicologisch onderzoek registreren en de daardoor gestarte blokkade opheffen als die nog openstaat.",
         "label": "Toxicologieresultaat registreren"
       },
+      "batchCarrierAdvance": {
+        "description": "Een drager naar de volgende verwerkingsstap verplaatsen en daarbij elk item erin bijwerken.",
+        "label": "Drager naar de volgende stap verplaatsen"
+      },
       "batchColdChainExcursionAcknowledge": {
         "description": "Een temperatuurafwijking op een batch bevestigen, met een notitie, zodat die kan worden afgerond.",
         "label": "Koudeketenafwijking bevestigen"
@@ -3860,6 +4076,10 @@
       "batchColdChainReadingSimulate": {
         "description": "Een als gesimuleerd gelabelde temperatuurmeting voor een opslageenheid of container versturen, om een afwijking, batchblokkade en CAPA zonder sensor te zien.",
         "label": "Gesimuleerde temperatuurmeting proberen"
+      },
+      "batchManifestSeal": {
+        "description": "Het manifest van een drager verzegelen, zodat er niets meer aan kan worden toegevoegd of uit verwijderd.",
+        "label": "Manifest van een drager verzegelen"
       },
       "batchReconciliationOverride": {
         "description": "Een batch als voltooid markeren wanneer items ontbreken of onverwacht zijn, met een reden.",
@@ -3896,6 +4116,18 @@
       "caseAccessionCreate": {
         "description": "Een nieuwe casus aanmaken op het registratiescherm. Vereist het registratiescherm.",
         "label": "Casus aanmaken bij registratie"
+      },
+      "caseAttachmentLink": {
+        "description": "Een https-link naar een ziekenhuissysteem (afbeelding of document) bij een casus voegen. Geaudit met alleen de host van de link.",
+        "label": "Bestanden aan een casus koppelen"
+      },
+      "caseAttachmentUnlink": {
+        "description": "Een bijgevoegd bestand of een link van een casus loskoppelen. Het bestand blijft in de opslag van het ziekenhuis. Geaudit.",
+        "label": "Bijlagen uit een casus verwijderen"
+      },
+      "caseAttachmentUpload": {
+        "description": "Een PDF, JPG of PNG bij een casus voegen. Het bestand gaat via de opslagadapter naar de opslag van het ziekenhuis; alleen een link wordt bewaard. Geaudit.",
+        "label": "Bestanden bij een casus voegen"
       },
       "caseClinicalHistoryRecord": {
         "description": "Gecodeerde klinische gegevens van een casus na registratie toevoegen of afstemmen (macroscopie, verslagbeoordeling, aftekening), tot de aftekening. Standaard Patholoog, Fellow, Arts in opleiding en PA.",
@@ -4073,9 +4305,17 @@
         "description": "Instellen hoe vaak en waar PathScribe in Assist-modus het LIS bevraagt. Geauditeerd.",
         "label": "LIS-polling in Assist-modus beheren"
       },
+      "configBatchPurposesManage": {
+        "description": "Ingebouwde doelen van charges in- of uitschakelen en eigen doelen van het lab toevoegen.",
+        "label": "Doelen van charges beheren"
+      },
       "configBatchRegistryFeedManage": {
         "description": "De bestandsindeling instellen van elk register of screeningsprogramma dat een batchbestand ontvangt, en het in- of uitschakelen. Wordt gelogd.",
         "label": "Batchbestanden voor registers beheren"
+      },
+      "configBenchReasonsManage": {
+        "description": "De aantikbare redenen aan de werkbank herformuleren, toevoegen, ordenen en intrekken. Redenen houden hun code, zodat rapporten consistent blijven.",
+        "label": "Werkbankredenen beheren"
       },
       "configBiFeedIdentifiedApprove": {
         "description": "Vastleggen wie geïdentificeerde (niet gede-identificeerde) feedtokens heeft goedgekeurd en waarom, of die goedkeuring intrekken. Wordt gelogd.",
@@ -4257,6 +4497,10 @@
         "description": "Afdelingen en hun bewaaruitzonderingen toevoegen en bewerken. Geauditeerd.",
         "label": "Afdelingen beheren"
       },
+      "configDirectDevicePrintingManage": {
+        "description": "Direct afdrukken vanuit de browser naar printers (QZ Tray, PathScribe Agent, Zebra Browser Print, BarTender) voor een instelling aan- of uitzetten. Standaard uit bij een serverinstallatie; wijzigingen en elke directe afdruk worden vastgelegd.",
+        "label": "Direct afdrukken vanuit de browser toestaan"
+      },
       "configDisplayProfilesManage": {
         "description": "Bepalen wat de wandschermen tonen. Geauditeerd.",
         "label": "Profielen voor wandschermen beheren"
@@ -4437,6 +4681,10 @@
         "description": "Een verslagindeling of onderdeel in gebruik nemen. Geauditeerd.",
         "label": "Verslagsjablonen en -onderdelen publiceren"
       },
+      "configResearchCasesManage": {
+        "description": "Instellen hoe onderzoekscasussen worden herkend, welke financiële klasse zonder facturatie wordt verstuurd en hoe lang hun materiaal wordt bewaard. Deze casussen ontbreken in klinische werklijsten en statistieken en worden nooit als resultaat of verrichting verstuurd.",
+        "label": "Instellingen voor onderzoekscasussen beheren"
+      },
       "configResearchFeedManage": {
         "description": "De zoekopdracht van de literatuurfeed wijzigen. Geauditeerd.",
         "label": "Literatuurfeed beheren"
@@ -4573,6 +4821,10 @@
         "description": "Een cytologiecasus afsluiten voordat al zijn monsters zijn geautoriseerd, met een reden. Vastgelegd in het auditlogboek; de niet-geautoriseerde monsters worden vermeld en kunnen nog worden geautoriseerd.",
         "label": "Cytologiecasus vervroegd afsluiten"
       },
+      "cytologyCellBlockHandOff": {
+        "description": "Aan de werkplek cytologische preparatie, na het scannen van bron en cassette; de microtoom neemt alleen overgedragen celblokken.",
+        "label": "Celblok overdragen aan histologie"
+      },
       "cytologyCsmsEligibilityVerify": {
         "description": "Het resultaat van de CSMS-geschiktheidscontrole van een zaak in het tabblad CSMS QA registreren: bevestigd, of niet geschikt met een reden. Hiermee wordt de controlevlag van de zaak gewist. Vastgelegd met wie, wanneer en de uitkomst.",
         "label": "CSMS-geschiktheidscontrole registreren"
@@ -4701,6 +4953,10 @@
         "description": "De barcode van een container scannen en het blijvende ontvangstbewijs \"In lockbox ontvangen\" vastleggen, met de servertijd en uw naam. Een barcode zonder openstaande aanvraag krijgt een tijdelijk record, nooit een accessienummer.",
         "label": "Specimens in de lockbox ontvangen"
       },
+      "materialAliquotStatusUpdate": {
+        "description": "Verzonden, Ontvangen, Uitslag terug (met het accessienummer van de ontvangende afdeling).",
+        "label": "Status van een aliquot bijwerken"
+      },
       "materialBlockDeleteInProcess": {
         "description": "Een blok verwijderen dat nog in bewerking is. De openstaande sneden en kleuringen worden geannuleerd, er wordt een reden vastgelegd en er komt een credititem in de wachtrij voor de facturatiemedewerkers. Het blok blijft bij de zaak, gemarkeerd als Verwijderd. Gelogd.",
         "label": "Blok in bewerking verwijderen"
@@ -4712,6 +4968,22 @@
       "materialBlockFlagAmended": {
         "description": "Een blok op een gewijzigd verslag als Ongeldig of Vervangen markeren. Alleen een markering: het blok wordt niet verwijderd. Met audittrail.",
         "label": "Blok op een gewijzigd verslag markeren"
+      },
+      "materialEndStateRecord": {
+        "description": "De eindstatus van een blok of coupe aan de werkplek vastleggen (uitgeput, terug naar opslag, gearchiveerd, verzonden, verbruikt voor testen, vernietigd), met een reden.",
+        "label": "Eindstatus van een item vastleggen"
+      },
+      "materialReembedComplete": {
+        "description": "Op het inbedstation vastleggen dat het weefsel van een uitgeput blok opnieuw is ingebed; de wachtende bestellingen gaan naar de microtoom.",
+        "label": "Blok als opnieuw ingebed markeren"
+      },
+      "materialReembedRequest": {
+        "description": "Vragen om het restweefsel of natte weefsel van een uitgeput blok opnieuw in te bedden, vanuit de bestelbouwer voor aanvullende bestellingen of als antwoord op een melding “Blok uitgeput”. De bestelling wacht tot dat gebeurd is.",
+        "label": "Opnieuw inbedden van een uitgeput blok aanvragen"
+      },
+      "materialSpecimenDivide": {
+        "description": "Bij de macroscopie of de werkplek cytologische preparatie, met beginvolume en volume en bestemming van elk aliquot.",
+        "label": "Specimen in aliquots verdelen"
       },
       "messageSecureEmailSend": {
         "description": "Een beveiligde e-mail verzenden naar een adres buiten de organisatie.",
@@ -4937,9 +5209,25 @@
         "description": "De synthetische testgevallen (alleen fictieve patiënten) naar het testsysteem van een register sturen, alleen op een validatie-instantie. Geauditeerd.",
         "label": "Testsuite van het register uitvoeren"
       },
+      "reportAddOnVolumeExport": {
+        "description": "Het rapport downloaden als CSV-bestand. Vastgelegd met het aantal rijen.",
+        "label": "Rapport labworkflow exporteren: de aanvullende bestellingen"
+      },
+      "reportAddOnVolumeView": {
+        "description": "Alleen totalen uit stationsscans, casussen en dragers; onderzoekscasussen worden uitgesloten.",
+        "label": "Rapport labworkflow bekijken: de aanvullende bestellingen"
+      },
+      "reportBatchDurationExport": {
+        "description": "Het rapport downloaden als CSV-bestand. Vastgelegd met het aantal rijen.",
+        "label": "Rapport labworkflow exporteren: de duur van charges"
+      },
+      "reportBatchDurationView": {
+        "description": "Alleen totalen uit stationsscans, casussen en dragers; onderzoekscasussen worden uitgesloten.",
+        "label": "Rapport labworkflow bekijken: de duur van charges"
+      },
       "reportCaseImagesAttach": {
-        "description": "Afbeeldingen (macroscopische foto's, microfoto's) aan het verslag van een casus toevoegen of verwijderen. Ze worden na de pagina's van het verslag afgedrukt. Wordt gelogd.",
-        "label": "Afbeeldingen aan een verslag toevoegen"
+        "description": "Foto’s, bestanden en links in het verslag van een casus plaatsen (in een verslagsectie) of verwijderen. Een ondertekend verslag vereist eerst een wijziging of addendum. Geaudit.",
+        "label": "Afbeeldingen in een verslag plaatsen"
       },
       "reportCaseReportPrint": {
         "description": "Een casusverslag afdrukken of opnieuw afdrukken, of de pdf van een opgeslagen versie openen. Elke afdruk wordt in het auditlogboek vastgelegd.",
@@ -4953,6 +5241,22 @@
         "description": "De anatomische kaart uit de synoptische antwoorden vóór aftekening in het verslag plaatsen of verwijderen. Vastgelegd.",
         "label": "Orgaankaart in een verslag invoegen"
       },
+      "reportReconciliationExceptionsExport": {
+        "description": "Het rapport downloaden als CSV-bestand. Vastgelegd met het aantal rijen.",
+        "label": "Rapport labworkflow exporteren: de afstemmingsuitzonderingen"
+      },
+      "reportReconciliationExceptionsView": {
+        "description": "Alleen totalen uit stationsscans, casussen en dragers; onderzoekscasussen worden uitgesloten.",
+        "label": "Rapport labworkflow bekijken: de afstemmingsuitzonderingen"
+      },
+      "reportRecutReworkExport": {
+        "description": "Het rapport downloaden als CSV-bestand. Vastgelegd met het aantal rijen.",
+        "label": "Rapport labworkflow exporteren: hersnijdingen en herwerk"
+      },
+      "reportRecutReworkView": {
+        "description": "Alleen totalen uit stationsscans, casussen en dragers; onderzoekscasussen worden uitgesloten.",
+        "label": "Rapport labworkflow bekijken: hersnijdingen en herwerk"
+      },
       "reportRelatedCasesAttach": {
         "description": "Andere vrijgegeven casussen van de patiënt kiezen die met het te ondertekenen verslag worden meegestuurd. Ze liggen vast bij de ondertekening. Gelogd.",
         "label": "Gerelateerde casussen aan een verslag toevoegen"
@@ -4964,6 +5268,30 @@
       "reportRestrictedCasePrint": {
         "description": "Een casus met een markering die afdrukken beperkt (VIP, vertrouwelijke consultatie) afdrukken, opnieuw afdrukken of als pdf openen. Vereist ook \"Verslag afdrukken\".",
         "label": "Afgeschermde casus afdrukken"
+      },
+      "reportStatPerformanceExport": {
+        "description": "Het rapport downloaden als CSV-bestand. Vastgelegd met het aantal rijen.",
+        "label": "Rapport labworkflow exporteren: de STAT-prestaties"
+      },
+      "reportStatPerformanceView": {
+        "description": "Alleen totalen uit stationsscans, casussen en dragers; onderzoekscasussen worden uitgesloten.",
+        "label": "Rapport labworkflow bekijken: de STAT-prestaties"
+      },
+      "reportStationVolumeExport": {
+        "description": "Het rapport downloaden als CSV-bestand. Vastgelegd met het aantal rijen.",
+        "label": "Rapport labworkflow exporteren: het volume per station"
+      },
+      "reportStationVolumeView": {
+        "description": "Alleen totalen uit stationsscans, casussen en dragers; onderzoekscasussen worden uitgesloten.",
+        "label": "Rapport labworkflow bekijken: het volume per station"
+      },
+      "reportWorkflowTurnaroundExport": {
+        "description": "Het rapport downloaden als CSV-bestand. Vastgelegd met het aantal rijen.",
+        "label": "Rapport labworkflow exporteren: de doorlooptijd per stap"
+      },
+      "reportWorkflowTurnaroundView": {
+        "description": "Alleen totalen uit stationsscans, casussen en dragers; onderzoekscasussen worden uitgesloten.",
+        "label": "Rapport labworkflow bekijken: de doorlooptijd per stap"
       },
       "retentionDisposalReportExport": {
         "description": "Het afvoerrapport van afgevoerd materiaal downloaden, met de aanvraagnummers van de casussen.",
@@ -5004,6 +5332,10 @@
       "screenConfigurationOpen": {
         "description": "Het scherm „Configuratie” en de tegel op de startpagina zien.",
         "label": "„Configuratie” openen"
+      },
+      "screenCytologyPrepOpen": {
+        "description": "De werkplek cytologische preparatie en de tegel in Pathologiewerkruimte zien.",
+        "label": "Cytologische preparatie openen"
       },
       "screenCytologyQcQueueOpen": {
         "description": "„Cytologie QC peer review-wachtrij” in „Werklijst” zien.",
@@ -5089,6 +5421,14 @@
         "description": "Een planning instellen, wijzigen, pauzeren of verwijderen die een opgeslagen rapport uitvoert en als CSV naar gekozen gebruikers verstuurt. Elke wijziging wordt vastgelegd in het auditlogboek.",
         "label": "Rapporten van zoekopdrachten naar casussen plannen"
       },
+      "stationScanHistoryView": {
+        "description": "Zien welk item op welke werkplek door wie en wanneer is gescand.",
+        "label": "Scangeschiedenis per werkplek bekijken"
+      },
+      "stationScanMismatchContinue": {
+        "description": "Na de waarschuwing een drager openen op een werkplek voor een andere stap, of een item behouden dat niet in de geladen drager zit. Wordt vastgelegd in het audittrail.",
+        "label": "Doorgaan na een werkplekwaarschuwing"
+      },
       "surgicalAddendumRelease": {
         "description": "Een addendum bij een afgetekend chirurgisch verslag vrijgeven (aanvullende informatie).",
         "label": "Chirurgisch addendum vrijgeven"
@@ -5162,6 +5502,86 @@
     "reviewRequest": "U hebt geen toestemming om beoordelingsverzoeken te versturen.",
     "revisionNone": "U hebt geen toestemming om een amendement, een correctie of een addendum vrij te geven.",
     "signOut": "U hebt geen toestemming om chirurgische verslagen af te tekenen."
+  },
+  "caseAttachments": {
+    "accessionLine": "Casus {{accession}}",
+    "addLink": "Link toevoegen",
+    "afterReportPages": "Dit verslag drukt afbeeldingen na de eigen pagina’s af.",
+    "assistNote": "Bij een Assist-casus schrijft uw LIS het verslag. Bijlagen zijn hier verwijzingen voor deze casus, om tijdens het werk te openen; niets hiervan wordt aan het LIS-verslag toegevoegd.",
+    "attachAnyway": "Toch bijvoegen",
+    "attachFile": "Extern bestand bijvoegen…",
+    "cancel": "Annuleren",
+    "captionLabel": "Bijschrift (optioneel)",
+    "captionPlaceholder": "Wordt eronder in het verslag afgedrukt",
+    "close": "Klaar",
+    "dismiss": "Sluiten",
+    "document": "PDF-document: genoemd in de sectie, de pagina’s volgen na het verslag",
+    "empty": {
+      "external": "Nog geen bestanden of links bijgevoegd.",
+      "gross": "Geen macroscopische foto’s of foto’s van blokvlakken bij deze casus.",
+      "intraop": "Geen intraoperatieve of consultfoto’s bij deze casus.",
+      "slide": "Gebieden die in de preparaatviewer met Toevoegen aan verslag zijn bewaard, verschijnen hier. De viewer is nog niet gebouwd."
+    },
+    "fileHint": "PDF, JPG of PNG. Sla een Word-document eerst op als PDF.",
+    "groupCount": "{{title}} ({{number}})",
+    "groups": {
+      "external": "Externe bestanden en links",
+      "gross": "Macroscopische foto’s",
+      "intraop": "Intraoperatieve en consultopnamen",
+      "slide": "Microscopische en preparaatgebieden"
+    },
+    "inReport": "In het verslag: {{section}}",
+    "inReportAfter": "In het verslag, op een eigen pagina na het verslag",
+    "inReportEmpty": "Nog niets in het verslag geplaatst.",
+    "inReportTitle": "In het verslag",
+    "insert": "In verslag invoegen ({{number}})",
+    "insertInto": "Invoegen in",
+    "kinds": {
+      "blockFacePhoto": "Foto van blokvlak",
+      "grossPhoto": "Macroscopische foto",
+      "intraopPhoto": "Intraoperatieve foto",
+      "link": "Link",
+      "uploadedFile": "Bijgevoegd bestand"
+    },
+    "large": "Dit bestand is {{size}} MB, meer dan {{limit}} MB. Grote bestanden duren langer om te verzenden en af te drukken.",
+    "linkLabel": "Link (https)",
+    "linkPlaceholder": "https://beeldvorming.ziekenhuis.nl/…",
+    "notices": {
+      "inserted": "In het verslag geplaatst: {{number}}.",
+      "uploaded": "Bestand bijgevoegd. Het wordt bewaard in de opslag van uw ziekenhuis."
+    },
+    "open": "Openen",
+    "problems": {
+      "assistCase": "Bij een Assist-casus schrijft het LIS het verslag; hier wordt dus niets in een verslag geplaatst.",
+      "duplicate": "Die link is al bij deze casus gevoegd.",
+      "empty": "Dit bestand is leeg.",
+      "expired": "Het uploaden duurde te lang. Probeer het opnieuw.",
+      "failed": "Dat is niet gelukt. Probeer het opnieuw.",
+      "inReport": "Het staat in het verslag. Haal het eerst uit het verslag.",
+      "invalidLink": "Voer een https://-link naar een benoemde server in (zonder gebruikersnaam of wachtwoord).",
+      "notConfigured": "Opslag voor bijlagen is voor deze locatie niet ingesteld. Neem contact op met uw beheerder.",
+      "notFound": "Dat item is er niet meer.",
+      "notPermitted": "U hebt daar geen toestemming voor.",
+      "nothingChosen": "Vink ten minste één item aan.",
+      "refused": "De opslag van uw ziekenhuis heeft dit bestand geweigerd.",
+      "signedNeedsAmendment": "Dit verslag is ondertekend. Start eerst een wijziging of addendum.",
+      "tooLarge": "Dit bestand is groter dan de opslag van uw ziekenhuis accepteert.",
+      "tooMany": "Een verslag kan hoogstens {{max}} afbeeldingen en documenten bevatten.",
+      "unavailable": "Het bestand is op dit moment niet bereikbaar.",
+      "unsupportedType": "Alleen PDF-, JPG- en PNG-bestanden kunnen worden bijgevoegd.",
+      "wordDocument": "Dit is een Word-document. Sla het op als PDF en voeg daarna de PDF bij."
+    },
+    "removeFromCase": "Uit casus verwijderen",
+    "reportEnd": "Einde van de verslagtekst",
+    "rowDetail": "{{when}} · {{by}}",
+    "rowTitle": "{{kind}} · {{owner}}",
+    "select": "{{name}} selecteren",
+    "signedNote": "Dit verslag is ondertekend. Start eerst een wijziging of addendum om afbeeldingen te plaatsen of te verwijderen. Bestanden kunnen nog steeds bij de casus worden gevoegd.",
+    "source": "Van {{host}}",
+    "storageNote": "PathScribe bewaart alleen een link naar elk item. Een bijgevoegd bestand wordt naar de eigen opslag van uw ziekenhuis gestuurd en een link ernaar blijft bij de casus.",
+    "takeOut": "Uit verslag halen",
+    "thisCase": "deze casus",
+    "title": "Bijlagen"
   },
   "caseClinicalHistory": {
     "add": "Klinische gegevens toevoegen",
@@ -6837,6 +7257,9 @@
       "sys-asset-locations": {
         "description": "De beheerde referentielijst voor fysieke locaties/activa, inclusief mortuarium-opslagplaatsen en hun realtime bezetting."
       },
+      "sys-bench-reasons": {
+        "description": "De redenen die medewerkers aan de werkbank aantikken herformuleren, toevoegen, ordenen en intrekken (blok uitgeput, batch afbreken en afwijkingen, koudeketen)."
+      },
       "sys-bi-feed": {
         "description": "Power BI en andere rapportagetools PathScribe-gegevens laten lezen: datasets en vestigingen kiezen, feedtokens uitgeven en intrekken, identificerende gegevens goedkeuren, de veldencatalogus bekijken."
       },
@@ -6947,6 +7370,9 @@
       },
       "sys-qa-trend-policy": {
         "description": "Wanneer een patroon van grote discrepanties wordt gemeld voor een patholoog of een preparaattype: periode, minimum beoordelingen, drempels en routering, per locatie."
+      },
+      "sys-research-cases": {
+        "description": "Hoe onderzoekscasussen worden herkend, bewaard en buiten klinische werklijsten, resultaten en facturatie gehouden; en de mogelijke doelen van een drager."
       },
       "sys-revision-reasons": {
         "description": "De redenen om een vrijgegeven verslag te wijzigen of te corrigeren, en welke klinisch significant zijn: het vrijgeven van een revisie om zo’n reden beveelt een CAPA aan."
@@ -7890,6 +8316,40 @@
     "startBtn": "Dringend voorlopig verslag versturen",
     "title": "Dringend voorlopig verslag"
   },
+  "cytologyPrep": {
+    "decant": "Decant:",
+    "handoff": {
+      "cellBlock": "Celblok {{label}}",
+      "confirm": "Overdragen",
+      "done": {
+        "cellBlockMade": "Celblok {{label}} gemaakt. Druk het etiket af en draag het over zodra de pellet in de cassette zit.",
+        "handedOff": "Celblok {{label}} overgedragen aan histologie."
+      },
+      "handedOffBy": "Overgedragen door {{name}}, {{when}}",
+      "intro": "Een celblok gaat pas na de overdracht naar histologie: scan de vloeistof of het aliquot waarvan het is gemaakt, daarna de cassette.",
+      "make": "Celblok maken van deze decant",
+      "next": "Volgende",
+      "none": "Nog geen celblokken voor dit specimen.",
+      "printLabel": "Etiket afdrukken",
+      "problem": {
+        "alreadyHandedOff": "Dit celblok is al overgedragen.",
+        "cassetteMismatch": "Niet overgedragen: de tweede scan is niet de cassette van dit celblok.",
+        "notCellBlock": "Dat is geen celblok.",
+        "notPermitted": "U mag geen celblok overdragen. Vraag het uw beheerder.",
+        "notSaved": "Niet opgeslagen. De casus is mogelijk gewijzigd; scan opnieuw en herhaal.",
+        "sourceMismatch": "Niet overgedragen: de eerste scan is niet de vloeistof of het aliquot waarvan dit celblok is gemaakt."
+      },
+      "scanCassette": "Scan de cassette van het celblok",
+      "scanSource": "Scan de bronvloeistof of het aliquot",
+      "start": "Overdragen",
+      "title": "Celblokken",
+      "waiting": "Wacht op overdracht"
+    },
+    "pageTitle": "Cytologische preparatie",
+    "patientName": "{{given}} {{family}}",
+    "scanPlaceholder": "Scan een barcode van container of decant",
+    "scanPrompt": "Scan een vloeistof, aliquot of celblok om het voor te bereiden."
+  },
   "cytologyQaTab": {
     "apacPtTable": {
       "challenge": "Uitdaging",
@@ -8418,8 +8878,9 @@
   },
   "cytologyScreening": {
     "assistModeOnly": "Deze casus wordt beheerd door een extern LIS (assistmodus). De gestructureerde cytologiebeoordeling en aftekening in PathScribe zijn alleen beschikbaar voor casussen in orkestratiemodus.",
-    "attachImagesBtn": "Afbeeldingen toevoegen",
-    "attachImagesTitle": "Afbeeldingen aan het verslag van deze casus toevoegen; ze worden na de pagina's afgedrukt",
+    "attachmentsAddBtn": "Bijlagen toevoegen",
+    "attachmentsBtn": "Bijlagen ({{number}})",
+    "attachmentsTitle": "Foto’s, bestanden en links van deze casus; afbeeldingen worden na het verslag afgedrukt",
     "backToWorklist": "Terug naar werklijst",
     "billingBtn": "Facturatie",
     "billingDrawer": {
@@ -8569,8 +9030,18 @@
     "materialDrawer": {
       "addCellBlockBtn": "Celblok toevoegen",
       "addResidualFluidBtn": "Restvloeistof toevoegen",
+      "aliquotPurpose": {
+        "flow_cytometry": "flowcytometrie",
+        "hpv": "HPV-test",
+        "microbiology": "microbiologie",
+        "molecular": "moleculaire diagnostiek",
+        "other": "andere onderzoeken"
+      },
+      "aliquotType": "Aliquot voor {{purpose}}",
       "decantConflict": "Iemand anders heeft het materiaal van dit dossier gewijzigd terwijl u werkte, dus uw wijziging van het decant is niet opgeslagen. Het dossier is opnieuw geladen; voer de wijziging opnieuw uit.",
+      "decantHeading": "{{label}} – {{type}}",
       "decantType": {
+        "aliquot": "Aliquot",
         "cell_block": "Celblok",
         "residual_fluid": "Restvloeistof"
       },
@@ -9665,11 +10136,32 @@
     },
     "subtitle": "Gebruik deze tools om demo- of testgegevens te wissen en de app terug te zetten naar een schone beginstatus. Dit heeft alleen invloed op de nagebootste demobackend — nooit op een echte, live klantendatabase.",
     "testingTools": {
+      "displayTokensDescription": "Geeft een nieuw token uit voor elk wandscherm van Desert Valley, het reservescherm en de OK-terminal, en trekt het token van het oude pauzeruimtescherm in om het scherm Scherm niet beschikbaar te tonen. Geef na elke volledige reset nieuwe uit.",
+      "displayTokensTitle": "Demoschermtokens",
+      "issueTokensBtn": "Tokens uitgeven",
       "molecularOrderQueueDescription": "Simuleert het bestellen en ontvangen van HPV-resultaten voor een vaste voorbeeldcasus. Een test-/demo-oppervlak, geen productie-bestelworkflow.",
       "molecularOrderQueueTitle": "Wachtrij voor moleculaire orders",
       "openBtn": "Openen",
       "subtitle": "Andere tools voor het testen en simuleren van scenario's in deze demo-omgeving.",
-      "title": "Test- en demotools"
+      "title": "Test- en demotools",
+      "tokens": {
+        "copied": "Gekopieerd",
+        "copy": "Kopiëren",
+        "display": "Scherm",
+        "issueFailed": "Niet alle tokens konden worden uitgegeven. Probeer het opnieuw.",
+        "notPermitted": "U hebt geen toestemming om demoschermtokens uit te geven.",
+        "shownOnce": "Eenmalig getoond. Kopieer elk token naar waar u het nodig hebt: het kan later niet opnieuw worden gelezen.",
+        "token": "Token",
+        "use": "Toont",
+        "uses": {
+          "orSuite": "OK-bord",
+          "revoked": "Ingetrokken: het scherm Scherm niet beschikbaar",
+          "rotating": "Alle vijf weergaven, roterend",
+          "secondSite": "Tweede locatie",
+          "singleView": "Eén afdeling",
+          "spare": "Reserve"
+        }
+      }
     },
     "title": "Demo- en testgegevens resetten"
   },
@@ -9810,6 +10302,15 @@
     },
     "removeAria": "‘{{word}}’ verwijderen"
   },
+  "directPrinting": {
+    "allow": "Direct afdrukken vanuit de browser toestaan in deze instelling",
+    "intro": "Etiketten en verslagen gaan normaal via de interface-engine naar printers, met het afdrukvenster van de browser als terugval. Vink dit alleen aan als deze instelling rechtstreeks vanuit de browser naar een printer moet afdrukken (QZ Tray, de PathScribe Agent, Zebra Browser Print of BarTender). Elke zulke afdruk wordt in het auditlogboek vastgelegd.",
+    "notPermitted": "U hebt geen toestemming om direct afdrukken te wijzigen. Vraag het uw beheerder.",
+    "save": "Direct afdrukken opslaan",
+    "saveFailed": "Niet opgeslagen. Probeer het opnieuw.",
+    "saved": "Opgeslagen. De wijziging is in het auditlogboek vastgelegd.",
+    "title": "Direct afdrukken vanuit de browser"
+  },
   "discordanceReconciliationModal": {
     "categoryDiffersNote": "De definitieve categorie wijkt af van de vriescoupe — dit moet worden geregistreerd als een discordantie voordat u kunt doorgaan met ondertekenen.",
     "commentLabel": "Opmerking — verplicht",
@@ -9907,6 +10408,9 @@
   },
   "displayProfiles": {
     "addButton": "+ Weergaveprofiel toevoegen",
+    "addOnLimitHint": "Aanvullingen die langer wachten, worden rood en komen bovenaan in de weergave Inbedding & microtomie; kort daarvoor worden ze oranje. De weergave Werkplekken telt dragers en aanvullingen daarboven. Leeg: 120 minuten.",
+    "addOnLimitInvalid": "Voer hele minuten in van 15 tot 1440.",
+    "addOnLimitLabel": "Tijdslimiet X (minuten)",
     "addTitle": "Weergaveprofiel toevoegen",
     "assignedViewsLabel": "Toegewezen dashboardweergave(n)",
     "carouselIntervalLabel": "Carrouselinterval (seconden)",
@@ -9922,11 +10426,16 @@
     "launchDashboardButton": "🖥️ Facilitair operatiedashboard openen",
     "nameLabel": "Weergavenaam",
     "namePlaceholder": "bijv. Histologiebank 3 — Wanddisplay",
+    "purposesHint": "Als er geen is aangevinkt, worden alle doelen getoond. Aanvullende bestellingen zijn geen dragers en worden altijd getoond.",
+    "purposesLabel": "Dragers voor deze doelen tonen",
     "reactivate": "Heractiveren",
     "sectionSubtitle": "Echt, uitsluitend gegevensregister voor de vijf wanddisplays van de operatiedashboards — elk profiel koppelt een fysiek display aan één uitvoerend laboratorium en één of meer afdelingsweergaven. Er wordt geen fysieke hardwarekoppeling geverifieerd of afgedwongen; het apparaattoken is uitsluitend informatief.",
     "sectionTitle": "Weergaveprofielen (facilitaire operatiedashboards)",
     "selectFacility": "— selecteer faciliteit —",
-    "showInactive": "Toon inactieve"
+    "showInactive": "Toon inactieve",
+    "staleScanHint": "De weergave Stations toont cassettes, blokken en coupes die langer dan dit nergens zijn gescand. Leeg: 240 minuten.",
+    "staleScanInvalid": "Voer hele minuten in van 30 tot 10080.",
+    "staleScanLabel": "Waarschuwing niet gescand (minuten)"
   },
   "disposalQueue": {
     "computing": "De actuele wachtrij wordt berekend…",
@@ -10003,6 +10512,52 @@
       "total": "Totaal verwijderd"
     },
     "unknownLocation": "Onbekend"
+  },
+  "divideSpecimen": {
+    "add": "+ Aliquot toevoegen",
+    "aliquotLine": "{{volume}} mL → {{destination}}",
+    "destination": "Bestemming",
+    "destinationKind": "Soort bestemming",
+    "divide": "Verdelen",
+    "done": {
+      "divided": "Verdeeld in {{labels}}; {{remaining}} mL over.",
+      "statusSaved": "Status opgeslagen."
+    },
+    "kind": {
+      "department": "Afdeling",
+      "reference_lab": "Referentielaboratorium"
+    },
+    "markAs": "Markeren als {{status}}",
+    "open": "Specimen verdelen",
+    "problem": {
+      "alreadyDivided": "Dit specimen is al verdeeld.",
+      "noRows": "Voeg minstens één aliquot toe.",
+      "noStartingVolume": "Vul eerst het beginvolume in.",
+      "notAliquot": "Dat is geen aliquot.",
+      "notForward": "De status van een aliquot gaat alleen vooruit.",
+      "notFound": "Dat aliquot staat niet meer op de casus.",
+      "notPermitted": "U hebt hiervoor geen machtiging. Vraag het uw beheerder.",
+      "notSaved": "Niet opgeslagen. De casus is mogelijk gewijzigd; probeer het opnieuw.",
+      "overStartingVolume": "De aliquots zijn samen meer dan het beginvolume.",
+      "receivingAccessionRequired": "Vul het accessienummer van de ontvangende afdeling in om Uitslag terug vast te leggen.",
+      "rowDestination": "Elk aliquot heeft een bestemming nodig.",
+      "rowVolume": "Elk aliquot heeft een volume boven 0 mL nodig."
+    },
+    "purpose": "Voor",
+    "receivingAccession": "Accessienummer ontvangende afdeling",
+    "record": "Verdeeld door {{name}}, {{when}}: {{split}} mL van {{start}} mL in aliquots, {{remaining}} mL over.",
+    "remove": "Verwijderen",
+    "startingVolume": "Beginvolume (mL)",
+    "status": {
+      "not_sent": "Niet verzonden",
+      "received": "Ontvangen",
+      "result_back": "Uitslag terug",
+      "sent": "Verzonden"
+    },
+    "statusWithReceiving": "{{status}}, ontvangend accessienummer {{accession}}",
+    "title": "Specimen {{label}} verdelen",
+    "totals": "Verdeeld: {{split}} mL van {{start}} mL; {{remaining}} mL over.",
+    "volume": "Volume (mL)"
   },
   "documentStyleSection": {
     "bold": "Vet",
@@ -10114,6 +10669,7 @@
         "requiresDecal": "Decalcificatie vereist",
         "tinyTissue": "Minuscuul weefsel"
       },
+      "matrixBlockOf": "Matrixblok van preparaten {{specimens}}",
       "patient": "Patiënt:",
       "scanNext": "Volgende cassette scannen →",
       "specimenBlock": "Preparaat/Blok:",
@@ -10199,7 +10755,7 @@
       "blockNotFound": "Blok {{block}} is niet gevonden.",
       "notResolved": "Deze scan komt niet overeen met een casus of blok. Controleer de barcode en probeer het opnieuw.",
       "specimenNotFound": "Het specimen is niet gevonden in deze casus.",
-      "unsupportedTarget": "Het inbedstation accepteert alleen blokcassettes. Matrix- of celblokcassettes, decanteringen en specimenbarcodes worden nog niet ondersteund."
+      "unsupportedTarget": "Het inbedstation accepteert blok- en matrixblokcassettes. Celblokcassettes, decanteringen en specimenbarcodes worden nog niet ondersteund."
     },
     "scanPlaceholder": "Scan of typ een barcode…",
     "scanPrompt": "Scan een cassette-barcode om te beginnen",
@@ -10369,6 +10925,7 @@
     "camera": "Camera",
     "engraver": "Graveermachine",
     "label_printer": "Etikettenprinter",
+    "lbc_processor": "Processor voor vloeibare cytologie",
     "other": "Overig",
     "scale": "Weegschaal",
     "slide_scanner": "Coupescanner",
@@ -10381,9 +10938,11 @@
       "dateInFuture": "De datum mag niet in de toekomst liggen.",
       "dateRequired": "Voer de datum van uitvoering in.",
       "notesRequired": "Beschrijf wat er gebeurde: verplicht bij een mislukking of storing.",
+      "outcomeMismatch": "De uitkomst moet passen bij de meting ten opzichte van het bereik.",
       "outcomeRequired": "Kies een resultaat.",
       "performedByRequired": "Vermeld wie het heeft uitgevoerd.",
       "saveFailed": "De invoer kon niet worden opgeslagen.",
+      "temperatureRequired": "Voer de gemeten temperatuur in.",
       "typeRequired": "Kies een soort."
     },
     "headers": {
@@ -10403,6 +10962,7 @@
       "historyEmpty": "Nog geen invoeren.",
       "historyTitle": "Geschiedenis",
       "lastDone": "Laatst op {{date}}",
+      "noRange": "Voor dit apparaat is geen bereik ingesteld (Configuratie → Systeem → Apparatuur); kies de uitkomst zelf.",
       "notScheduled": "Niet gepland",
       "notesHint": "Verplicht bij een mislukking of storing.",
       "notesLabel": "Opmerkingen",
@@ -10410,6 +10970,8 @@
       "outcomeLabel": "Resultaat",
       "performedByLabel": "Uitgevoerd door",
       "performedByPlaceholder": "Medewerker of servicemonteur",
+      "range": "Aanvaardbaar: {{min}} tot {{max}} °C. De uitkomst volgt uit de meting.",
+      "temperatureLabel": "Temperatuur (°C)",
       "title": "Onderhoudslogboek — {{name}} ({{code}})",
       "typeLabel": "Soort"
     },
@@ -10426,12 +10988,14 @@
       "ok": "Actueel",
       "overdue": "Achterstallig"
     },
+    "temperatureReading": "({{value}} °C)",
     "types": {
       "calibration": "Kalibratie",
       "function_check": "Functiecontrole",
       "maintenance": "Onderhoud",
       "malfunction": "Storing",
-      "repair": "Reparatie"
+      "repair": "Reparatie",
+      "temperature_check": "Temperatuurcontrole"
     }
   },
   "equipmentSection": {
@@ -10464,7 +11028,8 @@
       "kindRequired": "Kies een soort.",
       "nameRequired": "Een naam is verplicht.",
       "saveFailed": "De apparatuur kon niet worden opgeslagen. Controleer de velden en probeer het opnieuw.",
-      "stationOtherFacility": "Dit scanstation staat in een ander laboratorium."
+      "stationOtherFacility": "Dit scanstation staat in een ander laboratorium.",
+      "temperatureRangeInvalid": "Voer getallen in, de laagste onder de hoogste."
     },
     "headers": {
       "actions": "Acties",
@@ -10497,6 +11062,7 @@
       "intervalHint": "Leeg laten als er geen schema is. Vervaldata tellen vanaf de laatste geslaagde invoer in het logboek.",
       "intervalPlaceholder": "bijv. 30",
       "kindLabel": "Soort",
+      "largeFormatLabel": "Neemt grootformaatcoupes",
       "maintenanceIntervalLabel": "Onderhoud elke (dagen)",
       "makeLabel": "Merk",
       "makePlaceholder": "bijv. Hologic",
@@ -10510,9 +11076,21 @@
       "stationHint": "Waar het apparaat staat. Bij een analyser controleert het verzenden van de werklijst dat vanaf dit station wordt verzonden.",
       "stationLabel": "Scanstation",
       "stationNoneOption": "— Geen station —",
-      "statusLabel": "Status"
+      "statusLabel": "Status",
+      "temperatureHint": "Optioneel. Een temperatuurcontrole in het apparatuurlogboek buiten dit bereik is afgekeurd.",
+      "temperatureMaxLabel": "Hoogste temperatuur (°C)",
+      "temperatureMinLabel": "Laagste temperatuur (°C)"
     },
     "nextDue": "Volgende keer {{date}}",
+    "racks": {
+      "largeFormat": "Grootformaatglaasjes",
+      "largeFormatAria": "{{rack}} neemt grootformaatglaasjes",
+      "largeFormatLabel": "Neemt grootformaatglaasjes",
+      "notSaved": "Niet opgeslagen. Mogelijk mag u apparatuur niet wijzigen; vraag het uw beheerder.",
+      "rack": "Rek",
+      "subtitle": "Herbruikbare kleuringsrekken (gegraveerde RACK-id’s). Een grootformaatglaasje van een megablok gaat alleen in een rek dat grootformaatglaasjes neemt.",
+      "title": "Kleuringsrekken"
+    },
     "searchPlaceholder": "Zoeken op naam, code, merk, model of serienummer...",
     "settingsLink": {
       "grossingHardware": "Macroscopie-apparatuur: {{name}}",
@@ -10548,6 +11126,19 @@
     "noDocumentationAtAll": "Dit preparaat heeft geen microscopische beschrijving en geen synoptisch sjabloon — voeg documentatie toe voordat u finaliseert.",
     "requiredForProcedure": "Voor deze procedure is een microscopische beschrijving vereist.",
     "unsavedDraft": "De microscopische beschrijving van dit preparaat is een niet-opgeslagen concept — sla het op of verwijder het voordat u finaliseert."
+  },
+  "exhaustedBlock": {
+    "awaitingReembed_one": "{{count}} bestelling wacht tot dit blok opnieuw is ingebed.",
+    "awaitingReembed_other": "{{count}} bestellingen wachten tot dit blok opnieuw is ingebed.",
+    "failed": "Opnieuw inbedden kon niet worden vastgelegd. Er is niets gewijzigd.",
+    "markReembedded": "Opnieuw ingebed: bestellingen vrijgeven",
+    "none": "geen",
+    "notPermitted": "U hebt geen toestemming om opnieuw inbedden vast te leggen. Vraag het uw beheerder.",
+    "piecesTitle": "De gekozen stukken van blok {{block}} zijn opgebruikt.",
+    "released_one": "Opnieuw inbedden vastgelegd. {{count}} bestelling is vrijgegeven voor de microtoom.",
+    "released_other": "Opnieuw inbedden vastgelegd. {{count}} bestellingen zijn vrijgegeven voor de microtoom.",
+    "remains": "Wat overblijft: ongekleurde coupes {{unstained}}; andere blokken van dit preparaat: {{blocks}}.",
+    "title": "Blok {{block}} is uitgeput."
   },
   "exports": {
     "notice": {
@@ -10992,7 +11583,29 @@
     }
   },
   "facilityOpsDashboard": {
+    "addOnPill": "AANVULLING",
+    "addOnTypes": {
+      "ihc": "IHC",
+      "molecular": "Coupes voor moleculair onderzoek",
+      "other": "Aanvulling",
+      "recut": "Hersnijding / niveaus",
+      "sendOut": "Coupes voor verzending",
+      "specialStain": "Speciale kleuring"
+    },
     "ageLabel": "{{duration}} geleden",
+    "alertKinds": {
+      "coldChainExcursion": "Koudeketenafwijking",
+      "decalOverdue": "Decalcificatie te laat",
+      "notScanned": "Niet gescand",
+      "qcFailed": "QC afgekeurd",
+      "reconciliation": "Reconciliatie",
+      "recutRequested": "Hersnijding gevraagd",
+      "runFailed": "Run mislukt",
+      "scanFailed": "Scan mislukt",
+      "scanQcFailed": "Scan-QC afgekeurd",
+      "stat": "STAT",
+      "statAddOn": "STAT-aanvulling"
+    },
     "bindDisplayDescription": "Selecteer het weergaveprofiel dat dit wandscherm moet tonen.",
     "bindDisplayTitle": "Dit display koppelen",
     "confirmTokenDescription": "Voer het apparaattoken in dat is vastgelegd voor \"{{name}}\" om de koppeling van dit scherm te voltooien.",
@@ -11000,21 +11613,96 @@
     "confirmTokenNote": "Dit bevestigt dat u het token kent dat een beheerder voor dit scherm heeft vastgelegd — het verifieert geen echte fysieke hardware.",
     "confirmTokenPlaceholder": "Apparaattoken invoeren",
     "confirmTokenTitle": "Apparaattoken bevestigen",
+    "details": {
+      "awaitingIntake": "{{specimen}}: wacht op intake ({{material}})",
+      "blockStain": "{{block}} · {{stain}}",
+      "instrument": "{{node}} · items: {{count}} · instrument: {{instrument}}",
+      "lastSeenAt": "Laatst gescand bij {{station}}, {{duration}} geleden",
+      "node": "{{node}}",
+      "nodeItems": "{{node}} · items: {{count}}",
+      "reconciliation": "Ontbrekend: {{missing}} · onverwacht: {{unexpected}}",
+      "referral": "{{lab}} · {{test}}",
+      "referralTransit": "{{lab}} · {{test}} · {{transit}}",
+      "slideFailure": "{{position}}: {{reason}}",
+      "stationRow": "Dragers: {{carriers}} · items: {{items}}",
+      "stationRowLoose": "Dragers: {{carriers}} · items: {{items}} · zonder drager: {{loose}}",
+      "temperature": "{{temp}} °C",
+      "temperatureAt": "{{temp}} °C op {{at}}",
+      "wsi": "{{status}} · coupes: {{count}}"
+    },
+    "instrumentStatus": {
+      "In Process": "bezig",
+      "Loaded to Instrument": "geladen",
+      "Run Completed": "run voltooid",
+      "Run Failed": "run mislukt"
+    },
     "lastUpdated": "Bijgewerkt {{time}}",
     "loadingData": "Dashboardgegevens laden…",
     "loadingProfile": "Weergaveprofiel laden…",
+    "material": {
+      "block": "blok",
+      "slide": "coupe"
+    },
     "noProfilesConfigured": "Er zijn nog geen weergaveprofielen geconfigureerd. Voeg er een toe onder Configuratie → Systeem → Weergaveprofielen.",
     "offlineStaleBadge": "Offline / Verouderde gegevens",
     "overdueBy": "Te laat met {{duration}}",
+    "pinned": "Vastgezet",
     "queueEmpty": "Momenteel niets in de wachtrij.",
     "selectProfile": "— selecteer weergaveprofiel —",
     "statPill": "STAT",
+    "stats": {
+      "addOnsWaiting": "Wachtende aanvullende bestellingen",
+      "coldChainAlerts": "Koudeketenafwijkingen",
+      "coldChainOpen": "Koudeketenafwijkingen",
+      "completed": "Voltooid",
+      "cytologyStainingActive": "Cytologie-kleuringscharges",
+      "decalActive": "Decalcificatie / Speciale verwerking",
+      "delivered": "Afgeleverd",
+      "dispatched": "Verzonden",
+      "embeddingActive": "Inbeddingscharges",
+      "imageQcFailed": "Beeld-QC afgekeurd",
+      "inStaining": "Coupes in kleuring",
+      "inTransit": "Onderweg",
+      "microtomyActive": "Microtomiecharges",
+      "notScanned": "Lang niet gescand",
+      "pastLimit": "Over de tijdslimiet",
+      "pending": "Wachtend",
+      "pendingIntake": "Wachtend op intake",
+      "processingActive": "Verwerkingscharges",
+      "qcFailed": "QC afgekeurd",
+      "readyForReview": "Klaar voor beoordeling",
+      "reconciliationExceptions": "Ontbrekend of onverwacht",
+      "recutRequested": "Hersnijding gevraagd",
+      "resultReceived": "Resultaten ontvangen",
+      "runFailed": "Mislukte instrumentruns",
+      "scanFailed": "Scan mislukt",
+      "scanning": "Wordt gescand",
+      "stainingActive": "Actieve kleuringscharges",
+      "statBatches": "STAT-charges",
+      "statPending": "STAT wachtend",
+      "statWaiting": "Wachtende STAT",
+      "totalItems": "Cassettes/coupes in behandeling"
+    },
+    "transit": {
+      "delivered": "afgeleverd",
+      "dispatched": "verzonden",
+      "in_transit": "onderweg",
+      "result_received": "resultaat ontvangen"
+    },
     "views": {
       "diagnosticSignout": "Diagnostische afronding / scanner",
       "embeddingMicrotomy": "Inbedding & microtomie",
       "grossingIntake": "Intake & uitsnijden",
       "sendoutReference": "Doorverwijzing & referentielaboratorium",
-      "stainingIhc": "Kleuring & IHC"
+      "stainingIhc": "Kleuring & IHC",
+      "stationOverview": "Werkplekken"
+    },
+    "wsiStatus": {
+      "completed": "Voltooid",
+      "failed": "Mislukt",
+      "loaded": "Geladen",
+      "scanning": "Wordt gescand",
+      "unloaded": "Uitgeladen"
     }
   },
   "facilityPrintingTab": {
@@ -12204,19 +12892,21 @@
   },
   "grossingBench": {
     "addOnOrders": "Aanvullende bestellingen",
-    "decal": {
-      "added": "{{block}} toegevoegd aan decalcificatiebatch {{batch}}.",
-      "already": "{{block}} zit al in die decalcificatiebatch.",
-      "assign": "Naar decalcificatie sturen",
-      "block": "Te sturen blok",
-      "label": "Decalcificatiebatch",
-      "noBatch": "Er is geen actieve decalcificatiebatch.",
-      "noBlock": "Er is nog geen blok voor decalcificatie.",
-      "none": "Geen actieve decalcificatiebatch",
+    "carrier": {
+      "added": "{{block}} geladen in {{batch}}.",
+      "already": "{{block}} zit al in die drager.",
+      "assign": "In drager laden",
+      "block": "Te laden blok",
+      "label": "Drager",
+      "noBatch": "Er is geen open decalcificatie- of verwerkingsdrager om in te laden.",
+      "noBlock": "Er is nog geen blok om te laden.",
+      "none": "Geen open drager",
+      "notAccepting": "{{batch}} is verzegeld of gesloten en neemt geen blokken meer aan.",
       "notFound": "Dat blok is niet gevonden.",
+      "option": "{{barcode}} · {{node}}",
       "otherBatch": "{{block}} zit al in een andere actieve batch ({{batch}})."
     },
-    "hint": "Sneltoetsen: Alt+Shift+1 cassettes afdrukken, 2 foto, 3 decalcificatie, 4 aanvullende bestellingen. Voetpedaal 1 maakt een foto, pedaal 2 drukt de cassettes af.",
+    "hint": "Sneltoetsen: Alt+Shift+1 cassettes afdrukken, 2 foto, 3 in een drager laden, 4 aanvullende bestellingen. Voetpedaal 1 maakt een foto, pedaal 2 drukt de cassettes af.",
     "printCassettes": "Cassettes afdrukken",
     "takePhoto": "Foto maken",
     "title": "Werkbankhulpmiddelen"
@@ -13611,6 +14301,58 @@
       "unavailableSummary": "Chirurg niet beschikbaar: {{reason}}"
     }
   },
+  "itemEndState": {
+    "currentDetail": " — {{reason}} · {{name}}, {{when}}",
+    "errors": {
+      "failed": "De eindstatus kon niet worden vastgelegd. Probeer het opnieuw.",
+      "invalid": "Een reden is verplicht.",
+      "notPermitted": "U hebt geen toestemming om een eindstatus vast te leggen. Vraag het uw beheerder."
+    },
+    "loading": "Eindstatus wordt geladen…",
+    "none": "Nog geen eindstatus vastgelegd.",
+    "quickReasons": "Snelle redenen",
+    "reasonLabel": "Reden",
+    "reasons": {
+      "archived": {
+        "caseSignedOut": "Casus afgetekend",
+        "retentionPolicy": "Opgeborgen volgens het bewaarbeleid"
+      },
+      "consumed": {
+        "flowOrOther": "Gebruikt voor een andere test",
+        "molecularTest": "Gebruikt voor een moleculaire test"
+      },
+      "discarded": {
+        "damagedUnusable": "Beschadigd en onbruikbaar",
+        "retentionEnded": "Bewaartermijn verstreken"
+      },
+      "exhausted": {
+        "facedThrough": "Tot op de cassette doorgesneden",
+        "noTissueLeft": "Geen weefsel meer in het blok"
+      },
+      "returned_to_storage": {
+        "awaitingDecision": "Wacht op een beslissing",
+        "workComplete": "Werk afgerond"
+      },
+      "sent_out": {
+        "consult": "Verzonden voor consult",
+        "referral": "Doorverwijzing naar een ander lab",
+        "research": "Vrijgegeven voor onderzoek"
+      }
+    },
+    "recordButton": "Eindstatus vastleggen",
+    "recorded": "Eindstatus vastgelegd.",
+    "save": "Vastleggen",
+    "stateLabel": "Eindstatus",
+    "states": {
+      "archived": "Gearchiveerd",
+      "consumed": "Verbruikt voor testen",
+      "discarded": "Vernietigd",
+      "exhausted": "Uitgeput (geen weefsel meer)",
+      "returned_to_storage": "Terug naar opslag",
+      "sent_out": "Verzonden"
+    },
+    "title": "Eindstatus"
+  },
   "jurisdictionNames": {
     "AU": "Australië",
     "BE": "België",
@@ -13698,6 +14440,116 @@
       "status": "Status"
     },
     "title": "Rechtsgebied-betalingskoppeling"
+  },
+  "labWorkflowReports": {
+    "byDay": "Dag",
+    "byWeek": "Week",
+    "caseTypes": {
+      "autopsy": "Autopsie",
+      "cytology": "Cytologie",
+      "surgpath": "Chirurgische pathologie"
+    },
+    "columns": {
+      "at": "Wanneer",
+      "by": "Door",
+      "carrier": "Drager",
+      "caseAccession": "Casus",
+      "cases": "Casussen",
+      "cut": "Gesneden",
+      "finishedAt": "Klaar",
+      "group": "Groep",
+      "item": "Item",
+      "items": "Items",
+      "kind": "Soort",
+      "late": "Te laat",
+      "latePct": "% te laat",
+      "measure": "Meting",
+      "medianHours": "Mediaan (u)",
+      "medianMinutesToCut": "Mediaan minuten tot snijden",
+      "minutes": "Minuten",
+      "node": "Stap",
+      "ordered": "Besteld",
+      "overTarget": "Boven doel",
+      "p90Hours": "90e percentiel (u)",
+      "period": "Periode",
+      "reason": "Reden",
+      "reasonCode": "Redencode",
+      "scans": "Scans",
+      "stage": "Stationsstap",
+      "startedAt": "Begonnen",
+      "stat": "STAT",
+      "stationName": "Station",
+      "step": "Stap",
+      "targetHours": "Doel (u)",
+      "targetMinutes": "Doel (min)",
+      "type": "Type",
+      "value": "Waarde"
+    },
+    "descriptions": {
+      "addOns": "Aanvullende bestellingen in de gekozen periode, per type: hoeveel, hoeveel gesneden, de mediaan in minuten van bestelling tot snijden, en hoeveel STAT waren.",
+      "batchDuration": "Hoe lang elke decalcificatie- en kleuringscharge in die stap was, ten opzichte van het doel (decalcificatie: dat van de charge; kleuring: het doel dat u hier instelt).",
+      "reconciliation": "Items die ontbraken of onverwacht werden gescand bij het afstemmen van dragers, en overrulingen door een supervisor, met de drager, het item en wie.",
+      "rework": "Coupes gesneden in de gekozen periode, hersnijdingsbestellingen, herdrukken van coupe- en cassette-etiketten, en de percentages per gesneden coupe.",
+      "statPerformance": "Het doorlooptijdrapport alleen voor STAT-casussen.",
+      "stationVolume": "Cassettes, blokken en coupes gescand per station, per dag of week. Alleen scans van het item zelf tellen; items zonder drager worden meegeteld.",
+      "turnaround": "Uren van registratie tot elke stap, voor casussen geregistreerd in de gekozen periode. Een casus bereikt een stap als zijn laatste item die bereikt. Mediaan, 90e percentiel en aandeel boven uw doel."
+    },
+    "empty": "Niets in deze periode.",
+    "errors": {
+      "BAD_DATES": "Kies een begindatum op of vóór de einddatum.",
+      "LOAD_FAILED": "Het rapport kon niet worden opgesteld. Probeer het opnieuw.",
+      "NOT_PERMITTED": "U hebt geen toestemming om dit rapport te bekijken."
+    },
+    "export": "CSV exporteren",
+    "exportRefused": "U hebt geen toestemming om dit rapport te exporteren.",
+    "footnote": "Inbedding, snijden, kleuring en distributie komen uit stationsscans: werk op een werkplek zonder ingestelde station, of van vóór stationstracking (Batch 726), telt niet mee. Geplande verzending van deze rapporten is nog niet beschikbaar.",
+    "from": "Van",
+    "groupBy": "Groeperen op",
+    "groupings": {
+      "caseType": "Casustype",
+      "facility": "Instelling",
+      "none": "Alle casussen",
+      "priority": "Prioriteit"
+    },
+    "kinds": {
+      "missing": "Ontbrekend",
+      "override": "Overruling door supervisor",
+      "unexpected": "Onverwacht"
+    },
+    "loading": "Rapport wordt opgesteld…",
+    "measures": {
+      "cassetteReprints": "Herdrukken van cassette-etiketten",
+      "recutOrders": "Hersnijdingsbestellingen",
+      "recutRatePct": "Hersnijdingspercentage (% van gesneden coupes)",
+      "reworkRatePct": "Herwerkpercentage (% van gesneden coupes)",
+      "slideReprints": "Herdrukken van coupe-etiketten",
+      "slidesCut": "Gesneden coupes"
+    },
+    "pageSubtitle": "Doorlooptijd, volume en uitzonderingen uit de stationsscans, de casussen en de dragers. Alleen totalen; onderzoekscasussen worden uitgesloten.",
+    "pageTitle": "Rapporten labworkflow",
+    "period": "Per",
+    "reports": {
+      "addOns": "Aanvullende bestellingen",
+      "batchDuration": "Duur van charges",
+      "reconciliation": "Afstemmingsuitzonderingen",
+      "rework": "Hersnijdingen en herwerk",
+      "statPerformance": "STAT-prestaties",
+      "stationVolume": "Volume per station",
+      "turnaround": "Doorlooptijd per stap"
+    },
+    "stainingTarget": "Kleuringsdoel (minuten)",
+    "steps": {
+      "cut": "Snijden",
+      "distribute": "Distributie",
+      "embed": "Inbedding",
+      "gross": "Macroscopie",
+      "signOut": "Aftekenen",
+      "stain": "Kleuring"
+    },
+    "targets": "Doelen (uren vanaf registratie)",
+    "tile": "Workflowrapporten",
+    "tileTitle": "Rapporten over doorlooptijd, volume en uitzonderingen",
+    "to": "Tot"
   },
   "labelDesignerPage": {
     "allFieldsPlaced": "Alle velden geplaatst.",
@@ -14570,6 +15422,8 @@
         "coresNotEvaluated": "{{stain}}: gefactureerd zodra de patholoog bevestigt welke kernen zijn beoordeeld."
       }
     },
+    "blocksStillWaiting_one": "{{count}} ander blok van deze casus wacht nog op snijden: {{blocks}}",
+    "blocksStillWaiting_other": "{{count}} andere blokken van deze casus wachten nog op snijden: {{blocks}}",
     "comments": {
       "add": "Opmerking toevoegen",
       "empty": "Nog geen opmerkingen.",
@@ -14631,7 +15485,7 @@
       "approved": "De patholoog heeft destructief snijden goedgekeurd. Snijden kan doorgaan.",
       "bannerBody": "Gemeld door {{name}}. Snijden is geblokkeerd tot de aanvragende patholoog antwoordt.",
       "bannerTitle": "Blok op.",
-      "body": "De aanvragende patholoog krijgt een e-mail. Snijden van dit blok is geblokkeerd tot die antwoordt: destructief snijden goedkeuren, of de aanvraag annuleren of wijzigen.",
+      "body": "Eén melding geldt voor alle coupes van dit blok die nog gesneden moeten worden, en de aanvragende pathologen krijgen een e-mail. Snijden is geblokkeerd tot zij antwoorden: een al gesneden ongekleurde coupe gebruiken, opnieuw inbedden aanvragen, bestellen op een ander blok van hetzelfde preparaat, destructief snijden goedkeuren (alleen zolang er weefsel kan zijn), of de aanvragen annuleren of wijzigen.",
       "button": "Blok op",
       "confirm": "Als op melden",
       "cuttingBlocked": "Dit blok is als op gemeld. Snijden wacht op het antwoord van de aanvragende patholoog.",
@@ -14640,6 +15494,7 @@
       "notPermitted": "U hebt geen toestemming om een blokuitzondering te melden. Vraag het uw beheerder.",
       "note": "Notitie",
       "noteRequired": "Een notitie is verplicht.",
+      "orderHeld": "Dit blok is uitgeput. Deze coupe wacht op de aanvragende patholoog: meld hem met Blok uitgeput zodat die een alternatief kan kiezen.",
       "sentToDesk": "Voor dit objectglaasje is geen aanvragende patholoog geregistreerd; de melding is daarom naar de supervisor / het accessioningbureau gestuurd.",
       "title": "Blok als op melden"
     },
@@ -14702,9 +15557,12 @@
       "blockNotFound": "Blok {{label}} niet gevonden.",
       "blockNotOnCase": "Blok niet gevonden in dit dossier.",
       "caseNotFound": "Dossier niet gevonden.",
+      "cutAtMicrotome": "Dit is een blok: snijd het aan de microtoom.",
       "decantNotFound": "Decant {{label}} niet gevonden.",
       "empty": "Lege scan.",
       "matrixBlockNotFound": "Matrixblok niet gevonden in de gevonden casus.",
+      "notHandedOff": "Celblok {{label}} is niet overgedragen: draag het eerst over aan de werkplek cytologische preparatie.",
+      "prepareAtCytology": "{{label}} is een vloeistof of aliquot: bereid het voor aan de werkplek cytologische preparatie.",
       "specimenNotFound": "Staal niet gevonden in het herkende dossier.",
       "unresolved": "Deze scan leverde geen dossier, blok of decant op — controleer de barcode en probeer opnieuw.",
       "unsupported": "Een losse staalscan wordt op het microtoomwerkstation niet ondersteund. Scan de barcode van een blok, matrixblok of decant/vloeistofcontainer."
@@ -14731,8 +15589,16 @@
       "commentOnLabelTitle": "De opmerking van dit objectglaasje wordt op het fysieke etiket afgedrukt",
       "control": "Controle",
       "duplicateCount": "×",
+      "forPieces_one": "Voor {{count}} stuk",
+      "forPieces_other": "Voor {{count}} stukken",
       "levelDepth": "µm",
       "levelShort": "N{{n}}",
+      "levelsOnSlide_one": "{{count}} niveau op deze coupe",
+      "levelsOnSlide_other": "{{count}} niveaus op deze coupe",
+      "moveDown": "Dit glaasje lager in de afdrukvolgorde zetten",
+      "moveDownShort": "↓",
+      "moveUp": "Dit glaasje hoger in de afdrukvolgorde zetten",
+      "moveUpShort": "↑",
       "onLabel": "Op etiket",
       "pairControl": "Koppelen aan controle-objectglaasje",
       "print": "Afdrukken",
@@ -14740,6 +15606,7 @@
       "reprintReasonPrompt": "Reden…",
       "reprintedCount": "{{count}}× opnieuw afgedrukt",
       "searchStains": "Kleuringen zoeken…",
+      "selectForBatch": "Dit glaasje opnemen in de batchafdruk",
       "selectStain": "Selecteer een kleuring…",
       "slideComments": "Opmerkingen objectglaasje",
       "title": "Objectglaasjesraster"
@@ -15847,6 +16714,7 @@
   },
   "newContainerModal": {
     "autoSetFromStation": "↳ Ingesteld op basis van de fase van {{station}}.",
+    "chooseStep": "Kies een stap…",
     "containerCreated": "Container aangemaakt",
     "containerIdentifierMode": "Containeridentificatiemodus",
     "containerType": "Containertype",
@@ -15863,6 +16731,7 @@
     "generateAndPrint": "Genereren & afdrukken",
     "generating": "Bezig met genereren…",
     "hours": "u",
+    "largeFormat": "Neemt grootformaatglaasjes (megablokken)",
     "minutes": "min",
     "noReagentLots": "Geen actieve reagensloten in het register.",
     "noReferenceLabConfigured": "Er is momenteel geen instelling geconfigureerd met de rol Referentielaboratorium — voeg er eerst een toe bij de instellingen van faciliteiten.",
@@ -15871,6 +16740,9 @@
     "printInstructions": "Druk deze hoofdbatchbarcode af en bevestig deze op de fysieke drager.",
     "priority": "Prioriteit",
     "processingNode": "Verwerkingsstap",
+    "processor": "Processor",
+    "processorNone": "— Niet gekozen —",
+    "processorOption": "{{name}} ({{code}})",
     "protocolLabel": "Protocol / Loopparameters",
     "protocolPlaceholder": "bijv. Standaard H&E-nachtrun",
     "rackCheckedOutNoPrint": "Rek {{barcode}} is nu uitgecheckt naar deze batch — geen nieuw label om af te drukken.",
@@ -17626,6 +18498,10 @@
       "description": "Cassettes en coupes volgen",
       "title": "Batchbeheer"
     },
+    "cytologyPrepTile": {
+      "description": "Vloeistoffen, glaasjes, overdracht celblokken",
+      "title": "Cytologische preparatie"
+    },
     "cytologyTile": {
       "description": "Screening, triage en QC",
       "title": "Cytologie-werkruimte"
@@ -18469,6 +19345,7 @@
       "unsupportedProtocol": "De PathScribe Agent op deze werkplek moet worden bijgewerkt."
     },
     "bridgeNotImplemented": "Printerbrug \"{{bridgeType}}\" heeft nog geen werkende afdrukroute voor dit etikettype. Alleen QZ Tray en de PathScribe Agent zijn hier gekoppeld.",
+    "directPrintingOff": "Niet afgedrukt: direct afdrukken vanuit de browser naar {{printer}} staat uit voor deze instelling. Druk af via de interface-engine of gebruik het afdrukvenster van de browser.",
     "popupBlockedAlert": "Sta pop-ups voor deze site toe om labels af te drukken.",
     "preparing": "Labels worden voorbereid…",
     "preparingTitle": "Labels worden voorbereid"
@@ -19920,6 +20797,10 @@
       "label": "Trendperiode:"
     }
   },
+  "quickReasons": {
+    "label": "Snelle redenen",
+    "withNote": "{{reason}}: {{note}}"
+  },
   "reagentLotsSection": {
     "addReagentLotButton": "+ Reagenspartij toevoegen",
     "allLabsLabel": "Alle laboratoria",
@@ -20498,37 +21379,6 @@
     "finalizedReadOnly": "Gefinaliseerd — alleen-lezen",
     "footerNote": "Wordt bij finalisatie naar het LIS verzonden. Protocolgedefinieerde velden staan op de tabbladen Tumor, Marges & Biomarkers."
   },
-  "reportImages": {
-    "accessionLine": "Verslag {{accession}}",
-    "add": "Toevoegen",
-    "captionLabel": "Onderschrift (optioneel)",
-    "captionPlaceholder": "Wordt onder de afbeelding afgedrukt",
-    "close": "Klaar",
-    "dismiss": "Sluiten",
-    "empty": "Nog geen afbeeldingen toegevoegd.",
-    "intro": "De afbeeldingen worden na de pagina's van het verslag afgedrukt, één afbeelding per pagina met onderschrift. Een verslag dat al is ondertekend, wordt niet gewijzigd; nu toegevoegde afbeeldingen verschijnen in verslagen die vanaf nu worden gemaakt.",
-    "linkLabel": "Link naar de afbeelding (https)",
-    "linkNote": "PathScribe slaat geen afbeeldingen op. Koppel een afbeelding uit het systeem van uw ziekenhuis; die wordt opgehaald en in de pdf getekend wanneer het verslag wordt gemaakt. Is ze niet bereikbaar, dan drukt het verslag in plaats daarvan een pagina “Afbeelding niet beschikbaar” af.",
-    "linkPlaceholder": "https://beeldvorming.ziekenhuis.org/…",
-    "listLabel": "Toegevoegde afbeeldingen",
-    "problems": {
-      "duplicate": "Die afbeelding is al aan dit verslag gekoppeld.",
-      "failed": "De afbeelding kon niet worden toegevoegd.",
-      "invalidLink": "Voer een https://-link naar een benoemde server in (zonder gebruikersnaam of wachtwoord).",
-      "notPermitted": "U hebt geen toestemming om afbeeldingen aan verslagen toe te voegen.",
-      "tooMany": "Een verslag kan maximaal {{max}} afbeeldingen bevatten."
-    },
-    "remove": "Verwijderen",
-    "source": "Van {{host}}",
-    "title": "Afbeeldingen aan het verslag toevoegen",
-    "typeLabel": "Type afbeelding",
-    "types": {
-      "blockFace": "Blokvlak",
-      "grossSpecimen": "Macroscopisch preparaat",
-      "microphotograph": "Microfoto",
-      "other": "Overig"
-    }
-  },
   "reportPreviewRenderer": {
     "badgeAccepted": "✓ Geaccepteerd",
     "badgeAiDraft": "AI-concept",
@@ -20626,6 +21476,46 @@
     "sending": "Verzenden…",
     "sentToCodeReview": "Casus verzonden naar codebeoordeling",
     "title": "Beoordeling door collega aanvragen"
+  },
+  "researchCases": {
+    "accessionPrefixes": "Voorvoegsels van het registratienummer",
+    "active": "Actief",
+    "addPurpose": "Toevoegen",
+    "applies": {
+      "charges": "stuurt geen verrichtingen naar facturatie en verstuurt de financiële klasse zonder facturatie",
+      "results": "stuurt geen resultaat naar het EPD en geen verslag per fax of bestandsoverdracht",
+      "retention": "zet blokken en coupes op de vernietigingslijst zodra de dagen zijn verstreken (bewaarblokkades blijven gelden)",
+      "stats": "telt hem niet mee in de doorlooptijd-, volume- en kwaliteitscijfers",
+      "worklist": "toont hem niet in de klinische werklijsten (vindbaar via Zoeken)"
+    },
+    "appliesHeading": "Voor een onderzoekscasus:",
+    "builtIn": "Ingebouwd",
+    "casesHeading": "Onderzoekscasussen",
+    "enabled": "Overeenkomende casussen als onderzoekscasussen behandelen",
+    "financialClass": "Financiële klasse zonder facturatie",
+    "mrnPrefixes": "Voorvoegsels van het patiëntnummer (MRN) van de onderzoekspatiënt",
+    "newPurpose": "Nieuw doel",
+    "notPermitted": "U hebt geen toestemming om dit te wijzigen.",
+    "prefixHint": "Scheid voorvoegsels met komma's. Een casus komt overeen als het registratienummer of het patiëntnummer van de patiënt met een ervan begint (hoofdletters of niet).",
+    "problems": {
+      "financialClassRequired": "Voer de financiële klasse zonder facturatie in.",
+      "noMarker": "Voer minstens één voorvoegsel voor registratienummer of patiëntnummer in, of schakel onderzoekscasussen uit.",
+      "prefixInvalid": "Een voorvoegsel mag geen spaties bevatten en niet langer zijn dan 20 tekens.",
+      "retentionDaysInvalid": "Voer hele dagen in van 0 tot 36500."
+    },
+    "purposeName": "Naam van het doel",
+    "purposeProblems": {
+      "duplicateName": "Twee doelen hebben dezelfde naam.",
+      "nameRequired": "Elk doel heeft een naam nodig.",
+      "nameTooLong": "Een doelnaam mag maximaal 40 tekens lang zijn.",
+      "routineRequired": "Routine moet actief blijven."
+    },
+    "purposesHeading": "Doelen van charges",
+    "purposesHint": "Elke nieuwe drager is Routine, tenzij een ander doel wordt gekozen. Een wandscherm kan alleen de gekozen doelen tonen. Ingebouwde doelen kunnen worden uitgeschakeld maar niet verwijderd; Routine staat altijd aan.",
+    "retentionDays": "Materiaal bewaren (dagen na registratie)",
+    "saved": "Opgeslagen.",
+    "subtitle": "Een onderzoeksmonster wordt als casus bij een onderzoekspatiënt geregistreerd, totdat onderzoeksitems zonder registratie worden ondersteund. Stel hier in hoe deze casussen worden herkend en bewaard, en waarvoor elke drager kan dienen.",
+    "title": "Onderzoekscasussen en doelen van charges"
   },
   "researchFeedSection": {
     "actions": {
@@ -21296,17 +22186,59 @@
     "searchPlaceholder": "Zoeken op naam of barcode...",
     "stages": {
       "accessioning": "Registratie",
+      "checkout": "Eindcontrole",
+      "cytologyImaging": "Cytologie-beeldvorming",
+      "cytologyPreparation": "Cytologische preparatie",
+      "cytologyProcessing": "Verwerking vloeibare cytologie",
+      "cytologyStaining": "Cytologie-kleuring",
+      "decal": "Decalcificatie / Speciale verwerking",
       "embedding": "Inbedding",
+      "externalReferral": "Externe doorverwijzing",
       "grossing": "Macroscopie",
       "microtomy": "Microtomie / Snijden",
       "other": "Overig",
       "processing": "Weefselverwerking",
       "slideArchival": "Archivering van coupes",
+      "slideDistribution": "Distributie van coupes",
       "staining": "Kleuring"
     },
     "statusFilterAll": "Alle",
-    "subtitle": "De fysieke werkplekken waarmee een terminal zich kan identificeren (bij het aanmelden en in de bovenbalk), en waarnaar een gedrukt stationslabel halverwege de workflow overschakelt. Er zijn er acht om mee te beginnen; naam, barcode en workflowstap stelt u zelf in.",
+    "subtitle": "De fysieke werkplekken waarmee een terminal zich kan identificeren (bij het aanmelden en in de bovenbalk), en waarnaar een gedrukt stationslabel halverwege de workflow overschakelt. Er is een startset om mee te beginnen; naam, barcode en workflowstap stelt u zelf in.",
     "title": "Scanstations"
+  },
+  "scanTrail": {
+    "actions": {
+      "completed": "Hier voltooid",
+      "loaded": "In drager geladen",
+      "matched": "Afgestemd",
+      "missing": "Ontbrekend",
+      "printed": "Etiket afgedrukt",
+      "received": "Ontvangen",
+      "unexpected": "Onverwacht",
+      "unloaded": "Uit drager gehaald"
+    },
+    "byCarrier": "Vastgelegd toen de drager werd gescand",
+    "cameFrom": "uit {{parent}}",
+    "cols": {
+      "item": "Item",
+      "what": "Wat er gebeurde",
+      "when": "Wanneer",
+      "where": "Waar",
+      "who": "Wie"
+    },
+    "empty": "Nog geen stationsscans vastgelegd voor deze casus.",
+    "hide": "Scangeschiedenis verbergen",
+    "inCarrier": "In drager {{carrier}}",
+    "loading": "Scangeschiedenis laden…",
+    "refused": "U hebt geen toestemming om de scangeschiedenis te zien.",
+    "results": {
+      "mismatch": "Afwijking",
+      "not-found": "Niet gevonden",
+      "ok": "OK",
+      "wrong-item": "Verkeerd item"
+    },
+    "show": "Scangeschiedenis tonen",
+    "title": "Scangeschiedenis"
   },
   "scopeReference": {
     "columns": {
@@ -22645,6 +23577,7 @@
       "notConfigured": "Dit station is niet ingesteld voor het afdrukken van glaasjesetiketten.",
       "notInQueue": "Dit glaasje staat niet meer in de wachtrij.",
       "profileMissing": "Het geconfigureerde printerprofiel bestaat niet meer.",
+      "scannerNotLargeFormat": "{{scanner}} neemt geen grootformaatcoupes. Kies een scanner voor grootformaatcoupes.",
       "stationNotFound": "Het scanstation is niet gevonden."
     },
     "exceptions": {
@@ -22696,7 +23629,7 @@
       "notResolved": "Deze scan komt niet overeen met een casus, blok of glaasje. Controleer de barcode en probeer het opnieuw.",
       "slideNotFound": "Glaasje {{slide}} is niet gevonden.",
       "specimenNotFound": "Het specimen is niet gevonden in deze casus.",
-      "unsupportedTarget": "Dit station accepteert alleen blok- en glaasjesbarcodes. Matrix- of celblokcassettes, decanteringen en specimenbarcodes worden nog niet ondersteund."
+      "unsupportedTarget": "Dit station accepteert blok-, matrixblok- en glaasjesbarcodes. Celblokcassettes, decanteringen en specimenbarcodes worden nog niet ondersteund."
     },
     "scanPlaceholder": "Scan of typ een barcode…",
     "scanPrompt": "Scan een objectglaasje- of blok-/cassettebarcode — de wachtrij groeit continu",
@@ -23516,6 +24449,59 @@
     "intro": "De onderstaande kleuringsbatch(es) moeten worden opgelost voordat deze zaak kan worden ondertekend.",
     "rowTitle": "Batch {{batchBarcode}} — {{specimenList}}"
   },
+  "stationCarrier": {
+    "addToOutput": "Afgedrukte coupes aan de bak toevoegen ({{count}})",
+    "andMore": "en nog {{count}}",
+    "chooseStation": "Werkplek van deze computer",
+    "close": "Sluiten",
+    "dismiss": "Melding sluiten",
+    "finish": "Uitladen afronden",
+    "listLabel": "Open dragers voor deze werkplek",
+    "noStation": "Voor deze computer is geen scanwerkplek ingesteld. Scans worden hier niet vastgelegd en dragers kunnen hier niet worden geopend. Kies de werkplek van deze computer.",
+    "noneHere": "Geen open dragers voor deze werkplek.",
+    "notice": {
+      "addedToOutput": "Coupes toegevoegd aan {{barcode}}: {{count}}.",
+      "closedAborted": "{{barcode}} is gesloten: afgebroken op {{at}}.",
+      "closedComplete": "{{barcode}} is gesloten: voltooid op {{at}}.",
+      "finished": "Uitladen van {{barcode}} afgerond.",
+      "handoff": "{{barcode}} hierheen verplaatst vanuit {{from}}. Items: {{count}}.",
+      "movedHere": "{{barcode}} is naar dit station verplaatst en hier geopend; de verplaatsing is vastgelegd. Items erin: {{count}}.",
+      "noStation": "Stel de werkplek van deze computer in voordat u {{barcode}} opent.",
+      "opened": "{{barcode}} hier geopend. Items: {{count}}.",
+      "openedAdHoc": "{{barcode}} hier geopend; deze werkplek is als zijn werkplek vastgelegd. Items: {{count}}.",
+      "openedMismatch": "{{barcode}} hier geopend, hoewel hij bij een andere stap hoort. Dit is vastgelegd.",
+      "outputSet": "{{barcode}} is nu de uitvoerbak.",
+      "sealed": "{{barcode}} verzegeld. Items: {{count}}.",
+      "unexpectedKept": "{{item}} behouden en als onverwacht vastgelegd in {{barcode}}.",
+      "unknown": "Geen drager heeft de barcode {{barcode}}."
+    },
+    "openInBatchManagement": "Openen in Chargebeheer",
+    "outputHint": "Scan een open {{node}}-drager om die als uitvoerbak voor gesneden coupes te gebruiken.",
+    "outputTray": "Uitvoerbak",
+    "pending": {
+      "continueAnyway": "Toch doorgaan",
+      "mismatch": "{{barcode}} is een drager voor {{node}}. Deze werkplek werkt aan {{here}}. Toch hier openen?",
+      "openAnyway": "Toch hier openen",
+      "wrongItem": "{{item}} zit niet in drager {{barcode}}. Toch doorgaan? Het wordt als onverwacht vastgelegd."
+    },
+    "progress": "{{matched}} van {{total}} afgescand",
+    "routedHere": "Hierheen gestuurd",
+    "scanToUnload": "Scan elk item terwijl u het uit de drager haalt.",
+    "seal": "Manifest verzegelen",
+    "sealed": "Verzegeld",
+    "stationLine": "Werkplek: {{station}}",
+    "stillToScan": "Nog te scannen: {{items}}",
+    "title": "Dragers op deze werkplek",
+    "unexpectedCount_one": "{{count}} onverwacht item gescand",
+    "unexpectedCount_other": "{{count}} onverwachte items gescand",
+    "useStation": "Deze werkplek gebruiken"
+  },
+  "stationScan": {
+    "backToScanning": "Terug naar scannen (toetsenbord verbergen)",
+    "backToScanningShort": "⌨ Scannen",
+    "typeAnId": "Een ID typen met het schermtoetsenbord",
+    "typeAnIdShort": "⌨ Typen"
+  },
   "stationSwitch": {
     "discardedAndSwitched": "📍 Wijzigingen verworpen en gewisseld naar {{station}}.",
     "notAuthorized": "U bent niet ingesteld om {{station}} te gebruiken, dus het station is niet gewisseld.",
@@ -23812,9 +24798,13 @@
     "clinician": "Behandelend arts",
     "confidential": "VERTROUWELIJK — PATHOLOGIEVERSLAG",
     "dob": "Geboortedatum",
+    "documentAttached": "Bijgevoegd document: {{caption}}. De pagina’s volgen na het verslag.",
+    "documentAttachedNoCaption": "Bijgevoegd document. De pagina’s volgen na het verslag.",
     "documentReference": "Document {{accession}} · recordversie {{version}}",
     "documentReferenceNoVersion": "Document {{accession}}",
     "figureNotDrawn": "Melding bij de kaart: de kaart kon niet als afbeelding worden getekend. Wat ze toont:",
+    "imageUnavailable": "Afbeelding niet beschikbaar: de gekoppelde afbeelding kon niet worden opgehaald toen dit verslag werd gemaakt.",
+    "imagesTitle": "Afbeeldingen",
     "intraopDiagnosis": "Peroperatieve diagnose",
     "mrn": "Patiëntnummer",
     "noContent": "Geen inhoud",
@@ -24735,6 +25725,7 @@
       "assetLocations": "Activalocatiewoordenboek",
       "assistLisPolling": "LIS-ontvangst (Assist-modus)",
       "batchRegistryFeed": "Batchbestanden voor registers",
+      "benchReasons": "Redenen aan de werkbank",
       "biFeed": "Rapportagefeed (Power BI)",
       "billingDictionary": "Facturatiewoordenboek (kostenregistratie)",
       "billingRelease": "Facturatievrijgave",
@@ -24804,6 +25795,7 @@
       "qaTrendPolicy": "Beleid voor discrepantietrends",
       "reagentLots": "Reagens- en oplossingslots",
       "releaseBuffer": "Vrijgavebuffer na ondertekening",
+      "researchCases": "Onderzoekscasussen en doelen van charges",
       "researchFeed": "Onderzoeksfeed",
       "retention": "Gegevensbewaring",
       "revisionReasons": "Revisieredenen",
@@ -25788,6 +26780,16 @@
       "testAll": "Alles testen",
       "testing": "Bezig met testen…"
     }
+  },
+  "touchLayout": {
+    "modes": {
+      "auto": "Automatisch",
+      "off": "Altijd uit",
+      "on": "Altijd aan"
+    },
+    "nowOff": "Stationsschermen gebruiken de compacte indeling.",
+    "nowOn": "Stationsschermen gebruiken grote aanraakdoelen.",
+    "title": "Aanraakindeling op deze computer"
   },
   "tumorBoard": {
     "boards": {
@@ -27061,6 +28063,11 @@
     },
     "subtitle": "Over welke delen het {{protocol}}-verslag rapporteert.",
     "title": "Gedekte delen"
+  },
+  "wrongCaseScan": {
+    "continue": "Toch doorgaan",
+    "message": "{{item}} hoort bij casus {{itemCase}}, niet bij de hier geopende casus {{openCase}}.",
+    "setAside": "Apart leggen"
   },
   "wsiScanBatches": {
     "batchesEmpty": "Nog geen scanbatches.",

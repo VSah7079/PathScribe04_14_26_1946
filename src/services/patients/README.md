@@ -1,3 +1,11 @@
+**Batch 747:** `demoSurgicalPatients.ts`: PAT-W5301 to W5341 and PAT-W2101 to W2106 (the wall-volume cases).
+
+**Batch 746:** `demoSurgicalPatients.ts`: PAT-M5201 to M5216 (the molecular cases).
+
+**Batch 745:** `demoSurgicalPatients.ts`: PAT-D665 to D667 (the new autopsy cases).
+
+**Batch 744:** `demoCytologyPatients.ts`: PAT-CYT-024 to 031, the S14 fluid, FNA and Pap patients.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/patients/

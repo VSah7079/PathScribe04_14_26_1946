@@ -393,7 +393,7 @@ Conventions: "Built (Demo)" = works in the browser against mock/localStorage ser
 
 ### Decants and the material tree
 - What it does: Decants (sub-specimens, multi-level, e.g. residual fluid to cell blocks) are added, split, edited, removed as one atomic versioned change returning the whole tree and affected billing lines; applies locally first, rolls back on failure (MATERIAL_ROLLED_BACK), conflict dialog on stale version; duplicate id, missing parent and deleting a decant with children refused; labels never reused.
-- Workflow: Report page Material tab, Cytology Workspace, Microtomy.
+- Workflow: Report page Material tab, Cytology Workspace, Microtome.
 - Roles/permissions: delete needs `case:decant:delete`.
 - Settings: print behavior (printSettings defaultPrintBehavior).
 - Status: Built (Demo) — server endpoint CASE_MATERIAL_API.md Planned.
@@ -459,7 +459,7 @@ Conventions: "Built (Demo)" = works in the browser against mock/localStorage ser
 ### D. Scan stations, workstation set-up and shared bench behaviour
 
 ### Scan station registry and global station selector
-- What it does: Facility-scoped stations with barcode (`STATION:...`), workflow stage, lifecycle Active/Inactive/Unverified, printer profile; deactivate only. Station is identified once at login (ScanStationPrompt) and shown in the nav bar selector; it resolves the workstation group and pushes the functional area and default action group to the Action Registry. "Go to Bench" appears only if the group is Active with a dedicated route (microtomy, embedding, slide-distribution). Scanning a `STATION:` barcode switches station (not mid-write). Station labels print from Scan Stations. Facility fallback: scan station facility scopes a batch when no item resolves one. Fallback chain: device storage, then user profile default.
+- What it does: Facility-scoped stations with barcode (`STATION:...`), workflow stage, lifecycle Active/Inactive/Unverified, printer profile; deactivate only. Station is identified once at login (ScanStationPrompt) and shown in the nav bar selector; it resolves the workstation group and pushes the functional area and default action group to the Action Registry. "Go to Bench" appears only if the group is Active with a dedicated route (microtome, embedding, slide-distribution). Scanning a `STATION:` barcode switches station (not mid-write). Station labels print from Scan Stations. Facility fallback: scan station facility scopes a batch when no item resolves one. Fallback chain: device storage, then user profile default.
 - Workflow: Admin defines stations; tech sets station at sign-in.
 - Roles/permissions: `config:scan-stations:manage`.
 - Settings: Configuration > System > Scan Stations (facility required, list of performing labs); Workstation Groups (`config:workstation-groups:manage`) and Action Groups (`config:action-groups:manage`).
@@ -467,7 +467,7 @@ Conventions: "Built (Demo)" = works in the browser against mock/localStorage ser
 - Sources: services/scanStations/README.md; components/NavBar/README.md; utils/labels/printStationLabels.ts; services/workstationGroups; services/actionGroups
 
 ### Scanner listener, material scan tracking and scan beep
-- What it does: Global listener detects HID scanners by keystroke timing, ignores synthetic events, never eats Enter in a form; an accession-pattern scan navigates to the case (not on /accession). Scans resolve to specimen/block/slide (slide by printed level) from any page; the station's default action (e.g. Log Slide/Block at microtomy) fires on the next scan. Block exception states (STAT, 0 slides, consumed, damaged, lost) computed in one place; scan formats limited to five modelled barcode types; optional beep. Camera barcode capture via @zxing/browser (intraop queue).
+- What it does: Global listener detects HID scanners by keystroke timing, ignores synthetic events, never eats Enter in a form; an accession-pattern scan navigates to the case (not on /accession). Scans resolve to specimen/block/slide (slide by printed level) from any page; the station's default action (e.g. Log Slide/Block at microtome) fires on the next scan. Block exception states (STAT, 0 slides, consumed, damaged, lost) computed in one place; scan formats limited to five modelled barcode types; optional beep. Camera barcode capture via @zxing/browser (intraop queue).
 - Workflow: Any bench page with a scanner.
 - Roles/permissions: none.
 - Settings: Scan station; identifier formats per enterprise (Facility editor Identifier Formats tab with simulate-scan).
@@ -475,7 +475,7 @@ Conventions: "Built (Demo)" = works in the browser against mock/localStorage ser
 - Sources: contexts/README.md; hooks/README.md; utils/README.md; BarcodeScanner/README.md; pages/MicrotomyWorkstationPage/README.md
 
 ### Foot pedals
-- What it does: Three bindings per workstation (HID/Gamepad or keyboard-emulating pedals) used for dictation, Microtomy (Pedal 2 Print/Etch Next) and Embedding (Pedal 1 confirm piece count); Pedal 3 pause/replay. Slide Distribution has no pedal support. Embedding "advance to next cassette" pedal is not built (no queue).
+- What it does: Three bindings per workstation (HID/Gamepad or keyboard-emulating pedals) used for dictation, Microtome (Pedal 2 Print/Etch Next) and Embedding (Pedal 1 confirm piece count); Pedal 3 pause/replay. Slide Distribution has no pedal support. Embedding "advance to next cassette" pedal is not built (no queue).
 - Workflow: Bind in Voice settings, then hands-free.
 - Roles/permissions: personal; deployment voice switch `config:voice:manage` does not affect pedals.
 - Settings: Configuration > Voice > Foot Pedal (stored per computer).
@@ -483,7 +483,7 @@ Conventions: "Built (Demo)" = works in the browser against mock/localStorage ser
 - Sources: types/footPedal/README.md; hooks/useFootPedal.ts; pages/EmbeddingStationPage/README.md
 
 ### Voice commands for bench stations
-- What it does: Station-page-only commands: Microtomy add comment/add stain; Embedding confirm piece count/add comment; Slide Distribution confirm physical checkout / confirm digital scanner; Add-On submit; Batch create container; Molecular create plate/place rack; Accession print labels (stale-closure limit). Abort batch, force reconciliation, cold-chain acknowledge, Clone & Supersede, block cancel/restain deliberately have none.
+- What it does: Station-page-only commands: Microtome add comment/add stain; Embedding confirm piece count/add comment; Slide Distribution confirm physical checkout / confirm digital scanner; Add-On submit; Batch create container; Molecular create plate/place rack; Accession print labels (stale-closure limit). Abort batch, force reconciliation, cold-chain acknowledge, Clone & Supersede, block cancel/restain deliberately have none.
 - Workflow: Say phrase on the page; same checks as the button.
 - Roles/permissions: same as buttons.
 - Settings: none.
@@ -499,10 +499,10 @@ Conventions: "Built (Demo)" = works in the browser against mock/localStorage ser
 - Sources: utils/README.md; utils/workstationSettings.ts; utils/uiPreferences.ts
 
 ---
-### E. Embedding, microtomy, slide distribution
+### E. Embedding, microtome, slide distribution
 
 ### Embedding station
-- What it does: /workstations/embedding: scan a cassette (global listener or scan box) to show all blocks of its specimen with status, centre controls and print panel; works cassette by cassette. Piece-count verification: expected (from grossing) vs observed whole number >=0, Confirm records it; mismatch raises Tissue Discrepancy deficiency (def-tissue-discrepancy). One-touch discrepancy buttons: Missing Tissue/Empty Cassette, Extra Tissue Found, Unopened Cassette/Unprocessed Tissue, Damaged Cassette/Broken Hinge. Alert badges: Tiny Tissue, Fragile, Decal Required (toggle, shared with Microtomy); Biopsy and Needle Core read-only from the Specimen Dictionary. Mold size chips 7x7, 15x15, 24x24, 24x30, Mega; orientation free text with quick-fills. Split-block grouping (A1/A2/A3 embedded together). Block comments (no "prints on label" option). Cassette label reprint with reason (Wax Buildup, Faded Barcode, Mechanical Jam, Other).
+- What it does: /workstations/embedding: scan a cassette (global listener or scan box) to show all blocks of its specimen with status, centre controls and print panel; works cassette by cassette. Piece-count verification: expected (from grossing) vs observed whole number >=0, Confirm records it; mismatch raises Tissue Discrepancy deficiency (def-tissue-discrepancy). One-touch discrepancy buttons: Missing Tissue/Empty Cassette, Extra Tissue Found, Unopened Cassette/Unprocessed Tissue, Damaged Cassette/Broken Hinge. Alert badges: Tiny Tissue, Fragile, Decal Required (toggle, shared with Microtome); Biopsy and Needle Core read-only from the Specimen Dictionary. Mold size chips 7x7, 15x15, 24x24, 24x30, Mega; orientation free text with quick-fills. Split-block grouping (A1/A2/A3 embedded together). Block comments (no "prints on label" option). Cassette label reprint with reason (Wax Buildup, Faded Barcode, Mechanical Jam, Other).
 - Workflow: Home tile > scan > work > scan next; voice "confirm count", Ctrl+Alt+Shift+C; comment Ctrl+Alt+Shift+A.
 - Roles/permissions: `screen:embedding:open`.
 - Roles/permissions: `screen:grossing:open` (Batch 720: the Grossing tile under Pathology Workspace; seeded to Pathologist, Fellow, Resident and Pathologists Assistant).
@@ -510,9 +510,9 @@ Conventions: "Built (Demo)" = works in the browser against mock/localStorage ser
 - Status: Built (Demo) — no printer telemetry; matrix blocks refused ("Embedding takes block cassettes only") and next-cassette pedal Planned.
 - Sources: pages/EmbeddingStationPage/README.md; utils/embeddingOperations.ts; SignedInApp.tsx:216
 
-### Microtomy workstation
+### Microtome workstation
 - What it does: /workstations/microtomy: scan a block, matrix block, slide or cytology decant to see every slide to cut/stain (context, slide grid or cytology panel, hardware/print). Grid columns Level, Stain, Print Status, Actions; per-row "+ Level"; Add Stain picker (category search, duplicate count, level depth in microns, control-slide pairing); reorder; remove (cancel reason once printed). Slide printing: On-demand (next unprinted) or Batch with progress (Pending/Printing/Printed/Failed); label prints only after the Printing mark is saved; schematic preview and fit warnings. Reprint needs reason (Jam, Scratched Glass, Misprint, Other). Alert flags and a unified comment drawer (prints on label vs LIS-only). Matrix blocks: stains/levels apply to every core; billing waits for pathologist core confirmation. Cytology panel: dynamic prep suggestions (Direct Smear, Cytospin, ThinPrep, Cell Block) from decant volume and yield (strict >20 mL rule). Billing box shows suggested codes.
-- Workflow: Microtomy tile > scan > print slides; foot pedal 2 prints next; voice add comment/add stain.
+- Workflow: Microtome tile > scan > print slides; foot pedal 2 prints next; voice add comment/add stain.
 - Roles/permissions: `screen:microtomy:open`.
 - Settings: Field Requirements "microtomy" (stain and cancel reason locked); printer profiles; print settings.
 - Status: Built (Demo) (Batch 606). The browser side is complete and works against browser-side services; simulated outcomes are labelled Simulated.
@@ -558,14 +558,14 @@ Conventions: "Built (Demo)" = works in the browser against mock/localStorage ser
 - Workflow: Tech flags on the add-on page; pathologist responds on the dashboard.
 - Roles/permissions: tech flag needs `add-on:exception:flag` (Batch 669); `add-on:exception:approve-destructive-cut`; cancel/modify `add-on:order:place`. Mark Block Retrieved needs `add-on:block:mark-retrieved`. When the slide has no ordering pathologist (or none who can be e-mailed) the notice goes to the Supervisor / Accessioning Desk (Lab Director and Accessioner roles) instead.
 - Settings: Field Requirements (exception and response notes).
-- Status: Built (Demo) (Batch 610). A Block exhausted button on the Microtomy workstation flags the block and e-mails the pathologist (Simulated outbox without a mail server); cutting is blocked until the decision is recorded, and Cancel/Modify restore the block. Waiting on the server side: mail transport.
+- Status: Built (Demo) (Batch 610). A Block exhausted button on the Microtome workstation flags the block and e-mails the pathologist (Simulated outbox without a mail server); cutting is blocked until the decision is recorded, and Cancel/Modify restore the block. Waiting on the server side: mail transport.
 - Sources: pages/AddOnOrderPage/README.md; services/addOnOrders/README.md; addOnOrderActions.ts
 
 ---
 ### G. Batch management, chain of custody, cold chain, retention
 
 ### Batch Management hub, new container and batch detail
-- What it does: /batch-management hub with node tiles (Decal/Special Processing, Processing, Embedding, Microtomy/Sectioning, Staining, Checkout), stage filter with counts, open/closed list. New Container: container type, target node, protocol/run parameters, priority, identifier mode (disposable CONT- vs reusable RACK-); audited label print; locked fields protocol, rack ID, decal duration, referral lab, cytology stain. Batch Detail: scan items in (items enter only by scan), remove, move, release rack, reconciliation (missing and unexpected scans block Complete), transfer to Processing; control slides auto-appended. Refusals are coded (BATCH_ERRORS) and localized. Decal batches carry acid type, target duration, countdown.
+- What it does: /batch-management hub with node tiles (Decal/Special Processing, Processing, Embedding, Microtome/Sectioning, Staining, Checkout), stage filter with counts, open/closed list. New Container: container type, target node, protocol/run parameters, priority, identifier mode (disposable CONT- vs reusable RACK-); audited label print; locked fields protocol, rack ID, decal duration, referral lab, cytology stain. Batch Detail: scan items in (items enter only by scan), remove, move, release rack, reconciliation (missing and unexpected scans block Complete), transfer to Processing; control slides auto-appended. Refusals are coded (BATCH_ERRORS) and localized. Decal batches carry acid type, target duration, countdown.
 - Workflow: Hub > New Container > Generate (voice "create container", Ctrl+Alt+Shift+N) > scan items > reconcile > Complete.
 - Roles/permissions: `screen:batch-management:open`.
 - Settings: Field Requirements page "batchManagement" (referral test, reagent lots optional).
@@ -739,7 +739,7 @@ Conventions: "Built (Demo)" = works in the browser against mock/localStorage ser
 - Sources: services/equipment/README.md; pages/BatchManagement/EquipmentServiceLogPage.tsx
 
 ### Facility Ops wall-display dashboards and Display Profiles
-- What it does: Five department views (Grossing & Intake, Embedding & Microtomy, Staining & IHC, Send-Out & Reference, Diagnostic Sign-Out/Scanner) as stat tiles and queue rows; carousel (default 20 s), polls every 20 s, "Offline / Stale Data" badge. Display Profiles (facility, assigned views, interval, optional device token typed at binding; bookkeeping, not hardware verification) bind a kiosk per browser.
+- What it does: Five department views (Grossing & Intake, Embedding & Microtome, Staining & IHC, Send-Out & Reference, Diagnostic Sign-Out/Scanner) as stat tiles and queue rows; carousel (default 20 s), polls every 20 s, "Offline / Stale Data" badge. Display Profiles (facility, assigned views, interval, optional device token typed at binding; bookkeeping, not hardware verification) bind a kiosk per browser.
 - Workflow: Admin creates profile; kiosk opens /facility-ops-dashboard (public route by design) and binds.
 - Roles/permissions: `config:display-profiles:manage` (Admin, Lab Director); route has no ScreenGate.
 - Settings: Configuration > System > Display Profiles.
@@ -800,7 +800,7 @@ Conventions: "Built (Demo)" = works in the browser against mock/localStorage ser
 - Voice commands for bench stations.
 
 #### Status in FEATURE_OVERVIEW.md that the code contradicts
-- Bench workstations "Live (Sep 2026)": Embedding and Slide Distribution refuse matrix blocks; Slide Distribution has no foot pedal; Microtomy slide-label layout setting is not wired to ZPL and has no editor; Microtomy page has no block-exhausted flag (Add-On entry says "a tech flags insufficient tissue" but the flag exists only on the Add-On page).
+- Bench workstations "Live (Sep 2026)": Embedding and Slide Distribution refuse matrix blocks; Slide Distribution has no foot pedal; Microtome slide-label layout setting is not wired to ZPL and has no editor; Microtome page has no block-exhausted flag (Add-On entry says "a tech flags insufficient tissue" but the flag exists only on the Add-On page).
 - Batch Management "Live": the Engraver Monitor sub-page reads Firestore with placeholder credentials (cannot work in a real browser) and engine webhooks have never run live; cold-chain telemetry has no ingestion path.
 - Cassette Color Routing & Printing "Live — full label-printing architecture": Label Designer layouts are not consumed by print output; slide label layout is partially wired; PathScribe Agent program not built.
 - Label Printing "Partial": consistent, but "Local Bridge Agent path" is now the PathScribe Agent (client built, agent not); dispatchContainerLabelPrint is referenced yet absent.
@@ -1494,7 +1494,7 @@ Notation: "Batch N" = changelog batch in the READMEs. "Built (Demo)" = works in 
 - Sources: CW README Batch 460; billing README Batch 460.
 
 ### Decants, material view and slide-preparation suggestions
-- What it does: Decant panel records Total Volume (mL), Appearance and Decant Yield and suggests a preparation slate with Accept (over 20 mL with high yield = 2 ThinPrep, 2 Cell Block, 1 Direct Smear); per-slide preparation method; Pap / Diff-Quik / H&E quick toggle; Diff-Quik/Wright-Giemsa in the Cytology stain category. Decant adds and stain changes are atomic versioned saves that publish MATERIAL_DECANTED; a decant tree supports multi-level decants. A save conflict shows a message and reloads. Suggestions also appear on the Microtomy workstation.
+- What it does: Decant panel records Total Volume (mL), Appearance and Decant Yield and suggests a preparation slate with Accept (over 20 mL with high yield = 2 ThinPrep, 2 Cell Block, 1 Direct Smear); per-slide preparation method; Pap / Diff-Quik / H&E quick toggle; Diff-Quik/Wright-Giemsa in the Cytology stain category. Decant adds and stain changes are atomic versioned saves that publish MATERIAL_DECANTED; a decant tree supports multi-level decants. A save conflict shows a message and reloads. Suggestions also appear on the Microtome workstation.
 - Workflow: Scan decant container; screening page Material drawer.
 - Roles/permissions: `case:decant:delete` for deleting.
 - Settings: rules in `computeCytologyPrepSuggestions` (not configurable).
@@ -2032,7 +2032,7 @@ Notation: "Batch N" = changelog batch in the READMEs. "Built (Demo)" = works in 
 - Sources: molecularOrders README Batch 467b; pages AddOnOrderPage README; facilities README; batches README Batch 467b.
 
 ### Molecular outbound order queue (HPV and instrument)
-- What it does: Queue of outbound orders `order.molecular` (HPV co-test, reflex genotyping) and `order.instrument` (ThinPrep processor at Cytology Processing batch creation). Triggers: accession of a specimen whose protocol task has `sendOutboundOrder`; a positive standalone high-risk HPV result; creating a Cytology Processing batch. Fire-and-forget, statuses QUEUED / SENT / FAILED with retry codes. Viewer lists newest first with a demo panel (queue an HPV co-test order, simulate an inbound HPV result on seeded case S26-5003); no retry button.
+- What it does: Queue of outbound orders `order.molecular` (HPV co-test, reflex genotyping) and `order.instrument` (the liquid-based processor chosen from Equipment when a Liquid-Based Cytology Processing batch is made; Batch 739: no fixed vendor). Triggers: accession of a specimen whose protocol task has `sendOutboundOrder`; a positive standalone high-risk HPV result; creating a Cytology Processing batch. Fire-and-forget, statuses QUEUED / SENT / FAILED with retry codes. Viewer lists newest first with a demo panel (queue an HPV co-test order, simulate an inbound HPV result on seeded case S26-5003); no retry button.
 - Workflow: Automatic; viewer at `/molecular-order-queue`.
 - Roles/permissions: `configuration` screen gate.
 - Settings: Protocol PathwayTask `sendOutboundOrder`.
@@ -3007,7 +3007,7 @@ Status key used below: Built = works in the app; Built (Demo) = works against br
 - Sources: services/autopsy/README.md ("Still open" list).
 
 ### Facility Ops wall displays
-- What it does: Public wall-display route `/facility-ops-dashboard` (outside sign-in and the session timeout, by design, like the OR board) with five high-contrast views of the bound facility: Grossing & Intake (active batches, decal SLA countdown, pending intake), Embedding & Microtomy (active batches, STAT alerts), Staining & IHC (active batches and stain-order counts by status: QC Failed, Recut Requested, Ready for Review, Staining), Send-Out & Reference (referral transit counts, STAT referrals and cold-chain excursions as critical alerts), Diagnostic Sign-Out/Scanner (WSI batch counts with Scan Failed critical and Scan QC Failed warning alerts). Header shows profile name, view, facility, a clock, "last updated" or an Offline / Stale Data badge, and carousel dots. Re-reads when the hub reports a change in the facility (topic `facilityOps`); polls every 20 s without a live connection; stale after two poll intervals (about two minutes while live). Only the latest read is shown.
+- What it does: Public wall-display route `/facility-ops-dashboard` (outside sign-in and the session timeout, by design, like the OR board) with five high-contrast views of the bound facility: Grossing & Intake (active batches, decal SLA countdown, pending intake), Embedding & Microtome (active batches, STAT alerts), Staining & IHC (active batches and stain-order counts by status: QC Failed, Recut Requested, Ready for Review, Staining), Send-Out & Reference (referral transit counts, STAT referrals and cold-chain excursions as critical alerts), Diagnostic Sign-Out/Scanner (WSI batch counts with Scan Failed critical and Scan QC Failed warning alerts). Header shows profile name, view, facility, a clock, "last updated" or an Offline / Stale Data badge, and carousel dots. Re-reads when the hub reports a change in the facility (topic `facilityOps`); polls every 20 s without a live connection; stale after two poll intervals (about two minutes while live). Only the latest read is shown.
 - Workflow: (1) Admin creates a Display Profile (see Display profiles). (2) At the bench, a person opens `/facility-ops-dashboard` on the wall computer and picks the profile (typing the token if one is set). (3) The screen loads the profile's views, cycles through them at the carousel interval and refreshes automatically. (4) Staff read counts and alerts from across the room; nobody signs in or clicks afterwards. (5) A failed refresh shows the Offline / Stale Data badge instead of an error.
 - Roles/permissions: none for the display itself (public route, no session). Creating the profiles needs `config:display-profiles:manage`. Data is scoped to the profile's facility, not enterprise-wide.
 - Settings: Display Profiles (facility, views, interval, token). Poll interval 20 s and default carousel 20 s are constants in the page.
@@ -3015,7 +3015,7 @@ Status key used below: Built = works in the app; Built (Demo) = works against br
 - Sources: pages/FacilityOpsDashboard/README.md and FacilityOpsDashboardPage.tsx; services/facilityOpsDashboard/README.md and compute*Summary.ts files; SignedInApp.tsx (route).
 
 ### Display profiles
-- What it does: Registry of wall displays. Each profile has a name, a performing-lab facility, one or more of five views (Grossing & Intake, Embedding & Microtomy, Staining & IHC, Send-Out & Reference, Diagnostic Sign-Out/Scanner), a carousel interval in seconds (only shown with more than one view; default 20 s, minimum 5 s at run time), an optional device token and Active/Inactive status. At least one view is required. One profile is seeded (`dispprof-seed-histology`, Fenwick General, three views). A browser binds to a profile once; the binding is remembered per computer and survives reload.
+- What it does: Registry of wall displays. Each profile has a name, a performing-lab facility, one or more of five views (Grossing & Intake, Embedding & Microtome, Staining & IHC, Send-Out & Reference, Diagnostic Sign-Out/Scanner), a carousel interval in seconds (only shown with more than one view; default 20 s, minimum 5 s at run time), an optional device token and Active/Inactive status. At least one view is required. One profile is seeded (`dispprof-seed-histology`, Fenwick General, three views). A browser binds to a profile once; the binding is remembered per computer and survives reload.
 - Workflow: (1) Admin opens Configuration > System > Display Profiles. (2) Add: types the name, picks the facility, ticks the views, optionally sets the interval and a device token (an asset tag, MAC or IP for bookkeeping), saves. Edit, Deactivate and Reactivate from each row. (3) Admin presses "Open Facility Ops Dashboard" (or points a wall browser at `/facility-ops-dashboard`). (4) On the wall computer, setup lists the active profiles; the person picks one; if the profile has a token they must type it correctly before the bind completes. (5) The display then runs that profile's views.
 - Roles/permissions: `config:display-profiles:manage` for add, update, deactivate (checked in the service; section visible only with it; seeded to Admin and Lab Director). The binding step on the wall display needs no login.
 - Settings: Configuration > System > Display Profiles. No unbind control was found in the UI; changing the bound profile means clearing the workstation setting `pathscribe_current_display_profile_id` (Unverified how an operator does this).
@@ -4305,7 +4305,7 @@ Verification note: statuses below were checked against /home/claude/work/src (sy
 - Sources: participationTypes/cytotechParticipationRules.ts; services/roles/README.md Batch 441; services/cases/README.md
 
 ### Screen access (Home tiles and route gates)
-- What it does: 21 `screen:<name>:open` capabilities (Accession, Worklist, Search, Add-On Orders, Intraop Queue, Cytology QC Queue, Surgical QA, My Contribution, Bench Contributions, Tumor Board, Batch Management, Cytology Workspace, Microtomy, Embedding, Slide Distribution, Molecular, Margin Exception Review, Audit, Quality Assurance, Registry Exceptions, Configuration). Home and hub tiles show only openable screens; routes re-check via ScreenGate. All Configuration sub-pages (template editor/review, Part Builder, Template Assembly, Migration Jobs, Molecular Order Queue, mock interface engine) are gated by `screen:configuration:open`; a guard test fails the build on an ungated route unless listed as open (sign-in, token links, wall dashboards, /consult, /my-exports). `cytology:qc-review:bypass` also opens the QC queue.
+- What it does: 21 `screen:<name>:open` capabilities (Accession, Worklist, Search, Add-On Orders, Intraop Queue, Cytology QC Queue, Surgical QA, My Contribution, Bench Contributions, Tumor Board, Batch Management, Cytology Workspace, Microtome, Embedding, Slide Distribution, Molecular, Margin Exception Review, Audit, Quality Assurance, Registry Exceptions, Configuration). Home and hub tiles show only openable screens; routes re-check via ScreenGate. All Configuration sub-pages (template editor/review, Part Builder, Template Assembly, Migration Jobs, Molecular Order Queue, mock interface engine) are gated by `screen:configuration:open`; a guard test fails the build on an ungated route unless listed as open (sign-in, token links, wall dashboards, /consult, /my-exports). `cytology:qc-review:bypass` also opens the QC queue.
 - Workflow: user signs in; Home filtered by role.
 - Roles/permissions: seeded per role (SCREEN_SEEDS); Admin opens Batch Management but not bench actions.
 - Settings: Role Dictionary.
@@ -4313,7 +4313,7 @@ Verification note: statuses below were checked against /home/claude/work/src (sy
 - Sources: src/services/screens/README.md, screenAccess.ts, routeGating.guard.test.ts; ScreenGate.tsx
 
 ### Field Requirements (which fields are required per page)
-- What it does: Organisation-level settings choose which fields each page requires; locked fields show why they cannot be switched off. Pages include Accession, Grossing, Case report (incl. hold notes, autopsy forms), Messaging, Cytology screening, Microtomy, Intraop, Embedding, Slide distribution, Add-on orders, Batch management, Molecular plate builder and rack loading, Staff, Facility editor and Cytology clinical history (16 pages). Staff: first name, last name, role locked; Facility: name and assigning authority locked (unique, case-insensitive; matches inbound HL7), email required unless switched off, interface endpoint and LIS sending ID locked once interface set up. Screens mark a star and a "Still required" footer. Changes audited.
+- What it does: Organisation-level settings choose which fields each page requires; locked fields show why they cannot be switched off. Pages include Accession, Grossing, Case report (incl. hold notes, autopsy forms), Messaging, Cytology screening, Microtome, Intraop, Embedding, Slide distribution, Add-on orders, Batch management, Molecular plate builder and rack loading, Staff, Facility editor and Cytology clinical history (16 pages). Staff: first name, last name, role locked; Facility: name and assigning authority locked (unique, case-insensitive; matches inbound HL7), email required unless switched off, interface endpoint and LIS sending ID locked once interface set up. Screens mark a star and a "Still required" footer. Changes audited.
 - Workflow: Configuration > System > Administration & Compliance > Field Requirements.
 - Roles/permissions: `config:field-requirements:manage`.
 - Settings: per organisation (performing-lab tenant); nothing fixed by jurisdiction.
@@ -4609,7 +4609,7 @@ Verification note: statuses below were checked against /home/claude/work/src (sy
 - Sources: services/equipment/README.md; EquipmentLogModal.tsx; pages/BatchManagement/EquipmentServiceLogPage.tsx
 
 ### Scan stations, workstation groups and action groups
-- What it does: Scan Stations: add/rename stations (facility list of performing labs, required; suggested workflow stages; barcode payload `STATION:...`). Workstation Groups define QC mode and functional area at each bench with an optional `dedicatedPageRoute` (microtomy, embedding, slide-distribution) that gives the NavBar a "Go to Bench" button when the group is Active. Action Groups define which actions each workstation allows (pushed into the Action Registry when a station is chosen). A station's facility scopes a batch when no item resolves one. Workstation Groups and Action Groups can be duplicated.
+- What it does: Scan Stations: add/rename stations (facility list of performing labs, required; suggested workflow stages; barcode payload `STATION:...`). Workstation Groups define QC mode and functional area at each bench with an optional `dedicatedPageRoute` (microtome, embedding, slide-distribution) that gives the NavBar a "Go to Bench" button when the group is Active. Action Groups define which actions each workstation allows (pushed into the Action Registry when a station is chosen). A station's facility scopes a batch when no item resolves one. Workstation Groups and Action Groups can be duplicated.
 - Workflow: Admin in System; user picks the station at login (ScanStationPrompt) or in the NavBar.
 - Roles/permissions: `config:scan-stations:manage`, `config:workstation-groups:manage`, `config:action-groups:manage`.
 - Settings: facility picker for Scan Stations; per-computer binding stored in workstationSettings.
@@ -4625,7 +4625,7 @@ Verification note: statuses below were checked against /home/claude/work/src (sy
 - Sources: Config/System/README; services/printSettings/README.md; utils/labels/pathscribeAgent/README.md; services/siteAgent/README.md
 
 ### Display profiles (Facility Ops wall displays)
-- What it does: Admin registers wall displays as Display Profiles: facility, assigned views (Grossing & Intake, Embedding & Microtomy, Staining & IHC, Send-Out & Reference, Diagnostic Sign-Out/Scanner), carousel interval (default 20 s), optional device token, status. A kiosk opens the public `/facility-ops-dashboard`, binds by choosing a profile (if a token is recorded it must be typed; bookkeeping check, not hardware verification) and the binding is remembered on that browser. Route has no login or session timeout by design. "Open Facility Ops Dashboard" button on the section.
+- What it does: Admin registers wall displays as Display Profiles: facility, assigned views (Grossing & Intake, Embedding & Microtome, Staining & IHC, Send-Out & Reference, Diagnostic Sign-Out/Scanner), carousel interval (default 20 s), optional device token, status. A kiosk opens the public `/facility-ops-dashboard`, binds by choosing a profile (if a token is recorded it must be typed; bookkeeping check, not hardware verification) and the binding is remembered on that browser. Route has no login or session timeout by design. "Open Facility Ops Dashboard" button on the section.
 - Workflow: Admin creates profiles; bench display binds once.
 - Roles/permissions: `config:display-profiles:manage` (Admin, Lab Director); dashboard route needs a Display Token (Batch 603), has no signed-in user and shows no patient identifiers.
 - Settings: System > Lab Materials & Workflows > Display Profiles.
@@ -4962,7 +4962,7 @@ Paths are relative to /home/claude/work. "Demo" means the feature runs on browse
 - Sources: src/services/aiIntegration/PathScribeAIService.ts; src/contexts/README.md; src/components/Voice/README.md
 
 ### Voice settings, foot pedal and deployment voice switch
-- What it does: Accent selection; deployment-wide voice switch (view-only without permission); voice macro list; foot pedal bindings (3 per workstation): dictation, Microtomy Pedal 2 print/etch next, Embedding Pedal 1 piece-count confirm, Pedal 3 pause/replay last segment (MediaRecorder). HID/Gamepad and keyboard-emulating pedals; bindings captured live.
+- What it does: Accent selection; deployment-wide voice switch (view-only without permission); voice macro list; foot pedal bindings (3 per workstation): dictation, Microtome Pedal 2 print/etch next, Embedding Pedal 1 piece-count confirm, Pedal 3 pause/replay last segment (MediaRecorder). HID/Gamepad and keyboard-emulating pedals; bindings captured live.
 - Workflow: User or admin in Configuration > Voice.
 - Roles/permissions: config:voice:manage for the deployment switch.
 - Settings: per workstation pedal bindings; per person accent.
@@ -4986,7 +4986,7 @@ Paths are relative to /home/claude/work. "Demo" means the feature runs on browse
 - Sources: src/services/macros/README.md; src/components/Config/Macros/README.md; wordBuildingBlocksEngine.ts
 
 ### Voice and shortcut action catalog (245 commands)
-- What it does: Registry of 245 named actions triggered by voice phrase or hotkey. Each has a hotkey and phrases in en, fr, de, nl, ko. Matching tries the user's language first, then English, with fuzzy matching. Screen-specific commands beat always-on ones. Each action runs once. Includes model/context commands for Grossing, Microtomy, Embedding, Slide distribution, Add-On Orders, Batch Management, Molecular plate builder, Intraop, Cytology, report modals.
+- What it does: Registry of 245 named actions triggered by voice phrase or hotkey. Each has a hotkey and phrases in en, fr, de, nl, ko. Matching tries the user's language first, then English, with fuzzy matching. Screen-specific commands beat always-on ones. Each action runs once. Includes model/context commands for Grossing, Microtome, Embedding, Slide distribution, Add-On Orders, Batch Management, Molecular plate builder, Intraop, Cytology, report modals.
 - Workflow: User speaks or presses a key; admins edit in Configuration > Actions (live key capture, conflict detection, suggestions, category buttons, CSV import and export with quote and formula protection, audited).
 - Roles/permissions: config:actions:manage (view-only without). Commands are not access control.
 - Settings: hotkeys and phrases per lab.
@@ -4994,7 +4994,7 @@ Paths are relative to /home/claude/work. "Demo" means the feature runs on browse
 - Sources: src/services/actionRegistry/README.md, mockActionRegistryService.ts; src/constants/systemActions.ts; src/components/Config/Actions/README.md
 
 ### Voice commands that mirror on-screen buttons and bench stations
-- What it does: Many modal buttons have a voice phrase and hotkey that act exactly like the button, with Field Requirements checks: save specimen, amendment/correction/addendum, critical notification, holds, comment, biopsy array, delegation, discordance, billing change, correct billing code, autopsy forms, fixation and pre-analytic gates, secure email, cytology review forms, complete grossing, intraop start/next/close/merge, add block order, read flags. Station commands: Microtomy add comment/stain; Embedding confirm piece count; Slide distribution confirm checkout; Add-On Orders add/submit; Batch create container; Molecular create plate/place rack. Aborting a batch, forcing reconciliation, cold-chain acknowledgement, Clone & Supersede and block cancel/restain deliberately have no voice command.
+- What it does: Many modal buttons have a voice phrase and hotkey that act exactly like the button, with Field Requirements checks: save specimen, amendment/correction/addendum, critical notification, holds, comment, biopsy array, delegation, discordance, billing change, correct billing code, autopsy forms, fixation and pre-analytic gates, secure email, cytology review forms, complete grossing, intraop start/next/close/merge, add block order, read flags. Station commands: Microtome add comment/stain; Embedding confirm piece count; Slide distribution confirm checkout; Add-On Orders add/submit; Batch create container; Molecular create plate/place rack. Aborting a batch, forcing reconciliation, cold-chain acknowledgement, Clone & Supersede and block cancel/restain deliberately have no voice command.
 - Workflow: Open the form or station page, speak; nothing happens if the form is not open.
 - Roles/permissions: also needs the button's capability (for example billing:applied-code:correct).
 - Settings: hotkeys editable per lab.
@@ -5201,8 +5201,8 @@ Paths are relative to /home/claude/work. "Demo" means the feature runs on browse
 - Status: Built (Demo)
 - Sources: src/services/billing/README.md; BillingReviewPanel.tsx; MatrixBlockEditorModal
 
-### Billing review panel (report page, Cytology Workspace, Microtomy)
-- What it does: Tree of specimens/blocks with pending/applied badges; confirm, override, decline, add, delete, correct codes; decants included and reactive to material events (decant add/rollback). Cytology Workspace "$ Billing" drawer with Approve all across decants. Microtomy shows a read-only per-slide box with "$ Full billing review" (greyed without permission). Date of service = Date Collected else Date Received; missing both withholds the charge and audits it. Assist cases change codes without charging. Specimen codes and the Sequencer order save immediately (all or nothing; failure reverts and records no charge).
+### Billing review panel (report page, Cytology Workspace, Microtome)
+- What it does: Tree of specimens/blocks with pending/applied badges; confirm, override, decline, add, delete, correct codes; decants included and reactive to material events (decant add/rollback). Cytology Workspace "$ Billing" drawer with Approve all across decants. Microtome shows a read-only per-slide box with "$ Full billing review" (greyed without permission). Date of service = Date Collected else Date Received; missing both withholds the charge and audits it. Assist cases change codes without charging. Specimen codes and the Sequencer order save immediately (all or nothing; failure reverts and records no charge).
 - Workflow: Open panel; each change is saved to the case then charged or credited.
 - Roles/permissions: billing:applied-code:review (Admin, Lab Director, QA Reviewer, all case-access roles).
 - Settings: Role Dictionary.
@@ -5548,7 +5548,7 @@ These entries were found by scanning every route, screen, folder, capability key
 - Sources: SignedInApp.tsx (`TemplateRendererPage`); Config/Protocols ActiveProtocolsSection, ReviewQueueSection.
 
 ### Routes without their own entry
-- `/pathology-workspace` (`PathologyWorkspacePage`): second-level hub grouping Cytology, Microtomy, Embedding, Slide Distribution, Molecular and Margin Exception review. Built (Demo).
+- `/pathology-workspace` (`PathologyWorkspacePage`): second-level hub grouping Cytology, Microtome, Embedding, Slide Distribution, Molecular and Margin Exception review. Built (Demo).
 - `/add-on-orders` (`AddOnOrderPage`): add-on stains and recuts; capability `screen:add-on-orders:open`. Built (Demo).
 - `/admin/parts/new`, `/admin/parts/:partId/edit` (`PartBuilderPage`): full-screen Report Part Builder. Built (Demo).
 - `/admin/templates/new`, `/admin/templates/:templateId/edit` (`TemplateAssemblyPage`): Template Assembly slot-list editor. Built (Demo).
@@ -5567,7 +5567,7 @@ These entries were found by scanning every route, screen, folder, capability key
 
 ### Dialogs without an entry
 - **Station switch guard** (`StationSwitchGuardModal`): a scan that switches station with unsaved data pauses and offers Save & Switch, Discard & Switch or Cancel. Built (Demo).
-- **Batch print progress** (`BatchProgressModal`, Microtomy): real-time progress of "Print Batch" slide labels, one job at a time (PS-284). Built (Demo).
+- **Batch print progress** (`BatchProgressModal`, Microtome): real-time progress of "Print Batch" slide labels, one job at a time (PS-284). Built (Demo).
 - **Patient History** (`PatientHistoryModal`): a patient's prior cases by master patient identity, "AI Matched Cases" (a Demonstration: `findSimilarCases` scores the seeded demonstration cases with fixed rules, cut-off 40, top 5, and does not call a language model; Planned: a real model-backed search over the laboratory's own cases), message-the-physician, with a two-identifier (name and date of birth) gate. Partial (Demo): matching by name is imperfect.
 - **Biopsy array** (`CreateBiopsyArrayModal`): two or more cores into one shared cassette with ordered positions; editable. Built (Demo).
 - **AI review** (`AiReviewModal`): step through AI-extracted fields with Confirm, Override, Skip, Esc. Built (Demo) against the dev proxy.
@@ -5863,7 +5863,7 @@ These entries were found by scanning every route, screen, folder, capability key
 
 ### Server version of case material (PS-482)
 - What it does: A decant change (add, change, delete) is saved by one atomic call through `caseMaterialService`; the demo's version runs in the browser, the API server's version posts to `/api/material/case-material/apply-decant-change`.
-- Workflow: Material tab on the report screen and the microtomy workstation.
+- Workflow: Material tab on the report screen and the microtome workstation.
 - Roles/permissions: deleting a decant needs `case:decant:delete`, checked in the service (demo) and by the server.
 - Settings: API server address (config.json).
 - Status: Built (Demo) (Batch 618). Waiting on the server side: the route in CASE_MATERIAL_API.md.

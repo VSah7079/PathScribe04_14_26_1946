@@ -30,6 +30,12 @@ Field ids are the column names an analyst sees; they are not translated. The ful
 | `qa` | yes | Discordance, deficiency and amendment events with severity, outcome and timing |
 | `workload` | no | Cases, specimens, blocks and slides handled per person and day |
 | `audit` | no | Daily counts of allowed and denied actions by event type |
+| `station_events` (Batch 730) | yes | Every station scan: when (generalised to the month when de-identified), `minutes_since_accession` (kept: turnaround by step is measured from it), `event_date_offset_days` (days since the case was accessioned), item (id removed when de-identified; `item_key` stays), material type, case key, carrier, batch key, station, station stage, step, facility, user id, action, result, `from_carrier` (a carrier-wide event, which never counts as an item reaching a step, spec 10.3), `is_research`, `parent_item_key` (Batch 731: the item it came from, such as the block a slide was cut from; spec 10.4) |
+| `item_end_states` (Batch 731) | yes | Every item end state (spec 10.5): end-state key, item (id removed when de-identified; `item_key` stays), `parent_item_key`, material type, case key, state (exhausted, returned_to_storage, archived, sent_out, consumed, discarded), reason (free text, removed when de-identified), source (manual, disposal, referral, exhaustion_flag), user id, station, `recorded_at` (generalised to the month when de-identified), `minutes_since_accession`, `is_research` |
+| `batches` (Batch 730) | no | Each carrier: barcode, container type, purpose (Batch 728), current step, status, priority, created, sealed and completed times, target minutes, item, missing and unexpected counts, override, facility, step history (JSON text of `{from, to, at}`) |
+| `add_on_orders` (Batch 730) | yes | Each add-on order: case key, block id (removed when de-identified), type, stain name, priority, ordered and cut times (generalised to the month when de-identified), `minutes_to_cut` (kept), status, routed queue, performing lab, `is_research`; Batch 732: `block_type` (standard, megablock, multi_piece, matrix), `slide_size` (standard, large_format), `level_count`, `piece_count` |
+
+**Research cases (Batch 728, Lab Workflow & Batch spec Decision 4).** The server leaves research cases out of `cases`, `specimens`, `billing`, `qa` and `workload`. A research case is one the lab's Research Cases settings recognise (accession prefix, or the research patient's MRN prefix): the rule is `isResearchCase` in `src/services/researchCases/researchCaseRules.ts`, and the settings are the lab setting `pathscribe_research_case_settings`. The browser holds no BI rows, so this rule is the server's to apply; it is not yet applied anywhere in this build.
 
 Row keys (`case_key`, `specimen_key` and so on) are stable opaque identifiers that let an analyst join datasets. They are not accession numbers or record numbers.
 
@@ -46,12 +52,12 @@ Row keys (`case_key`, `specimen_key` and so on) are stable opaque identifiers th
 
 Every token is **de-identified** unless an approval is on record and the token was created as **identified**.
 
-De-identified means, for the four datasets that can identify a patient:
+De-identified means, for the datasets that can identify a patient (`cases`, `specimens`, `billing`, `qa`, `station_events`, `add_on_orders`):
 - fields marked `removed` are left out (names, accession and record numbers, birth dates, free text);
 - fields marked `generalised` are reduced: timestamps to the month; age 90 and over is returned as `90+`;
 - all other fields are returned as they are.
 
-`workload` and `audit` are never changed.
+`workload`, `audit` and `batches` are never changed. In the Batch 730 datasets the timestamps are generalised to the month like the others; turnaround is measured from the durations they carry (`minutes_since_accession`, `minutes_to_cut`), which are kept. The item and block ids that hold the accession number are removed.
 
 An identified token gets every field, but only while the approval is on record. If the approval is withdrawn, the server treats identified tokens as refused on the four identifiable datasets (`identified_not_approved`) until a new approval is recorded. Creating an identified token requires the approval and at least one identifiable dataset.
 
@@ -60,6 +66,7 @@ An identified token gets every field, but only while the approval is on record. 
 `GET /api/bi/v1/{dataset}?format=json|csv&since={iso}&page={n}&pageSize={n}` with `Authorization: Bearer psbi_…`.
 
 - `pageSize` default 1000, maximum 10000. Results are paged; the response carries `nextPage` when more remain.
+- JSON body (Batch 730, fixed so the Power BI kit can read it): `{ "dataset": "<id>", "page": <n>, "rows": [ { <field>: <value>, … } ], "nextPage": <n> | null }`. Field names are the ids in `BI_DATASETS`; a field the token may not see is absent from every row. CSV: one header row of field ids; the next page number is in the `X-Next-Page` response header (absent on the last page).
 - `since` filters on the dataset's last-changed time so a scheduled refresh can fetch only what changed.
 - Rate limit: 60 requests a minute per token; beyond that `429` with `Retry-After`.
 - Rows are filtered to the facilities the token reaches (the smaller of the token's list and the feed's list).
@@ -84,7 +91,7 @@ One entry per change and per pull; never row content, never a token or hash:
 ## 8. What the server team builds
 
 1. The settings and token tables, the hashing, replace and revoke rules (§4).
-2. The six dataset queries as read-only views over the reporting copy of the data, never the live tables, so a large pull cannot slow clinical work.
+2. The nine dataset queries (six from Batch 613, three from Batch 730) as read-only views over the reporting copy of the data, never the live tables, so a large pull cannot slow clinical work.
 3. The de-identification step (§5), tested against `BI_DATASETS`.
 4. Facility filtering from the token and the feed ceiling (§2, §4).
 5. Paging, `since`, JSON and CSV output, the rate limit (§6).

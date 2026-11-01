@@ -192,3 +192,7 @@ Each service here (the cancer registry services) now has an API-server version, 
 ## Batch 620 (part E)
 
 A fourteenth registry definition, `epath_npcr_us` (US state electronic pathology, HL7 v2.5.1 ePath), reported through `services/usEpath/`. The state registry follows the performing facility's state, not the patient's.
+
+## Batch 728
+
+- `dispatchCancerRegistryReportIfApplicable.ts`: a research case is `notReportable`.

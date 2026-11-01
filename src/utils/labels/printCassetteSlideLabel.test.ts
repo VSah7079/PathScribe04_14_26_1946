@@ -9,6 +9,11 @@ vi.mock('./qzTrayBridge', () => ({
   isQzTrayConnected: vi.fn(() => true),
   connectToQzTray: vi.fn(async () => ({ ok: true, data: undefined })),
 }));
+// Batch 734: these tests are about the bridges, so the facility allows direct printing (the block is tested in
+// services/printing/directDevicePrinting.test.ts).
+vi.mock('@/services/printing/directDevicePrintingDeps', () => ({
+  directDevicePrintingDeps: { demo: () => false, facilityAllows: async () => true, audit: () => undefined },
+}));
 vi.mock('./dispatchNetworkPrintJob', async () => {
   const actual = await vi.importActual<typeof import('./dispatchNetworkPrintJob')>('./dispatchNetworkPrintJob');
   return { ...actual, dispatchNetworkPrintJob: vi.fn(actual.dispatchNetworkPrintJob) };

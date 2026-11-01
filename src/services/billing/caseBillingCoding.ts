@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Batch 460: the billing review panel's coding changes, as pure functions.
 // They were inline in SynopticReportPage.tsx; the Cytology Workspace and the
-// Microtomy workstation now reuse the same panel, so the decisions live here
+// Microtome workstation now reuse the same panel, so the decisions live here
 // and every screen applies them the same way. Each screen only saves the
 // result through its own save path (and records the charge or credit through
 // caseBillingCharges.ts).

@@ -47,6 +47,11 @@ export interface ProtocolPathway {
    * field at runtime).
    */
   materialKind: 'block' | 'decant';
+  /** Batch 739 (fluid decision 6): what a decant track makes: a cell block (the default, as before), a residual
+   *  fluid vial (a liquid-based Pap vial), or an aliquot set aside for a test. Only for materialKind 'decant'. */
+  decantType?: import('@/types/case/Material').DecantType;
+  /** Batch 739: an aliquot track's purpose (HPV, molecular, flow cytometry, microbiology). */
+  aliquotPurpose?: import('@/types/case/Material').AliquotPurpose;
   /** Free text, deliberately not a rigid enum — real fixative naming
    *  varies (e.g. "Michel's Transport Medium" vs. "Michel's medium"),
    *  and a closed enum would just force awkward mapping later. */
@@ -134,6 +139,9 @@ export interface Protocol {
   /** Whether specimens using this protocol need a triage decision at
    *  the grossing bench before processing can proceed — e.g. "split
    *  the core into LM/IF/EM portions" for renal. */
+  /** Batch 741 (fluid decision 2): the aliquots Divide specimen suggests for this specimen type (pre-filled rows;
+   *  nothing is made until the division is saved). */
+  divisionPurposes?: import('@/types/case/Material').AliquotPurpose[];
   requiresTriage: boolean;
   /** Real, discrete checklist items — not one free-text block. Each
    *  item is something a bench tech could eventually check off one at

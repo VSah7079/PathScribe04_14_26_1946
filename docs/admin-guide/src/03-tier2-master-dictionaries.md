@@ -42,6 +42,7 @@ Configure Tier 2 in the order below. Each screen carries a **Setup sequence** bo
 30. [Country and laboratory rules](#screen-cytology_compliance_features): workload cap, look-back, urgent signature and screening intervals.
 31. [Assisted Instrumentation](#screen-cytology_instrumentation): whole slide imaging or traditional review.
 32. [Cyto-Histologic Correlation (SNOMED)](#screen-snomed_histology_severity_mapping): the SNOMED severity ranks used in correlation.
+33. [Research Cases & Batch Purposes](#screen-research_cases): how research cases are recognised and kept out of clinical work, and what a carrier can be for (Batch 728).
 
 The parts below follow the subject, not the setup order: [Part A](#ch3-anatomic-specialties) the anatomic pathology specialties, [Part B](#ch3-specimen-tissue) specimens and tissue, [Part C](#ch3-container-cassette) containers, cassettes and ink, [Part D](#ch3-stains-protocols) stains and protocols, [Part E](#ch3-code-libraries) code libraries, and [Part F](#ch3-physicians-clients) physicians, clients and governing bodies.
 
@@ -904,6 +905,62 @@ Unlocks: None.
 **7. Permissions.** Open: `screen:configuration:open`. Add, edit, deactivate, remove: `config:cold-chain:manage` (high risk, audited). Admin, Lab Director and Superadmin hold it by default. Sending a simulated reading is checked separately: a person who lacks permission sees "You don't have permission to send a simulated reading."
 
 **Known limits.** No sensor feed is connected. Every reading comes from the Simulated control and is labelled Simulated everywhere. That is why the status is Partial: the unit and type dictionaries are built, the live readings are not. Seeded types are Frozen Tissue (at most -20 °C) and Fresh Tissue (at most 8 °C).
+
+### Research Cases & Batch Purposes {#screen-research_cases}
+Breadcrumb: Home > Configuration > System > Lab Materials & Workflows > Research Cases & Batch Purposes
+
+**Status:** Partial
+
+**1. Navigation:** Configuration tab **System** > group **Lab Materials & Workflows**
+**2. Maintenance item:** Research Cases & Batch Purposes
+
+**3. Business purpose and scope.** Two settings for work that is not routine patient care.
+
+*Research cases.* Until research items can be handled without an accession, a research specimen is accessioned as a case for a dummy research patient. This card says how PathScribe recognises those cases: by accession prefix (for example `RES`) or by the research patient's MRN prefix (for example `RSCH-`). A research case is then:
+
+- left off the clinical worklists (tiles and lists alike; find it with Case Search);
+- left out of the turnaround, volume and quality figures on the Contribution dashboards;
+- never sent to the EHR as a result (final, preliminary, amended or cytology), and never delivered by fax or file drop. The audit log records each result that was not sent and why;
+- never sent to billing: its charges are refused at the billing queue, and its financial-class message carries the **no-charge financial class** with no coverage;
+- never submitted to a cancer or screening registry;
+- kept for the **retention days** counted from accessioning, then listed on the Disposal queue. Retention holds still apply. A research case never gets a signed clinical report, so the ordinary clock (which starts at sign-out) would never start.
+
+*Batch purposes.* What a carrier is for. Six are built in: Routine, Research, Teaching, Clinical Trial, Biobank, QA / Validation. Built-in purposes can be switched off but not removed; Routine is always on. Add the lab's own purposes by name. A new carrier is Routine unless another purpose is chosen in **New Container**. A carrier with a purpose other than Routine shows it on Batch Detail. Each [Display Profile](#screen-display_profiles) can show only carriers of chosen purposes.
+
+**4. Prerequisites and dependencies.** None for the settings themselves. To use the research workaround, register the dummy research patient (with an MRN that starts with the prefix) and, if the lab uses one, an accession format with the research prefix.
+
+Setup step: Tier 2, step 33
+Requires: None, this is a starting point.
+Unlocks: None.
+
+**5. Screen.**
+
+[SCREENSHOT PLACEHOLDER: system-research_cases - Research cases card and Batch purposes card]
+
+**6. Field reference.**
+
+#### Research cases card
+
+| Field Name | Data Type / Format | Required/Optional | Description & Business Logic | System Default |
+|---|---|---|---|---|
+| Treat matching cases as research cases | Check box | Optional | Off: no case is treated as a research case. | On |
+| Accession prefixes | Text, comma-separated | Required when on (this or the MRN prefixes) | A case matches when its accession prefix equals one, or its full accession starts with one. Capital letters are ignored. No spaces; at most 20 characters each. | RES |
+| Research patient MRN prefixes | Text, comma-separated | Required when on (this or the accession prefixes) | A case matches when its patient's MRN starts with one. | RSCH- |
+| No-charge financial class | Text | Required when on | Sent as the account billing type in the financial-class message for a research case. | Research - No Charge |
+| Keep material for (days after accessioning) | Whole number, 0 to 36500 | Required | When the case's blocks and slides are listed for disposal. | 365 |
+| Save | Button | Not applicable | Refused without the permission below, or when a value fails the checks (each problem is listed). | Not applicable |
+
+#### Batch purposes card
+
+| Field Name | Data Type / Format | Required/Optional | Description & Business Logic | System Default |
+|---|---|---|---|---|
+| Purpose rows | Name and Active check box | Not applicable | Built-in names are shown in the reader's language and marked Built-in. A lab purpose's name is edited in place (unique, at most 40 characters). Routine's check box cannot be cleared. | Six built-in purposes, all active |
+| New purpose, Add | Text and button | Optional | Adds a lab purpose (Enter also adds it). | Blank |
+| Save | Button | Not applicable | Refused without the permission below, or when a name is blank, too long or repeated. | Not applicable |
+
+**7. Permissions.** Open: `screen:configuration:open`. Saving the research case settings: `config:research-cases:manage`. Saving the batch purposes: `config:batch-purposes:manage`. Both high risk; Admin, Lab Director and Superadmin hold them by default.
+
+**Known limits.** The report screen does not yet mark a research case as "research, not a clinical report"; it can still be signed out (nothing is sent anywhere). There is no research worklist (use Case Search). Quality figures outside the Contribution dashboards, and the BI feed on the server, are not yet filtered in this build. Research items without an accession are a later phase. These are why the status is Partial.
 
 ### Specimen Deficiencies {#screen-deficiencies}
 Breadcrumb: Home > Configuration > System > Integrations > Specimen Deficiencies

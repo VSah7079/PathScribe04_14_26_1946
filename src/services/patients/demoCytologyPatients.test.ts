@@ -3,9 +3,9 @@ import { DEMO_CYTOLOGY_PATIENTS, demoCytologyPatientRecord } from './demoCytolog
 import { mockPatientIndexService } from './mockPatientIndexService';
 
 describe('demo cytology patients (Batch 634)', () => {
-  it('covers PAT-CYT-001 to 023, each with an organisation, MRN and name', () => {
-    expect(DEMO_CYTOLOGY_PATIENTS).toHaveLength(23);
-    expect(DEMO_CYTOLOGY_PATIENTS.map(p => p.id)).toEqual(Array.from({ length: 23 }, (_, i) => `PAT-CYT-${String(i + 1).padStart(3, '0')}`));
+  it('covers PAT-CYT-001 to 031 (024 to 031: Batch 744 fluids), each with an organisation, MRN and name', () => {
+    expect(DEMO_CYTOLOGY_PATIENTS).toHaveLength(31);
+    expect(DEMO_CYTOLOGY_PATIENTS.map(p => p.id)).toEqual(Array.from({ length: 31 }, (_, i) => `PAT-CYT-${String(i + 1).padStart(3, '0')}`));
     for (const p of DEMO_CYTOLOGY_PATIENTS) expect(p.organisationId && p.mrn && p.firstName && p.lastName).toBeTruthy();
   });
   it('builds a record with a fixed birth date; unknown ids give null', () => {

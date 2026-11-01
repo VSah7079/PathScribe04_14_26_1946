@@ -1,3 +1,9 @@
+**Batch 737:** cassette label requests carry `blockType` (`dispatchCassetteLabel.ts`, `getAllCassetteLabelRequests.ts`, `printCassetteSlideLabel.ts`); the network print payload's template is the block type's cassette template (`ZPL-CASSETTE-MEGA-V1` for a megablock) in `dispatchNetworkPrintJob.ts`.
+
+**Batch 734:** `dispatchZplLabel` takes a sixth argument (`DirectPrintDeps`, default the app's) and refuses a direct print the facility has not allowed, with `printLabels.directPrintingOff`.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # utils/labels/
 
 The whole real label-printing architecture: building label data, rendering it, and dispatching it to a physical printer via one of several real bridge paths (browser print window, QZ Tray, network/Interface Engine). 29 modules plus the `pathscribeAgent/` subfolder; 23 have their own test file (no tests for `dispatchContainerLabelPrint.ts`, `dispatchSlideLabel.ts`, `dispatchZplLabel.ts`, `getAllSlideLabelRequests.ts`, `labelPrintAudit.ts`, `printStationLabels.ts`).
@@ -108,7 +114,7 @@ Tests only: the label print tests allow Configuration changes in a mocked author
 - `dispatchZplLabel.ts`: `bridgeDispatchesZpl(printer)` says whether a label goes down the printer bridge or to the browser print dialog; BarTender, Zebra Browser Print and Direct via Interface Engine (and the PathScribe Agent with no program running) answer Simulated in the demo (`simulated: true` on the result).
 - `zplTemplates.ts`: `buildSlideZplTemplate(fields, layout?, dpi?)` takes the module size, text position and font from the slide label layout (no layout: the original template). `printSlideLabel` reads the saved Print settings layout when none is passed.
 - Saved Label Designer layouts replace the built-in ZPL and HTML for requisition, specimen, decant, block, slide and molecular labels (`services/labelDesigner/savedLayoutRegistry.ts`).
-- `dispatchSlideLabel.ts`: a per-slide ledger (`wasSlideLabelOutput`, `markSlideLabelOutput`) so the microtomy scan and the workstation print produce one label; a reprint ignores it.
+- `dispatchSlideLabel.ts`: a per-slide ledger (`wasSlideLabelOutput`, `markSlideLabelOutput`) so the microtome scan and the workstation print produce one label; a reprint ignores it.
 
 ## Batch 615 (part D) — vial and rack/batch labels (PS-360)
 
@@ -123,3 +129,7 @@ Tests only: the label print tests allow Configuration changes in a mocked author
 `dispatchScanSlideLabel.ts` (+ test): honours a station's `supportsEngraving` / `supportsPrinting` for the scan-time slide label; printing goes through `printSlideLabel`. Never throws; reports why nothing was produced.
 
 **Batch 715:** `printSlideLabel` and `SlideLabelDispatchRequest` take `slideDesignation`; Letters prints the level as `La`, `Lb` on the slide label. The slide id and barcode keep `L1`, `L2`.
+
+## Batch 732
+
+- Batch 732 (spec §11.1, §11.7): `printSlideLabel` takes `slideSize`; a large-format slide asks the interface engine for template `ZPL-SLIDE-LF-V1` (`dispatchNetworkPrintJob.ts`), or prints "LF" after the level on a direct ZPL label.

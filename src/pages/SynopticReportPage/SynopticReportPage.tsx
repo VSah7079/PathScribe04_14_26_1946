@@ -39,8 +39,8 @@ import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { useTranslation, Trans } from 'react-i18next';
 import type { DirtySectionId } from '@/services';
 import { loadFollowUpMarkOffer, markFollowUpExpectedAfterSignOutLive, followUpMarkFailureKey, type FollowUpMarkOffer } from '@/services';
-import { applyCaseReportImagesToBlob, CASE_IMAGES_FAILED } from '@/services';
-import { AttachReportImagesModal } from '@/components/ReportImages/AttachReportImagesModal';
+import { applyCaseReportImagesToBlob, CASE_IMAGES_FAILED, reportLayoutSections, reportSectionImagesFor } from '@/services';
+import { CaseAttachmentsModal } from '@/components/CaseAttachments/CaseAttachmentsModal';
 import { formatDate, formatDateTime } from '@/utils/formatDate';
 import { HeldReportsBanner } from '@/components/ReportRelease/HeldReportsBanner';
 import { CaseUpdatedBanner } from './components/CaseUpdatedBanner';
@@ -2095,7 +2095,7 @@ const SynopticReportPage: React.FC = () => {
 
   // Batch 460: the charge, credit and coding decisions behind the billing
   // panel live in services/billing/caseBillingCharges.ts and
-  // caseBillingCoding.ts (shared with the Cytology Workspace and Microtomy).
+  // caseBillingCoding.ts (shared with the Cytology Workspace and Microtome).
   // Every change needs billing:applied-code:review (enforceBillingReview),
   // asked before anything changes; correcting an applied code still needs
   // billing:applied-code:correct. A pending AI suggestion can still be
@@ -2669,8 +2669,9 @@ const SynopticReportPage: React.FC = () => {
       // Batch 463: and the maps that are part of the report (Mohs), drawn now in the report's language.
       reportFigures: await reportFiguresWithAuto(caseData, i18nForDates.getFixedT(reportLocale.language) as never),
       // Batch 613: the intraoperative diagnosis is part of the case report, and the related cases
-      // the signer attached are printed exactly as they were when seen at sign-out.
+      // the signer attached are printed exactly as they were when seen at sign-out. Batch 742: images placed in sections.
       intraoperativeDiagnosis: await loadIntraopDiagnosisForCase(caseData.id, caseData.intraoperativeFindings),
+      sectionImages: await reportSectionImagesFor({ caseId: caseData.id, accession }),
       relatedCases: attachedRelatedCases(caseData.id),
     };
   }, [caseData, resolvedTemplateName, resolvedBy, resolvedContext, orchSections, isOrchestrationMode, i18nForDates, reportWatermarkFor]);
@@ -7006,13 +7007,9 @@ const SynopticReportPage: React.FC = () => {
         />
       )}
 
-      {showAttachImages && caseData && (
-        <AttachReportImagesModal
-          caseId={caseData.id}
-          accession={caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? caseData.id}
-          facilityId={caseData.order?.facilityId ?? null}
-          onClose={() => setShowAttachImages(false)}
-        />
+      {showAttachImages && caseData && ( // Batch 742: the Attachments window (images print inside the chosen section)
+        <CaseAttachmentsModal caseData={caseData} caseId={caseData.id} accession={caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? caseData.id}
+          facilityId={caseData.order?.facilityId ?? null} layoutSections={reportLayoutSections(resolvedContext?.narrativeTemplate.bodyAssembly)} inlineSupported activeSectionId={activeSectionId} onClose={() => setShowAttachImages(false)} />
       )}
 
       {showReprintModal && caseData && (

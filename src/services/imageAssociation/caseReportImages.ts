@@ -31,6 +31,19 @@
 // The audit detail is PHI-free: the link's host only, never the full link (a
 // path can hold an accession) and never the caption. Attaching and removing
 // need `report:case-images:attach`.
+//
+// Batch 742 (Pete, Case Image & File Attachments, Release 1): these records are
+// now the placements of the Attachments window (components/CaseAttachments).
+// insertIntoReport() places ticked photos, files and links in a report section
+// (`sectionId`, `sectionLabel`); the renderer draws a placed image inside that
+// section (reportSectionImages.ts builds the payload), so only a record with no
+// section (the cytology report, and records made before this batch) still
+// prints on its own page after the report. A placed PDF is named in its section
+// and its pages follow the report. A placement remembers where it came from
+// (`origin`: an attachment, or a photo already on the case), so a file in the
+// hospital's storage is read through a fresh read link each time. A signed
+// report takes no new placement, and loses none, without an amendment or
+// addendum in progress.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { storageGet, storageSet } from '../mockStorage';
@@ -38,6 +51,7 @@ import { auditService } from '../auditlog/auditServiceInstance';
 import { isHttpsLink } from '../links/externalLink';
 import type { ImageAssociation } from '@/types/imageAssociation/ImageAssociation';
 import type { FetchAssetBytes } from './embedImageAssociationsIntoPdf';
+import { placementFetchUrl } from './placementLinks';
 
 export const CASE_REPORT_IMAGES_KEY = 'caseReportImages';
 export const REPORT_IMAGE_TYPES = ['Gross Specimen', 'Microphotograph', 'Block Face', 'Other'] as const;
@@ -58,7 +72,18 @@ export interface CaseReportImage {
   sourceSystemId: string;
   attachedAt: string;
   attachedBy: string;
+  /** Batch 742: the report section it prints in (absent: on its own page after the report). */
+  sectionId?: string;
+  /** The section's heading when it was placed, for the window and in case the layout no longer has the section. */
+  sectionLabel?: string;
+  /** Batch 742: what was placed. Absent on a link typed into the Batch 609 screen. */
+  origin?: ReportImageOrigin;
+  /** Batch 742: application/pdf, image/jpeg or image/png, when known. */
+  mimeType?: string;
 }
+
+/** Batch 742: an attachment (an uploaded file or a link), or a photo already on the case (gross, block face, intraop). */
+export type ReportImageOrigin = { kind: 'attachment'; attachmentId: string } | { kind: 'caseAsset'; assetId: string };
 
 export type ReportImageRef = { caseId?: string | null; accession?: string | null };
 
@@ -155,6 +180,92 @@ export async function removeCaseReportImage(
   return { ok: true };
 }
 
+// ── Batch 742: placing in a section ─────────────────────────────────────────
+
+/** Where the report is: a signed report changes only through an amendment or addendum. On an Assist case the LIS
+ *  writes the report (`lisOwnsReport`), so PathScribe places nothing in one (Pete, Oct 30, 2026). */
+export interface ReportEditState { signed: boolean; amendmentOpen: boolean; lisOwnsReport?: boolean }
+export type PlacementProblem = 'notPermitted' | 'signedNeedsAmendment' | 'assistCase' | 'tooMany' | 'nothingChosen';
+
+/** Why the report can't take or lose a placement now, or null. Pure. */
+export const reportEditProblem = (state: ReportEditState): 'assistCase' | 'signedNeedsAmendment' | null =>
+  state.lisOwnsReport ? 'assistCase' : state.signed && !state.amendmentOpen ? 'signedNeedsAmendment' : null;
+
+/** One thing ticked in the Attachments window, ready to place. */
+export interface PlacementItem {
+  origin: ReportImageOrigin;
+  /** A link to fetch it from; empty for a file in the hospital's storage (read through a fresh read link). */
+  imageUrl: string;
+  imageType: string;
+  caption?: string;
+  mimeType?: string;
+  sourceSystemId: string;
+}
+
+const sameOrigin = (a?: ReportImageOrigin, b?: ReportImageOrigin) =>
+  !!a && !!b && a.kind === b.kind && (a.kind === 'attachment' ? a.attachmentId === (b as typeof a).attachmentId : a.assetId === (b as { assetId: string }).assetId);
+
+/** True while an attachment is placed in a report. */
+export const isAttachmentInReport = (attachmentId: string) => records.some(r => r.origin?.kind === 'attachment' && r.origin.attachmentId === attachmentId);
+
+/**
+ * Places the ticked items in a report section (or, with no section, after the report). An item already placed moves
+ * to the new section with its new caption. Permission, the signed-report rule, the limit, one audit entry.
+ */
+export async function insertIntoReport(
+  input: { caseId: string; accession: string; facilityId: string | null; items: PlacementItem[]; section: { id: string; label: string } | null; user: string; reportState: ReportEditState },
+  deps: CaseReportImageDeps = defaultDeps,
+): Promise<{ ok: true; placed: number } | { ok: false; reason: PlacementProblem }> {
+  if (input.items.length === 0) return { ok: false, reason: 'nothingChosen' };
+  if (!(await deps.enforce({ caseId: input.caseId, facilityId: input.facilityId })).allowed) return { ok: false, reason: 'notPermitted' };
+  const signed = reportEditProblem(input.reportState);
+  if (signed) return { ok: false, reason: signed };
+  const existing = listCaseReportImages({ caseId: input.caseId });
+  const fresh = input.items.filter(i => !existing.some(e => sameOrigin(e.origin, i.origin)));
+  if (existing.length + fresh.length > MAX_REPORT_IMAGES) return { ok: false, reason: 'tooMany' };
+
+  const now = deps.now();
+  const where = input.section ? { sectionId: input.section.id, sectionLabel: input.section.label } : {};
+  const caption = (c?: string) => (c ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_CAPTION_LENGTH);
+  records = records.map(r => {
+    const item = r.caseId === input.caseId ? input.items.find(i => sameOrigin(r.origin, i.origin)) : undefined;
+    if (!item) return r;
+    const { sectionId: _s, sectionLabel: _l, ...rest } = r;
+    return { ...rest, ...where, caption: caption(item.caption) };
+  });
+  records = [...records, ...fresh.map(i => ({
+    id: `rpt-img-${Date.now().toString(36)}-${(seq++).toString(36)}`,
+    caseId: input.caseId, accession: input.accession,
+    imageType: (REPORT_IMAGE_TYPES as readonly string[]).includes(i.imageType) ? i.imageType : 'Other',
+    caption: caption(i.caption), imageUrl: i.imageUrl, sourceSystemId: i.sourceSystemId,
+    attachedAt: now, attachedBy: input.user, origin: i.origin, ...(i.mimeType ? { mimeType: i.mimeType } : {}), ...where,
+  }))];
+  persist();
+  notify();
+  deps.audit({
+    event: 'Report Image Linked', user: input.user, caseId: input.caseId,
+    // The section heading is template text; captions and links are left out.
+    detail: `${input.items.length} item(s) placed in the report ${input.section ? `under "${input.section.label}"` : 'after the report'}.`,
+  });
+  return { ok: true, placed: input.items.length };
+}
+
+/** Takes one placement out of the report (the attachment stays on the case). The signed-report rule applies. */
+export async function takeOutOfReport(
+  imageId: string, user: string, facilityId: string | null, reportState: ReportEditState, deps: CaseReportImageDeps = defaultDeps,
+): Promise<{ ok: true } | { ok: false; reason: 'notPermitted' | 'notFound' | 'signedNeedsAmendment' | 'assistCase' }> {
+  const image = records.find(r => r.id === imageId);
+  if (!image) return { ok: false, reason: 'notFound' };
+  // An Assist case may still clear a placement made before Batch 742's rule; only the signed-report rule applies.
+  const signed = reportEditProblem({ ...reportState, lisOwnsReport: false });
+  if (signed) return { ok: false, reason: signed };
+  const out = await removeCaseReportImage(imageId, user, facilityId, deps);
+  return out.ok ? { ok: true } : { ok: false, reason: out.reason ?? 'notFound' };
+}
+
+/** True when the renderer draws this placement inside its section (an image with a section). Pure. */
+export const isDrawnInSection = (i: Pick<CaseReportImage, 'sectionId' | 'mimeType'>) => !!i.sectionId && i.mimeType !== 'application/pdf';
+
 // ── Into the PDF ─────────────────────────────────────────────────────────────
 
 export interface ApplyImagesResult {
@@ -169,7 +280,12 @@ export interface ApplyImagesResult {
 export interface ApplyImagesDeps {
   embed?: (base: Uint8Array, associations: ImageAssociation[], fetchBytes?: FetchAssetBytes) => Promise<{ bytes: Uint8Array; warnings: string[] }>;
   fetchBytes?: FetchAssetBytes;
+  /** Batch 742: the link to fetch a placement from (a fresh read link for a file in the hospital's storage). */
+  fetchUrl?: (image: CaseReportImage) => Promise<string | null>;
 }
+
+/** Batch 742: a placement that can't be reached is fetched from this, which always fails, so its page says Image Unavailable. */
+const UNREACHABLE_LINK = 'unavailable:';
 
 export const CASE_IMAGES_FAILED = 'The images attached to this report could not be added to it. Remove or replace them on the Attach images screen.';
 
@@ -178,12 +294,13 @@ export const CASE_IMAGES_FAILED = 'The images attached to this report could not 
  * no attached images is returned as it is (pdf-lib is not even loaded). Never throws.
  */
 export async function applyCaseReportImagesToPdf(ref: ReportImageRef, pdf: Uint8Array, deps: ApplyImagesDeps = {}): Promise<ApplyImagesResult> {
-  const attached = listCaseReportImages(ref);
+  // Batch 742: an image placed in a section is drawn there by the renderer; only the rest follow the report.
+  const attached = listCaseReportImages(ref).filter(i => !isDrawnInSection(i));
   if (!attached.length) return { bytes: pdf, embedded: 0, warnings: [], failed: false };
-  const associations: ImageAssociation[] = attached.map(i => ({
-    id: i.id, assetId: i.caseId, imageUrl: i.imageUrl, imageType: i.imageType, sourceSystemId: i.sourceSystemId,
-    ...(i.caption ? { caption: i.caption } : {}), createdAt: i.attachedAt, createdBy: i.attachedBy,
-  }));
+  const associations: ImageAssociation[] = await Promise.all(attached.map(async i => ({
+    id: i.id, assetId: i.caseId, imageUrl: (await (deps.fetchUrl ?? placementFetchUrl)(i)) ?? UNREACHABLE_LINK, imageType: i.imageType, sourceSystemId: i.sourceSystemId,
+    ...(i.caption ? { caption: i.caption } : {}), ...(i.mimeType ? { mimeType: i.mimeType } : {}), createdAt: i.attachedAt, createdBy: i.attachedBy,
+  })));
   try {
     const embed = deps.embed ?? (async (base, list, fetchBytes) => (await import('./embedImageAssociationsIntoPdf')).embedImageAssociationsIntoPdf(base, list, fetchBytes));
     const out = await embed(pdf, associations, deps.fetchBytes);
@@ -196,7 +313,7 @@ export async function applyCaseReportImagesToPdf(ref: ReportImageRef, pdf: Uint8
 
 /** The same for a Blob (the surgical report page works with the renderer's response). */
 export async function applyCaseReportImagesToBlob(ref: ReportImageRef, blob: Blob, deps: ApplyImagesDeps = {}): Promise<{ blob: Blob; failed: boolean }> {
-  if (!listCaseReportImages(ref).length) return { blob, failed: false };
+  if (!listCaseReportImages(ref).some(i => !isDrawnInSection(i))) return { blob, failed: false };
   const out = await applyCaseReportImagesToPdf(ref, new Uint8Array(await blob.arrayBuffer()), deps);
   return out.failed ? { blob, failed: true } : { blob: new Blob([out.bytes as BlobPart], { type: 'application/pdf' }), failed: false };
 }

@@ -13176,7 +13176,7 @@ h3[data-section-id]:first-child {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Microtomy Workstation (PS-284) — real, per direct follow-up ("keep it
+   Microtome Workstation (PS-284) — real, per direct follow-up ("keep it
    consistent with GrossingScreenPage/SynopticReportPage") — same dark
    palette, spacing, and badge/table conventions as ps-grossing-* above,
    under its own ps-microtomy-* prefix per this file's own established
@@ -13219,23 +13219,7 @@ h3[data-section-id]:first-child {
   color: #e2e8f0;
 }
 
-.ps-microtomy-scan-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
 
-.ps-microtomy-scan-input {
-  flex: 1;
-  max-width: 360px;
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 6px;
-  color: #e2e8f0;
-  padding: 6px 10px;
-  font-size: 13px;
-}
 
 .ps-microtomy-scan-error {
   color: #f87171;
@@ -13716,23 +13700,7 @@ h3[data-section-id]:first-child {
   color: #e2e8f0;
 }
 
-.ps-embedding-scan-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
 
-.ps-embedding-scan-input {
-  flex: 1;
-  max-width: 360px;
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 6px;
-  color: #e2e8f0;
-  padding: 6px 10px;
-  font-size: 13px;
-}
 
 .ps-embedding-scan-error {
   color: #f87171;
@@ -14078,23 +14046,7 @@ h3[data-section-id]:first-child {
   color: #e2e8f0;
 }
 
-.ps-slidedist-scan-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
 
-.ps-slidedist-scan-input {
-  flex: 1;
-  max-width: 420px;
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 6px;
-  color: #e2e8f0;
-  padding: 6px 10px;
-  font-size: 13px;
-}
 
 .ps-slidedist-scan-error {
   color: #f87171;
@@ -14436,23 +14388,7 @@ h3[data-section-id]:first-child {
   margin: 0;
 }
 
-.ps-addon-search-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
 
-.ps-addon-scan-input {
-  flex: 1;
-  max-width: 420px;
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 6px;
-  color: #e2e8f0;
-  padding: 6px 10px;
-  font-size: 13px;
-}
 
 .ps-addon-scan-error {
   color: #f87171;

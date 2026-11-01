@@ -33,11 +33,19 @@ status: Draft
 | Welcome back, *name* | Greets you by your family name. |
 | Tiles | One per area of PathScribe. Each has a title and a short, one-line description (kept brief so it fits the tile in every language). |
 | Registry exception count | A small count on the tile that leads to registry exceptions, shown when cancer registry submissions need a person to look at them. |
-| Latest research article | A line showing a recent pathology article chosen for your subspecialty. Select it to read it in a separate window. |
+| Latest research article | A line under the welcome greeting showing a recent pathology article chosen for your subspecialty: its title, then the journal and date. Select it to read it in a separate window. |
+| Paste box | The faint box under the article line, "Found a better one? Paste the PMID or PubMed link". Paste a PubMed number or link and press Enter (or **Apply**) to show that article instead. |
 | System status | At the bottom of the screen. It says "Checking" while PathScribe asks the server, then "Operational", "Degraded" or "Unavailable". If the check itself fails it says "Status unavailable", which means the status is not known, not that the system is fine. It is checked when Home opens and again when you return to the tab after five minutes. In a demo with no server it adds "(demo: simulated)". Beside it is the line "© 2026 PathScribe AI Systems". |
 
 - **Tile descriptions.** The My Contribution tile reads "Workload • Quality • TAT". The Search tile reads "Find completed and open cases". Bench Contributions reads "Bench throughput and TAT", Intraop Queue "Unlinked intraop entries", Lockbox Drop-Off "After-hours specimen drop-offs", Pathology Workspace "Cytology, molecular, benches", Quality & Compliance "Audit trail and quality queues" and Tumor Board / MDT "Flag cases, manage the agenda".
 - **From PubMed.** The small badge on the research article line. The dot beside it is a button: its tooltip is "Click to check for a more recent article", and while it works it says "Checking for a more recent article…".
+
+![The welcome greeting with the From PubMed article line and the paste box](capture:home-pubmed)
+
+!!! note "The article line is automatic, not guidance"
+    The article is the most recent match from PubMed for pathology (and your subspecialty, when you have one). Nobody at your laboratory has reviewed it, so it is reading, not guidance for patient care. If PathScribe cannot reach PubMed, or your administrator has switched the line off, it simply does not appear.
+
+- **Paste messages.** "✓ Updated" means your article is now shown. "Couldn't find a PMID or PubMed link in that." means the text had no PubMed number; "Couldn't find that article — check the ID and try again." means PubMed has no article with that number.
 
 ### Toolbar
 
@@ -69,7 +77,7 @@ None are specific to this screen. Alt+H (Go Home) returns you here from most scr
 | Intraop Queue | Match unlinked intraoperative entries to a formal accession. | [Intraop Queue](help:intraop-queue) |
 | Lockbox Drop-Off | Scan specimens dropped off after hours and follow them up in the morning. | [Lockbox Drop-Off](help:lockbox-drop-off) |
 | My Contribution | Your own workload, quality, turnaround time and trends. | [My Contribution](help:my-contribution) |
-| Pathology Workspace | Cytology screening, molecular diagnostics, the microtomy, embedding and slide distribution workstations, and batch management. | [Pathology Workspace](help:pathology-workspace) |
+| Pathology Workspace | Cytology screening, molecular diagnostics, the microtome, embedding and slide distribution workstations, and batch management. | [Pathology Workspace](help:pathology-workspace) |
 | Quality & Compliance | Activity logs, the audit trail and the quality assurance working queue: deficiencies, reconciliation and corrective action. | [Quality & Compliance](help:quality) |
 | Search | Find completed and in-progress cases. | [Search](help:search) |
 | Tumor Board / MDT | Flag a case for tumor board or MDT and manage its agenda listing. | [Tumor Board](help:tumor-board) |
@@ -137,7 +145,7 @@ None are specific to this screen. Alt+H (Go Home) returns you here from most scr
 | Problem | Likely cause |
 |---|---|
 | A tile is missing | Your role does not include that area. |
-| The latest research line is empty | The research service is not reachable, or none was found for your subspecialty. It does not affect your work. |
+| The latest research line is missing | PathScribe cannot reach PubMed from your network, none was found for your subspecialty, or your administrator has switched the line off (Configuration > System > Research Feed). It does not affect your work. |
 | A tile shows a count | Items on it need attention. Open the tile. |
 
 ### Resolution steps

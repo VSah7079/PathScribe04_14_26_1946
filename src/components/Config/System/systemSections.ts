@@ -26,6 +26,7 @@ export type SystemSection =
   | 'departments'
   | 'asset_locations'
   | 'cold_chain'
+  | 'research_cases'
   | 'smart_capture'
   | 'interface_dictionary'
   | 'container_types'
@@ -97,6 +98,7 @@ export type SystemSection =
   | 'physicians'
   | 'deficiencies'
   | 'revision_reasons'
+  | 'bench_reasons'
   | 'peer_review_gate'
   | 'clinical_mismatch_rules'
   | 'ai_instructions'
@@ -211,6 +213,8 @@ export const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; gro
   // Batch 611: Smart Capture prototype switch and production gate.
   { id: 'smart_capture',        emoji: '✦', labelKey: 'systemTab.sections.smartCapture', group: 'Lab Materials & Workflows' },
   { id: 'cold_chain',          emoji: '🥶', labelKey: 'systemTab.sections.coldChain', group: 'Lab Materials & Workflows' },
+  // Batch 728 (Lab Workflow spec, Decision 4): research cases and batch purposes.
+  { id: 'research_cases',      emoji: '🧪', labelKey: 'systemTab.sections.researchCases', group: 'Lab Materials & Workflows' },
 
   // ── Clinical Lookups ──
   { id: 'governing_bodies',    emoji: '📋', labelKey: 'systemTab.sections.governingBodies'      , group: 'Clinical Lookups' },
@@ -266,6 +270,8 @@ export const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; gro
   { id: 'follow_up_tracking', emoji: '📬', labelKey: 'systemTab.sections.followUpTracking', group: 'Administration & Compliance' },
   // Batch 438 (PS-146): amendment and correction reasons, and which are clinically significant.
   { id: 'revision_reasons',    emoji: '📝', labelKey: 'systemTab.sections.revisionReasons', group: 'Administration & Compliance' },
+  // Batch 736 (Pete): the bench's tap-to-pick reasons, worded by each lab.
+  { id: 'bench_reasons',       emoji: '👆', labelKey: 'systemTab.sections.benchReasons', group: 'Administration & Compliance' },
   // Batch 439 (PS-144): where sign-out waits for a first-time malignancy's peer review.
   { id: 'peer_review_gate',    emoji: '👥', labelKey: 'systemTab.sections.peerReviewGate', group: 'Administration & Compliance' },
   // Batch 529 (PS-554): the clinical-pathologic mismatch risk rules.

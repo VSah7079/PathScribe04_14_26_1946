@@ -1,3 +1,5 @@
+**Batch 739:** an instrument order row shows the processor code (or the batch barcode).
+
 # MolecularOrderQueuePage
 
 The molecular order queue screen.

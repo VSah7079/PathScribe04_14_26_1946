@@ -33,10 +33,18 @@ export const activeScanStations = (stations: ScanStation[]): ScanStation[] => st
 const STAGE_KEYS: Record<(typeof SCAN_STATION_WORKFLOW_STAGES)[number], string> = {
   'Accessioning': 'accessioning',
   'Grossing': 'grossing',
+  'Decal / Special Processing': 'decal',
   'Processing': 'processing',
   'Embedding': 'embedding',
   'Microtomy / Sectioning': 'microtomy',
   'Staining': 'staining',
+  'Slide Distribution': 'slideDistribution',
+  'Checkout': 'checkout',
+  'External Referral': 'externalReferral',
+  'Cytology Preparation': 'cytologyPreparation',
+  'Cytology Processing': 'cytologyProcessing',
+  'Cytology Staining': 'cytologyStaining',
+  'Cytology Imaging': 'cytologyImaging',
   'Slide Archival': 'slideArchival',
   'Other': 'other',
 };

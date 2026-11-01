@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// Batch 610 (#16): the "Block exhausted" button on the Microtomy workstation.
+// Batch 610 (#16): the "Block exhausted" button on the Microtome workstation.
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 
@@ -16,7 +16,7 @@ import type { HistologyBlock } from '@/types/case/Specimen';
 
 afterEach(cleanup);
 const exc = (status: string) => ({ reason: 'Block exhausted', status, flaggedByName: 'Tech One', flaggedBy: 'u1', flaggedAt: 'T' });
-const block = (status: string, stains: unknown[] = [{ id: 'S1', stainName: 'H&E' }]): HistologyBlock => ({ id: 'B1', label: '1', status, stains } as unknown as HistologyBlock);
+const block = (status: string, stains: unknown[] = [{ id: 'S1', stainName: 'H&E', status: 'Pending Cut' }]): HistologyBlock => ({ id: 'B1', label: '1', status, stains } as unknown as HistologyBlock);
 
 describe('BlockExhaustedControl', () => {
   it('flags the block with a note and closes', async () => {
@@ -25,7 +25,7 @@ describe('BlockExhaustedControl', () => {
     fireEvent.click(screen.getByText('microtomyWorkstation.exhausted.button'));
     fireEvent.change(screen.getByLabelText('microtomyWorkstation.exhausted.note'), { target: { value: 'nothing left' } });
     fireEvent.click(screen.getByText('microtomyWorkstation.exhausted.confirm'));
-    await waitFor(() => expect(onFlag).toHaveBeenCalledWith('nothing left'));
+    await waitFor(() => expect(onFlag).toHaveBeenCalledWith('nothing left', undefined));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 

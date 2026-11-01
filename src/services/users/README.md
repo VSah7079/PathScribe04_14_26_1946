@@ -1,3 +1,5 @@
+**Batch 738:** ADM-001 Jordan Ellis (Admin only, fictional); home benches (`defaultScanStationId`) for PA-001 (Grossing Station 1) and HT-001 (Microtome — Bench 1).
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/users/

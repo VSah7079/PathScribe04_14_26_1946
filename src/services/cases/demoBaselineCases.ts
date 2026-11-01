@@ -50,6 +50,9 @@
 //                   endometrium, pancreas); their board listings, with
 //                   listings on S26-4630, S26-4631 and S26-4642, are in
 //                   services/tumorBoard/tumorBoardDemoSeed.ts
+//   A26-4665..4667  Batch 745 (seed row S6, Video 4): a temporary accession under a Medical Examiner's verbal order with
+//                   the written order pending; a hospital-consented case (brain excluded, retention refused) with the
+//                   PAD signed and the body ready for release; a closed case with PAD and FAD signed (Dr. Sarah Johnson).
 //   A26-4664        Batch 469: an HTA-governed jurisdiction (England &
 //                   Wales) case with full organ retention consented and a
 //                   tier already on file, disposal not yet recorded — the
@@ -60,6 +63,10 @@
 
 import type { Case } from '@/types/case/Case';
 import type { CaseStatus } from '@/types/case/CaseStatus';
+import { DEMO_SIGN_OUT_READY_CASE } from './demoSignOutReadyCase';
+import { DEMO_FLUID_CASES } from './demoFluidCases';
+import { DEMO_MOLECULAR_CASES } from './demoMolecularCases';
+import { DEMO_WALL_VOLUME_CASES } from './demoWallVolumeCases';
 
 
 const DAY = 86_400_000;
@@ -121,6 +128,20 @@ const hospitalConsent = (relative: string, relationship: string, days: number, s
 });
 const orchSection = (id: string, label: string, text: string) =>
   ({ id, label, type: 'narrative', text, aiGenerated: '', userEdited: true, isStreaming: false });
+
+/** Batch 745: A26-4666's report sections as its PAD froze them (chest and abdomen only). */
+const A4666_PAD_SECTIONS = [
+  orchSection('aut-4666-external', 'External Examination', 'The body is that of a frail elderly woman appearing the stated age of 86 years; length 155 cm, weight 51 kg. A healing 12 cm right lateral hip incision is closed with staples. Bruising of the right flank. No other injuries.'),
+  orchSection('aut-4666-internal', 'Internal Examination', 'Limited to the chest and abdomen, as consented. Bilateral pulmonary thromboemboli in the lower lobe segmental arteries. The right femoral vein contains adherent thrombus. Heart 380 g with moderate aortic valve calcification. Lungs congested. Kidneys with finely granular surfaces.'),
+  orchSection('aut-4666-pad', 'Preliminary Anatomic Diagnosis', '1. Bilateral segmental pulmonary thromboemboli.\n2. Deep venous thrombosis, right femoral vein.\n3. Status post open reduction and internal fixation of right hip fracture (postoperative day 3).\n4. Calcific aortic valve sclerosis.\nCause of death (provisional): pulmonary thromboembolism following hip fracture repair. Brain not examined (excluded by consent).'),
+];
+/** Batch 745: A26-4667's report sections, PAD then FAD. */
+const A4667_SECTIONS = [
+  orchSection('aut-4667-external', 'External Examination', 'The body is that of an adult man appearing the stated age of 72 years; length 178 cm, weight 84 kg. A 28 cm healing midline laparotomy incision. Anasarca.'),
+  orchSection('aut-4667-internal', 'Internal Examination', 'A tube graft replaces the infrarenal abdominal aorta, intact, with no leak. Retroperitoneal hematoma, organizing. Kidneys pale and swollen. Liver with centrilobular pallor. Bowel dusky in the sigmoid colon.'),
+  orchSection('aut-4667-pad', 'Preliminary Anatomic Diagnosis', '1. Status post repair of ruptured infrarenal abdominal aortic aneurysm with tube graft.\n2. Organizing retroperitoneal hematoma.\n3. Ischemic colitis, sigmoid colon.\nFinal diagnosis to follow histology.'),
+  orchSection('aut-4667-fad', 'Final Anatomic Diagnosis', '1. Ruptured infrarenal abdominal aortic aneurysm, status post repair with tube graft.\n2. Acute tubular necrosis, both kidneys.\n3. Centrilobular hepatic necrosis, consistent with shock liver.\n4. Transmural ischemic necrosis of the sigmoid colon.\nCause of death: multiorgan failure following ruptured abdominal aortic aneurysm.'),
+];
 
 /** A26-4662's report sections as its PAD froze them (the FAD section is added empty). */
 const A4662_PAD_SECTIONS = [
@@ -484,6 +505,78 @@ export const DEMO_BASELINE_CASES: Case[] = [
       organRetentionTier: 'tier_2_full_organ_retention',
     },
   },
+  // ── Batch 745 (Pete's seed row S6, Video 4): the three stages the video needs and the seed did not have ──
+  {
+    // Temporary (downtime) accession under a Medical Examiner's verbal order; the written order is not in yet, so the
+    // report page shows "temporary accession, written authorization pending" and Complete authorization.
+    ...base('A26-4665', 'accessioned', 0.3),
+    accession: autopsyAcc('4665'),
+    reportingMode: 'orchestrator', intakeType: 'downtime',
+    patient: patient('PAT-D665', '104665', 'Gordon', 'Pryce', born(69, 4, 8), 'M'),
+    specimens: [{ ...body('4665', 0.5, 0.3, [intoMortuary(MORTUARY_TRAY_B, 0.3)]), specimenDictionaryEntryId: 'sp-autopsy-complete', organCodes: ['heart', 'right_lung', 'left_lung', 'liver'] }],
+    order: order({ requestingProvider: 'County Medical Examiner', orderingPhysicianId: 'ph1', clinicalIndication: 'Found unresponsive at work; witnessed collapse. Medical Examiner has taken jurisdiction by telephone; the written order is to follow.', receivedDate: demoDaysAgo(0.3), assignedTo: 'PATH-SJ-001', assignedParticipationTypeId: 'primary' }),
+    diagnostic: { grossDescription: '', microscopicDescription: '', ancillaryStudies: '' },
+    synopticReports: [],
+    participants: [attending('PATH-SJ-001', 'Dr. Sarah Johnson', 0.3)],
+    autopsy: {
+      jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full', addenda: [], ancillaryHold: { active: false },
+      forensicAuthorization: {
+        authorityType: 'Medical Examiner', authorityName: 'County Medical Examiner, Office of the ME',
+        verbalOrderReceivedAt: demoDaysAgo(0.35), verbalOrderReceivedFrom: 'Deputy Medical Examiner L. Moreno',
+        orderReference: '', orderDate: '',
+      },
+    },
+  },
+  {
+    // Hospital-consented, the family excluding the brain and refusing retention; prosected, the PAD signed, the body
+    // still in Tray B with no hold: "Autopsy — Ready for Body Release".
+    ...base('A26-4666', 'in-progress', 2),
+    accession: autopsyAcc('4666'),
+    reportingMode: 'orchestrator',
+    patient: patient('PAT-D666', '104666', 'Mildred', 'Ashcombe', born(86, 9, 30), 'F'),
+    specimens: [{ ...body('4666', 2.2, 2, [intoMortuary(MORTUARY_TRAY_B, 2)]), specimenDictionaryEntryId: 'sp-autopsy-complete', organCodes: ['heart', 'right_lung', 'left_lung', 'liver', 'right_kidney', 'left_kidney'] }],
+    order: order({ requestingProvider: 'Dr. Olivia Hart', orderingPhysicianId: 'ph5', clinicalIndication: 'Inpatient death after a fall at home with a right hip fracture; rapid decline on day 3. Family requests autopsy to exclude pulmonary embolism; brain examination declined.', receivedDate: demoDaysAgo(2), assignedTo: 'PATH-SJ-001', assignedParticipationTypeId: 'primary' }),
+    diagnostic: { grossDescription: '', microscopicDescription: '', ancillaryStudies: '' },
+    synopticReports: [],
+    participants: [attending('PATH-SJ-001', 'Dr. Sarah Johnson', 2)],
+    orchSections: A4666_PAD_SECTIONS,
+    autopsy: {
+      jurisdiction: 'US', caseAuthority: 'hospital_consented', scope: 'trunk_visceral_only', addenda: [], ancillaryHold: { active: false },
+      hospitalConsent: {
+        ...hospitalConsent('Graham Ashcombe', 'adult_child', 2, ['Chest and abdomen only; brain excluded', 'No retention of organs or tissue beyond diagnostic sections']),
+        status: 'narrowed', statusChangedAt: demoDaysAgo(2), excludedOrgans: ['brain'], retentionPermitted: false,
+      },
+      padSnapshot: {
+        tier: 'PAD',
+        frozenPayload: { scope: 'trunk_visceral_only', jurisdiction: 'US', sections: A4666_PAD_SECTIONS.map(({ id, label, text }) => ({ id, label, text })) },
+        signedBy: { name: 'Dr. Sarah Johnson', isPathologist: true },
+        signedAt: demoDaysAgo(0.5),
+      },
+    },
+  },
+  {
+    // Final signed: PAD and FAD signed, the body released, the case closed.
+    ...base('A26-4667', 'finalized', 30),
+    accession: autopsyAcc('4667'),
+    reportingMode: 'orchestrator',
+    finalizedAt: demoDaysAgo(4), finalizedBy: 'PATH-SJ-001', releasedAt: demoDaysAgo(4),
+    patient: patient('PAT-D667', '104667', 'Reginald', 'Okafor-Lindt', born(72, 12, 19), 'M'),
+    specimens: [{ ...body('4667', 30.5, 30, [
+      intoMortuary(MORTUARY_TRAY_A, 30),
+      { location: 'Desert Rose Funeral Chapel', action: 'Released', at: demoDaysAgo(28), source: 'PathScribe', performedByName: 'Dr. Sarah Johnson' },
+    ]), specimenDictionaryEntryId: 'sp-autopsy-complete' }],
+    order: order({ requestingProvider: 'Dr. Michael Brown', orderingPhysicianId: 'ph1', clinicalIndication: 'Death in the intensive care unit with multiorgan failure after a ruptured abdominal aortic aneurysm repair.', receivedDate: demoDaysAgo(30), assignedTo: 'PATH-SJ-001', assignedParticipationTypeId: 'primary' }),
+    diagnostic: { grossDescription: '', microscopicDescription: '', ancillaryStudies: '' },
+    synopticReports: [],
+    participants: [attending('PATH-SJ-001', 'Dr. Sarah Johnson', 30)],
+    orchSections: A4667_SECTIONS,
+    autopsy: {
+      jurisdiction: 'US', caseAuthority: 'hospital_consented', scope: 'full', addenda: [], ancillaryHold: { active: false },
+      hospitalConsent: hospitalConsent('Celeste Okafor-Lindt', 'spouse', 30, ['Complete autopsy including brain', 'Retention of tissue samples for diagnosis']),
+      padSnapshot: { tier: 'PAD', frozenPayload: { scope: 'full', jurisdiction: 'US', sections: A4667_SECTIONS.slice(0, 3).map(({ id, label, text }) => ({ id, label, text })) }, signedBy: { name: 'Dr. Sarah Johnson', isPathologist: true }, signedAt: demoDaysAgo(28.5) },
+      fadSnapshot: { tier: 'FAD', frozenPayload: { scope: 'full', jurisdiction: 'US', sections: A4667_SECTIONS.map(({ id, label, text }) => ({ id, label, text })) }, signedBy: { name: 'Dr. Sarah Johnson', isPathologist: true }, signedAt: demoDaysAgo(4) },
+    },
+  },
 
   // ── Batch 516: Tumor Board / MDT (services/tumorBoard/tumorBoardDemoSeed.ts) ──
   {
@@ -537,6 +630,14 @@ export const DEMO_BASELINE_CASES: Case[] = [
     participants: [attending('PATH-SJ-001', 'Dr. Sarah Johnson', 16)],
     finalizedAt: demoDaysAgo(12), finalizedBy: 'PATH-SJ-001', releasedAt: demoDaysAgo(12),
   },
+  // Batch 738 (Demo Seed Data S1): the sign-out-ready colon case for Video 1 (demoSignOutReadyCase.ts).
+  DEMO_SIGN_OUT_READY_CASE,
+  // Batch 744 (S14): five body fluids at each preparation stage, an EBUS FNA, a ThinPrep and a SurePath Pap.
+  ...DEMO_FLUID_CASES,
+  // Batch 746 (S7): the surgical cases behind the molecular orders and completed runs.
+  ...DEMO_MOLECULAR_CASES,
+  // Batch 747 (S8): a working day's histology at Desert Valley for the wall displays.
+  ...DEMO_WALL_VOLUME_CASES,
 ] as any as Case[];
 
 /** Ids of every baseline case (tests and the demo guide). */

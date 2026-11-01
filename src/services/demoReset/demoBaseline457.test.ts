@@ -54,7 +54,8 @@ describe('Batch 457: Molecular Order Queue seed', () => {
 
   it('each order is for a real seeded Pap at Metro General, and the seed survives an enqueue but returns after a reset', async () => {
     const r: any = await mockMolecularOrderOutboundQueueService.getAll();
-    for (const e of r.data) {
+    // Batch 744: the instrument orders name a batch, not a case.
+    for (const e of r.data.filter((x: any) => x.eventType === 'order.molecular')) {
       const c: any = await mockCaseService.getCase(e.caseId);
       const data = c?.ok === undefined ? c : c.data;
       expect(data?.order?.facilityId, e.caseId).toBe('c1');

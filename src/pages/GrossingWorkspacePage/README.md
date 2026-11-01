@@ -1,3 +1,5 @@
+**Batch 735:** the accession field is the shared `StationScanField` (no on-screen keyboard, focus kept); the page is in the station touch layout.
+
 # GrossingWorkspacePage
 
 Batch 720. The **Grossing** tile under Pathology Workspace (`/workstations/grossing`, capability `screen:grossing:open`).

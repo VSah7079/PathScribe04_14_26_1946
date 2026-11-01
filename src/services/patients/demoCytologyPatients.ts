@@ -38,6 +38,15 @@ export const DEMO_CYTOLOGY_PATIENTS: readonly DemoCytologyPatient[] = [
   { id: 'PAT-CYT-021', organisationId: 'c-ie-ncsl-dublin', mrn: '700901', firstName: 'Siobhan', lastName: 'Kelly', age: 38, month: 3, day: 22 },
   { id: 'PAT-CYT-022', organisationId: 'c-au-sydney-cyto', mrn: '600601', firstName: 'Chloe', lastName: 'Nguyen', age: 34, month: 9, day: 11 },
   { id: 'PAT-CYT-023', organisationId: 'c-ni-lagan-valley', mrn: '800701', firstName: 'Orla', lastName: 'McKendry', age: 41, month: 6, day: 14 },
+  // Batch 744 (S14): the fluid, EBUS FNA and liquid-based Pap cases (services/cases/demoFluidCases.ts).
+  { id: 'PAT-CYT-024', organisationId: 'ENT-DEFAULT', mrn: '105101', firstName: 'Harriet', lastName: 'Okonkwo', age: 75, month: 2, day: 17 },
+  { id: 'PAT-CYT-025', organisationId: 'ENT-DEFAULT', mrn: '105102', firstName: 'Desmond', lastName: 'Arkwright', age: 63, month: 8, day: 5 },
+  { id: 'PAT-CYT-026', organisationId: 'ENT-DEFAULT', mrn: '105103', firstName: 'Tobias', lastName: 'Lindqvist', age: 38, month: 12, day: 2 },
+  { id: 'PAT-CYT-027', organisationId: 'ENT-DEFAULT', mrn: '105104', firstName: 'Clifford', lastName: 'Pennington', age: 78, month: 5, day: 23 },
+  { id: 'PAT-CYT-028', organisationId: 'ENT-DEFAULT', mrn: '105105', firstName: 'Agnes', lastName: 'Thorburn', age: 69, month: 10, day: 11 },
+  { id: 'PAT-CYT-029', organisationId: 'ENT-DEFAULT', mrn: '105106', firstName: 'Bernard', lastName: 'Vasquez-Hale', age: 71, month: 3, day: 29 },
+  { id: 'PAT-CYT-030', organisationId: 'ENT-DEFAULT', mrn: '105107', firstName: 'Rosalind', lastName: 'Ferreira', age: 36, month: 7, day: 14 },
+  { id: 'PAT-CYT-031', organisationId: 'ENT-DEFAULT', mrn: '105108', firstName: 'Imogen', lastName: 'Castellanos', age: 42, month: 1, day: 30 },
 ];
 
 const pad = (n: number) => String(n).padStart(2, '0');

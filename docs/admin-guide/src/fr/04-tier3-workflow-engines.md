@@ -48,6 +48,7 @@ Configurez le niveau 3 dans cet ordre. Chaque écran de configuration comporte u
 29. [Tableau de bord des contributions](#screen-contribution_settings) : la page Ma contribution.
 30. [Retours](#screen-feedback) : le bouton de retour d'information AQ.
 31. [Flux de recherche](#screen-research_feed) : le titre PubMed sur l'Accueil.
+32. [Motifs du poste de travail](#screen-bench_reasons) : les motifs à toucher au poste, formulés par votre laboratoire.
 
 Pages de référence, ne faisant pas partie de la configuration : [Gestion des lots](#screen-batch-management), [Poste d'inclusion](#screen-embedding-station), [Poste de microtomie](#screen-microtomy-workstation), [Poste de distribution des lames](#screen-slide-distribution-station), [Accueil](#screen-home), [Dépôt Lockbox](#screen-lockbox-drop-off), [Assurance qualité](#screen-quality-assurance), [Révision des exceptions de marge](#screen-margin-exception-review) et [File de relecture QC en cytologie](#screen-cytology-qc-queue).
 
@@ -995,6 +996,31 @@ Unlocks: Aucun.
 
 **7. Autorisations.** Ouvrir l'écran : `screen:configuration:open`. Modifier : `config:revision-reasons:manage` (risque élevé ; Admin et Directeur de laboratoire).
 **Limites connues.** Dans le produit, les valeurs de départ sont : diagnostic, marge, stade et reclassification du tissu activés ; corrections administratives désactivées (`revisionReasonRules.ts`). Le service permet d'ajouter, de modifier, de désactiver et de réactiver des motifs, mais cet écran n'a pas de bouton pour cela ; ce point est listé pour Pete dans `open-questions/ch4.md`. Contrat : `docs/architecture/LAB_DICTIONARIES_API.md`.
+
+### Motifs du poste de travail {#screen-bench_reasons}
+Breadcrumb: Accueil > Configuration > Système > Administration et conformité > Motifs du poste de travail
+
+**Statut :** Réalisé (lot 736)
+
+**1. Navigation :** onglet Configuration **Système** > groupe **Administration et conformité**
+**2. Élément de maintenance :** Motifs du poste de travail
+
+**3. Objectif métier et périmètre.** Les motifs que le personnel touche au poste au lieu de les saisir, en cinq groupes : Microtome (bloc épuisé) ; commandes complémentaires sur un bloc épuisé (commande et réponse du pathologiste, y compris l'approbation de la coupe destructive) ; abandon de lot ; lot terminé avec écarts ; rupture de la chaîne du froid. Chaque laboratoire les formule à sa façon. Un motif garde son **code** quand il est reformulé, et chaque enregistrement et entrée d'audit conserve le code à côté du texte : les rapports (colonne **Code du motif** du rapport des écarts de rapprochement) comptent le motif de la même façon avant et après reformulation. Une note reste facultative.
+
+**4. Prérequis et dépendances.** Aucun. Les motifs par défaut sont fournis dans les six langues.
+
+Setup step: Tier 3, step 32
+Requires: None.
+Unlocks: None.
+
+**5. Écran.**
+
+[SCREENSHOT PLACEHOLDER: system-bench_reasons - Motifs du poste en cinq groupes]
+
+**6. Champs.** Formulation (avec **Reformuler** ; un motif par défaut s'affiche dans la langue de chaque utilisateur, un motif reformulé tel que saisi), Code (lecture seule, ne change jamais), ↑ / ↓ (ordre), **Reprendre la formulation par défaut**, **Retirer** / **Rétablir**, **Ajouter un motif**.
+
+**7. Permissions.** Ouvrir l'écran : `screen:configuration:open`. Modifier : `config:bench-reasons:manage` (risque élevé ; Admin et directeur de laboratoire).
+**Limites connues.** Une liste pour toute l'organisation ; un site ne peut pas encore avoir sa propre formulation.
 
 ### Règles de signalement automatique RCP {#screen-tumor_board_rules}
 Breadcrumb: Accueil > Configuration > Système > Administration et conformité > Règles de signalement automatique RCP

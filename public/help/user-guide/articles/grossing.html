@@ -38,12 +38,12 @@
 <td>Opens the Add-On Order Builder for this case. Also Alt+Shift+4 or the words "add-on order".</td>
 </tr>
 <tr>
-<td>Decal batch, Block to send, Send to decal</td>
-<td>Adds the chosen block to the chosen active decalcification batch. It tells you if the block is already in that batch or in another active one. Also Alt+Shift+3 or the words "send to decal".</td>
+<td>Carrier, Block to load, Load into carrier</td>
+<td>Loads the chosen block into the chosen open carrier: a decalcification vessel or a processor basket (Batch 726; it used to offer decal batches only). A sealed carrier is not offered. It tells you "(block) is already in that carrier." or that it is in another active batch. Also Alt+Shift+3 or the words "send to decal". With this computer's station set, the load is recorded at the station.</td>
 </tr>
 <tr>
 <td>Messages</td>
-<td>With no active decalcification batch the list reads "No active decal batch". If the block cannot be found you see "That block could not be found."</td>
+<td>With no open carrier the list reads "No open carrier". With no block yet: "There is no block to load yet." If the block cannot be found you see "That block could not be found."</td>
 </tr>
 <tr>
 <td>Release panel (one per specimen with cassettes waiting)</td>
@@ -98,6 +98,10 @@
 <td>The number of tissue pieces in the block. Starts from the protocol's default.</td>
 </tr>
 <tr>
+<td>Type &amp; pieces</td>
+<td>Batch 732. Under the piece description: the block's type (Standard block, Megablock or Multi-piece block) and its piece count. <strong>Type &amp; pieces</strong> opens the form: <strong>Block type</strong>, a note on the slides it produces ("Slides from this block: Large-format slide." for a megablock), and the piece map: <strong>+ Add piece</strong>, then for each piece its <strong>Position</strong>, <strong>Part</strong> (the specimen it came from), <strong>Description</strong>, <strong>Orientation</strong> and <strong>Ink</strong>, and × to remove it (Remove piece). <strong>Save</strong> stores it and sets the piece count; a megablock also gets the mega mold if none was chosen. Problems are listed above the buttons: "Choose a block type.", "Each position must be a whole number from 1.", "Two pieces have the same position.", "Each piece needs its part.", "Several pieces need the type Multi-piece block or Megablock." "Saved." or "Not saved. Check the pieces and try again." confirms. The block keeps one barcode; the pieces are details of it.</td>
+</tr>
+<tr>
 <td>Stains</td>
 <td>The stains ordered on the block. Each is tagged Auto-generated (from the protocol) or User-added.</td>
 </tr>
@@ -119,6 +123,10 @@
 </tr>
 </tbody>
 </table>
+<h3 id="divide-specimen">Divide specimen</h3>
+<p>Batch 741. Under each specimen, <strong>Divide specimen</strong> splits it into aliquots, one per destination (for example flow cytometry, microbiology, molecular). Enter <strong>Starting volume (mL)</strong>; each row has <strong>For</strong> (the purpose), <strong>Volume (mL)</strong>, <strong>Destination type</strong> (Department or Reference laboratory) and <strong>Destination</strong>. A fluid or FNA specimen's protocol pre-fills its usual rows; <strong>+ Add aliquot</strong> and <strong>Remove</strong> change them. The line under the rows accounts for the volume: "Split 8 mL of 30 mL; 22 mL remaining." <strong>Divide</strong> saves it once: "Divided into D2, D3; 22 mL remaining." A specimen can be divided once; the record then reads "Divided by (name), (time): 8 mL of 30 mL into aliquots, 22 mL remaining."</p>
+<p>Each aliquot shows its volume and destination ("5 mL → Flow Cytometry") and its status: <strong>Not sent</strong>, <strong>Sent</strong>, <strong>Received</strong>, <strong>Result back</strong>. <strong>Mark Sent</strong> (and so on) moves it forward one step; the status never goes back. For <strong>Result back</strong>, type the <strong>Receiving accession number</strong> (the receiving department's own number for it) first. Results stay in that department's system.</p>
+<p>Messages: "Enter the starting volume first.", "Add at least one aliquot.", "Every aliquot needs a volume above 0 mL.", "Every aliquot needs a destination.", "The aliquots add up to more than the starting volume.", "This specimen has already been divided.", "An aliquot's status only moves forward.", "Enter the receiving department's accession number to record Result back."</p>
 <h3 id="toolbar">Toolbar</h3>
 <table>
 <thead>
@@ -237,6 +245,18 @@
 </tr>
 </tbody>
 </table>
+<h3 id="a-cassette-from-another-case-and-the-scan-history">A cassette from another case, and the scan history</h3>
+<p><strong>Wrong case.</strong> If you scan a cassette, block or slide that belongs to a different case from the one open, an orange warning says so, for example "S26-2-A1 belongs to case S26-2, not to S26-1 open here." <strong>Set it aside</strong> (the usual answer) closes the warning; <strong>Continue anyway</strong> closes it and is recorded in the audit log. Either way the scan is recorded at this station as a wrong item, with which case was open.</p>
+<p><strong>Scan history.</strong> <strong>Show scan history</strong> opens the case's station scan trail: every station scan of its cassettes, blocks and slides, newest first, with <strong>When</strong>, <strong>Item</strong>, <strong>Where</strong>, <strong>Who</strong> and <strong>What happened</strong>. It is shown only to people allowed to see scan history. <strong>Hide scan history</strong> closes it.</p>
+<h3 id="using-a-tablet-at-the-bench">Using a tablet at the bench</h3>
+<p>Since Batch 735 the station screens work with a finger, including a gloved one.</p>
+<ul>
+<li><strong>Touch layout.</strong> On a tablet, buttons, chips and tick boxes are at least 44 px, main actions such as Confirm or Print are larger, and text in fields is 16 px. On a desktop the screen keeps its compact layout. Change this per computer with <strong>Touch layout on this computer</strong> in the station menu at the top (<strong>Auto</strong>, <strong>Always on</strong>, <strong>Always off</strong>).</li>
+<li><strong>Scanning.</strong> The scan field accepts a barcode scanner without opening the on-screen keyboard and stays ready for the next scan. To type an ID by hand, select <strong>⌨ Type</strong>; <strong>⌨ Scan</strong> hides the keyboard again.</li>
+<li><strong>Keyboard up.</strong> When you type in a field, the field stays in view. If the form's Save button would be hidden by the keyboard, a copy of it appears just above the keyboard.</li>
+<li><strong>Tooltips.</strong> Tap a label that has extra information to read it.</li>
+<li><strong>Next case.</strong> Scanning another case's accession number while nothing is selected opens that case's grossing screen, not its report.</li>
+</ul>
 <h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
 <h3 id="standard-workflow">Standard workflow</h3>
 <ol>

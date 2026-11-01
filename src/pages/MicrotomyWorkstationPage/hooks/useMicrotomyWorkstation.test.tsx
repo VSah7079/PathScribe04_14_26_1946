@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 // Batch 669 (ws-2 decant comment and Reprint, ws-3 / ws-19 Block exhausted notice and permission, ws-4 print refusals
-// shown, ws-5 Accept suggestion twice, ws-6 quick Undo): the Microtomy workstation hook.
+// shown, ws-5 Accept suggestion twice, ws-6 quick Undo): the Microtome workstation hook.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, cleanup } from '@testing-library/react';
 
@@ -57,7 +57,8 @@ async function open(kind: 'block' | 'decant', initial: any = makeCase()) {
   h.store.current = initial;
   h.getCase.mockImplementation(async () => h.store.current);
   h.resolve.mockResolvedValue({ caseData: initial, specimenLetter: 'A', target: kind === 'block' ? { level: 'block', blockNumber: '1' } : { level: 'decant', decantLabel: 'D1' } });
-  const hook = renderHook(() => useMicrotomyWorkstation());
+  // Batch 740: a fluid decant is worked at the Cytology Preparation bench (the Microtome refuses it).
+  const hook = renderHook(() => useMicrotomyWorkstation({ bench: kind === 'decant' ? 'cytologyPrep' : 'microtome' }));
   await act(async () => { await hook.result.current.resolveScan('X'); });
   return hook;
 }
@@ -239,5 +240,22 @@ describe('ws-19 / ws-3: Block exhausted', () => {
     await act(async () => { r = await hook.result.current.handleFlagBlockExhausted('nothing left'); });
     expect(r).toMatchObject({ ok: true, noticeNotSent: true });
     expect(h.sendEmail).not.toHaveBeenCalled();
+  });
+});
+
+// Batch 740 (fluid decision 1): the Microtome sends a fluid back to the Cytology Preparation bench.
+describe('bench rules (Batch 740)', () => {
+  it('the Microtome refuses a fluid decant; the preparation bench refuses a block', async () => {
+    h.store.current = makeCase();
+    h.getCase.mockImplementation(async () => h.store.current);
+    h.resolve.mockResolvedValue({ caseData: h.store.current, specimenLetter: 'A', target: { level: 'decant', decantLabel: 'D1' } });
+    const micro = renderHook(() => useMicrotomyWorkstation());
+    await act(async () => { await micro.result.current.resolveScan('X'); });
+    expect(micro.result.current.workItem).toBeNull();
+    expect(micro.result.current.scanError).toBe('microtomyWorkstation.scanErrors.prepareAtCytology');
+    h.resolve.mockResolvedValue({ caseData: h.store.current, specimenLetter: 'A', target: { level: 'block', blockNumber: '1' } });
+    const prep = renderHook(() => useMicrotomyWorkstation({ bench: 'cytologyPrep' }));
+    await act(async () => { await prep.result.current.resolveScan('X'); });
+    expect(prep.result.current.scanError).toBe('microtomyWorkstation.scanErrors.cutAtMicrotome');
   });
 });

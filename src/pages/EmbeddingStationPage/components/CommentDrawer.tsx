@@ -4,7 +4,7 @@
 // embedding-specific observations." Self-contained copy for this
 // folder (not a shared import from MicrotomyWorkstationPage) — same
 // real ps-overlay/ps-modal-dark modal convention, under this page's
-// own ps-embedding-* prefix. Deliberately simpler than the Microtomy
+// own ps-embedding-* prefix. Deliberately simpler than the Microtome
 // equivalent: embedding-station comments are plain block notes with
 // no "prints on label" concept (addEmbeddingBlockComment has no such
 // field — see that function's own doc comment), so there's no print
@@ -48,7 +48,7 @@ const CommentDrawer: React.FC<CommentDrawerProps> = ({ title, comments, onSubmit
 
   return (
     <div className="ps-overlay" onClick={onClose}>
-      <div className="ps-modal-dark" onClick={e => e.stopPropagation()}>
+      <div className="ps-modal-dark" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         <div className="ps-batch-modal-header">
           <div className="ps-batch-modal-title">{title}</div>
         </div>

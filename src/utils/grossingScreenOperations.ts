@@ -19,7 +19,7 @@ import type { ProtocolPathway } from '@/services/protocols/IProtocolService';
 import type { StainType } from '@/services/stains/IStainService';
 
 /** Where a stain on the Grossing screen came from (Batch 705).
- *  - `userAdded`: a person added it here or at microtomy / as an add-on.
+ *  - `userAdded`: a person added it here or at microtome / as an add-on.
  *  - `protocol`: the specimen has an attached protocol and the stain was not
  *    added by a person, so it came from that protocol's pathway defaults.
  *  - `existing`: no protocol is attached and no one added it here, so it

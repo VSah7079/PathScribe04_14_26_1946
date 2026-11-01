@@ -54,7 +54,8 @@ import { caseRouter } from '@/services/cases/CaseRouter';
 import { userService } from '@/services';
 import { getCurrentJurisdiction } from './RetentionPolicy';
 import type { RetainableMaterialType } from './RetentionPolicy';
-import { resolveMostConservativeEligibleDate, resolveFacilityIdForLocation } from './resolveRetentionEligibility';
+import { resolveFacilityIdForLocation } from './resolveRetentionEligibility';
+import { caseDisposalClock, resolveCaseDisposalDate } from './resolveCaseDisposalDate';
 import { cassetteIdentifier, slideIdentifier, matrixBlockIdentifier, matrixSlideIdentifier, specimenIdentifier, decantIdentifier, decantSlideIdentifier } from '@/types/labels/LabelData';
 import type { Case } from '@/types/case/Case';
 import type { MaterialLocation } from '@/types/case/Material';
@@ -137,9 +138,9 @@ async function evaluateDisposedItem(
   // file's own header note on why this can drift from the rules
   // actually in force at the moment of disposal.
   let eligibleSince: string | undefined;
-  if (c.finalizedAt) {
+  if (caseDisposalClock(c) !== 'notStarted') {
     const jurisdiction = getCurrentJurisdiction();
-    const eligibleDate = await resolveMostConservativeEligibleDate(materialType, jurisdiction, c.finalizedAt, specimenDictionaryEntryIds);
+    const eligibleDate = await resolveCaseDisposalDate(c, materialType, jurisdiction, specimenDictionaryEntryIds);
     eligibleSince = eligibleDate?.toISOString();
   }
 

@@ -1,3 +1,9 @@
+**Batch 747:** `System/DemoDisplayTokensCard.tsx`: the Demo display tokens card on the Demo Reset tab.
+
+**Batch 737:** `System/StainingRacksPanel.tsx` (Equipment: staining racks that take large-format slides).
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 ## Batch 604
 
 `System/SimulatedMailOutboxSection`: every e-mail the demo would have sent, labelled Simulated (`simulated_mail`, under Integrations; opened with `config:vendor-integrations:manage`). `System/SupportAccessSection` gains Export PDF and the Simulated "Ticket closed" button.
@@ -295,7 +301,7 @@ Subfolders converted their last inline styles to `pathscribe.css` classes (see e
 
 ## Batch 388
 
-System → Field Requirements: a Microtomy workstation page (PS-359).
+System → Field Requirements: a Microtome workstation page (PS-359).
 
 ## Batch 397
 
@@ -658,3 +664,19 @@ Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300
 `System/ExternalResourcesSection` now accepts https links only.
 
 - Batch 682: AI settings follow the regulatory profile (mismatch rules note; unused confidence checkbox removed).
+
+## Batch 727
+
+System → Display Profiles: time limit X and the Stations view.
+
+## Batch 728
+
+System gains the Research Cases & Batch Purposes section.
+
+## Batch 729
+
+Display Profiles: the not-scanned time.
+
+## Batch 730
+
+Equipment: temperature range; Equipment Log: temperature checks.

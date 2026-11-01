@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Batch 460: the charge and credit behind each billing review change, moved
 // here from SynopticReportPage.tsx (recordChargeTransaction /
-// recordCreditTransaction) so the Cytology Workspace and Microtomy record
+// recordCreditTransaction) so the Cytology Workspace and Microtome record
 // them exactly as the report page does.
 //
 // • enforceBillingReview: billing:applied-code:review for the case (Pete,

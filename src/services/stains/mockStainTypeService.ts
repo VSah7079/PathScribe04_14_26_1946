@@ -63,7 +63,9 @@ let STAIN_TYPES: StainType[] = [
   // duplicated here.
   { id: 'st-pap-conventional', name: 'Pap Smear, Conventional', category: 'Cytology', description: 'Conventional (direct) Pap smear, Bethesda system reporting.', defaultBillingCode: 'PAP-CONVENTIONAL', defaultTurnaroundHours: 48, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
   { id: 'st-pap-thinprep', name: 'Pap Smear, Liquid-Based (ThinPrep)', category: 'Cytology', description: 'Liquid-based Pap using the ThinPrep method - requires a ThinPrep/PreservCyt Vial at collection (Container Type dictionary).', defaultBillingCode: 'PAP-THINPREP', defaultTurnaroundHours: 48, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
-  // Real, per PS-284 (Microtomy Workstation)'s own Cytology & Decanting
+  // Batch 739 (fluid decision 4): the SurePath liquid-based Pap, beside ThinPrep.
+  { id: 'st-pap-surepath', name: 'Pap Smear, Liquid-Based (SurePath)', category: 'Cytology', description: 'Liquid-based Pap using the SurePath method - requires a CytoRich (SurePath) vial at collection (Container Type dictionary).', defaultBillingCode: 'PAP-SUREPATH', defaultTurnaroundHours: 48, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  // Real, per PS-284 (Microtome Workstation)'s own Cytology & Decanting
   // panel: "Stain Quick-Toggle: Pap Stain, Diff-Quik/Wright-Giemsa,
   // H&E." Pap (both methods) and H&E (st-he, Routine) already existed
   // in this dictionary; Diff-Quik/Wright-Giemsa (the standard rapid,
@@ -101,6 +103,8 @@ let STAIN_TYPES: StainType[] = [
   { id: 'st-msh2',  name: 'MSH2',                     category: 'IHC', antibodyClone: 'G219-1129', vendor: 'Ventana', defaultTurnaroundHours: 24, requiresTargetControl: true, allowControlAutoAppend: true, defaultControlTissueType: 'Colon (normal mucosa)', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
   { id: 'st-msh6',  name: 'MSH6',                     category: 'IHC', antibodyClone: 'SP93',      vendor: 'Ventana', defaultTurnaroundHours: 24, requiresTargetControl: true, allowControlAutoAppend: true, defaultControlTissueType: 'Colon (normal mucosa)', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
   { id: 'st-pms2',  name: 'PMS2',                     category: 'IHC', antibodyClone: 'EPR3947',   vendor: 'Ventana', defaultTurnaroundHours: 24, requiresTargetControl: true, allowControlAutoAppend: true, defaultControlTissueType: 'Colon (normal mucosa)', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  // Batch 744 (S14): TTF-1, the lung and thyroid lineage marker added to an EBUS FNA cell block.
+  { id: 'st-ttf1',  name: 'TTF-1',                    category: 'IHC', antibodyClone: '8G7G3/1',   vendor: 'Agilent Dako', defaultTurnaroundHours: 24, requiresTargetControl: true, allowControlAutoAppend: true, defaultControlTissueType: 'Lung (normal) or thyroid', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
   // Immunofluorescence conjugates — the standard renal biopsy IF panel.
   // Genuinely different technique from IHC (fluorescent-conjugated,
   // not chromogenic), hence the separate category rather than folding

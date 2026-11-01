@@ -202,6 +202,7 @@ export async function dispatchPrintJob(
     mode: config.mode,
     pdfBase64: pdfResult.pdfBase64,
     printerName: config.printerName,
+    facilityId: performingFacilityId,
     paperSize: config.paperSize,
     destination,
     presentation,

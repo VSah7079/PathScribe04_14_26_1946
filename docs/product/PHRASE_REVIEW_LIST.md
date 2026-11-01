@@ -159,7 +159,7 @@ Hotkeys are not translated, so they are not on this list. The Role Dictionary la
 
 | Command | English (source) | French | German | Dutch | Korean | Spanish (Castilian, formal) |
 |---|---|---|---|---|---|---|
-| Add Comment (Microtomy) (`MICROTOMY_ADD_COMMENT`) | add comment; save comment | ajouter le commentaire; enregistrer le commentaire | kommentar hinzufügen; kommentar speichern | opmerking toevoegen; opmerking opslaan | 코멘트 추가; 코멘트 저장 | añadir el comentario; guardar el comentario |
+| Add Comment (Microtome) (`MICROTOMY_ADD_COMMENT`) | add comment; save comment | ajouter le commentaire; enregistrer le commentaire | kommentar hinzufügen; kommentar speichern | opmerking toevoegen; opmerking opslaan | 코멘트 추가; 코멘트 저장 | añadir el comentario; guardar el comentario |
 | Add Stain to Slide Grid (`MICROTOMY_ADD_STAIN`) | add stain; add slide | ajouter la coloration; ajouter la lame | färbung hinzufügen; objektträger hinzufügen | kleuring toevoegen; glaasje toevoegen | 염색 추가; 슬라이드 추가 | añadir la tinción; añadir el portaobjetos |
 
 ## MOLECULAR (2)

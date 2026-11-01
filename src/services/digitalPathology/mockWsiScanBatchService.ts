@@ -8,6 +8,8 @@
 import { storageGet, storageSet } from '../mockStorage';
 import { localLiveUpdateService } from '../liveUpdates/localLiveUpdateService';
 import type { WsiScanBatchChange } from '../liveUpdates/liveUpdateContract';
+import { withMissingSeedRecords } from '../mockSeedMerge';
+import { wallScanDemoBatches } from '../batches/wallDisplayDemoBatches';
 import { allSlidesScanned, type IWsiScanBatchService, type WsiScanBatch } from './IWsiScanBatchService';
 
 // ─── Seed data ──────────────────────────────────────────────────────────────
@@ -20,6 +22,8 @@ import { allSlidesScanned, type IWsiScanBatchService, type WsiScanBatch } from '
 // Batch 434: scanners are Equipment register codes (mockEquipmentService.ts
 // seeds APERIO_GT450_01/02 and GENIUS_01); batches with an unload time are
 // 'unloaded' (the old unload bug left them 'completed').
+const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
+
 const SEED_WSI_BATCHES: WsiScanBatch[] = [
   {
     id: 'wsi-batch-seed-4404', batchBarcode: 'WSI-20260913-0001', scannerInstrumentId: 'APERIO_GT450_02',
@@ -39,9 +43,10 @@ const SEED_WSI_BATCHES: WsiScanBatch[] = [
   // color states all have something real to show, not just green.
   {
     id: 'wsi-batch-seed-4408', batchBarcode: 'WSI-20260913-0002', scannerInstrumentId: 'APERIO_GT450_01',
-    status: 'scanning', loadedAt: '2026-09-13T09:00:00.000Z', dispatchedAt: '2026-09-13T09:05:00.000Z',
+    // Batch 747 (S8): still scanning, so its times are relative to the reset (it showed as weeks old on the wall).
+    status: 'scanning', loadedAt: minutesAgo(140), dispatchedAt: minutesAgo(135),
     slides: [
-      { slidePosition: '1', caseId: 'S26-4408', specimenId: 'S26-4408-SP-1', scanStatus: 'completed', qcPassed: false, scanCompletedAt: '2026-09-13T09:20:00.000Z', failureReason: 'Out-of-focus', acquisitionMode: 'single_plane' },
+      { slidePosition: '1', caseId: 'S26-4408', specimenId: 'S26-4408-SP-1', scanStatus: 'completed', qcPassed: false, scanCompletedAt: minutesAgo(120), failureReason: 'Out-of-focus', acquisitionMode: 'single_plane' },
       { slidePosition: '2', caseId: 'S26-4408', specimenId: 'S26-4408-SP-2', scanStatus: 'scanning', acquisitionMode: 'single_plane' },
     ],
   },
@@ -81,9 +86,9 @@ const SEED_WSI_BATCHES: WsiScanBatch[] = [
   // state to show for an Outreach case too, not just S26-4408.
   {
     id: 'wsi-batch-seed-o26-0002', batchBarcode: 'WSI-20260918-0005', scannerInstrumentId: 'APERIO_GT450_01',
-    status: 'scanning', loadedAt: '2026-09-18T09:00:00.000Z', dispatchedAt: '2026-09-18T09:05:00.000Z',
+    status: 'scanning', loadedAt: minutesAgo(70), dispatchedAt: minutesAgo(65),
     slides: [
-      { slidePosition: '1', caseId: 'O26-0002', specimenId: 'O26-0002-SP-A', scanStatus: 'completed', qcPassed: true, scanCompletedAt: '2026-09-18T09:15:00.000Z', acquisitionMode: 'single_plane' },
+      { slidePosition: '1', caseId: 'O26-0002', specimenId: 'O26-0002-SP-A', scanStatus: 'completed', qcPassed: true, scanCompletedAt: minutesAgo(55), acquisitionMode: 'single_plane' },
       { slidePosition: '2', caseId: 'O26-0002', specimenId: 'O26-0002-SP-B', scanStatus: 'scanning', acquisitionMode: 'single_plane' },
     ],
   },
@@ -108,7 +113,13 @@ const ok = <T>(data: T) => ({ ok: true as const, data });
 const err = (message: string) => ({ ok: false as const, error: message });
 const delay = () => new Promise(res => setTimeout(res, 30));
 
-const load = (): WsiScanBatch[] => storageGet(STORE_KEY, SEED_WSI_BATCHES);
+// Batch 747 (S8): the wall display's scanner runs (batches/wallDisplayDemoBatches.ts) are added to a browser's stored
+// runs when missing, never replacing one.
+const load = (): WsiScanBatch[] => {
+  const { records, added } = withMissingSeedRecords(storageGet<WsiScanBatch[] | null>(STORE_KEY, null), [...SEED_WSI_BATCHES, ...wallScanDemoBatches()]);
+  if (added > 0) storageSet(STORE_KEY, records);
+  return records;
+};
 const persist = (data: WsiScanBatch[]) => storageSet(STORE_KEY, data);
 // Batch 434: what the API server does after it commits a batch write — tell
 // the Slide scanning screens to re-read (ids only; liveUpdates/).

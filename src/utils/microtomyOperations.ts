@@ -1,6 +1,6 @@
 // src/utils/microtomyOperations.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// Real, per PS-284 (Microtomy Workstation). Pure, testable functions —
+// Real, per PS-284 (Microtome Workstation). Pure, testable functions —
 // same real shape as grossingScreenOperations.ts's own extraction:
 // genuinely worth verifying in isolation (print-status transitions,
 // the printed-vs-unprinted removal-reason gate, control-slide pairing)
@@ -11,7 +11,7 @@
 //
 // Real, deliberate scope note on control-slide pairing: this creates
 // a second StainOrder on the SAME block, cross-linked via
-// pairedControlSlideId — the real, physical thing a microtomy tech
+// pairedControlSlideId — the real, physical thing a microtome tech
 // does when pairing happens at order time (an extra slide cut
 // alongside the clinical one). This is genuinely separate from
 // shouldAutoAppendControl.ts's own, already-real mechanism (Stain QC
@@ -465,16 +465,22 @@ export function stainsInGridOrder(stains: readonly StainOrder[], chosenIds: Iter
   return stains.filter(s => chosen.has(s.id));
 }
 
-/** A matrix block worked at Microtomy is shown to every block operation as a
+/** A matrix block worked at the Microtome is shown to every block operation as a
  *  one-block "specimen" with this id, so add/remove/print/reprint/reorder/
  *  comment/flags work on it unchanged. Its slides' ids come out as
  *  ACC-M1-L1 (matrixSlideIdentifier), since the view has no specimen letter. */
 export const MATRIX_VIEW_SPECIMEN_ID = '__matrix-block-view__';
 
 export function matrixBlockAsSpecimenView(matrixBlock: MatrixBlock): Specimen {
+  // Batch 737 (spec §11.4, §11.5): the parts are the view's pieces (piece id = the part's specimen id), so an order
+  // for a part and "Piece exhausted" work on a matrix block as on a multi-piece block.
+  const pieces = [...matrixBlock.participants].sort((a, b) => a.positionInBlock - b.positionInBlock).map(p => ({
+    id: p.specimenId, position: p.positionInBlock, partLabel: '', description: p.tissueType, orientation: p.orientation, ink: p.ink,
+    exhaustedAt: p.exhaustedAt, exhaustedByName: p.exhaustedByName,
+  }));
   const block = {
     id: matrixBlock.id, label: matrixBlock.label, status: matrixBlock.status,
-    stains: matrixBlock.slides ?? [], comments: matrixBlock.comments,
+    stains: matrixBlock.slides ?? [], comments: matrixBlock.comments, pieces,
     tinyTissue: matrixBlock.tinyTissue, fragile: matrixBlock.fragile, requiresDecal: matrixBlock.requiresDecal,
   } as unknown as HistologyBlock;
   return { id: MATRIX_VIEW_SPECIMEN_ID, label: '', blocks: [block] } as unknown as Specimen;
@@ -491,8 +497,12 @@ export function matrixBlockFromSpecimenView(matrixBlock: MatrixBlock, view: Spec
   const block = (view.blocks ?? [])[0];
   if (!block) return matrixBlock;
   const everyone = matrixBlock.participants.map(p => p.specimenId);
+  // Batch 737: a part used up through the view (its piece) is kept on the participant; the block's status follows.
+  const used = new Map((block.pieces ?? []).filter(p => p.exhaustedAt).map(p => [p.id, p]));
   return {
     ...matrixBlock,
+    status: block.status,
+    participants: matrixBlock.participants.map(p => { const u = used.get(p.specimenId); return u && !p.exhaustedAt ? { ...p, exhaustedAt: u.exhaustedAt, exhaustedByName: u.exhaustedByName } : p; }),
     slides: block.stains.map(s => (s.targetSpecimenIds ? s : { ...s, targetSpecimenIds: everyone })),
     comments: block.comments,
     tinyTissue: (block as { tinyTissue?: boolean }).tinyTissue,
@@ -501,7 +511,7 @@ export function matrixBlockFromSpecimenView(matrixBlock: MatrixBlock, view: Spec
   };
 }
 
-/** What a Microtomy work item is, by id, so a save can find it again on a
+/** What a Microtome work item is, by id, so a save can find it again on a
  *  newer copy of the case. */
 export type MicrotomyTarget =
   | { kind: 'block'; specimenId: string; blockId: string }
@@ -526,7 +536,7 @@ export function microtomyCaseUpdates(caseData: Pick<Case, 'specimens' | 'matrixB
   return { specimens: (caseData.specimens ?? []).map(sp => (sp.id === view.id ? view : sp)) };
 }
 
-/** Batch 460: a decant slide's print state (moved from the Microtomy hook). */
+/** Batch 460: a decant slide's print state (moved from the Microtome hook). */
 export function markDecantStainPrinting(specimen: Specimen, decantId: string, stainId: string): MicrotomyOperationResult {
   const decant = findDecant(specimen, decantId);
   if (!decant) return { ok: false, error: 'Decant not found.' };

@@ -1,3 +1,11 @@
+**Batch 739:** `NewContainerModal`: **Processor** for a Liquid-Based Cytology Processing batch (Equipment kind `lbc_processor`).
+
+**Batch 737:** `BatchDetailView` shows the exhausted-block warning (stays until closed) and the large-format refusal (`scanRejected.slideTooLarge`); `NewContainerModal` has **Takes large-format slides (megablocks)** for a Staining carrier (`largeFormat` on the draft). Rules in `services/batches/mockBatchService.ts`, `utils/blockExceptionStates.ts`, `utils/blockPieceRules.ts`.
+
+**Batch 736:** `BatchReasonModal` offers the lab's reasons for its window (`BATCH_REASON_CATEGORY`) and an optional note, and passes the code to Abort, Override and cold-chain acknowledgement.
+
+**Batch 735:** the hub's master barcode lookup is the shared `StationScanField`; `BatchReasonModal` (Abort, complete with exceptions, cold chain) has one-tap reasons; its windows are dialogs; the hub is in the station touch layout.
+
 # pages/BatchManagement/
 
 Cassette/slide chain-of-custody through histology processing nodes, plus the pages reached from tiles on the Batch Management hub: the Disposal Queue, Disposal Report and Pending Batch Load (computed from live data), Slide scanning, the Engraver Monitor (a live device-status dashboard) and the Equipment log.
@@ -167,3 +175,17 @@ CSV exports neutralize formula cells (finding F8, `utils/csv.ts`); the disposal 
 
 ## Batch 669
 `BatchDetailView.tsx`: a rescan of an already Matched item shows a green "Already matched — nothing changed" (no error tone); the decision is `reconciliationScanOutcome()` in `services/batches/batchListView.ts` (finding batch-1). Disposal Queue, Waste Tracking Report and the disposal scan now share one last-location rule (`services/retentionPolicy/mostRecentLocation.ts`, finding batch-4).
+
+## Batch 726 — carriers and stations
+
+- `BatchCarrierStepPanel.tsx` (+ `.css`) on Batch Detail: a plain "This carrier is closed" line, the sealed line and **Seal manifest**, the steps the carrier has moved through, **Move to <next step>**, and a note when this computer's station works on another step.
+- `BatchManagementPage.tsx`: the list opens on the station's step when the station works on one; a carrier with no Target Workstation scanned here records this station; `?carrier=<barcode>` opens a carrier (the workstations' **Open in Batch Management**); carrier barcodes are recognised by the configured prefixes.
+- `BatchDetailView.tsx`: scans pass the station (station scan events); a sealed batch hides Move and Remove and says the manifest is sealed; **Transfer to Processing** now keeps the same batch (Decision 9) and stays on the batch. Lines: 646.
+
+## Batch 728
+
+- `NewContainerModal.tsx`: the step starts at "Choose a step…" (set by the station, or chosen); a Purpose field (Routine by default). `BatchDetailView.tsx`: a non-Routine purpose shows as a badge.
+
+## Batch 730
+
+- `LabWorkflowReportsPage.tsx` (+ `.css`, `hooks/useLabWorkflowReports.ts`, new): the seven reports, dates in the lab's time zone, options per report, CSV export. Tile on Batch Management.

@@ -198,7 +198,7 @@ describe('caseMaterialStore: optimistic update, events, rollback', () => {
 
 // Batch 453: a specimen edit that only touched decants becomes decant updates.
 import { decantOnlyUpdates } from './materialTree';
-describe('decantOnlyUpdates (Microtomy decant slides, Batch 453)', () => {
+describe('decantOnlyUpdates (Microtome decant slides, Batch 453)', () => {
   const sp = { id: 'SP', label: 'A', blocks: [], decants: [decant('D1', 'D1', { stains: [{ id: 's', stainName: 'PAP', printStatus: 'Pending' }] }), decant('D2', 'D2')] };
   it('returns the changed fields of each changed decant', () => {
     const after = { ...sp, decants: [{ ...sp.decants[0], stains: [{ id: 's', stainName: 'PAP', printStatus: 'Printed' }] }, sp.decants[1]] };

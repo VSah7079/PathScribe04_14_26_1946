@@ -1,3 +1,7 @@
+**Batch 740:** screen `cytologyPrep` (`screen:cytology-prep:open`) in the Pathology Workspace hub.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 **Batch 645:** screen id `lockboxDropOff` (route `/lockbox-drop-off`, capability `screen:lockbox-drop-off:open`) and the Home tile id of the same name, so Home shows the tile only to someone who can open it. Seeded to Accessioner and Admin (`services/authorization/capabilitySeeds.ts`).
 
 # services/screens — which screens a user may open (Batch 374)
@@ -17,7 +21,7 @@ Case pages (a report, grossing) aren't screens here. A case is reached from a sc
 |---|---|---|
 | Accession, Worklist, Search, Intraop Queue, My Contribution, Bench Contributions, Tumor Board, Configuration | `screen:accession:open` … `screen:configuration:open` | Home |
 | Cytology QC Peer Review Queue, Surgical Post-Sign-Out QA | `screen:cytology-qc-queue:open`, `screen:surgical-qa-worklist:open` | Views inside the Worklist (Batch 375) |
-| Cytology, Microtomy, Embedding, Slide Distribution and Molecular Workspaces; Batch Management; Margin Exception Review | `screen:cytology-workspace:open` … `screen:molecular:open`, `screen:batch-management:open`, `screen:margin-exception-review:open` | Pathology Workspace |
+| Cytology, Microtome, Embedding, Slide Distribution and Molecular Workspaces; Batch Management; Margin Exception Review | `screen:cytology-workspace:open` … `screen:molecular:open`, `screen:batch-management:open`, `screen:margin-exception-review:open` | Pathology Workspace |
 | Audit, Quality Assurance, Registry Exceptions | `screen:audit-log:open`, `screen:quality-assurance:open`, `screen:registry-exceptions:open` | Quality & Compliance |
 | Add-On Orders | `screen:add-on-orders:open` | An action on a case (report page), no Home tile (Batch 375) |
 
@@ -168,3 +172,7 @@ New `ScreenId` `autopsyDashboards` (`screen:autopsy-dashboards:open`), in the Qu
 
 ## Batch 720
 `grossing` joins `ScreenId` (`screen:grossing:open`) as the first tile of the Pathology Workspace hub; `addOnOrders` is now also reachable from that hub.
+
+## Batch 728
+
+- `configSectionAccess.ts`: `research_cases` needs `config:research-cases:manage` or `config:batch-purposes:manage`.

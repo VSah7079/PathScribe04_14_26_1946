@@ -22,6 +22,7 @@
 //   5. Otherwise built with the header and sent.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { isResearchCaseNow } from '../researchCases/researchCaseSettings';
 import type { CytologySignOutRecord } from '@/types/cytology/CytologySignOutRecord';
 import type { CytologyReviewRecord } from '@/types/cytology/CytologyReviewRecord';
 import type { CytologyCategoryEntry } from '../cytology/ICytologyCategoryService';
@@ -99,6 +100,8 @@ export async function prepareScreeningRegistrySubmission(
   const order = caseData.order as any;
   const facilityId = order?.facilityId as string | undefined;
   if (!facilityId) return { outcome: 'noRegistry' };
+  // Batch 728 (Lab Workflow spec, Decision 4): a research case (a dummy research patient) is never reported.
+  if (isResearchCaseNow(caseData)) return { outcome: 'noRegistry' };
   const settings = await deps.getRegistrySettings(facilityId);
   const effective = resolveEffectiveRegistrySettings(settings.enterprise ?? { registryId: 'none' }, settings.facility ?? null);
   const definition = screeningRegistryDefinition(effective.registryId);

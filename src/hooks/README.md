@@ -1,3 +1,21 @@
+**Batch 743:** `useCaseAttachments.ts` passes the case's reporting mode to the report rule.
+
+**Batch 742:** `useCaseAttachments.ts` (new: the Attachments window's state; `useCaseAttachmentCount` for the badge), `useReportPlacements.ts` (new: the preview's placements and read links). `useCaseReportImages.ts` removed.
+
+**Batch 741:** `useSpecimenDivision.ts`, `useProtocolDivisionPurposes.ts` (new).
+
+**Batch 740:** `useStationSlidePrinter.ts` (new): a station's slide printer and label layout, for the Cytology Preparation bench.
+
+**Batch 736:** `useBenchReasons.ts` (a bench category's active reasons from the Reason Dictionary, and the reason-plus-note join), `useVisibleHeightVar.ts` (the visible height above the on-screen keyboard as `--ps-visible-height`).
+
+**Batch 735 (touch spec):** `useTouchLayout.ts` (touch layout on/off: Auto on a coarse pointer or the workstation override), `useScanFieldFocus.ts` (the station scan field keeps focus), `useKeyboardKeepVisible.ts` (the field and its Save button stay above the on-screen keyboard; Save dock).
+
+**Batch 734:** `useStationCarrier.ts` shows `stationCarrier.notice.movedHere` when an ad-hoc carrier scanned here was moved from another station.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
+**Batch 721:** `useAccessionTwoColumn.ts` follows the window width for the Accession screen's two-column layout (false where `matchMedia` is missing, as in tests).
+
 **Batch 668:** `useGuideWindow.ts` opens the User or Administrator Guide in a remembered window (`useCompanionWindow`) and falls back to a new tab when refused.
 
 **Batch 649:** `useScreenCapture.ts` covers every `data-phi` and `data-pii` element (see `services/phiSelectors.ts`) and gives an element matching several selectors one overlay. `useHeldReports.ts` reports whether the person can recall a held report only if they also hold `report:release:recall`.
@@ -18,7 +36,6 @@ New `useAutopsyDashboard.ts` (loads cases and TAT entries, holds tier, period, d
 
 ## Batch 609 (part A)
 
-- `useCaseReportImages.ts`: the Attach images window's state (the images linked to a report, link one, remove one).
 
 ## Batch 603
 
@@ -238,7 +255,7 @@ audit logging, and a few smaller single-purpose hooks.
   `components/MaterialScanTrackingBridge.tsx` in `App.tsx`. Checked in
   the Batch 496 README audit.)*
 - **`useDefaultActionOnScan.ts`** (PS-289) — fires the scan station's
-  default action (e.g. "Log Slide/Block" at a microtomy desk) on the
+  default action (e.g. "Log Slide/Block" at a microtome desk) on the
   next scan, with no click. Same global `PATHSCRIBE_SCAN` listener and
   `STATION:` guard as the hooks above; skips the Disposal Queue route.
   Mounted app-wide through `components/DefaultActionOnScanBridge.tsx`.
@@ -625,3 +642,15 @@ The Home footer's system status: one check when the page loads and one when the 
 ## Batch 713
 
 - **`useSelectableScanStations.ts`**: the Active scan stations the signed-in user may use (`services/scanStations/stationsForUser.ts`, facilities from the authorization snapshot), plus the list of all stations; also records which stored/default station ids are not available to this user. Used by `ScanStationPrompt` and `NavBarScanStation`. `useCurrentScanStation` now returns `stationId: null` and `unavailableStationId` when the computer's stored station is one this user may not use (the stored value is kept); `useEffectiveScanStation` also skips an unavailable user default. `useGlobalStationSwitch` refuses a `STATION:` barcode for another facility.
+
+## Batch 726
+
+`useStationCarrier.ts` (+ test): carriers at a bench workstation (Lab Workflow & Batch spec, Decision 1, 7.3, 7.6). Lists the station's carriers, handles a carrier scan (opens it, moves it here from the step before, sets the Microtome's output tray, or says plainly why not), checks item scans against the loaded carrier (matched, or a deliberate continue recorded as unexpected) and records item scans at the station. Every scan on the Embedding, Microtome and Slide Distribution pages goes through `route(raw, openItem)`.
+
+## Batch 729
+
+- `useScanTrail.ts` (new): loads a case's scan trail when opened. `useWrongCaseScanCheck.ts` (new): the Grossing wrong-case check. `useWorkstationSave.ts`: `saveCaseFields`.
+
+## Batch 731
+
+- `useItemEndState.ts` (new): an item's end-state history and recording (spec §10.5).

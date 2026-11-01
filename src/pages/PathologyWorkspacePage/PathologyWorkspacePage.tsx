@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // "Homepage Changes part 1" — direct request: "Create Pathology Workspace
 // Tile on Home page and move the following into that: Cytology Workspace,
-// Microtomy Workstation - also rename Microtomy Workspace, Embedding
+// Microtome Workstation - also rename Microtome Workspace, Embedding
 // Station - also rename Embedding Workspace, Slide Distribution Station -
 // rename Slide Distribution Workspace." This page is the real destination
 // behind Home's new "Pathology Workspace" tile — a small, second-level hub
@@ -16,7 +16,7 @@
 // guidance, this hub groups by domain ("pathology"), not by shared
 // audience — Molecular Workspace's own molecular-tech bench workflow is
 // genuinely distinct from the other four tiles' histology-bench/
-// cytology-screening audiences, same as Cytology and Microtomy already
+// cytology-screening audiences, same as Cytology and Microtome already
 // not sharing an audience within this same hub. Molecular Order Queue
 // (a separate, deliberately-unmerged page — see services/molecularOrders/
 // README.md) stays on Home, untouched — only "Molecular" itself moved.
@@ -112,6 +112,17 @@ export default function PathologyWorkspacePage() {
       description: t('pathologyWorkspace.cytologyTile.description'),
       route: '/cytology-worklist',
       color: '#009E73',
+      image: '/cytology.webp',
+    },
+    // Batch 740 (fluid decision 1): fluids are prepared here; only a handed-off cell block goes to the Microtome.
+    // No dedicated photo yet: reuses /cytology.webp (a disclosed placeholder).
+    {
+      key: 'cytologyPrep',
+      screen: 'cytologyPrep',
+      title: t('pathologyWorkspace.cytologyPrepTile.title'),
+      description: t('pathologyWorkspace.cytologyPrepTile.description'),
+      route: '/workstations/cytology-prep',
+      color: '#0EA5A4',
       image: '/cytology.webp',
     },
     {

@@ -1,7 +1,7 @@
 // src/hooks/useCaseBillingReview.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Batch 460 (Pete): the billing review panel outside the case report page —
-// the Cytology Workspace (full review in a drawer) and Microtomy (full review
+// the Cytology Workspace (full review in a drawer) and Microtome (full review
 // behind a switch, for people with billing:applied-code:review).
 //
 // The hook only orchestrates. The coding changes are the pure functions in

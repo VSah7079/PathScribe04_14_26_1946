@@ -87,6 +87,25 @@ describe('computeEmbeddingMicrotomySummary', () => {
   });
 });
 
+describe('computeEmbeddingMicrotomySummary — add-ons (Batch 727, spec Decisions 2-3)', () => {
+  it('shows a waiting add-on with the ADD-ON tag and its type, coloured against X, pinned when past X, and counted on its tile', async () => {
+    const facilityId = 'c-opsdash-facility-addon';
+    const old = new Date(Date.now() - 90 * 60_000).toISOString();
+    const id = await seedCase(facilityId, { stains: [
+      { id: 'addon-recut', stainName: 'H&E', status: 'Pending Cut', userAdded: true, orderedAt: old, addOnPriority: 'Routine Sign-Out', routedQueueLabel: 'Histology Cutting Queue', routedWorkflowStage: 'Microtomy / Sectioning' },
+      { id: 'addon-done', stainName: 'PAS', status: 'Cut & Placed', userAdded: true, orderedAt: old, addOnPriority: 'Routine Sign-Out' },
+    ] });
+    const summary = await computeEmbeddingMicrotomySummary(facilityId, { addOnAgeLimitMinutes: 60 });
+    const row = summary.queue.find(q => q.id.endsWith(':addon-recut'));
+    expect(row).toMatchObject({ label: id, tags: ['addOn'], subLabelKey: 'facilityOpsDashboard.addOnTypes.recut', slaState: 'overdue', pinned: true });
+    expect(summary.queue[0].id).toBe(row!.id);
+    expect(summary.queue.some(q => q.id.endsWith(':addon-done'))).toBe(false);
+    expect(summary.stats.find(s => s.id === 'add-ons-waiting')).toMatchObject({ value: 1, state: 'overdue', labelKey: 'facilityOpsDashboard.stats.addOnsWaiting' });
+    const relaxed = await computeEmbeddingMicrotomySummary(facilityId, { addOnAgeLimitMinutes: 240 });
+    expect(relaxed.queue.find(q => q.id.endsWith(':addon-recut'))).toMatchObject({ slaState: 'normal', pinned: false });
+  });
+});
+
 describe('computeStainingIhcSummary', () => {
   it('counts a real QC Failed stain order as a critical alert, scoped to its own facility', async () => {
     const facilityId = 'c-opsdash-facility-2';

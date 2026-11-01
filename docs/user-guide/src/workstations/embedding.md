@@ -19,7 +19,7 @@ status: Draft
 
 **Intended users.** Histotechnologists and pathology assistants at the embedding bench, and laboratory managers. The screen opens only for roles that have the Embedding screen switched on; by default these are the Histotechnologist and Pathology Assistant roles.
 
-**Where it fits.** Embedding follows grossing and tissue processing and comes before cutting. The block you confirm here is the block you cut at the [Microtomy Workstation](help:workstations/microtomy). The piece count you compare against was recorded in [Grossing](help:grossing). A mismatch or a reported discrepancy raises a Tissue Discrepancy item in [Quality](help:quality) for the supervisor. The embedding step is also part of the chain of custody tracked in [Batch Management](help:batch-management). Open the screen from the [Pathology Workspace](help:pathology-workspace) (the **Embedding Workspace** tile) or with the **Go to Bench** button when your station is an embedding station.
+**Where it fits.** Embedding follows grossing and tissue processing and comes before cutting. The block you confirm here is the block you cut at the [Microtome Workstation](help:workstations/microtomy). The piece count you compare against was recorded in [Grossing](help:grossing). A mismatch or a reported discrepancy raises a Tissue Discrepancy item in [Quality](help:quality) for the supervisor. The embedding step is also part of the chain of custody tracked in [Batch Management](help:batch-management). Open the screen from the [Pathology Workspace](help:pathology-workspace) (the **Embedding Workspace** tile) or with the **Go to Bench** button when your station is an embedding station.
 
 ## Screen Tour
 
@@ -27,8 +27,38 @@ status: Draft
 
 The page is titled **Embedding Station**. The **Back** button at the top left returns to the Worklist. Before a scan the screen shows only "Scan a cassette barcode to begin" and a scan box. After a scan a grey identity bar appears, with three columns below it.
 
-!!! note "Cassettes only"
-    This station takes block cassettes. A cassette shared by several specimens (a matrix block), a cell-block cassette, a decant or a bare specimen barcode is refused with "The Embedding station takes block cassettes only. Matrix or cell-block cassettes, decants and specimen barcodes aren’t supported yet." A slide barcode opens the block it belongs to.
+!!! note "Block and matrix block cassettes"
+    This station takes block cassettes, including a cassette shared by several specimens (a matrix block, for example M1). A matrix block is embedded like any other block: piece count, mold, orientation, alerts, comments, discrepancy and reprint all work the same, and the identity bar reads "Matrix block of specimens" followed by the specimens that share it. A Tissue Discrepancy on a matrix block is raised against the first specimen in it, with the block named in the item. A cell-block cassette, a decant or a bare specimen barcode is refused with "The Embedding station takes block and matrix block cassettes. Cell-block cassettes, decants and specimen barcodes aren’t supported yet." A slide barcode opens the block it belongs to.
+
+### Carriers at this station
+
+A card at the top of the screen, **Carriers at this station**, links this bench to [Batch Management](help:batch-management). A carrier is the basket, rack or tray that moves a group of cassettes between steps. Using one is optional: an item scanned on its own is still recorded at this station.
+
+- **The list.** The card lists the open carriers for this station: the ones routed to it (marked **Routed here**) and the ones at Embedding. STAT carriers come first, then the oldest; with none it reads "No open carriers for this station." Select one, or scan its barcode (it starts with CONT- or RACK-), to open it here.
+- **A carrier from the step before.** A processor basket from Processing moves to Embedding when you scan it here. It stays the same batch, and every cassette in it is recorded as received from the carrier.
+- **Unloading.** With a carrier open, scan each item as you take it out. The first scan starts the unloading. The card counts what has been scanned off (the line "… of … scanned off", for example 3 of 12) and lists what is still to scan. When everything is scanned off, **Finish unloading** closes the carrier.
+- **An item that is not in the carrier.** The item does not open straight away. The card says it is not in the carrier: **Continue anyway** opens it and records it as unexpected (this is audited), **Cancel** does nothing.
+- **A carrier for another step.** The card warns you which step the carrier belongs to. **Open here anyway** opens it and records that it was opened at another step.
+- **A closed or unknown carrier.** The card says so plainly, with the date it was completed or aborted.
+- **No station set.** The card asks you to choose this computer's station from the list and select **Use this station**. Until you do, nothing scanned here is recorded and carriers can't be opened here.
+- **Seal manifest** stops anything being added to or removed from the carrier.
+
+Every scan here is recorded with this station, the time and your name, which is what the scan trail and the turnaround reports are built from. **Confirm** also records the block as completed at this station.
+
+### Scan history
+
+With a case open, **Show scan history** (just below the carrier card) opens the case's scan trail: every station scan of its cassettes, blocks and slides, newest first. The columns are **When**, **Item**, **Where** (the station and the step), **Who** and **What happened** (Received, Loaded into carrier, Taken out of carrier, Matched, Missing, Unexpected, Label printed, Completed here), with the outcome when it was not OK (Wrong item, Not found, Mismatch), the carrier the item was in ("In carrier" and its barcode), and "Recorded when the carrier was scanned" for a scan made for every item in a carrier. **Hide scan history** closes it. While it reads the trail it says "Loading scan history…". It is closed until you open it, and it is shown only to people allowed to see scan history; if the service refuses, it says "You do not have permission to see the scan history." With nothing recorded yet it reads "No station scans recorded for this case yet."
+
+!!! note "Picture"
+    The picture above was taken before the carrier card was added.
+
+### Exhausted blocks
+
+Batch 731. When the block at the bench is exhausted, an amber line above the work says so and what remains: "Block A3 is exhausted. What remains: unstained slides L4 and L5; other blocks of this part: A1, A2." ("none" when there are none). When orders wait for the block to be re-embedded it adds "1 order waits for this block to be re-embedded."
+
+When the pathologist has asked for the block's remnant or wet tissue to be re-embedded, re-embed it, then select **Re-embedded: release the orders** on that line. The block goes back to Embedded, the orders waiting for it go to the Microtome, and the line says "Re-embedding recorded. 1 order was released to the Microtome." The button is grey without the permission to mark a block re-embedded (the roles with this station have it by default); if the save is refused it says "You don’t have permission to record re-embedding. Ask your administrator." or "Re-embedding could not be recorded. Nothing was changed." A matrix block cannot be re-embedded this way.
+
+Batch 732: for a megablock, a multi-piece or a matrix block, a panel shows the type, the slide size it produces ("Slides: Large-format slide") and each piece with its part, description, orientation and ink, and "Used up" for a piece already used.
 
 ### Field definitions
 
@@ -125,6 +155,16 @@ Both keys work while this screen is open and do exactly what the button does, in
 
 Phrases are also available in French, German, Dutch, Korean and Spanish. See [Voice and Keyboard](help:voice-and-keyboard).
 
+### Using a tablet at the bench
+
+Since Batch 735 the station screens work with a finger, including a gloved one.
+
+- **Touch layout.** On a tablet, buttons, chips and tick boxes are at least 44 px, main actions such as Confirm or Print are larger, and text in fields is 16 px. On a desktop the screen keeps its compact layout. Change this per computer with **Touch layout on this computer** in the station menu at the top (**Auto**, **Always on**, **Always off**).
+- **Scanning.** The scan field accepts a barcode scanner without opening the on-screen keyboard and stays ready for the next scan. To type an ID by hand, select **⌨ Type**; **⌨ Scan** hides the keyboard again.
+- **Keyboard up.** When you type in a field, the field stays in view. If the form's Save button would be hidden by the keyboard, a copy of it appears just above the keyboard.
+- **Tooltips.** Tap a label that has extra information to read it.
+- **Next cassette.** The scan field stays beside the case details while you work, so scanning the next cassette opens it.
+
 ## Step-by-Step Procedures
 
 ### Standard workflow
@@ -154,7 +194,7 @@ Phrases are also available in French, German, Dutch, Korean and Spanish. See [Vo
 1. **Something is wrong with the cassette.** Select the matching discrepancy button: Damaged Cassette/Broken Hinge, Extra Tissue Found, Missing Tissue/Empty Cassette or Unopened Cassette/Unprocessed Tissue. The block's status does not change, "Last flagged: …" appears, **Confirm** goes grey, and a Tissue Discrepancy item is raised in [Quality](help:quality) for the supervisor; the screen tells you it was raised, or that it could not be. There is no confirmation. When the problem has been dealt with, select **Clear flag** next to "Last flagged": one click, and **Confirm** works again. Clearing is recorded in the audit log with your name.
 2. **The count really differs.** Type the number you counted and select **Confirm**. The block is embedded with your count and a Tissue Discrepancy item records both numbers.
 3. **The label is damaged or covered in wax.** Select **Reprint Cassette**. In the window titled "Reason required" choose Faded barcode, Mechanical jam, Wax buildup or Other, then select **Reprint**. The label prints and the panel shows "Reprinted 1×, last reason: …". **Cancel** closes the window without printing.
-4. **The cassette is the wrong kind.** This screen cannot embed a matrix block, cell block or decant. Ask your supervisor how your laboratory records them. Once embedded they can be opened at the [Microtomy Workstation](help:workstations/microtomy).
+4. **The cassette is the wrong kind.** This screen cannot embed a cell block or decant. Ask your supervisor how your laboratory records them. (Matrix blocks are embedded here like any other block.)
 
 !!! note "A reported discrepancy stops Confirm"
     Reporting a discrepancy records the reason, alerts quality and switches **Confirm** off (also for the key, voice and foot pedal) until the flag is cleared. **Clear flag** does not close the Tissue Discrepancy item in Quality; the supervisor does that there.
@@ -201,7 +241,7 @@ Phrases are also available in French, German, Dutch, Korean and Spanish. See [Vo
 
 ### Downstream workflow
 
-- [Microtomy Workstation](help:workstations/microtomy): the embedded block is cut and its slide labels printed.
+- [Microtome Workstation](help:workstations/microtomy): the embedded block is cut and its slide labels printed.
 - [Quality](help:quality): where a Tissue Discrepancy item raised here is followed up.
 - [Slide Distribution Station](help:workstations/slide-distribution): finished slides.
 
@@ -212,7 +252,7 @@ Phrases are also available in French, German, Dutch, Korean and Spanish. See [Vo
 | Problem | Likely cause |
 |---|---|
 | No Embedding Workspace tile | Your role does not include the Embedding screen. |
-| "Takes block cassettes only" | You scanned a matrix block, cell block, decant or specimen barcode. |
+| "Takes block and matrix block cassettes" | You scanned a cell block, decant or specimen barcode. |
 | Confirm is grey | A required field is empty, a discrepancy is flagged (select **Clear flag** once dealt with), or the block is already Embedded. |
 | The count box cannot be edited | The block is already Embedded. |
 | Foot pedal 1 does nothing | There is no grossing count, the block is already Embedded, a discrepancy is flagged, or a required field (for example the mold size, if your organisation requires it) is empty. |

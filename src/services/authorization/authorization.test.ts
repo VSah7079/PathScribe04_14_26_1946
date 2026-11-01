@@ -192,8 +192,8 @@ describe('capability seeds', () => {
     // Batch 488: each bench role also opens its own dedicated bench-contribution page.
     // Batch 645: and Lockbox Drop-Off, for the morning team that picks up the overnight specimens.
     expect(open('accessioner')).toEqual(['accession', 'bench-contributions', 'lockbox-drop-off', 'search', 'worklist']);
-    expect(open('histotechnologist')).toEqual(['batch-management', 'bench-contributions', 'embedding', 'microtomy', 'search', 'slide-distribution']);
-    expect(open('cytotechnologist')).toEqual(['batch-management', 'bench-contributions', 'cytology-workspace', 'search']);
+    expect(open('histotechnologist')).toEqual(['batch-management', 'bench-contributions', 'cytology-prep', 'embedding', 'microtomy', 'search', 'slide-distribution']); // Batch 740: cytology-prep
+    expect(open('cytotechnologist')).toEqual(['batch-management', 'bench-contributions', 'cytology-prep', 'cytology-workspace', 'search']);
     expect(open('molecular-technologist')).toEqual(['batch-management', 'bench-contributions', 'molecular', 'search']);
     // Batch 434: and Batch Management (the screen only).
     expect(open('admin')).toEqual(['audit-log', 'autopsy-dashboards', 'batch-management', 'configuration', 'lockbox-drop-off', 'outbound-queue', 'quality-assurance', 'registry-exceptions']);
@@ -316,8 +316,9 @@ describe('capability seeds', () => {
       // Batch 468: and recording a forensic chain-of-custody transfer.
       // Batch 469: and consent narrowing/revocation, organ-retention disposal, toxicology.
       // Batch 471: and cancelling a toxicology order, retention detail, consent reinstatement.
-      ...(caseAccess.includes(role) ? ['autopsy:body:release', 'report:case-report:print', 'report:case-images:attach', 'patient:summary:print', ...(['pathologist', 'fellow'].includes(role) ? ['report:related-cases:attach'] : []), 'autopsy:custody:transfer', 'autopsy:consent:manage', 'autopsy:retention-disposal:record', 'autopsy:toxicology:order', 'autopsy:toxicology:result', 'autopsy:toxicology:cancel', 'autopsy:retention-detail:record', 'autopsy:retention-tier:record', 'autopsy:consent:reinstate', 'patient:national-identifier:record', 'patient:registry-consent:record', 'patient:other-cases:request-access'] : []),
+      ...(caseAccess.includes(role) ? ['autopsy:body:release', 'report:case-report:print', 'report:case-images:attach', 'case:attachment:upload', 'case:attachment:link', 'case:attachment:unlink', 'patient:summary:print', ...(['pathologist', 'fellow'].includes(role) ? ['report:related-cases:attach'] : []), 'autopsy:custody:transfer', 'autopsy:consent:manage', 'autopsy:retention-disposal:record', 'autopsy:toxicology:order', 'autopsy:toxicology:result', 'autopsy:toxicology:cancel', 'autopsy:retention-detail:record', 'autopsy:retention-tier:record', 'autopsy:consent:reinstate', 'patient:national-identifier:record', 'patient:registry-consent:record', 'patient:other-cases:request-access'] : []),
       ...(role === 'pa' ? ['add-on:exception:flag', 'add-on:block:mark-retrieved'] : []), // Batch 720: the PA reaches Add-On Orders
+      ...(role === 'pa' ? ['batch:manifest:seal', 'batch:carrier:advance', 'station:scan-mismatch:continue', 'station:scan-history:view'] : []), // Batch 726: carriers at the workstations (the PA has Embedding)
       // Batch 621: the AI extraction of historical reports and flagging it as wrong, Pathologist, Fellow and Resident.
       ...(['pathologist', 'fellow', 'resident'].includes(role) ? ['ai:history-extraction:run', 'ai:history-extraction:flag'] : []),
       // Batch 421: resending a registry submission, Lab Director (Admin has it through the administration group).
@@ -350,12 +351,29 @@ describe('capability seeds', () => {
       ...(['pathologist', 'fellow'].includes(role) ? ['cytology:pathologist-review:take'] : []),
       // Batch 403: add-on orders, for the roles that had that screen.
       ...(['pathologist', 'fellow', 'resident'].includes(role) ? ['add-on:order:place', 'add-on:exception:approve-destructive-cut'] : []),
-      // Batch 669 (ws-19): and flagging a block exception / marking a block retrieved, for the roles with the Add-On Orders or Microtomy screen.
+      // Batch 669 (ws-19): and flagging a block exception / marking a block retrieved, for the roles with the Add-On Orders or Microtome screen.
       ...(['pathologist', 'fellow', 'resident', 'histotechnologist'].includes(role) ? ['add-on:exception:flag', 'add-on:block:mark-retrieved'] : []),
       // Batch 404: Batch Management's overrides, for the roles with that screen.
       ...(['histotechnologist', 'cytotechnologist', 'molecular-technologist'].includes(role) ? ['batch:reconciliation:override', 'batch:run:abort', 'batch:cold-chain-excursion:acknowledge', 'batch:cold-chain-reading:simulate', 'retention:holds-queue:export'] : []),
+      // Batch 726: carriers at the workstations and the station scan trail, for the roles with Batch Management or a bench workstation.
+      ...(['histotechnologist', 'cytotechnologist', 'molecular-technologist'].includes(role) ? ['batch:manifest:seal', 'batch:carrier:advance', 'station:scan-mismatch:continue', 'station:scan-history:view'] : []),
       // Batch 407: disposing of retained material, for the same roles.
       ...(['histotechnologist', 'cytotechnologist', 'molecular-technologist'].includes(role) ? ['retention:material:dispose', 'retention:disposal-report:export', 'case:decant:delete', 'material:block:delete-in-process'] : []),
+      // Batch 730: the lab workflow reports, with Batch Management.
+      ...(['histotechnologist', 'cytotechnologist', 'molecular-technologist'].includes(role) ? [
+        'report:workflow-turnaround:view', 'report:workflow-turnaround:export', 'report:station-volume:view', 'report:station-volume:export',
+        'report:stat-performance:view', 'report:stat-performance:export', 'report:add-on-volume:view', 'report:add-on-volume:export',
+        'report:recut-rework:view', 'report:recut-rework:export', 'report:reconciliation-exceptions:view', 'report:reconciliation-exceptions:export',
+        'report:batch-duration:view', 'report:batch-duration:export'] : []),
+      // Batch 731: item end states (Microtome or Slide Distribution), requesting re-embedding (add-on roles), completing it (Embedding).
+      ...(set.includes('screen:microtomy:open') || set.includes('screen:slide-distribution:open') ? ['material:end-state:record'] : []),
+      ...(['pathologist', 'fellow', 'resident'].includes(role) ? ['material:reembed:request'] : []),
+      ...(set.includes('screen:embedding:open') ? ['material:reembed:complete'] : []),
+      // Batch 740: handing a cell block off, for whoever opens the Cytology Preparation bench.
+      ...(set.includes('screen:cytology-prep:open') ? ['cytology:cell-block:hand-off'] : []),
+      // Batch 741: dividing a specimen; tracking its aliquots.
+      ...(set.includes('screen:grossing:open') || set.includes('screen:cytology-prep:open') ? ['material:specimen:divide'] : []),
+      ...(set.includes('screen:cytology-prep:open') || set.includes('screen:batch-management:open') ? ['material:aliquot-status:update'] : []),
       // Batch 432: referral transit status, for the same roles; resolving Audit Log errors, for Lab Director.
       ...(['histotechnologist', 'cytotechnologist', 'molecular-technologist'].includes(role) ? ['referral:transit-status:update'] : []),
       // Batch 434: WSI scan batches, for every role with the Batch Management screen.
@@ -424,7 +442,7 @@ describe('capability seeds', () => {
     ]);
     // Batch 428: the Configuration sections, by Pete's decisions.
     // Batch 438: and Revision Reasons. Batch 439: and the peer-review sign-out gate. Batch 442: and the discordance trend policy.
-    expect(CONFIG_SECTIONS).toHaveLength(115); // Batch 621: + config:history-extraction:manage. Batch 620 (part S): + config:batch-registry-feed:manage. Batch 620 (part E): + config:us-epath:manage. Batch 620 (part C): + config:cosd-destination:manage. Batch 619: + config:delivery-schedules:manage, config:billing-release:manage. Batch 613: + config:bi-feed:manage, config:bi-feed-tokens:manage, config:bi-feed-identified:approve. Batch 612: + config:workstations:manage, config:workstation-tokens:manage. Batch 611: + config:smart-capture:manage. Batch 610: + config:cold-chain:manage. Batch 595: + config:code-systems:manage. Batch 552: + config:site-agents:enroll, config:site-agent-config:manage. Batch 536: + config:ai-vendor-policy:manage (PS-558); the ai-prompt ones have no default grant. Batch 517: + config:secure-messaging:manage (PS-143). Batch 461: + config:organ-map-scheme:manage, config:organ-map-bindings:manage. Batch 452: + config:cytology-histology-correlation:manage; Batch 453: + config:biopsy-resection-correlation:manage; Batch 454: + config:follow-up-tracking:manage; Batch 480: + config:inking-validation-mode:manage. Structured Inking Module 3 (PS-359 follow-up): + config:ink-color:manage. Batch 491: + config:tumor-board-rules:manage
+    expect(CONFIG_SECTIONS).toHaveLength(119); // Batch 736: + config:bench-reasons:manage. Batch 734: + config:direct-device-printing:manage. Batch 728: + config:research-cases:manage, config:batch-purposes:manage. Batch 621: + config:history-extraction:manage. Batch 620 (part S): + config:batch-registry-feed:manage. Batch 620 (part E): + config:us-epath:manage. Batch 620 (part C): + config:cosd-destination:manage. Batch 619: + config:delivery-schedules:manage, config:billing-release:manage. Batch 613: + config:bi-feed:manage, config:bi-feed-tokens:manage, config:bi-feed-identified:approve. Batch 612: + config:workstations:manage, config:workstation-tokens:manage. Batch 611: + config:smart-capture:manage. Batch 610: + config:cold-chain:manage. Batch 595: + config:code-systems:manage. Batch 552: + config:site-agents:enroll, config:site-agent-config:manage. Batch 536: + config:ai-vendor-policy:manage (PS-558); the ai-prompt ones have no default grant. Batch 517: + config:secure-messaging:manage (PS-143). Batch 461: + config:organ-map-scheme:manage, config:organ-map-bindings:manage. Batch 452: + config:cytology-histology-correlation:manage; Batch 453: + config:biopsy-resection-correlation:manage; Batch 454: + config:follow-up-tracking:manage; Batch 480: + config:inking-validation-mode:manage. Structured Inking Module 3 (PS-359 follow-up): + config:ink-color:manage. Batch 491: + config:tumor-board-rules:manage
     // Batch 429: recording equipment maintenance is also the bench roles'.
     expect(CONFIG_SECTIONS).toContain('equipment:maintenance:record');
     expect(CONFIG_SECTIONS_LAB_DIRECTOR).toEqual(CONFIG_SECTIONS.filter(k => k !== 'config:protocol:draft'));

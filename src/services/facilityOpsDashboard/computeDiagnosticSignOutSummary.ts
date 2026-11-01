@@ -22,8 +22,7 @@ export async function computeDiagnosticSignOutSummary(facilityId: string | undef
   for (const b of (batchesRes.ok ? batchesRes.data : [])) {
     const relevantSlides = b.slides.filter(s => {
       if (!facilityId) return true;
-      const c = maps.casesById.get(s.caseId);
-      return c ? c.originHospitalId === facilityId : false;
+      return maps.caseFacilityById.get(s.caseId) === facilityId;
     });
     if (relevantSlides.length === 0) continue;
     if (b.status === 'unloaded') continue; // real, honest exclusion — the run is fully done and unloaded, nothing left to watch here
@@ -34,10 +33,10 @@ export async function computeDiagnosticSignOutSummary(facilityId: string | undef
       else if (s.scanStatus === 'completed') { completed++; if (s.qcPassed === false) qcFailedSlides++; }
       else if (s.scanStatus === 'failed') {
         failed++;
-        alerts.push({ id: `scan-failed-${b.id}-${s.slidePosition}`, severity: 'critical', kind: 'Scan Failed', title: b.batchBarcode, detail: `${s.slidePosition}${s.failureReason ? ` — ${s.failureReason}` : ''}` });
+        alerts.push({ id: `scan-failed-${b.id}-${s.slidePosition}`, severity: 'critical', kind: 'Scan Failed', kindKey: 'facilityOpsDashboard.alertKinds.scanFailed', title: b.batchBarcode, detail: `${s.slidePosition}${s.failureReason ? ` — ${s.failureReason}` : ''}`, ...(s.failureReason ? { detailKey: 'facilityOpsDashboard.details.slideFailure', detailValues: { position: s.slidePosition, reason: s.failureReason } } : {}) });
       }
       if (s.scanStatus === 'completed' && s.qcPassed === false) {
-        alerts.push({ id: `scan-qc-${b.id}-${s.slidePosition}`, severity: 'warning', kind: 'Scan QC Failed', title: b.batchBarcode, detail: `${s.slidePosition}${s.failureReason ? ` — ${s.failureReason}` : ''}` });
+        alerts.push({ id: `scan-qc-${b.id}-${s.slidePosition}`, severity: 'warning', kind: 'Scan QC Failed', kindKey: 'facilityOpsDashboard.alertKinds.scanQcFailed', title: b.batchBarcode, detail: `${s.slidePosition}${s.failureReason ? ` — ${s.failureReason}` : ''}`, ...(s.failureReason ? { detailKey: 'facilityOpsDashboard.details.slideFailure', detailValues: { position: s.slidePosition, reason: s.failureReason } } : {}) });
       }
     }
 
@@ -45,6 +44,7 @@ export async function computeDiagnosticSignOutSummary(facilityId: string | undef
     queue.push({
       id: b.id, label: b.batchBarcode,
       detail: `${b.status} · ${relevantSlides.length} slide(s)`,
+      detailKey: 'facilityOpsDashboard.details.wsi', detailValues: { status: b.status, count: relevantSlides.length },
       ageMinutes,
     });
   }
@@ -55,11 +55,11 @@ export async function computeDiagnosticSignOutSummary(facilityId: string | undef
     asOf: new Date().toISOString(),
     facilityId,
     stats: [
-      { id: 'pending', label: 'Pending', value: pending },
-      { id: 'scanning', label: 'Scanning', value: scanning },
-      { id: 'completed', label: 'Completed', value: completed },
-      { id: 'failed', label: 'Scan Failed', value: failed, state: failed > 0 ? 'overdue' : 'normal' },
-      { id: 'qc-failed', label: 'Image QC Failed', value: qcFailedSlides, state: qcFailedSlides > 0 ? 'warning' : 'normal' },
+      { id: 'pending', label: 'Pending', labelKey: 'facilityOpsDashboard.stats.pending', value: pending },
+      { id: 'scanning', label: 'Scanning', labelKey: 'facilityOpsDashboard.stats.scanning', value: scanning },
+      { id: 'completed', label: 'Completed', labelKey: 'facilityOpsDashboard.stats.completed', value: completed },
+      { id: 'failed', label: 'Scan Failed', labelKey: 'facilityOpsDashboard.stats.scanFailed', value: failed, state: failed > 0 ? 'overdue' : 'normal' },
+      { id: 'qc-failed', label: 'Image QC Failed', labelKey: 'facilityOpsDashboard.stats.imageQcFailed', value: qcFailedSlides, state: qcFailedSlides > 0 ? 'warning' : 'normal' },
     ],
     queue,
     alerts,

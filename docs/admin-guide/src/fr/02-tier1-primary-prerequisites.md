@@ -801,13 +801,15 @@ Unlocks: [Profils d'imprimante](#screen-printer_profiles), [Matériel de macrosc
 |---|---|---|---|---|
 | Code | Texte, lettres, chiffres, « _ » et « - » | Obligatoire | L'identifiant que portent les autres enregistrements, par exemple PANTHER_02 sur un lot moléculaire et sur le code-barres de son plateau. Doit être unique. Ne peut plus être modifié après la création. | Vide |
 | Nom | Texte | Obligatoire | | Vide |
-| Type | Choix : Analyseur, Automate de coloration, Automate de circulation, Scanner de lames, Caméra, Balance, Imprimante d'étiquettes, Graveur, Unité de stockage, Autre | Obligatoire | Les lots moléculaires peuvent cibler les analyseurs actifs. | Analyseur |
+| Type | Choix : Analyseur, Automate de coloration, Automate de circulation, Automate de cytologie en milieu liquide, Scanner de lames, Caméra, Balance, Imprimante d'étiquettes, Graveur, Unité de stockage, Autre | Obligatoire | Les lots moléculaires peuvent cibler les analyseurs actifs. | Analyseur |
 | Marque, Modèle | Texte | Facultatif | | Vide |
 | Numéro de série | Texte | Facultatif | | Vide |
 | Laboratoire exécutant | Liste de choix | Obligatoire | Sa modification efface le poste de numérisation. | Site sélectionné |
 | Poste de numérisation | Liste de choix des postes de ce laboratoire | Facultatif | L'emplacement de l'appareil. Pour un analyseur, l'envoi de la liste de travail vérifie qu'il part de ce poste. Un poste d'un autre laboratoire est refusé. | Aucun |
 | Étalonnage tous les (jours) | Nombre entier, de 1 à 3650 | Facultatif | Vide signifie aucune planification. Les échéances se calculent à partir de la dernière entrée réussie du journal d'entretien. | Vide |
 | Maintenance tous les (jours) | Nombre entier, de 1 à 3650 | Facultatif | Même règle. | Vide |
+| Température minimale (°C), Température maximale (°C) | Nombres, minimum inférieur au maximum ; l'un ou l'autre peut être vide | Facultatif | Lot 730 : la plage appliquée à un contrôle de température du journal des équipements. Une mesure hors plage est un échec ; la plage est copiée sur chaque entrée. | Vide |
+| Accepte les lames grand format | Case à cocher, automates de coloration et scanners de lames uniquement | Facultatif | Lot 732 : l’appareil accepte les lames grand format (mégablocs). La distribution des lames n’envoie une lame grand format qu’à un scanner coché. | Non coché |
 | Statut | Actif / Inactif | Facultatif | | Actif |
 | Disposition du plateau | Lignes, analyseurs uniquement | Facultatif | Les emplacements du plateau de l'analyseur. Chaque ligne : Plateau ou baie, Identifiant d'emplacement (lettres, chiffres, « _ », sans doublon) et Accepte (Plaque d'extraction, Cartouche de réactifs, Portoir de tubes d'échantillons ; au moins un). Le Chargement des portoirs ne propose que les emplacements adaptés. L'identifiant d'emplacement est imprimé sur le code-barres de position sur le plateau. | Aucun |
 
@@ -821,6 +823,10 @@ Unlocks: [Profils d'imprimante](#screen-printer_profiles), [Matériel de macrosc
 | Réalisé par | Texte | Obligatoire | Membre du personnel ou technicien de maintenance. | Votre nom |
 | Résultat | Choix : Réussi, Échec, Sans objet | Obligatoire | | Réussi |
 | Remarques | Texte | Obligatoire en cas d'échec ou de panne | | Vide |
+
+#### Portoirs de coloration
+
+Lot 737. Affiché sous le registre lorsque le laboratoire a des portoirs de coloration réutilisables (identifiants RACK- gravés). Chaque ligne est un portoir avec la case **Prend les lames grand format**, enregistrée immédiatement (nécessite `config:equipment:manage`). La Gestion des lots refuse une lame grand format (coupée dans un mégabloc) scannée sur un support de coloration qui ne prend pas les lames grand format ; un support de coloration jetable les prend lorsque **Prend les lames grand format (mégablocs)** est coché dans Nouveau conteneur. La démo a un tel portoir, RACK-STAIN-LF-01.
 
 **7. Autorisations.** Ouvrir : `screen:configuration:open`. Ajouter, modifier, désactiver : `config:equipment:manage`. Enregistrer une entrée du journal d'entretien : `equipment:maintenance:record`. Toutes deux à risque élevé. Les rôles Administrateur et Directeur de laboratoire détiennent les deux. Les rôles Histotechnicien, Cytotechnicien et Technicien en biologie moléculaire détiennent aussi l'autorisation du journal.
 **Limites connues.** Les échéances d'entretien sont calculées dans le fuseau horaire de l'établissement défini dans les paramètres du Tableau de bord des contributions.

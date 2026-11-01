@@ -5,7 +5,7 @@
 // (reached by scanning a block/decant barcode at a real 'Microtomy /
 // Sectioning' ScanStation, or a direct block selection) — deliberately
 // NOT a case-scoped route like GrossingScreenPage/SynopticReportPage,
-// since a microtomy tech works block-by-block across many cases in a
+// since a microtome tech works block-by-block across many cases in a
 // single shift, not one case at a time.
 //
 // Real, per direct follow-up asking to keep this visually consistent
@@ -60,9 +60,18 @@ import HardwarePrintPanel from './components/HardwarePrintPanel';
 import CytologyPanel from './components/CytologyPanel';
 import CommentDrawer from './components/CommentDrawer';
 import BlockExhaustedControl from './components/BlockExhaustedControl';
+import ExhaustedBlockBanner from '@/components/Workstation/ExhaustedBlockBanner';
+import ItemEndStatePanel from '@/components/Workstation/ItemEndStatePanel';
+import BlockPieceMapPanel from '@/components/Workstation/BlockPieceMapPanel';
 import BatchProgressModal from './components/BatchProgressModal';
 import UndoToast from './components/UndoToast';
 import { computeNextUnprintedStain, MICROTOMY_CANCEL_REASONS, MICROTOMY_REASON_KEYS } from '@/utils/microtomyOperations';
+// Batch 726 (Lab Workflow & Batch spec, Decision 1): carriers at this workstation.
+import { useStationCarrier } from '@/hooks/useStationCarrier';
+import StationCarrierPanel from '@/components/Workstation/StationCarrierPanel';
+import { StationScanField } from '@/components/Workstation/StationScanField';
+import ScanTrailPanel from '@/components/Workstation/ScanTrailPanel';
+import './MicrotomyWorkstationPage.css';
 import '../../pathscribe.css';
 
 const MicrotomyWorkstationPage: React.FC = () => {
@@ -73,6 +82,7 @@ const MicrotomyWorkstationPage: React.FC = () => {
   useEffect(() => { pushCrumb(t('microtomyWorkstation.pageTitle'), '/workstations/microtomy'); }, [pushCrumb, t]);
 
   const w = useMicrotomyWorkstation();
+  const carrier = useStationCarrier('microtomy');
   const billing = useMicrotomyBilling(w.workItem, w.stainTypes, w.adoptSavedCase);
 
   // Batch 388: this page has its own voice/keyboard context ("add comment", "add stain").
@@ -80,7 +90,6 @@ const MicrotomyWorkstationPage: React.FC = () => {
     actionRegistryService.setCurrentContext(VOICE_CONTEXT.MICROTOMY);
     return () => { actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
   }, []);
-  const [scanInput, setScanInput] = useState('');
   const [labelLayout, setLabelLayout] = useState<SlideLabelLayoutConfig>(DEFAULT_SLIDE_LABEL_LAYOUT);
   const [printer, setPrinter] = useState<PrinterProfile | null>(null);
   const [printerError, setPrinterError] = useState<string | null>(null);
@@ -125,18 +134,14 @@ const MicrotomyWorkstationPage: React.FC = () => {
     const listener = (e: Event) => {
       const scanEvent = (e as CustomEvent<{ raw: string }>).detail;
       if (!scanEvent?.raw || scanEvent.raw.trim().toUpperCase().startsWith('STATION:')) return;
-      w.resolveScan(scanEvent.raw);
+      void carrier.route(scanEvent.raw, w.resolveScan);
     };
     window.addEventListener('PATHSCRIBE_SCAN', listener);
     return () => window.removeEventListener('PATHSCRIBE_SCAN', listener);
-  }, [w]);
+  }, [w, carrier]);
 
-  const handleScanSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!scanInput.trim()) return;
-    await w.resolveScan(scanInput.trim());
-    setScanInput('');
-  }, [scanInput, w]);
+  // Touch spec T1 (Batch 735): the shared scan field (no on-screen keyboard, focus kept) hands the scan in here.
+  const handleScan = useCallback(async (raw: string) => { await carrier.route(raw, w.resolveScan); }, [w, carrier]);
 
   // Real, per removeMicrotomyStain's own doc comment: an unprinted
   // slide is removed immediately; a printed one instead sets
@@ -164,17 +169,14 @@ const MicrotomyWorkstationPage: React.FC = () => {
         <h1 className="ps-microtomy-title">🔬 {t('microtomyWorkstation.pageTitle')}</h1>
       </div>
 
+      <StationCarrierPanel carrier={carrier} outputCandidates={stains.filter(s => s.printStatus === 'Printed').map(s => s.displayId).filter((id): id is string => !!id)} />
+      {/* Batch 729 (spec §7.4): the case's station scan trail. */}
+      {w.workItem && <ScanTrailPanel caseAccession={w.workItem.caseData.accession?.fullAccession ?? w.workItem.caseData.id} />}
+
       {!w.workItem ? (
         <div className="ps-microtomy-panel">
           <p className="ps-microtomy-panel-title">{t('microtomyWorkstation.scanPrompt')}</p>
-          <form className="ps-microtomy-scan-row" onSubmit={handleScanSubmit}>
-            <input
-              type="text" className="ps-microtomy-scan-input" autoFocus
-              value={scanInput} onChange={e => setScanInput(e.target.value)}
-              placeholder={t('microtomyWorkstation.scanPlaceholder') ?? ''}
-            />
-            <button type="submit" className="ps-btn-primary">{t('microtomyWorkstation.scanSubmit')}</button>
-          </form>
+          <StationScanField onScan={handleScan} placeholder={t('microtomyWorkstation.scanPlaceholder') ?? ''} submitLabel={t('microtomyWorkstation.scanSubmit')} />
           {w.scanError && <div className="ps-microtomy-scan-error">{w.scanError}</div>}
         </div>
       ) : (
@@ -188,10 +190,17 @@ const MicrotomyWorkstationPage: React.FC = () => {
               <strong>{w.workItem.specimen.label}{w.workItem.kind === 'block' ? w.workItem.block.label : w.workItem.decant.label}</strong>
             </span>
             <span>{t('microtomyWorkstation.context.specimenType')} <strong>{w.workItem.specimen.description ?? '—'}</strong></span>
-            <button type="button" className="ps-microtomy-row-btn ps-ml-auto" onClick={() => { setScanInput(''); w.clearWorkItem(); }}>
+            <span className="ps-ml-auto"><StationScanField compact onScan={handleScan} placeholder={t('microtomyWorkstation.scanPlaceholder') ?? ''} submitLabel={t('microtomyWorkstation.scanSubmit')} /></span>
+            <button type="button" className="ps-microtomy-row-btn" onClick={() => w.clearWorkItem()}>
               {t('microtomyWorkstation.context.scanNext')}
             </button>
           </div>
+          {/* Batch 729 (spec §7.5): the case's other blocks still waiting to be cut, inline (no window). */}
+          {w.blocksStillWaiting.length > 0 && (
+            <p className="ps-microtomy-waiting-note" role="status">
+              {t('microtomyWorkstation.blocksStillWaiting', { count: w.blocksStillWaiting.length, blocks: w.blocksStillWaiting.join(', ') })}
+            </p>
+          )}
 
           {w.saveError && <div className="ps-microtomy-save-error" role="alert">{w.saveError}</div>}
           {w.printNotice && <div className="ps-microtomy-save-error" role="alert">{w.printNotice}</div>}
@@ -215,7 +224,11 @@ const MicrotomyWorkstationPage: React.FC = () => {
                         </button>
                       ))}
                     </div>
+                    {/* Batch 731 (spec §10.6): what remains of an exhausted block, and orders waiting for re-embedding. */}
+                    <ExhaustedBlockBanner specimen={w.workItem.specimen} block={block} />
                     <BlockExhaustedControl block={block} onFlag={w.handleFlagBlockExhausted} />
+                    {/* Batch 732 (spec §11): block type, slide size and piece map; a piece can be marked used up. */}
+                    {w.pieceView && <BlockPieceMapPanel blockType={w.pieceView.blockType} slideSize={w.pieceView.slideSize} pieces={w.pieceView.pieces} onMarkExhausted={w.pieceView.canMark ? w.handleMarkPieceExhausted : undefined} />}
                     {w.workItem.matrixBlock && (
                       <>
                         <div className="ps-microtomy-context-field">{t('microtomyWorkstation.context.matrixCores')}</div>
@@ -238,6 +251,8 @@ const MicrotomyWorkstationPage: React.FC = () => {
                     <button type="button" className="ps-microtomy-row-btn" onClick={() => setCommentTarget({ scope: 'block' })}>
                       💬 {t('microtomyWorkstation.context.blockComments')}{block.comments?.length ? ` (${block.comments.length})` : ''}
                     </button>
+                    {/* Batch 731 (spec §10.5): the block's end state. */}
+                    {w.endStateItem && <ItemEndStatePanel {...w.endStateItem} stationId={w.effectiveStationId} />}
                   </div>
                 );
               })()}
@@ -263,9 +278,10 @@ const MicrotomyWorkstationPage: React.FC = () => {
             {/* Center: Interactive Slide Grid (+ Cytology panel for a decant) */}
             <div>
               {w.workItem.kind === 'decant' && (
-                <CytologyPanel decant={w.workItem.decant} onUpdateFields={w.handleUpdateCytologyFields} onApplySuggestions={w.handleApplyPrepSuggestions} />
+                <CytologyPanel decant={w.workItem.decant} specimen={w.workItem.specimen} onUpdateFields={w.handleUpdateCytologyFields} onApplySuggestions={w.handleApplyPrepSuggestions} />
               )}
               <SlideGridPanel
+                blockSlideSize={w.pieceView?.slideSize}
                 stains={stains}
                 stainTypes={w.stainTypes}
                 printMode={w.printMode}
@@ -305,7 +321,7 @@ const MicrotomyWorkstationPage: React.FC = () => {
 
       {w.pendingRemoval && (
         <div className="ps-overlay" onClick={w.cancelPendingRemoval}>
-          <div className="ps-modal-dark" onClick={e => e.stopPropagation()}>
+          <div className="ps-modal-dark" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <div className="ps-batch-modal-header"><div className="ps-batch-modal-title">{t('microtomyWorkstation.removeReason.title')}</div></div>
             <div className="ps-batch-modal-body">
               <p>{t('microtomyWorkstation.removeReason.body')}</p>

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// Batch 460: the shared billing review changes (Cytology Workspace, Microtomy).
+// Batch 460: the shared billing review changes (Cytology Workspace, Microtome).
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 

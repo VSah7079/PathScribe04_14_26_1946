@@ -1,3 +1,5 @@
+**Batch 746:** `molecularRunHistoryDemoSeed.ts` (new, seed row S7): twelve in-house orders waiting for a plate (EGFR and KRAS) and three resulted; completed runs `mb-demo-746-hpv-done`, `mb-demo-746-egfr-done`, `mb-demo-746-kras-repeat`, and `mb-demo-746-kras-fail` (no-template control amplified: BLOCKED, superseded by the repeat). `mockMolecularAssayControlRuleService.ts`: KRAS rule `rule-746-kras`; later seed rules each have their own once-only flag; `MOLECULAR_CONTROL_RULE_SEED` exported for tests. Test: `molecularRunHistoryDemoSeed.test.ts`.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/molecular/ — Full Molecular Testing Execution Module

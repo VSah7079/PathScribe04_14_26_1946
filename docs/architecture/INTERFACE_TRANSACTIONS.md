@@ -95,3 +95,8 @@ The full contract is `MOLECULAR_ORDERS_API.md` §7–8.
 ## Development receiver
 
 `functions/main.py` → `receive_interface_message` stands in for the engine's receiving side so the JSON can be checked. It accepts every type above (Batch 434: it had stopped at `ORDER_CREATED`, refusing registry, print and alert messages) and checks a `WSI_SCAN_MANIFEST` has its batch, scanner and slides. In the browser demo, the developer tool at `/dev/mock-interface-engine` can answer these messages instead, and simulate the scanner's replies.
+
+
+## Batch 739: the instrument order names the processor, not a vendor
+
+An `order.instrument` payload is `{ masterBarcode, processorCode?, processorMake?, processorModel? }`: the liquid-based cytology processor (Equipment kind `lbc_processor`) chosen when the batch is made. The fixed `instrumentVendor: 'Hologic'` is gone. With no processor chosen, only `masterBarcode` is sent and the interface engine routes by its own rules.

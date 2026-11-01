@@ -33,7 +33,11 @@
 </tr>
 <tr>
 <td>Latest research article</td>
-<td>A line showing a recent pathology article chosen for your subspecialty. Select it to read it in a separate window.</td>
+<td>A line under the welcome greeting showing a recent pathology article chosen for your subspecialty: its title, then the journal and date. Select it to read it in a separate window.</td>
+</tr>
+<tr>
+<td>Paste box</td>
+<td>The faint box under the article line, "Found a better one? Paste the PMID or PubMed link". Paste a PubMed number or link and press Enter (or <strong>Apply</strong>) to show that article instead.</td>
 </tr>
 <tr>
 <td>System status</td>
@@ -44,6 +48,15 @@
 <ul>
 <li><strong>Tile descriptions.</strong> The My Contribution tile reads "Workload • Quality • TAT". The Search tile reads "Find completed and open cases". Bench Contributions reads "Bench throughput and TAT", Intraop Queue "Unlinked intraop entries", Lockbox Drop-Off "After-hours specimen drop-offs", Pathology Workspace "Cytology, molecular, benches", Quality &amp; Compliance "Audit trail and quality queues" and Tumor Board / MDT "Flag cases, manage the agenda".</li>
 <li><strong>From PubMed.</strong> The small badge on the research article line. The dot beside it is a button: its tooltip is "Click to check for a more recent article", and while it works it says "Checking for a more recent article…".</li>
+</ul>
+<figure class="ps-ug-figure"><img src="img/home-pubmed.png" alt="The welcome greeting with the From PubMed article line and the paste box"><figcaption>The welcome greeting with the From PubMed article line and the paste box</figcaption></figure>
+
+<div class="admonition note">
+<p class="admonition-title">The article line is automatic, not guidance</p>
+<p>The article is the most recent match from PubMed for pathology (and your subspecialty, when you have one). Nobody at your laboratory has reviewed it, so it is reading, not guidance for patient care. If PathScribe cannot reach PubMed, or your administrator has switched the line off, it simply does not appear.</p>
+</div>
+<ul>
+<li><strong>Paste messages.</strong> "✓ Updated" means your article is now shown. "Couldn't find a PMID or PubMed link in that." means the text had no PubMed number; "Couldn't find that article — check the ID and try again." means PubMed has no article with that number.</li>
 </ul>
 <h3 id="toolbar">Toolbar</h3>
 <p>The Home Dashboard has no toolbar of its own.</p>
@@ -131,7 +144,7 @@
 </tr>
 <tr>
 <td>Pathology Workspace</td>
-<td>Cytology screening, molecular diagnostics, the microtomy, embedding and slide distribution workstations, and batch management.</td>
+<td>Cytology screening, molecular diagnostics, the microtome, embedding and slide distribution workstations, and batch management.</td>
 <td><a href="/help/pathology-workspace">Pathology Workspace</a></td>
 </tr>
 <tr>
@@ -220,8 +233,8 @@
 <td>Your role does not include that area.</td>
 </tr>
 <tr>
-<td>The latest research line is empty</td>
-<td>The research service is not reachable, or none was found for your subspecialty. It does not affect your work.</td>
+<td>The latest research line is missing</td>
+<td>PathScribe cannot reach PubMed from your network, none was found for your subspecialty, or your administrator has switched the line off (Configuration &gt; System &gt; Research Feed). It does not affect your work.</td>
 </tr>
 <tr>
 <td>A tile shows a count</td>

@@ -44,7 +44,10 @@ const SEED_PRINTER_PROFILES: PrinterProfile[] = [
     maxPrintDensity: 300,
     moduleSize: 4,
     vendor: 'ZEBRA_ZPL',
-    bridgeType: 'qz_tray',
+    // Batch 738 (Demo Seed Data S3): the PathScribe workstation agent. In the demo no agent program runs, so a
+    // labelled Simulated PathScribe Agent answers and every label "prints" (Simulated print log); before this the seed
+    // used QZ Tray, which failed with PRINT ERROR on any computer without QZ Tray running.
+    bridgeType: 'pathscribe_agent',
     ipAddress: '192.168.12.85',
     port: 9100,
     // Batch 359: the physical printer in the equipment register.

@@ -98,4 +98,11 @@ describe('dispatchNetworkPrintJob — real PathScribe-side half of PS-51 (Sectio
     expect(built.payload.attempt).toBe(1);
     expect(built.payload.callbackUrl).toBe('/api/print/callbacks');
   });
+
+  it('Batch 737 (spec §11.1): a megablock cassette names the megablock template; a standard one keeps the standard template', () => {
+    const mega = buildNetworkPrintPayload({ ...validInput, cassetteTemplate: 'ZPL-CASSETTE-MEGA-V1' });
+    const std = buildNetworkPrintPayload({ ...validInput });
+    expect(mega.ok && mega.payload.templateVersion).toBe('ZPL-CASSETTE-MEGA-V1');
+    expect(std.ok && std.payload.templateVersion).toBe('ZPL-CASSETTE-V3');
+  });
 });

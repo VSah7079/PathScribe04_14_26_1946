@@ -97,3 +97,7 @@ Deployment settings here are read through `appEnv()` (`services/runtimeConfig/`)
 ## Batch 669 (mol-7)
 
 New transaction type `MOLECULAR_WORKLIST`: a verified molecular plate's worklist (`MOLECULAR_WORKLIST_CREATE`). `services/molecular/dispatchMolecularWorklist.ts` sends it through `dispatchInterfaceMessage`, so in the demo the simulated engine receiver answers and keeps it. Added to `InterfaceTransactionType`, `docs/architecture/INTERFACE_TRANSACTIONS.md` and `functions/main.py`.
+
+## Batch 728
+
+- `resolveDispatchOrganisation.ts`: a research case's result messages are not queued (`skipResearchCaseDispatch`, audit reason `research-case`). `dispatchCharge.ts`: research-case charges are refused (`RESEARCH_NO_CHARGE_MESSAGE`); the financial-class message carries the no-charge class and no coverage.

@@ -1,3 +1,5 @@
+**Batch 747:** `mockWsiScanBatchService.ts`: the wall display's scanner runs (`batches/wallDisplayDemoBatches.ts`) are added when missing; the two September runs still scanning now have times relative to the reset.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/digitalPathology/

@@ -110,6 +110,7 @@ async function redispatchPermitted(jobId: string): Promise<RedispatchPrintJobRes
     mode: job.mode,
     pdfBase64,
     printerName: job.printerName,
+    facilityId: job.performingFacilityId,
     paperSize: job.paperSize,
     destination,
     presentation: { paperSource: job.paperSource, duplexMode: job.duplexMode },

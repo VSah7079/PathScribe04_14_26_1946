@@ -105,7 +105,7 @@ Endpoints so far:
 | Place or release a case hold or retention hold | `case:hold:place` / `case:hold:release` / `case:retention-hold:place` / `case:retention-hold:release`, with the case's facility (Batch 381) |
 | Delegate a case | `case:delegation:create`, with the case's facility (Batch 381) |
 | Correct an applied billing code | `billing:applied-code:correct` (Batch 382) |
-| Approve, decline, override, add or delete a case's billing codes (report page, Cytology Workspace, Microtomy) | `billing:applied-code:review` (Batch 460) |
+| Approve, decline, override, add or delete a case's billing codes (report page, Cytology Workspace, Microtome) | `billing:applied-code:review` (Batch 460) |
 | Insert, replace or remove a case's anatomical map image in the report | `report:organ-map:insert`, with the case's facility (Batch 461) |
 | Print or reprint a case report, or open a stored version's PDF | `report:case-report:print`, with the case's facility (Batch 495; the preview window it also covered was retired in Batch 497). *Batch 558:* the API server checks it for the case on `GET /api/cases/{caseId}/report-versions` and `…/report-versions/{versionNumber}/pdf` (`BLOB_STORAGE_API.md` §11) |
 | Change organ-map colours, patterns and thresholds (enterprise, jurisdiction, facility) / a template's map question bindings | `config:organ-map-scheme:manage` (with the facility for a facility layer) / `config:organ-map-bindings:manage` (Batch 461; thresholds Batches 462, 464, 465, 466) |
@@ -122,7 +122,12 @@ Endpoints so far:
 | Place add-on orders; cancel or modify one after a block exception | `add-on:order:place` (Batch 403) |
 | Approve destructive cutting of a block | `add-on:exception:approve-destructive-cut` (Batch 403) |
 | Flag a block exception (Block exhausted and the other reasons); mark a block retrieved for an add-on order | `add-on:exception:flag` / `add-on:block:mark-retrieved` (Batch 669) |
+| Record an item's end state; request re-embedding of an exhausted block; mark it re-embedded | `material:end-state:record` / `material:reembed:request` / `material:reembed:complete` (Batch 731) |
+| Hand a cell block off to histology at the Cytology Preparation bench | `cytology:cell-block:hand-off` (Batch 740) |
+| Divide a specimen into aliquots; update an aliquot's status | `material:specimen:divide` / `material:aliquot-status:update` (Batch 741) |
+| Attach a file to a case; link a file; remove an attachment from a case | `case:attachment:upload` / `case:attachment:link` / `case:attachment:unlink` (Batch 742) |
 | Complete a reconciliation with discrepancies; abort a batch; acknowledge a cold-chain excursion | `batch:reconciliation:override` / `batch:run:abort` / `batch:cold-chain-excursion:acknowledge` (Batch 404) |
+| Seal a carrier's manifest; move a carrier to its next step; open a carrier at a station for another step; read the station scan trail | `batch:manifest:seal` / `batch:carrier:advance` / `station:scan-mismatch:continue` / `station:scan-history:view` (Batch 726) |
 | Supersede a molecular run (clone and retire the original) | `molecular:batch:supersede` (Batch 405) |
 | Put in-house molecular orders on a plate, or take one off (Order Queue) | `molecular:order:assign-plate` (Batch 467) |
 | Cancel an in-house molecular order, or re-route it to send-out | `molecular:order:cancel` (Batch 467) |
@@ -308,6 +313,7 @@ code.
 | `config:concordance-review:manage` | Manage concordance review. | high | Admin, Lab Director | `qualitySettings/mockConcordanceReviewSettingsService.ts` |
 | `config:qa-types:manage` | Manage QA activity types. | high | Admin, Lab Director | `quality/mockQaActivityTypeService.ts`, `quality/mockQaSupervisionAssignmentTypeService.ts`, `quality/mockSurgicalPeerReviewRiskWeightService.ts` |
 | `config:revision-reasons:manage` | Manage revision reasons. | high | Admin, Lab Director | `reasons/mockReasonDictionaryService.ts` |
+| `config:bench-reasons:manage` | Reword, add, order and retire the bench's tap-to-pick reasons (Configuration → System → Bench Reasons, Batch 736). | high | Admin, Lab Director | `reasons/mockReasonDictionaryService.ts` |
 | `config:peer-review:manage` | Manage the peer-review sign-out gate. | high | Admin, Lab Director | `quality/mockPeerReviewSettingsService.ts` |
 | `config:clinical-mismatch-rules:manage` | Change the clinical-pathologic mismatch risk rules (Batch 529, PS-554). Requires `…rules:view`. | high | **none**: each hospital grants it to its own role (e.g. a Pathologist Administrator) | `clinical/clinicalMismatchRuleService.ts` `save`, `remove` |
 | `config:clinical-mismatch-rules:view` | Read the mismatch rules (Batch 529, PS-554), so a pathologist can see why a case was held. | standard | Pathologist, QA Reviewer, Lab Director | `clinical/clinicalMismatchRuleService.ts` `list` |
@@ -327,12 +333,13 @@ code.
 |---|---|---|---|---|
 | `config:printers:manage` | Manage printers. | high | Admin, Lab Director | `printerProfiles/mockPrinterProfileService.ts` |
 | `config:print-settings:manage` | Manage print settings, including a facility's report printing (Batch 517). Batch 553: also lets the Printing tab list the facility's own site agent printers for its default (`siteAgent/siteAgentAdminService.ts` reportPrinters). | high | Admin, Lab Director | `printSettings/mockFacilityPrintSettingsService.ts`, `printSettings/mockPrintSettingsService.ts`, `facilities/mockFacilityService.ts` (setPrintSettings) |
+| `config:direct-device-printing:manage` | Turn direct browser-to-printer printing on or off for a facility (Batch 734, Pete's Decision 4). Off by default in a server deployment; every direct print, and every blocked one, is audited. | high | Admin, Lab Director | `facilities/mockFacilityService.ts` (setDirectDevicePrinting) |
 | `config:print-routing:manage` | Manage print routing. Batch 553: also lets the rule window list a site's agent printers (`siteAgent/siteAgentAdminService.ts` reportPrinters). | high | Admin, Lab Director | `printRouting/mockPrintRoutingRuleService.ts` |
 | `config:label-layouts:manage` | Manage label layouts. | high | Admin, Lab Director | `labelDesigner/mockLabelLayoutService.ts` |
 | `config:cassette-routing:manage` | Manage cassette routing. | high | Admin, Lab Director | `cassetteRouting/mockCassetteRoutingRuleService.ts` |
 | `config:cassette-colors:manage` | Manage cassette colours. | high | Admin, Lab Director | `cassetteColors/mockCassetteColorService.ts` |
 | `config:scan-stations:manage` | Manage scan stations. | high | Admin, Lab Director | `scanStations/mockScanStationService.ts` |
-| `config:equipment:manage` | Manage equipment. | high | Admin, Lab Director | `equipment/mockEquipmentService.ts` |
+| `config:equipment:manage` | Manage equipment. | high | Admin, Lab Director | `equipment/mockEquipmentService.ts`, `hardwareContainers/mockHardwareContainerRegistryService.ts` |
 | `equipment:maintenance:record` | Record equipment maintenance. | high | Histotechnologist, Cytotechnologist, Molecular Technologist, Admin, Lab Director | `equipment/mockEquipmentLogService.ts` |
 | `config:grossing-hardware:manage` | Manage grossing hardware. | high | Admin, Lab Director | `grossingHardware/mockGrossingHardwareProfileService.ts` |
 | `config:workstation-groups:manage` | Manage workstation groups. | high | Admin, Lab Director | `workstationGroups/mockWorkstationGroupService.ts` |
@@ -441,11 +448,15 @@ code.
 | `cytology:pathologist-review:take` | Take a positive GYN cytology case for review. | high | Pathologist, Fellow | `cytology/cytologyQueuesLive.ts` |
 | `add-on:order:place` | Place an add-on order. | high | Pathologist, Fellow, Resident; hospital roles with case access | `addOnOrders/addOnOrderActions.ts` |
 | `add-on:exception:approve-destructive-cut` | Approve destructive cutting. | high | Pathologist, Fellow, Resident; hospital roles with case access | `addOnOrders/addOnOrderActions.ts` |
-| `add-on:exception:flag` | Flag a block exception (Block exhausted and the other reasons) from the Add-On Orders tracking list or the Microtomy workstation (Batch 669). | standard | Pathologist, Fellow, Resident, Histotechnologist (every role with the Add-On Orders or Microtomy screen); hospital roles with case access | `addOnOrders/addOnOrderActions.ts` |
+| `add-on:exception:flag` | Flag a block exception (Block exhausted and the other reasons) from the Add-On Orders tracking list or the Microtome workstation (Batch 669). | standard | Pathologist, Fellow, Resident, Histotechnologist (every role with the Add-On Orders or Microtome screen); hospital roles with case access | `addOnOrders/addOnOrderActions.ts` |
 | `add-on:block:mark-retrieved` | Mark a block retrieved for an add-on order (Batch 669). | standard | Same roles as `add-on:exception:flag` | `addOnOrders/addOnOrderActions.ts` |
 | `batch:reconciliation:override` | Complete a batch reconciliation anyway. | high | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `batches/mockBatchService.ts` |
 | `batch:run:abort` | Abort a batch. | high | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `batches/mockBatchService.ts` |
 | `batch:cold-chain-excursion:acknowledge` | Acknowledge a cold-chain excursion. | high | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `batches/mockBatchService.ts` |
+| `batch:manifest:seal` | Seal a carrier's manifest: nothing can be added or removed after it (Batch 726). | standard | Pathologists Assistant, Histotechnologist, Cytotechnologist, Molecular Technologist (every role with Batch Management, Embedding, Microtome or Slide Distribution); hospital roles with case access | `batches/mockBatchService.ts` |
+| `batch:carrier:advance` | Move a carrier to its next processing step, updating every item in it (Batch 726). | standard | Same roles as `batch:manifest:seal` | `batches/mockBatchService.ts` |
+| `station:scan-mismatch:continue` | Open a carrier, or keep an item, at a station for another step after the mismatch warning; audited (Batch 726). | standard | Same roles as `batch:manifest:seal` | `batches/mockBatchService.ts` (`recordCarrierScan`) |
+| `station:scan-history:view` | Read the station scan trail (who scanned which item, where and when) (Batch 726). | standard | Same roles as `batch:manifest:seal` | `stationScans/mockStationScanEventService.ts` |
 | `referral:transit-status:update` | Update a referral batch’s transit status. | high | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `referral/mockReferralTrackingService.ts` |
 | `wsi:scan-batch:load` | Load a WSI scan batch. | standard | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `digitalPathology/wsiScanBatchWorkflow.ts` |
 | `wsi:scan-batch:send` | Send a WSI scan batch to the scanner. | standard | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `digitalPathology/wsiScanBatchWorkflow.ts` |
@@ -458,11 +469,36 @@ code.
 | `batch:cold-chain-reading:simulate` | Send a Simulated temperature reading for a storage unit or container (Batch 610). | standard | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `coldChain/simulatedTelemetryFeed.ts` |
 | `retention:holds-queue:export` | Export the Retention Holds queue as CSV (Batch 610). | high | Histotechnologist, Cytotechnologist, Molecular Technologist; hospital roles with case access | `retentionHolds/exportRetentionHoldsQueue.ts` |
 | `config:cold-chain:manage` | Manage storage units and storage condition types (Batch 610). | high | Admin, Lab Director | `coldChain/mockStorageUnitService.ts` |
+| `report:workflow-turnaround:view` | View the Lab Workflow report: turnaround by step (Batch 730, spec §9). Also needs `station:scan-history:view`. | standard | Roles with Batch Management | `labWorkflowReports/labWorkflowReportService.ts` |
+| `report:workflow-turnaround:export` | Export that report as CSV; audited with the row count (Batch 730). Requires the view capability. | high | Roles with Batch Management | `labWorkflowReports/labWorkflowCsv.ts` |
+| `report:station-volume:view` | View the Lab Workflow report: volume per station per day or week (Batch 730, spec §9). Also needs `station:scan-history:view`. | standard | Roles with Batch Management | `labWorkflowReports/labWorkflowReportService.ts` |
+| `report:station-volume:export` | Export that report as CSV; audited with the row count (Batch 730). Requires the view capability. | high | Roles with Batch Management | `labWorkflowReports/labWorkflowCsv.ts` |
+| `report:stat-performance:view` | View the Lab Workflow report: STAT performance (Batch 730, spec §9). Also needs `station:scan-history:view`. | standard | Roles with Batch Management | `labWorkflowReports/labWorkflowReportService.ts` |
+| `report:stat-performance:export` | Export that report as CSV; audited with the row count (Batch 730). Requires the view capability. | high | Roles with Batch Management | `labWorkflowReports/labWorkflowCsv.ts` |
+| `report:add-on-volume:view` | View the Lab Workflow report: add-on order volume and turnaround (Batch 730, spec §9). | standard | Roles with Batch Management | `labWorkflowReports/labWorkflowReportService.ts` |
+| `report:add-on-volume:export` | Export that report as CSV; audited with the row count (Batch 730). Requires the view capability. | high | Roles with Batch Management | `labWorkflowReports/labWorkflowCsv.ts` |
+| `report:recut-rework:view` | View the Lab Workflow report: recut and rework rates (Batch 730, spec §9). | standard | Roles with Batch Management | `labWorkflowReports/labWorkflowReportService.ts` |
+| `report:recut-rework:export` | Export that report as CSV; audited with the row count (Batch 730). Requires the view capability. | high | Roles with Batch Management | `labWorkflowReports/labWorkflowCsv.ts` |
+| `report:reconciliation-exceptions:view` | View the Lab Workflow report: reconciliation exceptions (missing, unexpected, overrides) (Batch 730, spec §9). | standard | Roles with Batch Management | `labWorkflowReports/labWorkflowReportService.ts` |
+| `report:reconciliation-exceptions:export` | Export that report as CSV; audited with the row count (Batch 730). Requires the view capability. | high | Roles with Batch Management | `labWorkflowReports/labWorkflowCsv.ts` |
+| `report:batch-duration:view` | View the Lab Workflow report: Decal and Staining batch duration against target (Batch 730, spec §9). | standard | Roles with Batch Management | `labWorkflowReports/labWorkflowReportService.ts` |
+| `report:batch-duration:export` | Export that report as CSV; audited with the row count (Batch 730). Requires the view capability. | high | Roles with Batch Management | `labWorkflowReports/labWorkflowCsv.ts` |
+| `material:end-state:record` | Record a block's or slide's end state by hand (exhausted, returned to storage, archived, sent out, consumed for testing, discarded), with a reason (Batch 731, spec §10.5). The system's own records (disposal, a completed referral, a confirmed exhaustion) ride on the permission of the action that makes them. | high | Roles with the Microtome or Slide Distribution screen | `itemEndStates/mockItemEndStateService.ts` |
+| `material:reembed:request` | Ask for an exhausted block's remnant or wet tissue to be re-embedded, from the Add-On Order builder or in answer to a "Block exhausted" flag; the order waits until it is done (Batch 731, spec §10.6). | high | Pathologist, Fellow, Resident | `addOnOrders/addOnOrderActions.ts` |
+| `material:reembed:complete` | Mark an exhausted block re-embedded at the Embedding Station, releasing the orders waiting for it (Batch 731). | high | Roles with the Embedding screen | `addOnOrders/addOnOrderActions.ts` |
+| `cytology:cell-block:hand-off` | Hand a cell block off to histology at the Cytology Preparation bench after scanning its source and its cassette (Batch 740). | high | Roles with the Cytology Preparation screen | `cytology/cellBlockHandoff.ts` |
+| `material:specimen:divide` | Divide a specimen into aliquots with the starting volume and each aliquot's volume and destination (Batch 741). | high | Roles with the Grossing or Cytology Preparation screen | `material/specimenDivision.ts` |
+| `material:aliquot-status:update` | Move an aliquot to Sent, Received or Result back (with the receiving accession) (Batch 741). | standard | Roles with the Cytology Preparation or Batch Management screen | `material/specimenDivision.ts` |
+| `config:research-cases:manage` | Set how research cases are recognised (accession and research-patient MRN prefixes), the no-charge financial class, and how long their material is kept (Batch 728, Lab Workflow spec Decision 4). | high | Admin, Lab Director | `researchCases/researchCaseSettings.ts` |
+| `config:batch-purposes:manage` | Switch built-in batch purposes on or off and add the lab's own (Batch 728, Decision 4a). | high | Admin, Lab Director | `batches/batchPurposes.ts` |
 | `case:follow-up:expect` | Mark a signed-out surgical case "follow-up specimen expected" (Batch 454). | standard | Pathologist, Fellow | `followUp/followUpActions.ts` |
 | `case:edit-conflict:override` | Overwrite on the Edit Conflict dialog: save this session's changes over a newer version someone else saved (Batch 458, PS-71). | high | Pathologist, Admin, Lab Director | `cases/caseWrite.ts` |
 | `case:inking-gate:override` | Administrative Override of the Structured Inking sign-out gate (Gate B) for a Severity 3 issue, with a mandatory reason (Batch 484, PS-519). | high | Admin, Lab Director | `grossing/recordInkingGateOverride.ts` |
 | `report:organ-map:insert` | Insert the anatomical map (drawn from the synoptic answers) into the report as a snapshot, insert it again, or remove it; refused once the report is signed out (Batch 461). | standard | Pathologist, Fellow, Resident | `organMapping/organMapFigures.ts` |
-| `report:case-images:attach` | Link images (gross photographs, microphotographs; an https link, never a stored file) to a case's report on the Attach images screen, or unlink them. They print after the report's own pages in the surgical and cytology PDFs; a report already signed out is not changed (Batch 609, PS-44). | standard | Every case-access role; hospital roles with case access | `imageAssociation/caseReportImages.ts` |
+| `report:case-images:attach` | Place photos, files and links in a case's report from the Attachments window, or take them out (Batch 609, PS-44; Batch 742). In the surgical report an image prints inside the section chosen, a PDF is named there and its pages follow the report; in the cytology report images print after its pages. Since Batch 742 a signed report (pending release or finalized) takes or loses a placement only while an amendment or addendum is in draft. | standard | Every case-access role; hospital roles with case access | `imageAssociation/caseReportImages.ts` |
+| `case:attachment:upload` | Attach External File: a PDF, JPG or PNG sent to the hospital's own storage through the storage adapter; PathScribe keeps only the pointer it hands back (Batch 742; `CASE_ATTACHMENTS_API.md`). | standard | Every case-access role; hospital roles with case access | `caseAttachments/caseAttachments.ts` |
+| `case:attachment:link` | Attach an https link into a hospital system to a case (Batch 742). | standard | Every case-access role; hospital roles with case access | `caseAttachments/caseAttachments.ts` |
+| `case:attachment:unlink` | Remove an attachment from a case: unlinks only, the stored file is never deleted; refused while it is placed in the report (Batch 742). | standard | Every case-access role; hospital roles with case access | `caseAttachments/caseAttachments.ts` |
 | `report:related-cases:attach` | Choose a patient's other released cases to send with the report being signed out, and take them off before sign-out. The chosen cases are fixed when the report is signed out and travel with it in print, PDF and outbound results; a later amendment of a chosen case raises a flag and does not change the signed report (Batch 613). | standard | Pathologist, Fellow | `relatedCases/relatedCaseAttachments.ts` |
 | `patient:summary:print` | Print a Patient summary of a patient's released cases that the user may already see, from the patient history. Labelled a summary, not a signed report; every print is audited with counts only (Batch 613). | high | Every case-access role; hospital roles with case access | `relatedCases/patientSummary.ts` |
 | `ai:history-extraction:run` | Run the AI extraction on a historical report: the AI reads its Final Diagnosis and Microscopic text and the synoptic fields it finds are kept beside the case, labelled not verified. Advisory only; audited (`HISTORY_EXTRACTION_RUN`, no patient text) (Batch 621). | high | Pathologist, Fellow, Resident | `historyExtraction/runHistoryExtraction.ts`, `historyExtraction/mockHistoryExtractionService.ts` `save` |
@@ -628,7 +664,8 @@ code.
 | `screen:tumor-board:open` | Open Tumor Board. | standard | Pathologist, Fellow, Resident, PA; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:batch-management:open` | Open Batch Management. | standard | Histotechnologist, Cytotechnologist, Molecular Technologist, Admin; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:cytology-workspace:open` | Open Cytology Workspace. | standard | Pathologist, Fellow, Resident, Cytotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
-| `screen:microtomy:open` | Open Microtomy Workspace. | standard | Histotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
+| `screen:microtomy:open` | Open Microtome Workspace. | standard | Histotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
+| `screen:cytology-prep:open` | Open the Cytology Preparation bench (Batch 740). | standard | Histotechnologist, Cytotechnologist | `screens/screenAccess.ts` |
 | `screen:grossing:open` | Open Grossing Workspace. | standard | PA, Pathologist, Fellow, Resident; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:embedding:open` | Open Embedding Workspace. | standard | PA, Histotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
 | `screen:slide-distribution:open` | Open Slide Distribution Workspace. | standard | Histotechnologist; hospital roles with case access | `screens/screenAccess.ts` |
@@ -665,6 +702,8 @@ One row per write the browser's mock services do today. The endpoint that replac
 | `assetLocation/mockAssetLocationDictionaryService.ts` | add, update, verify, deactivate | `config:asset-locations:manage` |
 | `coldChain/mockStorageUnitService.ts` | add, update, deactivate | `config:cold-chain:manage` |
 | `coldChain/mockStorageConditionTypeService.ts` | add, update, deactivate, reactivate, remove | `config:cold-chain:manage` |
+| `researchCases/researchCaseSettings.ts` | saveResearchCaseSettings | `config:research-cases:manage` |
+| `batches/batchPurposes.ts` | saveBatchPurposes | `config:batch-purposes:manage` |
 | `assistPolling/mockAssistPollingService.ts` | saveSettings | `config:assist-polling:manage` |
 | `billing/mockBillingRuleService.ts` | approveVersion, rejectVersion | `config:billing-tables:approve` |
 | `billing/mockBillingRuleService.ts` | createVersion, submitForApproval, retireVersion | `config:billing-rules:manage` |
@@ -739,6 +778,7 @@ One row per write the browser's mock services do today. The endpoint that replac
 | `flags/mockFlagService.ts` | add, update, deactivate, reactivate | `config:case-flags:manage` |
 | `grossingHardware/mockGrossingHardwareProfileService.ts` | create, update | `config:grossing-hardware:manage` |
 | `grossingRoutingOverrides/mockGrossingRoutingOverrideService.ts` | add, update, remove | `config:grossing-routes:manage` |
+| `hardwareContainers/mockHardwareContainerRegistryService.ts` | update (Batch 737: a rack's large-format and smart-container settings) | `config:equipment:manage` |
 | `imageAssociation/mockGrossImagingVendorService.ts` | add, update, deactivate, reactivate, remove | `config:vendor-integrations:manage` |
 | `imageAssociation/mockImageManagementSystemVendorService.ts` | add, update, deactivate, reactivate, remove | `config:vendor-integrations:manage` |
 | `inkColors/mockInkColorService.ts` | create, update, deactivate, reactivate | `config:ink-color:manage` |
@@ -752,6 +792,7 @@ One row per write the browser's mock services do today. The endpoint that replac
 | `printSettings/mockFacilityPrintSettingsService.ts` | create, update, remove | `config:print-settings:manage` |
 | `printSettings/mockPrintSettingsService.ts` | update, reset | `config:print-settings:manage` |
 | `facilities/mockFacilityService.ts` | setPrintSettings (Batch 517; add and update never change report printing) | `config:print-settings:manage` |
+| `facilities/mockFacilityService.ts` | setDirectDevicePrinting (Batch 734) | `config:direct-device-printing:manage` |
 | `secureMessaging/mockSecureMessagingConfigService.ts` | save | `config:secure-messaging:manage` |
 | `printerProfiles/mockPrinterProfileService.ts` | add, update, remove | `config:printers:manage` |
 | `protocols/mockProtocolService.ts` | add, update, restoreVersion | `config:processing-protocols:manage` |
@@ -838,7 +879,7 @@ for a billing-office approval, set per enterprise with facility overrides.
 | Action | Service (mock) | Check |
 |---|---|---|
 | Correct billing for a case: change a CPT code or modifier, reverse a charge, add a missing charge (credit and rebill; reason and comment required; one audit entry; resolves the billing deficiency it came from, or records a resolved `POST_SIGNOUT_CORRECTION` one) | `billing/billingCorrection.ts` `applyBillingCorrection` (the report page's own code change goes through it too, via `correctServiceCharge.ts`) | `billing:applied-code:correct` for the case |
-| Review a case's billing codes from the billing panel (report page, Cytology Workspace, Microtomy full review): approve, decline, override, add, delete; each change charges, credits or is audited | `billing/caseBillingCharges.ts` (`recordCaseCharge`, `recordCaseCredit`), with the coding changes in `billing/caseBillingCoding.ts` | `billing:applied-code:review` for the case |
+| Review a case's billing codes from the billing panel (report page, Cytology Workspace, Microtome full review): approve, decline, override, add, delete; each change charges, credits or is audited | `billing/caseBillingCharges.ts` (`recordCaseCharge`, `recordCaseCredit`), with the coding changes in `billing/caseBillingCoding.ts` | `billing:applied-code:review` for the case |
 | Approve, reject (reason required), hold, release a charge awaiting approval | `billing/chargeApproval.ts` `decideCharge` | `billing:charge:approve` for the charge's performing lab (nobody holds it by default); the person who drafted the charge can't approve or reject it |
 | Whether a facility's charges wait for approval | `Facility.requireBillingApproval` (enterprise on/off; a lab unset follows its enterprise) | saving a facility (`config:facilities:manage`) |
 
@@ -897,7 +938,8 @@ Server notes:
 | Overwrite a newer version after an edit conflict | `cases/caseWrite.ts` `overwriteAfterConflict` | `case:edit-conflict:override` |
 | Record a follow-up's outcome (closes it) / reopen it | `followUp/followUpActions.ts` `recordFollowUpDisposition` / `reopenFollowUp` | `qa:follow-up:record` |
 | Email the ordering clinician about a follow-up (reviewed, then sent) | `followUp/followUpClinicianEmail.ts` `emailOrderingClinician` | `qa:follow-up-clinician:email` |
-| Add, edit, deactivate or reactivate a revision reason, including its "clinically significant" switch | `reasons/mockReasonDictionaryService.ts` (via `guardConfigWrites`) | `config:revision-reasons:manage` |
+| Add, edit, deactivate or reactivate a revision reason, including its "clinically significant" switch | `reasons/mockReasonDictionaryService.ts` (`permitReasonChange`, by category; Batch 736) | `config:revision-reasons:manage` |
+| Add, reword, reorder, retire or restore a bench reason (categories `BENCH_*`) | `reasons/mockReasonDictionaryService.ts` (`permitReasonChange`, by category; Batch 736) | `config:bench-reasons:manage` |
 
 Server notes:
 

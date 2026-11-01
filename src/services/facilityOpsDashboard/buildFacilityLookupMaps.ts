@@ -9,6 +9,8 @@
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { scanStationService as mockScanStationService } from '@/services/scanStations/scanStationServiceInstance';
 import type { PathologyCase } from '@/services/cases/ICaseService';
+import { facilityService } from '@/services/facilities/facilityServiceInstance';
+import { caseFacilityId } from './caseFacility';
 
 export interface FacilityLookupMaps {
   accessionToFacilityId: Map<string, string>;
@@ -17,21 +19,27 @@ export interface FacilityLookupMaps {
    *  function that also needs case-level data (priority, specimens)
    *  reuses, rather than a second, separate fetch. */
   casesById: Map<string, PathologyCase>;
+  /** Batch 747: Case.id → the facility id it belongs to (a legacy tenant id resolved, caseFacility.ts). */
+  caseFacilityById: Map<string, string>;
 }
 
 export async function buildFacilityLookupMaps(): Promise<FacilityLookupMaps> {
-  const [casesRes, stationsRes] = await Promise.all([
+  const [casesRes, stationsRes, facilitiesRes] = await Promise.all([
     caseRouter.getAll(undefined, { bypassAccessControl: true, includeOrchestration: true }),
     mockScanStationService.getAll(),
+    facilityService.getAll(),
   ]);
+  const facilities = facilitiesRes.ok ? facilitiesRes.data : [];
 
   const accessionToFacilityId = new Map<string, string>();
   const casesById = new Map<string, PathologyCase>();
+  const caseFacilityById = new Map<string, string>();
   if (casesRes.ok) {
     for (const c of casesRes.data) {
       casesById.set(c.id, c);
       const fullAccession = c.accession?.fullAccession ?? c.id;
-      if (c.originHospitalId) accessionToFacilityId.set(fullAccession, c.originHospitalId);
+      const facilityId = caseFacilityId(c.originHospitalId, facilities);
+      if (facilityId) { accessionToFacilityId.set(fullAccession, facilityId); caseFacilityById.set(c.id, facilityId); }
     }
   }
 
@@ -40,5 +48,5 @@ export async function buildFacilityLookupMaps(): Promise<FacilityLookupMaps> {
     for (const s of stationsRes.data) stationToFacilityId.set(s.id, s.facilityId);
   }
 
-  return { accessionToFacilityId, stationToFacilityId, casesById };
+  return { accessionToFacilityId, stationToFacilityId, casesById, caseFacilityById };
 }

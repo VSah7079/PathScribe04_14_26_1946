@@ -1,3 +1,7 @@
+**Batch 735:** the shared `StationScanField`; the reprint window is a dialog; in the station touch layout.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # pages/SlideDistributionStationPage/
 
 **NEW (Sep 2026)** — PS-286, third of the PS-284→285→286→287→288 workstation-build sequence. A dedicated, bench-facing surface for the post-staining distribution tech: continuously scan finished, physical slides and route each one either to a pathologist (physical checkout — pathologist/pool assignment, slide folder/tray/courier tracking) or a digital scanner (WSI ingestion — instrument + rack/slot mapping), with split-destination warnings and a scan exception log. Genuinely different shape from `MicrotomyWorkstationPage/`/`EmbeddingStationPage/`: those are single-work-item benches; this one is a real continuous-scan **queue** — see `hooks/useSlideDistributionStation.ts`'s own header comment for the full reasoning.
@@ -49,7 +53,7 @@ The page follows the organisation's Field Requirements (page "slideDistribution"
 - **Physical checkout:** pathologist or pool, slide folder, tray and courier bag are switches, off by default. A checkout still always needs one of them; when none is filled, "Still required" says "a pathologist, pool or location" (before, the button was simply off).
 - **Scanner routing:** the scanner instrument is locked (as before); rack and slot are switches.
 - **Exceptions:** a new optional note beside the one-touch reasons, saved on the chain-of-custody record. An organisation can require it; the reason buttons then wait for it.
-- **Label reprint:** now needs a reason (Pete, locked), as at Microtomy and Embedding: `components/SlideLabelReprintModal.tsx` (Damaged label, Unreadable barcode, Smudged print, Other). Before, the button printed straight away with no reason. The reason goes on the chain-of-custody line.
+- **Label reprint:** now needs a reason (Pete, locked), as at the Microtome and Embedding: `components/SlideLabelReprintModal.tsx` (Damaged label, Unreadable barcode, Smudged print, Other). Before, the button printed straight away with no reason. The reason goes on the chain-of-custody line.
 - Required labels are starred, "Still required: …" says what is missing, and each button stays off until complete. `hooks/useSlideDistributionStation.ts` checks the same rules, reads the scan station through `@/services` (off the deployment baseline), and returns locale keys instead of English messages.
 - **Voice:** the page sets `VOICE_CONTEXT.SLIDE_DISTRIBUTION`: "confirm checkout" (`SLIDE_DIST_CONFIRM_PHYSICAL`, Ctrl+Alt+Shift+P) and "confirm scanner" (`SLIDE_DIST_CONFIRM_DIGITAL`, Ctrl+Alt+Shift+D), each acting only for the destination on screen.
 - **Translated:** routing status, priority, the split warning, the doctor's title, the example placeholders, the scan and printer errors; times use the user's locale (`formatTime`). The chain-of-custody lines themselves stay English (a traceability record).
@@ -65,7 +69,7 @@ The page follows the organisation's Field Requirements (page "slideDistribution"
 
 ## Batch 460
 
-`useSlideDistributionStation.ts` finds a scanned slide by its printed level (`services/material/slideLevels.ts`), not its position, so a slide Microtomy reordered is queued correctly.
+`useSlideDistributionStation.ts` finds a scanned slide by its printed level (`services/material/slideLevels.ts`), not its position, so a slide Microtome reordered is queued correctly.
 
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
@@ -77,4 +81,20 @@ Every change (checkout, scanner routing, exception flag/resolve, label-reprint r
 
 ## Batch 669 (ws-14)
 
-**Trigger Replacement Label** now passes the configured slide label layout to the printer (`getPrinterContext` returns it, as on the Microtomy workstation; the default layout if the settings cannot be read). Before, the call left it out and `printSlideLabel` looked it up itself, so the label was usually right but the screen did not control it. Test: `hooks/useSlideDistributionStation.test.tsx`.
+**Trigger Replacement Label** now passes the configured slide label layout to the printer (`getPrinterContext` returns it, as on the Microtome workstation; the default layout if the settings cannot be read). Before, the call left it out and `printSlideLabel` looked it up itself, so the label was usually right but the screen did not control it. Test: `hooks/useSlideDistributionStation.test.tsx`.
+
+## Batch 726
+
+The **Carriers at this station** card for Checkout and External Referral carriers: a staining rack moves here from Staining when scanned; slide scans are checked off against it.
+
+## Batch 729
+
+- `hooks/useSlideDistributionStation.ts`: matrix block and matrix slide scans queue the matrix block's slides (saved on `Case.matrixBlocks`); a slide sent on records `completed`. Page: the scan history.
+
+## Batch 731
+
+- Batch 731: the active slide's block warning (`ExhaustedBlockBanner`) and the slide's end state (`ItemEndStatePanel`, `endStateItemFor`); the "completed" scan event carries the slide's block as `parentItemId`.
+
+## Batch 732
+
+- Batch 732: `BlockPieceMapPanel` for the active slide (`pieceViewFor`); a large-format slide goes only to a scanner marked for large-format slides.

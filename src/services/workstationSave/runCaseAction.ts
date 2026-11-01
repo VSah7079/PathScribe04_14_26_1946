@@ -1,7 +1,7 @@
 // src/services/workstationSave/runCaseAction.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Batch 669 (findings ws-8 / ws-11): the one way the bench workstations (Embedding, Slide Distribution, Add-On
-// Orders) save a change to a case. Extracted from the pattern the Microtomy workstation already followed
+// Orders) save a change to a case. Extracted from the pattern the Microtome workstation already followed
 // (Batch 460, PS-71): the change is re-applied to the newest copy of the case when someone else saved first, up to
 // 3 tries (updateCaseWithRetry's rule), and a save that still fails is REPORTED, never shown as saved: the caller
 // is told 'failed' with a reason ('conflict' or 'notApplied') and the stored case as it is now, so the screen can
@@ -14,6 +14,7 @@
 //                                         `current` it is given, and may run more than once before its save).
 //   saveSpecimenChange(caseId, derive, deps)   the common case: `derive(current)` returns the full specimen list to
 //                                         save, or null when there is nothing (left) to do.
+//   saveCaseChange(caseId, derive, deps)  the same for other case fields (Batch 729: a matrix block's Case.matrixBlocks).
 //   saveFailedKey(reason)                 the locale key of the "Not saved" message (workstationSave.*).
 //
 // Work an action does AFTER its save (an e-mail, a follow-up order) is not re-run by a retry, and an error thrown
@@ -43,10 +44,11 @@ export type CaseActionOutcome<R> =
 /** `saveSpecimenChange`: saved, or failed (a change that no longer applies counts as failed). */
 export type SaveChangeOutcome = Exclude<CaseActionOutcome<boolean>, { status: 'unchanged' }>;
 
-/** The result of a pure specimen operation (Embedding, Microtomy and Slide Distribution operations all fit). */
+/** The result of a pure specimen operation (Embedding, Microtome and Slide Distribution operations all fit). */
 export type SpecimenOpResult = { ok: true; specimen: Specimen } | { ok: false };
 
-export type SpecimenSaver = (specimens: Specimen[]) => Promise<void>;
+/** Batch 737: `extra` saves a changed matrix block list in the same write (an add-on order on a matrix block). */
+export type SpecimenSaver = (specimens: Specimen[], extra?: Pick<Partial<Case>, 'matrixBlocks'>) => Promise<void>;
 
 export async function runCaseAction<R>(
   caseId: string,
@@ -61,14 +63,14 @@ export async function runCaseAction<R>(
     if (!current) break;
     const version = caseVersionOf(current);
     let savedCase: Case | undefined;
-    const save: SpecimenSaver = async specimens => {
+    const save: SpecimenSaver = async (specimens, extra) => {
       try {
-        await deps.updateCase(caseId, { specimens }, version);
+        await deps.updateCase(caseId, { specimens, ...(extra ?? {}) }, version);
       } catch (e) {
         if (e instanceof ConcurrencyConflictError) throw new SpecimenSaveConflict();
         throw e;
       }
-      savedCase = { ...current, specimens, version: version + 1 } as Case;
+      savedCase = { ...current, specimens, ...(extra ?? {}), version: version + 1 } as Case;
     };
     try {
       const value = await action(current, save);
@@ -103,6 +105,37 @@ export async function saveSpecimenChange(
     return { status: 'failed', reason: 'conflict', latest: latest ?? null };
   }
   return outcome;
+}
+
+/** Batch 729: the same as saveSpecimenChange for a change to other case fields (a matrix block lives in
+ *  Case.matrixBlocks, not under a specimen). `derive(current)` returns the fields to save, or null when the change
+ *  no longer applies (reported as 'conflict', like saveSpecimenChange). Retried on a version conflict. */
+export async function saveCaseChange(
+  caseId: string,
+  derive: (current: Case) => Partial<Case> | null,
+  deps: CaseWriteDeps,
+  maxAttempts: number = CASE_WRITE_MAX_ATTEMPTS,
+): Promise<SaveChangeOutcome> {
+  let reason: WorkstationSaveFailure = 'notApplied';
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let current: Case | null | undefined;
+    try { current = await deps.getCase(caseId); } catch { current = null; }
+    if (!current) break;
+    const updates = derive(current);
+    if (!updates) return { status: 'failed', reason: 'conflict', latest: current };
+    const version = caseVersionOf(current);
+    try {
+      await deps.updateCase(caseId, updates, version);
+      return { status: 'saved', value: true, caseData: { ...current, ...updates, version: version + 1 } as Case };
+    } catch (e) {
+      if (e instanceof ConcurrencyConflictError) { reason = 'conflict'; continue; }
+      console.error('[workstationSave] Failed to save:', e);
+      reason = 'notApplied';
+      break;
+    }
+  }
+  const latest = await Promise.resolve(deps.getCase(caseId)).catch(() => null);
+  return { status: 'failed', reason, latest: latest ?? null };
 }
 
 /** The locale key of the "Not saved" message for a failure. */

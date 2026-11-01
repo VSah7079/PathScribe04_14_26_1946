@@ -19,6 +19,9 @@ import type { ResolvedFieldRequirement } from '@/services/fieldRequirements/fiel
 import type { CapabilityKey } from '@/services/authorization/capabilityCatalog';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { formatList } from '@/utils/formatList';
+import { QuickReasonPicks } from '@/components/Common/QuickReasonPicks';
+import { useBenchReasons } from '@/hooks/useBenchReasons';
+import { BATCH_REASON_CATEGORY, EMPTY_BENCH_REASON, benchReasonCode, type BenchReasonChoice } from '@/services/reasons/benchReasons';
 
 export interface BatchReasonModalProps {
   title: string;
@@ -32,7 +35,8 @@ export interface BatchReasonModalProps {
   requirements: readonly ResolvedFieldRequirement[];
   capability: CapabilityKey;
   busy: boolean;
-  onConfirm: (reason: string) => void;
+  /** Batch 736: the reason text (picked reason and/or note) and the picked reason's code. */
+  onConfirm: (reason: string, reasonCode?: string) => void;
   onCancel: () => void;
 }
 
@@ -40,19 +44,24 @@ const BatchReasonModal: React.FC<BatchReasonModalProps> = ({
   title, text, label, placeholder, confirmLabel, fieldId, missing, requirements, capability, busy, onConfirm, onCancel,
 }) => {
   const { t, i18n } = useTranslation();
-  const [reason, setReason] = useState('');
+  const category = BATCH_REASON_CATEGORY[fieldId];
+  const reasons = useBenchReasons(category);
+  const [choice, setChoice] = useState<BenchReasonChoice>(EMPTY_BENCH_REASON);
+  const reason = reasons.textOf(choice);
   const stillMissing = missing(reason, requirements);
   const id = `batch-reason-${fieldId}`;
 
   return (
     <div className="ps-overlay ps-batch-overlay" onClick={onCancel}>
-      <div className="ps-modal-dark ps-batch-confirm-modal" onClick={e => e.stopPropagation()}>
+      <div className="ps-modal-dark ps-batch-confirm-modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         <div className="ps-batch-modal-title">{title}</div>
         <p className="ps-batch-confirm-text">{text}</p>
         <label className="ps-batch-field-label" htmlFor={id}>
           {label}{batchFieldRequired(requirements, fieldId) && <span className="ps-conf-required"> *</span>}
         </label>
-        <textarea id={id} className="ps-batch-textarea" placeholder={placeholder} value={reason} onChange={e => setReason(e.target.value)} />
+        {/* Touch spec T3; Batch 736: the lab's reasons (Reason Dictionary), one tap; the box is an optional note. */}
+        <QuickReasonPicks category={category} options={reasons.options} value={choice} onChange={setChoice} disabled={busy} />
+        <textarea id={id} className="ps-batch-textarea" placeholder={placeholder} value={choice.note} onChange={e => setChoice(c => ({ ...c, note: e.target.value }))} />
         {stillMissing.length > 0 && (
           <p className="ps-field-still-required" role="status">
             {t('fieldRequirements.stillRequired', { fields: formatList(stillMissing.map(f => t(`fieldRequirements.fields.batchManagement.${f}`)), i18n.language) })}
@@ -60,7 +69,7 @@ const BatchReasonModal: React.FC<BatchReasonModalProps> = ({
         )}
         <div className="ps-batch-modal-footer">
           <button className="ps-btn-secondary" onClick={onCancel}>{t('batchDetail.cancel')}</button>
-          <CapabilityButton capability={capability} className="ps-batch-danger-btn" disabled={busy || stillMissing.length > 0} onClick={() => onConfirm(reason.trim())}>
+          <CapabilityButton capability={capability} className="ps-batch-danger-btn" disabled={busy || stillMissing.length > 0} onClick={() => onConfirm(reason.trim(), benchReasonCode(choice))}>
             {confirmLabel}
           </CapabilityButton>
         </div>

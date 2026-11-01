@@ -29,10 +29,12 @@ export const SURGICAL_REPORT_LABEL_KEYS = [
   'relatedCaseDiagnosis', 'relatedCaseSignedBy', 'relatedCaseOrdering', 'relatedCaseCopyTo', 'relatedCaseClient',
   // Batch 618 (PS-336): the technical lab of a split case.
   'technicalComponentAt',
+  // Batch 742: images and documents placed in report sections.
+  'imagesTitle', 'imageUnavailable', 'documentAttached', 'documentAttachedNoCaption',
 ] as const;
 export type SurgicalReportLabels = Record<typeof SURGICAL_REPORT_LABEL_KEYS[number], string>;
 
-const RENDERER_PLACEHOLDERS = { name: '{{name}}', original: '{{original}}', latest: '{{latest}}', accession: '{{accession}}', version: '{{version}}', facility: '{{facility}}' };
+const RENDERER_PLACEHOLDERS = { name: '{{name}}', original: '{{original}}', latest: '{{latest}}', accession: '{{accession}}', version: '{{version}}', facility: '{{facility}}', caption: '{{caption}}' };
 
 /** The labels for a report language; undefined before the app's i18n has started (the renderer then uses English). */
 export function surgicalReportLabelsFor(language: string | undefined): SurgicalReportLabels | undefined {

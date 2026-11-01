@@ -37,6 +37,8 @@ import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
 
 import { resolveBenchRouteForGroup } from '@/services/workstationGroups/resolveStationBenchRoute';
 import { useSelectableScanStations } from '@/hooks/useSelectableScanStations';
+import { useTouchLayout } from '@/hooks/useTouchLayout';
+import { TOUCH_LAYOUT_MODES } from '@/utils/touch/touchLayout';
 import { scanStationService, actionRegistryService, workstationGroupService, actionGroupService } from '@/services';
 
 
@@ -46,6 +48,8 @@ export function NavBarScanStation() {
   // Batch 713: only the Active stations this user may use (services/scanStations/stationsForUser.ts).
   const { stations, allStations, reload: loadStations } = useSelectableScanStations();
   const [open, setOpen] = useState(false);
+  // Touch spec §5 (Batch 735): this workstation's touch layout override lives with its station choice.
+  const touch = useTouchLayout();
   // PS-128 (Batch 437): through the unsaved-changes guard.
   const navigate = useGuardedNavigate();
   // Real fix, per PS-289's own comment thread — the one piece its own
@@ -174,6 +178,17 @@ export function NavBarScanStation() {
               {t('navBarScanStation.clearFixedStation')}
             </button>
           )}
+          <div className="ps-navbar-station-menu-title">{t('touchLayout.title')}</div>
+          <div className="ps-navbar-touch-choice" role="radiogroup" aria-label={t('touchLayout.title')}>
+            {TOUCH_LAYOUT_MODES.map(m => (
+              <button key={m} type="button" role="radio" aria-checked={touch.mode === m}
+                className={`ps-navbar-touch-choice-btn${touch.mode === m ? ' ps-navbar-touch-choice-btn--active' : ''}`}
+                onClick={() => touch.setMode(m)}>
+                {t(`touchLayout.modes.${m}`)}
+              </button>
+            ))}
+          </div>
+          <div className="ps-navbar-station-menu-title" role="status">{t(touch.active ? 'touchLayout.nowOn' : 'touchLayout.nowOff')}</div>
         </div>
       )}
     </div>

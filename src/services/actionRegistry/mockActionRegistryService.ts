@@ -3507,10 +3507,10 @@ const SEED_ACTIONS: SystemAction[] = [
     },
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
-  // Batch 388 (PS-359): the Microtomy workstation's comment drawer and slide grid.
+  // Batch 388 (PS-359): the Microtome workstation's comment drawer and slide grid.
   // Each acts exactly as its button does, checks included.
   {
-    id: 'MICROTOMY_ADD_COMMENT', label: 'Add Comment (Microtomy)', category: 'MICROTOMY',
+    id: 'MICROTOMY_ADD_COMMENT', label: 'Add Comment (Microtome)', category: 'MICROTOMY',
     shortcut: 'Ctrl+Alt+Shift+A', internalKey: ACTION_MAP['workstation.microtomyComment']?.internalKey ?? 'F26+PS016',
     voiceTriggers: ['add comment', 'save comment'],
     voiceTriggersByLanguage: {

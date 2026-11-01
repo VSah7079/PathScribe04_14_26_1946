@@ -34,8 +34,15 @@ import type { Batch } from '@/services/batches/IBatchService';
 import type { RecordMarginInkApplicationReasonCode } from '@/services/grossing/recordMarginInkApplication';
 import { useGrossingScreen } from './hooks/useGrossingScreen';
 import GrossingBenchTools from './GrossingBenchTools';
+import BlockPieceMapEditor from './components/BlockPieceMapEditor';
+import ScanTrailPanel from '@/components/Workstation/ScanTrailPanel';
+import WrongCaseScanBanner from '@/components/Workstation/WrongCaseScanBanner';
+import { useWrongCaseScanCheck } from '@/hooks/useWrongCaseScanCheck';
+import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
 import { GrossingMatrixBlocks } from './GrossingMatrixBlocks';
 import { LoadingState } from '@/components/Common/LoadingState';
+import DivideSpecimenPanel from '@/components/Material/DivideSpecimenPanel';
+import { useSpecimenDivision } from '@/hooks/useSpecimenDivision';
 
 function findPathwayForBlock(protocol: Protocol | undefined, block: HistologyBlock): ProtocolPathway | undefined {
   if (!protocol || !block.sourcePathwayName) return undefined;
@@ -61,7 +68,12 @@ const GrossingScreenPage: React.FC = () => {
   const { user } = useAuth();
 
   const [caseData, setCaseData] = useState<Case | null>(null);
+  // Batch 729 (spec §7.3): a scanned cassette, block or slide from another case is flagged here.
+  const { effectiveStationId: grossingStationId } = useEffectiveScanStation();
+  const wrongCase = useWrongCaseScanCheck(caseData?.accession?.fullAccession ?? caseData?.id, caseData?.id, { stationId: grossingStationId, userId: user?.id ?? '', userName: user?.name ?? user?.id ?? '' });
   const [isLoaded, setIsLoaded] = useState(false);
+  // Batch 741 (fluid decisions 2 and 3): Divide specimen and its aliquots' status.
+  const division = useSpecimenDivision(caseData, user?.name ?? user?.id ?? '', useCallback((c: Case) => { setCaseData(c); knownVersionRef.current = c.version ?? knownVersionRef.current; }, []));
   const [protocols, setProtocols] = useState<Protocol[]>([]);
   const [stainTypes, setStainTypes] = useState<StainType[]>([]);
   const [fovByDisplayId, setFovByDisplayId] = useState<Map<string, { masterBarcode: string; fovCount?: number }>>(new Map());
@@ -112,7 +124,7 @@ const GrossingScreenPage: React.FC = () => {
     completionReview,
     handleAddBlock, handleRemoveBlock, handleAddStain, handleRemoveStain,
     pendingStainRemoval, confirmPendingStainRemoval, cancelPendingStainRemoval,
-    handleUpdatePieceCount, handleUpdatePieceDescription, handleUpdateMatrixBlock, handleRecordFixationEnded, handleConfirmFixativeRatio,
+    handleUpdatePieceCount, handleUpdatePieceDescription, handleUpdateMatrixBlock, handleSetBlockPieceMap, handleRecordFixationEnded, handleConfirmFixativeRatio,
     handleRaiseFixationDeficiency, specimensWithOpenFixationDeficiency,
     handleRecordMarginInk,
     inkColors, inkingValidation, inkingValidationMode,
@@ -292,6 +304,10 @@ const GrossingScreenPage: React.FC = () => {
       <CaseClinicalHistoryBar caseData={caseData}
         onSaved={(clinicalHistory, version) => { knownVersionRef.current = version; setCaseData(prev => (prev ? { ...prev, order: { ...prev.order, clinicalHistory }, version } : prev)); }} />
 
+      <WrongCaseScanBanner flag={wrongCase.flag} onChoose={wrongCase.choose} />
+      {/* Batch 729 (spec §7.4): the case's station scan trail. */}
+      <ScanTrailPanel caseAccession={caseData.accession?.fullAccession ?? caseData.id} />
+
       {/* Batch 720: cassettes, photos, decal bench and add-on orders, as on the Material tab. */}
       <GrossingBenchTools caseData={caseData} setCaseData={setCaseData} signingUser={user} knownVersionRef={knownVersionRef} setConcurrencyConflict={setConcurrencyConflict} />
 
@@ -461,6 +477,9 @@ const GrossingScreenPage: React.FC = () => {
                         <td>
                           <input aria-label={t('a11y.fields.pieceDescription')} className="ps-grossing-piece-description-input" defaultValue={block.pieceDescription ?? ''}
                             onBlur={e => { if (e.target.value.trim() !== (block.pieceDescription ?? '')) void handleUpdatePieceDescription(sp.id, block.id, e.target.value); }} />
+                          {/* Batch 732 (spec §11.1, §11.2): the block's type and piece map. */}
+                          <BlockPieceMapEditor block={block} partLabels={(caseData.specimens ?? []).map(x => x.label)} defaultPart={sp.label}
+                            onSave={(type, pieces) => handleSetBlockPieceMap(sp.id, block.id, type, pieces)} />
                         </td>
                         <td>
                           <ul className="ps-grossing-stain-list">
@@ -517,6 +536,8 @@ const GrossingScreenPage: React.FC = () => {
                 </tbody>
               </table>
             )}
+
+            <DivideSpecimenPanel specimen={sp as never} suggestedPurposes={protocol?.divisionPurposes} busy={division.busy} message={division.message} onDivide={division.divide} onStatus={division.setStatus} />
 
             {decants.length > 0 && (
               <table className="ps-grossing-block-table">
@@ -685,7 +706,7 @@ const GrossingScreenPage: React.FC = () => {
 
       {pendingStainRemoval && (
         <div className="ps-overlay" onClick={cancelPendingStainRemoval}>
-          <div className="ps-modal-dark" onClick={e => e.stopPropagation()}>
+          <div className="ps-modal-dark" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <div className="ps-batch-modal-header">
               <div className="ps-batch-modal-title">{t(`grossingScreen.confirmRemoveStain.${pendingStainRemoval.origin}Title`)}</div>
             </div>
@@ -705,7 +726,7 @@ const GrossingScreenPage: React.FC = () => {
           Complete grossing — no bypass, ever. */}
       {showInkingGateBlock && (
         <div className="ps-overlay" onClick={cancelInkingGateBlock}>
-          <div className="ps-modal-dark" role="alertdialog" aria-labelledby="inking-gate-block-title" onClick={e => e.stopPropagation()}>
+          <div className="ps-modal-dark" aria-modal="true" role="alertdialog" aria-labelledby="inking-gate-block-title" onClick={e => e.stopPropagation()}>
             <div className="ps-batch-modal-header">
               <div id="inking-gate-block-title" className="ps-batch-modal-title">{t('inkingGate.grossingBlock.title')}</div>
             </div>
@@ -730,7 +751,7 @@ const GrossingScreenPage: React.FC = () => {
           never a hard block, and audited either way. */}
       {showInkingAdvisoryConfirm && (
         <div className="ps-overlay" onClick={cancelInkingAdvisory}>
-          <div className="ps-modal-dark" role="alertdialog" aria-labelledby="inking-gate-advisory-title" onClick={e => e.stopPropagation()}>
+          <div className="ps-modal-dark" aria-modal="true" role="alertdialog" aria-labelledby="inking-gate-advisory-title" onClick={e => e.stopPropagation()}>
             <div className="ps-batch-modal-header">
               <div id="inking-gate-advisory-title" className="ps-batch-modal-title">{t('inkingGate.advisoryConfirm.title')}</div>
             </div>
@@ -755,7 +776,7 @@ const GrossingScreenPage: React.FC = () => {
           of them for secondary review. */}
       {pendingProtocolConfirmation && (
         <div className="ps-overlay" onClick={cancelCompleteWithoutProtocol}>
-          <div className="ps-modal-dark" role="alertdialog" aria-labelledby="grossing-no-protocol-title" onClick={e => e.stopPropagation()}>
+          <div className="ps-modal-dark" aria-modal="true" role="alertdialog" aria-labelledby="grossing-no-protocol-title" onClick={e => e.stopPropagation()}>
             <div className="ps-batch-modal-header">
               <div id="grossing-no-protocol-title" className="ps-batch-modal-title">{t('grossingScreen.complete.withoutProtocol.title')}</div>
             </div>
@@ -775,7 +796,7 @@ const GrossingScreenPage: React.FC = () => {
 
       {concurrencyConflict && (
         <div className="ps-overlay">
-          <div className="ps-modal-dark">
+          <div className="ps-modal-dark" role="dialog" aria-modal="true">
             <div className="ps-batch-modal-body">{t('grossingScreen.concurrencyConflict')}</div>
             <div className="ps-batch-modal-footer">
               <button className="ps-btn-primary" onClick={() => window.location.reload()}>{t('grossingScreen.reload')}</button>

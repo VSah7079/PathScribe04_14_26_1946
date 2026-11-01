@@ -7,12 +7,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { patientIndexService } from '../patients/patientServicesInstance';
 import { auditService } from '../auditlog/auditServiceInstance';
+import { isResearchCaseNow } from '../researchCases/researchCaseSettings';
 
 export type DispatchPathway = 'Cytology' | 'Surgical';
 export type DispatchKind = 'final' | 'amended' | 'preliminary';
-export type DispatchSkipReason = 'no-patient-id' | 'patient-not-in-index';
+export type DispatchSkipReason = 'no-patient-id' | 'patient-not-in-index' | 'research-case';
 
-interface CaseLike { id?: string; patient?: { id?: string } | null }
+interface CaseLike { id?: string; patient?: { id?: string; mrn?: string } | null; accession?: { accessionPrefix?: string; fullAccession?: string; accessionNumber?: string } | null }
 
 export function dispatchSkipReason(patientId: string | undefined): DispatchSkipReason {
   return patientId ? 'patient-not-in-index' : 'no-patient-id';
@@ -20,6 +21,7 @@ export function dispatchSkipReason(patientId: string | undefined): DispatchSkipR
 
 /** Audit text is literal English (a compliance record, not UI). */
 export function dispatchSkipAuditDetail(pathway: DispatchPathway, kind: DispatchKind, reason: DispatchSkipReason): string {
+  if (reason === 'research-case') return `${pathway} ${kind} result message was not queued: this is a research case (Configuration > System > Research Cases). Research cases are never sent to the EHR as results.`;
   const why = reason === 'no-patient-id' ? 'the case has no patient id' : 'the patient is not in the patient index, so there is no organisation to queue the message against';
   return `${pathway} ${kind} result message was not queued: ${why}. Nothing was sent for this case until the patient is registered; a later release or retry will queue it.`;
 }
@@ -28,14 +30,26 @@ export function dispatchSkipEventName(pathway: DispatchPathway): string {
   return `${pathway.toUpperCase()}_DISPATCH_SKIPPED`;
 }
 
-/** The organisation id to queue against, or null (after recording why). */
+async function recordSkip(caseData: CaseLike, pathway: DispatchPathway, kind: DispatchKind, reason: DispatchSkipReason): Promise<void> {
+  await auditService.logEvent({
+    type: 'system', event: dispatchSkipEventName(pathway), detail: dispatchSkipAuditDetail(pathway, kind, reason),
+    user: 'system', caseId: caseData.id ?? '', confidence: null,
+  }).catch(() => undefined);
+}
+
+/** Batch 728 (Lab Workflow spec, Decision 4): true when the case is a research case, after recording that nothing was queued. */
+export async function skipResearchCaseDispatch(caseData: CaseLike, pathway: DispatchPathway, kind: DispatchKind): Promise<boolean> {
+  if (!isResearchCaseNow(caseData)) return false;
+  await recordSkip(caseData, pathway, kind, 'research-case');
+  return true;
+}
+
+/** The organisation id to queue against, or null (after recording why). Batch 728: null for a research case. */
 export async function resolveDispatchOrganisation(caseData: CaseLike, pathway: DispatchPathway, kind: DispatchKind): Promise<string | null> {
+  if (await skipResearchCaseDispatch(caseData, pathway, kind)) return null;
   const patientId = caseData.patient?.id;
   const record = patientId ? await patientIndexService.getById(patientId).catch(() => null) : null;
   if (record?.organisationId) return record.organisationId;
-  await auditService.logEvent({
-    type: 'system', event: dispatchSkipEventName(pathway), detail: dispatchSkipAuditDetail(pathway, kind, dispatchSkipReason(patientId)),
-    user: 'system', caseId: caseData.id ?? '', confidence: null,
-  }).catch(() => undefined);
+  await recordSkip(caseData, pathway, kind, dispatchSkipReason(patientId));
   return null;
 }

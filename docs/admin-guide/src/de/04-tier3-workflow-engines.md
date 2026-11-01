@@ -48,6 +48,7 @@ Richten Sie Stufe 3 in dieser Reihenfolge ein. Jeder Einrichtungsbildschirm enth
 29. [Beitragseinstellungen](#screen-contribution_settings): die Seite Mein Beitrag.
 30. [Feedback](#screen-feedback): die Schaltfläche für QS-Feedback.
 31. [Forschungs-Feed](#screen-research_feed): die PubMed-Schlagzeile auf der Startseite.
+32. [Arbeitsplatz-Gründe](#screen-bench_reasons): die antippbaren Gründe am Arbeitsplatz, in den Worten Ihres Labors.
 
 Referenzseiten, nicht Teil der Einrichtung: [Chargenverwaltung](#screen-batch-management), [Einbettungsstation](#screen-embedding-station), [Mikrotomie-Arbeitsplatz](#screen-microtomy-workstation), [Objektträger-Verteilstation](#screen-slide-distribution-station), [Startseite](#screen-home), [Lockbox-Einwurf](#screen-lockbox-drop-off), [Qualitätssicherung](#screen-quality-assurance), [Randausnahmen-Überprüfung](#screen-margin-exception-review) und [Zytologie-QK-Warteschlange](#screen-cytology-qc-queue).
 
@@ -995,6 +996,31 @@ Unlocks: Keine.
 
 **7. Berechtigungen.** Bildschirm öffnen: `screen:configuration:open`. Ändern: `config:revision-reasons:manage` (hohes Risiko; Admin und Laborleitung).
 **Bekannte Grenzen.** Im Produkt sind die Anfangswerte: Diagnose, Resektionsrand, Stadium und Umklassifizierung des Gewebes ein; Schreibkorrekturen aus (`revisionReasonRules.ts`). Der Dienst erlaubt das Hinzufügen, Bearbeiten, Deaktivieren und Reaktivieren von Gründen, aber dieser Bildschirm hat dafür keine Schaltfläche; das ist für Pete in `open-questions/ch4.md` aufgeführt. Vertrag: `docs/architecture/LAB_DICTIONARIES_API.md`.
+
+### Arbeitsplatz-Gründe {#screen-bench_reasons}
+Breadcrumb: Start > Konfiguration > System > Verwaltung und Compliance > Arbeitsplatz-Gründe
+
+**Status:** Umgesetzt (Batch 736)
+
+**1. Navigation:** Konfigurationsregister **System** > Gruppe **Verwaltung und Compliance**
+**2. Pflegeelement:** Arbeitsplatz-Gründe
+
+**3. Geschäftszweck und Umfang.** Die Gründe, die das Personal am Arbeitsplatz antippt statt zu tippen, in fünf Gruppen: Mikrotom (Block erschöpft); Nachbestellungen bei erschöpftem Block (Bestellung und Antwort des Pathologen, einschließlich Freigabe des destruktiven Schneidens); Charge abbrechen; Charge mit Abweichungen abschließen; Kühlkettenabweichung. Jedes Labor formuliert sie selbst. Ein Grund behält beim Umformulieren seinen **Code**; jeder Datensatz und jeder Prüfprotokolleintrag speichert den Code neben dem Text, sodass Berichte (Spalte **Grundcode** im Bericht der Abgleichsabweichungen) ihn vor und nach dem Umformulieren gleich zählen. Eine Notiz bleibt freiwillig.
+
+**4. Voraussetzungen und Abhängigkeiten.** Keine. Die Standardgründe werden in allen sechs Sprachen ausgeliefert.
+
+Setup step: Tier 3, step 32
+Requires: None.
+Unlocks: None.
+
+**5. Bildschirm.**
+
+[SCREENSHOT PLACEHOLDER: system-bench_reasons - Arbeitsplatz-Gründe in fünf Gruppen]
+
+**6. Felder.** Formulierung (mit **Umformulieren**; ein Standardgrund erscheint in der Sprache jedes Benutzers, ein umformulierter wie eingegeben), Code (schreibgeschützt, ändert sich nie), ↑ / ↓ (Reihenfolge), **Standardformulierung verwenden**, **Außer Gebrauch nehmen** / **Wiederherstellen**, **Grund hinzufügen**.
+
+**7. Berechtigungen.** Bildschirm öffnen: `screen:configuration:open`. Ändern: `config:bench-reasons:manage` (hohes Risiko; Admin und Laborleitung).
+**Bekannte Grenzen.** Eine Liste für die ganze Organisation; ein Standort kann noch keine eigene Formulierung haben.
 
 ### Tumorboard-Regeln für automatische Markierung {#screen-tumor_board_rules}
 Breadcrumb: Startseite > Konfiguration > System > Verwaltung & Compliance > Tumorboard-Regeln für automatische Markierung

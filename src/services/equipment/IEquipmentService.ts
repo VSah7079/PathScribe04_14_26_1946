@@ -25,7 +25,8 @@ export const EQUIPMENT_LINK_INVALID = 'equipmentLinkInvalid';
 
 /** Kinds of equipment. Stored values; labels come from equipmentKinds.<kind>. */
 export const EQUIPMENT_KINDS = [
-  'analyser', 'stainer', 'tissue_processor', 'slide_scanner', 'camera', 'scale', 'label_printer', 'engraver', 'storage_unit', 'other',
+  // Batch 739 (fluid decision 4): 'lbc_processor', a liquid-based cytology processor (ThinPrep, SurePath and others).
+  'analyser', 'stainer', 'tissue_processor', 'lbc_processor', 'slide_scanner', 'camera', 'scale', 'label_printer', 'engraver', 'storage_unit', 'other',
 ] as const;
 export type EquipmentKind = typeof EQUIPMENT_KINDS[number];
 
@@ -62,6 +63,12 @@ export interface Equipment {
   maintenanceIntervalDays?: number;
   /** Batch 360: how often it needs calibration, in days. Unset = not scheduled. */
   calibrationIntervalDays?: number;
+  /** Batch 730: the acceptable temperature range for a temperature check (a refrigerator, freezer, water bath, processor).
+   *  Either end may be unset. A check outside it is a Fail. */
+  temperatureMinCelsius?: number;
+  temperatureMaxCelsius?: number;
+  /** Batch 732 (spec §11.1): a stainer or slide scanner that takes large-format slides (megablock sections). */
+  supportsLargeFormat?: boolean;
   status: 'Active' | 'Inactive';
   /** Batch 406: an analyser's deck layout (its instrument profile). Racks
    *  loaded for it are placed in one of these slots; see

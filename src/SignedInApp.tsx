@@ -42,6 +42,8 @@ import { grossingLoader, synopticLoader } from "./loaders/synopticLoader";
 import { PageLoader } from './components/Common/PageLoader';
 import { ConnectionBanner } from './components/Connectivity/ConnectionBanner';
 import { ExportNotices } from './components/Exports/ExportNotices';
+// Touch spec T2 (Batch 735): the station screens' touch layout.
+import { TouchLayoutScope } from './components/Touch/TouchLayoutScope';
 
 
 
@@ -74,6 +76,7 @@ const RetentionHoldsQueuePage = lazy(() => import("./pages/BatchManagement/Reten
 const PendingBatchQueuePage = lazy(() => import("./pages/BatchManagement/PendingBatchQueuePage"));
 const EngraverMonitorPage = lazy(() => import("./pages/BatchManagement/EngraverMonitorPage"));
 const EquipmentServiceLogPage = lazy(() => import("./pages/BatchManagement/EquipmentServiceLogPage"));
+const LabWorkflowReportsPage = lazy(() => import("./pages/BatchManagement/LabWorkflowReportsPage"));
 const IntraopQueuePage = lazy(() => import("./pages/IntraopQueuePage"));
 const OrSuiteDashboardPage = lazy(() => import("./pages/OrSuiteDashboardPage"));
 const FacilityOpsDashboardPage = lazy(() => import("./pages/FacilityOpsDashboard/FacilityOpsDashboardPage"));
@@ -112,6 +115,8 @@ const GrossingWorkspacePage = lazy(() =>
 const GrossingScreenPage = lazy(() =>
   import("./pages/GrossingScreenPage/GrossingScreenPage")
 );
+// Batch 740 (fluid decision 1): the Cytology Preparation bench.
+const CytologyPrepStationPage = lazy(() => import("./pages/CytologyPrepStationPage/CytologyPrepStationPage"));
 const MicrotomyWorkstationPage = lazy(() =>
   import("./pages/MicrotomyWorkstationPage/MicrotomyWorkstationPage")
 );
@@ -197,7 +202,7 @@ const SignedInApp: React.FC = () => (
                           <Route path="/accession" element={<ScreenGate screen="accession"><AccessionPage /></ScreenGate>} />
                           <Route path="/worklist" element={<ScreenGate screen="worklist"><WorklistPage /></ScreenGate>} />
                           {/* "Homepage Changes part 1" — direct request: new second-level
-                              hub grouping Cytology Workspace, Microtomy Workspace, Embedding
+                              hub grouping Cytology Workspace, Microtome Workspace, Embedding
                               Workspace, and Slide Distribution Workspace behind one Home tile. */}
                           <Route path="/pathology-workspace" element={<ScreenGate screen="pathologyWorkspace"><PathologyWorkspacePage /></ScreenGate>} />
                           {/* Real, direct follow-up (Sep 2026) — Quality & Compliance hub
@@ -213,7 +218,7 @@ const SignedInApp: React.FC = () => (
                           <Route path="/molecular-control-rules" element={<ScreenGate screen="molecularControlRules"><MolecularControlRulesPage /></ScreenGate>} />
                           {MockInterfaceEnginePage && <Route path="/dev/mock-interface-engine" element={<ScreenGate screen="configuration"><MockInterfaceEnginePage /></ScreenGate>} />}
                           <Route path="/quality-assurance" element={<ScreenGate screen="qualityAssurance"><QualityAssurancePage /></ScreenGate>} />
-                          <Route path="/batch-management" element={<ScreenGate screen="batchManagement"><BatchManagementPage /></ScreenGate>} />
+                          <Route path="/batch-management" element={<ScreenGate screen="batchManagement"><TouchLayoutScope><BatchManagementPage /></TouchLayoutScope></ScreenGate>} />
                           <Route path="/batch-management/disposal" element={<ScreenGate screen="batchManagement"><DisposalQueuePage /></ScreenGate>} />
                           <Route path="/batch-management/disposal-report" element={<ScreenGate screen="batchManagement"><DisposalReportPage /></ScreenGate>} />
                           <Route path="/batch-management/retention-holds" element={<ScreenGate screen="batchManagement"><RetentionHoldsQueuePage /></ScreenGate>} />
@@ -223,11 +228,13 @@ const SignedInApp: React.FC = () => (
                           <Route path="/batch-management/label-reprint" element={<ScreenGate screen="batchManagement"><LabelReprintPage /></ScreenGate>} />
                           {/* Batch 429: the bench staff record equipment maintenance and calibration here. */}
                           <Route path="/batch-management/equipment-log" element={<ScreenGate screen="batchManagement"><EquipmentServiceLogPage /></ScreenGate>} />
-                          <Route path="/workstations/microtomy" element={<ScreenGate screen="microtomy"><MicrotomyWorkstationPage /></ScreenGate>} />
-                          <Route path="/workstations/grossing" element={<ScreenGate screen="grossing"><GrossingWorkspacePage /></ScreenGate>} />
-                          <Route path="/workstations/embedding" element={<ScreenGate screen="embedding"><EmbeddingStationPage /></ScreenGate>} />
-                          <Route path="/workstations/slide-distribution" element={<ScreenGate screen="slideDistribution"><SlideDistributionStationPage /></ScreenGate>} />
-                          <Route path="/add-on-orders" element={<ScreenGate screen="addOnOrders"><AddOnOrderPage /></ScreenGate>} />
+                          <Route path="/batch-management/workflow-reports" element={<ScreenGate screen="batchManagement"><LabWorkflowReportsPage /></ScreenGate>} />
+                          <Route path="/workstations/microtomy" element={<ScreenGate screen="microtomy"><TouchLayoutScope><MicrotomyWorkstationPage /></TouchLayoutScope></ScreenGate>} />
+                          <Route path="/workstations/cytology-prep" element={<ScreenGate screen="cytologyPrep"><TouchLayoutScope><CytologyPrepStationPage /></TouchLayoutScope></ScreenGate>} />
+                          <Route path="/workstations/grossing" element={<ScreenGate screen="grossing"><TouchLayoutScope><GrossingWorkspacePage /></TouchLayoutScope></ScreenGate>} />
+                          <Route path="/workstations/embedding" element={<ScreenGate screen="embedding"><TouchLayoutScope><EmbeddingStationPage /></TouchLayoutScope></ScreenGate>} />
+                          <Route path="/workstations/slide-distribution" element={<ScreenGate screen="slideDistribution"><TouchLayoutScope><SlideDistributionStationPage /></TouchLayoutScope></ScreenGate>} />
+                          <Route path="/add-on-orders" element={<ScreenGate screen="addOnOrders"><TouchLayoutScope><AddOnOrderPage /></TouchLayoutScope></ScreenGate>} />
                           <Route path="/intraop-queue" element={<ScreenGate screen="intraopQueue"><IntraopQueuePage /></ScreenGate>} />
                           <Route path="/molecular-order-queue" element={<ScreenGate screen="configuration"><MolecularOrderQueuePage /></ScreenGate>} />
                           {/* Batch 375: the two peer-review queues are views of the Worklist now; the old addresses land there. */}
@@ -275,7 +282,7 @@ const SignedInApp: React.FC = () => (
                           />
                           <Route
                             path="/case/:caseId/grossing"
-                            element={<GrossingScreenPage />}
+                            element={<TouchLayoutScope><GrossingScreenPage /></TouchLayoutScope>}
                             loader={grossingLoader}
                           />
                           <Route

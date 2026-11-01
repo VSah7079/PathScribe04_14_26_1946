@@ -14,7 +14,9 @@
 // organisation has recorded a named approver (see biFeedRules.ts).
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const BI_DATASET_IDS = ['cases', 'specimens', 'billing', 'qa', 'workload', 'audit'] as const;
+// Batch 730 (Lab Workflow & Batch spec §9.3): + station_events, batches, add_on_orders (the reporting data layer).
+// Batch 731 (spec §10.4, §10.5): + parent_item_key on station_events (lineage) and item_end_states.
+export const BI_DATASET_IDS = ['cases', 'specimens', 'billing', 'qa', 'workload', 'audit', 'station_events', 'batches', 'add_on_orders', 'item_end_states'] as const;
 export type BiDatasetId = typeof BI_DATASET_IDS[number];
 
 export type BiFieldType = 'text' | 'number' | 'date' | 'datetime' | 'boolean' | 'code';
@@ -77,6 +79,46 @@ export const BI_DATASETS: readonly BiDataset[] = [
     fields: [
       f('period_date', 'date'), f('facility_id', 'code'), f('event_type', 'code'),
       f('allowed_count', 'number'), f('denied_count', 'number'), f('high_risk_count', 'number'),
+    ],
+  },
+  // Batch 730: the station scan log (STATION_TRACKING_API.md). Item ids carry the accession, so they are removed in
+  // the de-identified feed; case_key joins to `cases`. from_carrier marks a carrier-wide event (§10.3). Timestamps
+  // are generalised to the month when de-identified (dates of service identify), so the turnaround measures use
+  // minutes_since_accession, which is kept.
+  {
+    id: 'station_events', identifiable: true,
+    fields: [
+      f('event_key', 'code'), f('event_at', 'datetime', 'generalised'), f('minutes_since_accession', 'number'), f('event_date_offset_days', 'number'), f('item_id', 'text', 'removed'), f('item_key', 'code'), f('material_type', 'code'),
+      f('case_key', 'code'), f('carrier_id', 'code'), f('batch_key', 'code'), f('station_id', 'code'), f('station_name', 'text'),
+      f('station_stage', 'code'), f('step', 'code'), f('facility_id', 'code'), f('user_id', 'code'), f('action', 'code'),
+      f('result', 'code'), f('from_carrier', 'boolean'), f('is_research', 'boolean'), f('parent_item_key', 'code'),
+    ],
+  },
+  {
+    id: 'item_end_states', identifiable: true,
+    fields: [
+      f('end_state_key', 'code'), f('item_id', 'text', 'removed'), f('item_key', 'code'), f('parent_item_key', 'code'), f('material_type', 'code'),
+      f('case_key', 'code'), f('state', 'code'), f('reason', 'text', 'removed'), f('source', 'code'), f('user_id', 'code'),
+      f('station_id', 'code'), f('recorded_at', 'datetime', 'generalised'), f('minutes_since_accession', 'number'), f('is_research', 'boolean'),
+    ],
+  },
+  {
+    id: 'batches', identifiable: false,
+    fields: [
+      f('batch_key', 'code'), f('carrier_id', 'code'), f('container_type', 'code'), f('purpose', 'code'), f('current_step', 'code'),
+      f('status', 'code'), f('priority', 'code'), f('created_at', 'datetime'), f('sealed_at', 'datetime'), f('completed_at', 'datetime'),
+      f('target_minutes', 'number'), f('item_count', 'number'), f('missing_count', 'number'), f('unexpected_count', 'number'),
+      f('override', 'boolean'), f('facility_id', 'code'), f('step_history', 'text'),
+    ],
+  },
+  {
+    id: 'add_on_orders', identifiable: true,
+    fields: [
+      f('order_key', 'code'), f('case_key', 'code'), f('block_id', 'text', 'removed'), f('order_type', 'code'), f('stain_name', 'text'),
+      f('priority', 'code'), f('ordered_at', 'datetime', 'generalised'), f('cut_at', 'datetime', 'generalised'), f('minutes_to_cut', 'number'), f('status', 'code'),
+      f('routed_queue', 'code'), f('performing_lab_id', 'code'), f('is_research', 'boolean'),
+      // Batch 732 (spec §11): the block type, slide size, levels on the slide and how many pieces it was ordered for.
+      f('block_type', 'code'), f('slide_size', 'code'), f('level_count', 'number'), f('piece_count', 'number'),
     ],
   },
 ];

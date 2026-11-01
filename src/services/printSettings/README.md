@@ -1,3 +1,7 @@
+**Batch 738:** the demo (`mockPrintSettingsService.ts`) starts with `DEMO_RESTRICTED_CIRCULATION_GTIN` (0299990000101, GS1 prefix 02, internal use only) so labels print; the product default (`DEFAULT_PRINT_SETTINGS_CONFIG.gs1Gtin`) stays empty.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # services/printSettings/
 
 Admin-configurable, lab-wide default print behavior for the
@@ -29,12 +33,12 @@ touched by Tier 2.
   documented defaults. `defaultPrintBehavior` defaults to
   `'on_demand'`, matching the researched patient-safety
   recommendation (print as each cassette is logged, not deferred to a
-  batch at the end). **New (PS-284, Microtomy Workstation):**
+  batch at the end). **New (PS-284, Microtome Workstation):**
   `SlideLabelLayoutConfig` interface + `DEFAULT_SLIDE_LABEL_LAYOUT`
   (`faceWidthMm: 20.0, faceHeightMm: 8.0, moduleSizeMm: 0.2,
   fontHeightMm: 1.2`), and `PrintSettingsConfig.slideLabelLayout` —
   mirrors the existing `CassetteLabelLayoutConfig` shape for the new
-  microtomy slide-label print path. **Honest gap:** this config is not
+  microtome slide-label print path. **Honest gap:** this config is not
   yet wired into `buildSlideZplTemplate()`'s (in `utils/labels/zplTemplates.ts`) actual ZPL dot
   coordinates, which remain hardcoded literals verified against
   Labelary at a fixed 1.0"×0.25"/300dpi scale — re-verifying that

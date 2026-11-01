@@ -1,3 +1,14 @@
+Batch 742 (Pete, Case Image & File Attachments, Release 1, Oct 30, 2026): the Attach images window is replaced by the Attachments window (src/components/CaseAttachments/CaseAttachmentsModal.tsx, src/hooks/useCaseAttachments.ts).
+
+src/components/ReportImages/AttachReportImagesModal.tsx
+src/components/ReportImages/AttachReportImagesModal.test.tsx
+src/components/ReportImages/README.md
+src/hooks/useCaseReportImages.ts
+
+Batch 736 (Pete, Oct 30, 2026): the bench's preset reasons moved into the Reason Dictionary (services/reasons/benchReasons.ts), so the fixed list from Batch 735 is gone.
+
+src/services/reasons/quickReasonSets.ts
+
 Batch 678 (Pete, Oct 25, 2026): the 73-row requirements tracker is replaced by the three-layer Readiness Matrix.
 
 docs/compliance-guide/Compliance_Requirements_Tracker.xlsx

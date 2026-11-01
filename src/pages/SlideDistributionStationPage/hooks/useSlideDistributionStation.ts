@@ -54,6 +54,12 @@ import { useWorkstationSave } from '@/hooks/useWorkstationSave';
 import { replaceSpecimenById, type SpecimenOpResult } from '@/services/workstationSave/runCaseAction';
 import { printSlideLabel } from '@/utils/labels/printCassetteSlideLabel';
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
+import { matrixBlockAsSpecimenView, matrixBlockFromSpecimenView } from '@/utils/microtomyOperations';
+import { recordStationScan } from '@/services/stationScans/recordStationScan';
+import { benchParentItemId } from '@/services/material/materialLineage';
+import { blockTypeOf, piecesOf, slideSizeOf, slideFitsHardware } from '@/utils/blockPieceRules';
+import type { ItemEndStateMaterial } from '@/services/itemEndStates/IItemEndStateService';
+import type { MatrixBlock } from '@/types/case/MatrixBlock';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
 import { DEFAULT_SLIDE_LABEL_LAYOUT, type SlideLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
 import type { StaffUser } from '@/services/users/IUserService';
@@ -86,9 +92,28 @@ export interface SlideDistributionActionResult {
 export interface SlideQueueItem {
   queueId: string;
   caseData: Case;
+  /** For a matrix block's slide, the matrix block's one-block view (label ''). */
   specimen: Specimen;
   block: HistologyBlock;
   stain: StainOrder;
+  /** Batch 729 (spec §11.6): set for a slide cut from a matrix block. */
+  matrixBlock?: MatrixBlock;
+}
+
+/** The queued slide again, from another copy of the case (null when it is gone). */
+function queueItemIn(caseData: Case, q: SlideQueueItem): SlideQueueItem | null {
+  if (q.matrixBlock) {
+    const mb = (caseData.matrixBlocks ?? []).find(m => m.id === q.matrixBlock!.id);
+    if (!mb) return null;
+    const view = matrixBlockAsSpecimenView(mb);
+    const block = (view.blocks ?? [])[0];
+    const stain = block?.stains?.find(s => s.id === q.stain.id);
+    return block && stain ? { ...q, caseData, specimen: view, block, stain, matrixBlock: mb } : null;
+  }
+  const specimen = (caseData.specimens ?? []).find(sp => sp.id === q.specimen.id);
+  const block = specimen?.blocks?.find(b => b.id === q.block.id);
+  const stain = block?.stains?.find(s => s.id === q.stain.id);
+  return specimen && block && stain ? { ...q, caseData, specimen, block, stain } : null;
 }
 
 export interface ScanException {
@@ -120,7 +145,7 @@ export function useSlideDistributionStation() {
   const [subspecialties, setSubspecialties] = useState<Subspecialty[]>([]);
   // Batch 434: the slide scanners in the Equipment register (the Digital destination picks one).
   const [scanners, setScanners] = useState<Equipment[]>([]);
-  const { saveError, saveChange } = useWorkstationSave();
+  const { saveError, saveChange, saveCaseFields } = useWorkstationSave();
 
   const actor = { id: user?.id ?? 'unknown', name: user?.name ?? user?.id ?? 'unknown' };
 
@@ -146,19 +171,19 @@ export function useSlideDistributionStation() {
 
   const queueId = (caseId: string, blockId: string, stainId: string) => `${caseId}::${blockId}::${stainId}`;
 
-  const enqueue = useCallback((caseData: Case, specimen: Specimen, block: HistologyBlock, stain: StainOrder) => {
+  const enqueue = useCallback((caseData: Case, specimen: Specimen, block: HistologyBlock, stain: StainOrder, matrixBlock?: MatrixBlock) => {
     const id = queueId(caseData.id, block.id, stain.id);
-    setQueue(prev => (prev.some(q => q.queueId === id) ? prev : [...prev, { queueId: id, caseData, specimen, block, stain }]));
+    setQueue(prev => (prev.some(q => q.queueId === id) ? prev : [...prev, { queueId: id, caseData, specimen, block, stain, ...(matrixBlock ? { matrixBlock } : {}) }]));
     return id;
   }, []);
 
   /** Real, per this file's own header — a slide-barcode scan queues
    *  one real StainOrder; a block/cassette-barcode scan queues every
    *  real StainOrder already cut from that block (the real, honest
-   *  scope for "Batch Container Recognition" — see header). Other scan
-   *  targets (matrix_*, specimen, decant*) aren't supported here yet,
-   *  same documented-scope-cut posture as PS-285's own block/slide-only
-   *  resolution. */
+   *  scope for "Batch Container Recognition" — see header). Batch 729
+   *  (spec §11.6): a matrix block or matrix slide is accepted the same way,
+   *  through the matrix block's one-block view. Specimen and decant
+   *  scans are still not handled here. */
   const resolveScan = useCallback(async (rawScanValue: string): Promise<SlideDistributionActionResult> => {
     setScanError(null);
     if (!rawScanValue.trim()) return { ok: false };
@@ -171,6 +196,25 @@ export function useSlideDistributionStation() {
       return { ok: false, message };
     }
     const { caseData, specimenLetter, target } = resolved;
+    // Batch 729 (spec §11.6): a matrix block's slides, before the specimen lookup (a matrix block has no specimen letter).
+    if (target.level === 'matrix_block' || target.level === 'matrix_slide') {
+      const mb = (caseData.matrixBlocks ?? []).find(m => m.id === target.matrixBlockId);
+      if (!mb) return fail({ key: 'slideDistribution.scanErrors.blockNotFound', values: { block: rawScanValue.trim() } });
+      const view = matrixBlockAsSpecimenView(mb);
+      const vBlock = (view.blocks ?? [])[0];
+      if (target.level === 'matrix_block') {
+        const stains = vBlock.stains ?? [];
+        if (stains.length === 0) return fail({ key: 'slideDistribution.scanErrors.noSlides', values: { block: mb.label } });
+        let first = '';
+        stains.forEach((stain, i) => { const id = enqueue(caseData, view, vBlock, stain, mb); if (i === 0) first = id; });
+        setActiveQueueId(first);
+        return { ok: true };
+      }
+      const mStain = stainAtLevel(vBlock.stains, target.slideLevel);
+      if (!mStain) return fail({ key: 'slideDistribution.scanErrors.slideNotFound', values: { slide: `${mb.label}-${target.slideLevel}` } });
+      setActiveQueueId(enqueue(caseData, view, vBlock, mStain, mb));
+      return { ok: true };
+    }
     const specimen = (caseData.specimens ?? []).find(sp => sp.label === specimenLetter);
     if (!specimen) {
       const message: SlideDistributionMessage = { key: 'slideDistribution.scanErrors.specimenNotFound' };
@@ -204,13 +248,7 @@ export function useSlideDistributionStation() {
 
   /** The queued slides of `caseData` taken from that copy of the case (an item whose slide is gone is left as it is). */
   const refreshQueueFrom = useCallback((caseData: Case) => {
-    setQueue(prev => prev.map(q => {
-      if (q.caseData.id !== caseData.id) return q;
-      const specimen = (caseData.specimens ?? []).find(sp => sp.id === q.specimen.id);
-      const block = specimen?.blocks?.find(b => b.id === q.block.id);
-      const stain = block?.stains?.find(s => s.id === q.stain.id);
-      return specimen && block && stain ? { ...q, caseData, specimen, block, stain } : q;
-    }));
+    setQueue(prev => prev.map(q => (q.caseData.id !== caseData.id ? q : queueItemIn(caseData, q) ?? q)));
   }, []);
 
   /** Batch 669 (ws-8): applies `op` to the queued slide's specimen, shows the result at once and saves it (retried on a
@@ -220,21 +258,66 @@ export function useSlideDistributionStation() {
   const commit = useCallback(async (item: SlideQueueItem, op: (specimen: Specimen) => SpecimenOpResult): Promise<{ saved: boolean; specimen: Specimen } | null> => {
     const local = op(item.specimen);
     if (!local.ok) return null;
-    refreshQueueFrom({ ...item.caseData, specimens: replaceSpecimenById(item.caseData.specimens, local.specimen) });
-    const outcome = await saveChange(item.caseData.id, current => {
-      const sp = (current.specimens ?? []).find(x => x.id === item.specimen.id);
-      const res = sp ? op(sp) : null;
-      return res && res.ok ? replaceSpecimenById(current.specimens, res.specimen) : null;
-    });
+    const mbId = item.matrixBlock?.id;
+    // Batch 729: a matrix block's slides are saved on Case.matrixBlocks (the view's slides written back).
+    const withMatrix = (c: Case, view: Specimen) => (c.matrixBlocks ?? []).map(m => (m.id === mbId ? matrixBlockFromSpecimenView(m, view) : m));
+    refreshQueueFrom(mbId
+      ? { ...item.caseData, matrixBlocks: withMatrix(item.caseData, local.specimen) }
+      : { ...item.caseData, specimens: replaceSpecimenById(item.caseData.specimens, local.specimen) });
+    const outcome = mbId
+      ? await saveCaseFields(item.caseData.id, current => {
+        const mb = (current.matrixBlocks ?? []).find(m => m.id === mbId);
+        const res = mb ? op(matrixBlockAsSpecimenView(mb)) : null;
+        return res && res.ok ? { matrixBlocks: withMatrix(current, res.specimen) } : null;
+      })
+      : await saveChange(item.caseData.id, current => {
+        const sp = (current.specimens ?? []).find(x => x.id === item.specimen.id);
+        const res = sp ? op(sp) : null;
+        return res && res.ok ? replaceSpecimenById(current.specimens, res.specimen) : null;
+      });
     if (outcome.status === 'saved') {
       refreshQueueFrom(outcome.caseData);
-      return { saved: true, specimen: (outcome.caseData.specimens ?? []).find(x => x.id === item.specimen.id) ?? local.specimen };
+      const again = queueItemIn(outcome.caseData, item);
+      return { saved: true, specimen: again?.specimen ?? local.specimen };
     }
     // Not saved: show the stored case, so the tech can redo the change.
     if (outcome.latest) refreshQueueFrom(outcome.latest);
     else refreshQueueFrom(item.caseData);
     return { saved: false, specimen: item.specimen };
-  }, [saveChange, refreshQueueFrom]);
+  }, [saveChange, saveCaseFields, refreshQueueFrom]);
+
+  /** Batch 729 (spec §7.1): a slide sent on (to a pathologist or a scanner) is "completed" at this station. */
+  const recordDistributed = useCallback((item: SlideQueueItem) => {
+    const fullAccession = item.caseData.accession?.fullAccession ?? item.caseData.id;
+    const level = levelLabelFor(item.block.stains, item.stain.id);
+    recordStationScan({
+      stationId: effectiveStationId, itemId: item.stain.displayId ?? `${fullAccession}-${item.specimen.label}${item.block.label}-${level}`,
+      materialType: item.matrixBlock ? 'matrix_slide' : 'slide', caseAccession: fullAccession,
+      userId: actor.id, userName: actor.name, action: 'completed', result: 'ok',
+      // Batch 731 (spec §10.4): the block the slide was cut from.
+      parentItemId: benchParentItemId(fullAccession, { specimenLabel: item.specimen.label, label: item.block.label, matrixLabel: item.matrixBlock?.label }),
+    });
+  }, [effectiveStationId, actor.id, actor.name]);
+
+  /** Batch 732 (spec §11): the queued slide's block type, the slide's size, and the block's pieces (the ones the slide
+   *  was ordered for, when it names them). */
+  const pieceViewFor = useCallback((queueId: string | null) => {
+    const item = queue.find(q => q.queueId === queueId);
+    if (!item) return null;
+    const blockType = item.matrixBlock ? 'matrix' as const : blockTypeOf(item.block);
+    const all = item.matrixBlock ? piecesOf(item.matrixBlock, item.caseData.specimens ?? []) : piecesOf(item.block);
+    const pieces = item.stain.pieceIds?.length ? all.filter(p => item.stain.pieceIds!.includes(p.id)) : all;
+    return { blockType, slideSize: slideSizeOf(item.stain, blockType), pieces };
+  }, [queue]);
+
+  /** Batch 731 (spec §10.5): the queued slide, for its end state (ItemEndStatePanel). */
+  const endStateItemFor = useCallback((queueId: string | null): { itemId: string; materialType: ItemEndStateMaterial; caseAccession: string } | null => {
+    const item = queue.find(q => q.queueId === queueId);
+    if (!item) return null;
+    const caseAccession = item.caseData.accession?.fullAccession ?? item.caseData.id;
+    const level = levelLabelFor(item.block.stains, item.stain.id);
+    return { itemId: item.stain.displayId ?? `${caseAccession}-${item.specimen.label}${item.block.label}-${level}`, materialType: item.matrixBlock ? 'matrix_slide' : 'slide', caseAccession };
+  }, [queue]);
 
   const handleAssignPhysical = useCallback(async (id: string, assignment: PhysicalAssignment): Promise<SlideDistributionActionResult> => {
     const item = queue.find(q => q.queueId === id);
@@ -247,18 +330,24 @@ export function useSlideDistributionStation() {
     // `if (!result.ok)` — handled with an explicit cast instead.
     const saved = await commit(item, sp => assignPhysicalSlide(sp, item.block.id, item.stain.id, assignment, actor.id));
     if (!saved) return failed;
+    if (saved.saved) recordDistributed(item);
     return saved.saved ? { ok: true } : notSaved;
-  }, [queue, commit, actor.id, requirements]);
+  }, [queue, commit, actor.id, requirements, recordDistributed]);
 
   const handleAssignScanner = useCallback(async (id: string, assignment: ScannerAssignment): Promise<SlideDistributionActionResult> => {
     const item = queue.find(q => q.queueId === id);
     if (!item) return notInQueue;
     const missing = scannerLoadMissing(assignment, requirements);
     if (missing.length > 0) return { ok: false, missing };
+    // Batch 732 (spec §11.1): a large-format slide goes only to a scanner marked as taking large-format slides.
+    const scanner = scanners.find(sc => sc.id === assignment.scannerInstrumentId);
+    const size = slideSizeOf(item.stain, item.matrixBlock ? 'matrix' : blockTypeOf(item.block));
+    if (scanner && !slideFitsHardware(size, scanner)) return { ok: false, message: { key: 'slideDistribution.errors.scannerNotLargeFormat', values: { scanner: scanner.name } } };
     const saved = await commit(item, sp => assignScannerSlide(sp, item.block.id, item.stain.id, assignment, actor.id));
     if (!saved) return failed;
+    if (saved.saved) recordDistributed(item);
     return saved.saved ? { ok: true } : notSaved;
-  }, [queue, commit, actor.id, requirements]);
+  }, [queue, commit, actor.id, requirements, recordDistributed, scanners]);
 
   const handleFlagException = useCallback(async (id: string, reason: SlideExceptionReason, note?: string): Promise<SlideDistributionActionResult> => {
     const item = queue.find(q => q.queueId === id);
@@ -287,7 +376,7 @@ export function useSlideDistributionStation() {
     if (!printerRes.ok || !printerRes.data) return { error: 'slideDistribution.errors.profileMissing' };
     const settingsRes = await printSettingsService.get();
     const gtin = settingsRes.ok ? settingsRes.data.gs1Gtin : '';
-    // Batch 669 (ws-14): the configured slide label layout travels with the printer, as on the Microtomy workstation.
+    // Batch 669 (ws-14): the configured slide label layout travels with the printer, as on the Microtome workstation.
     const layout = settingsRes.ok ? settingsRes.data.slideLabelLayout ?? DEFAULT_SLIDE_LABEL_LAYOUT : DEFAULT_SLIDE_LABEL_LAYOUT;
     return { printer: printerRes.data, gtin, layout };
   }, [effectiveStationId]);
@@ -295,7 +384,7 @@ export function useSlideDistributionStation() {
   /** Real, per the spec's own "trigger a replacement label print"
    *  exception action — records the real, audited request
    *  (recordLabelReprintRequest) then dispatches the actual print
-   *  through the identical real GS1/ZPL path PS-284's Microtomy
+   *  through the identical real GS1/ZPL path PS-284's Microtome
    *  Workstation already proved. */
   const handleRequestReprint = useCallback(async (id: string, reason: SlideLabelReprintReason | ''): Promise<SlideDistributionActionResult> => {
     const item = queue.find(q => q.queueId === id);
@@ -330,6 +419,7 @@ export function useSlideDistributionStation() {
   }, [queue]);
 
   return {
+    endStateItemFor, pieceViewFor,
     queue, activeQueueId, setActiveQueueId, scanError, saveError, scanExceptions, resolveScan, removeFromQueue, requirements,
     pathologists, subspecialties, scanners, loadDirectories, resolveDefaultRouting,
     handleAssignPhysical, handleAssignScanner, handleFlagException, handleResolveException, handleRequestReprint,

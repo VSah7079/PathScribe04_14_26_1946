@@ -1,3 +1,9 @@
+**Batch 742:** `fileSizeBaseline.ts`: `SynopticReportPage.tsx` lowered to 7,058 and `CytologyScreeningPage.tsx` to 1,537.
+
+**Batch 738:** `fileSizeBaseline.ts`: `useSignOutWorkflow.ts` lowered to 1,747.
+
+**Batch 735:** `touchLayout.guard.test.ts` holds the station touch rules (routes wrapped in the touch layout, 44/48 px and 16 px in `touchLayout.css`, header sizes, the shared scan field, windows as dialogs, no drag-only lists, tap-to-pick reasons). Eight unused scan-field classes left `pathscribe.css`; baseline 28550.
+
 **Batch 650 to 652:** `fileSizeBaseline.ts` lowered: `mockActionRegistryService.ts` 4,189, `WorklistTable.tsx` 2,290, `AddCodeModal.tsx` 1,191, `SynopticReportPage.tsx` 7,082, `mockCaseService.ts` 6,048. Nothing was added and no file got longer.
 
 **Batch 649:** `fileSizeBaseline.ts` lowered (Batch 646 baseline to now): `useSignOutWorkflow.ts` 2377 to 1813 (sign-out logic moved to `services/signoutGates/` and `services/surgicalSignOut/`), `QualityAssurancePage.tsx` 1505 to 1477, `SynopticReportPage.tsx` 7177 to 7172, `AccessionPage.tsx` 4207 to 4205, `AddCodeModal.tsx` 1376 to 1374. Nothing was added and no file got longer.
@@ -82,3 +88,7 @@ Batch 367 (PS-74): the check behind standing rule 1, **no inline CSS**.
 
 
 Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): baselines lowered for RightSynopticPanel.tsx and pathscribe.css after removing confidence rendering.
+
+## Batch 732
+
+- Batch 732: `fileSizeBaseline.ts`: `types/case/Specimen.ts` lowered to 1,840.

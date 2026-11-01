@@ -123,10 +123,10 @@ The form is headed "Record a New CISOE-A Review", or "Edit Your CISOE-A Review" 
 | Spelling language | Sets the spelling language of the case. |
 | Open EMR | Opens the patient's record from the hospital system in a second window, or in a side drawer if the browser blocks the window. |
 | Print | Opens the PDF of this specimen's report. Before sign-out it is a preview; after sign-out it is the report as signed. |
-| Attach images | Attaches pictures to the report; they print after its pages. Greyed out without permission. |
+| Attachments (n) / Add Attachments | Opens the Attachments window for the case's photos, files and links; images placed in the cytology report print after its pages. Greyed out without permission. |
 | Print case report | Only after the case report was released and the case has more than one specimen. Opens the consolidated report. |
 | Synoptic | Non-GYN only, for a pathologist or a CT holding an advanced sign-out credential, and never at a CISOE-A laboratory. Opens the **Synoptic Reporting** drawer: choose a template, answer the fields, **Save Synoptic**, or **Insert into Notes** for the generated narrative. The first box reads "Select Synoptic Template". A warning headed "Unvalidated Clinical Terms" lists clinical terms that have no validated translation in your language; tick the acknowledgment to continue. |
-| Material | Opens the material drawer: the decants on this specimen, **Add Residual Fluid**, **Add Cell Block**, and the stains for each. A specimen with no decants says "No decants recorded for this specimen." |
+| Material | Opens the material drawer: the decants on this specimen, **Add Residual Fluid**, **Add Cell Block**, and the stains for each. A specimen with no decants says "No decants recorded for this specimen." Batch 739: each decant is named with its type, "D1 — Cell Block"; a portion set aside for a test is an aliquot named by its purpose, "D1 — Aliquot for HPV testing". |
 | ROSE | Non-GYN only. Rapid on-site evaluation: location (Clinic, Operating Room, Radiology or Other), one or more passes each with adequacy (Adequate, Inadequate, Indeterminate) and a preliminary impression, and **Save Evaluation**. Earlier evaluations are listed under "Prior ROSE Evaluations"; the form for a new one is headed "Record New Evaluation", and **Add Pass** adds a further pass to it. |
 | Codes | Opens the code window to add ICD, SNOMED, ICD-O or CPT codes to the specimen. |
 | Billing | Opens the billing review drawer: review, approve or correct the case's billing codes. Each change is charged or credited and audited. |
@@ -170,7 +170,7 @@ Your laboratory manager gives these permissions by role. A button without its pe
 | Finalize case now | Finalize a cytology case early. |
 | Correct diagnosis / Add addendum | Correct a cytology report / add an addendum to one. |
 | Send urgent preliminary | Send a cytology preliminary report. |
-| Attach images | Attach images to a report. |
+| Attachments | Place images in a report; attach, link or remove case files. |
 | Record Concurrence, Record Discrepancy (QC bar) | Record cytology QC reviews. |
 
 ### Icons and status indicators

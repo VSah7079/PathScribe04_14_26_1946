@@ -34,6 +34,8 @@ import { getPathScribeAgentClient, type PathScribeAgentClient } from './pathscri
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
 import { recordSimulatedPrint, simulationAllowed, type SimulatedPrintKind } from '@/services/printing/simulatedPrint';
 import { auditLabelPrint, printerDestination, type LabelPrintAudit } from './labelPrintAudit';
+import { checkDirectDevicePrint, type DirectPrintDeps } from '@/services/printing/directDevicePrinting';
+import { directDevicePrintingDeps } from '@/services/printing/directDevicePrintingDeps';
 
 export interface DispatchZplLabelResult {
   ok: true;
@@ -74,7 +76,13 @@ export async function dispatchZplLabel(
   copies: number,
   agent: Pick<PathScribeAgentClient, 'printZpl' | 'portsTried'> = getPathScribeAgentClient(),
   audit?: LabelPrintAudit,
+  direct: DirectPrintDeps = directDevicePrintingDeps,
 ): Promise<DispatchZplLabelResult | DispatchZplLabelError> {
+  // Batch 734 (Pete, Decision 6): a direct browser-to-printer call is blocked in a server deployment unless the
+  // printer's facility allows it (audited either way); the caller falls back to the interface engine or the dialog.
+  if ((await checkDirectDevicePrint(printer, audit?.document, direct)) === 'blocked') {
+    return { ok: false, message: i18n.t('printLabels.directPrintingOff', { printer: printer.printerId }) };
+  }
   // PS-282 (Batch 437): the outcome is audited when the caller says what the label is.
   const result = await dispatchZpl(printer, zpl, copies, agent);
   auditLabelPrint(audit, printerDestination(printer), result.ok === true ? 'success' : 'failed', copies);

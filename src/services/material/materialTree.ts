@@ -86,7 +86,7 @@ export function decantRefusalKey(error: string): string {
   return ['specimenNotFound', 'decantNotFound', 'duplicateId', 'parentNotFound', 'hasChildren', 'notPermitted'].includes(error) ? error : 'saveFailed';
 }
 
-/** Batch 453: when a specimen edit touched only its decants (the Microtomy
+/** Batch 453: when a specimen edit touched only its decants (the Microtome
  *  workstation's decant slides), the decant updates it amounts to, so they
  *  can go through the atomic decant save. Null when anything else on the
  *  specimen changed, or a decant was added or removed. */

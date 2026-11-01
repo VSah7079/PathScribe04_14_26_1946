@@ -38,6 +38,7 @@ import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import { actionRegistryService, reportFieldRequired } from '@/services';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { formatDateTime } from '@/utils/formatDate';
 import { formatList } from '@/utils/formatList';
 import type { AutopsyCaseDetails } from '@/types/autopsy/AutopsyCaseDetails';
 import {
@@ -99,7 +100,8 @@ const AutopsyAuthorizationCompletionForm: React.FC<AutopsyAuthorizationCompletio
           <p className="ps-conf-section-subtitle ps-conf-section-subtitle--form-gap">
             {t('autopsyAuthCompletion.verbalOrderOnFile', {
               authority: caseDetails.forensicAuthorization.verbalOrderReceivedFrom || t('autopsyAuthCompletion.unknownValue'),
-              at: caseDetails.forensicAuthorization.verbalOrderReceivedAt || t('autopsyAuthCompletion.unknownValue'),
+              // Batch 745: in the reader's date and time format (it printed the stored ISO timestamp).
+              at: caseDetails.forensicAuthorization.verbalOrderReceivedAt ? formatDateTime(caseDetails.forensicAuthorization.verbalOrderReceivedAt, i18n.language) : t('autopsyAuthCompletion.unknownValue'),
             })}
           </p>
 

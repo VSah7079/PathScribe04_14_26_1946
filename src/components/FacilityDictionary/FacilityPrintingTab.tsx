@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { facilityService } from '@/services';
 import type { Facility } from '@/services/facilities/IFacilityService';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { DirectPrintingSetting } from './DirectPrintingSetting';
 import {
   DUPLEX_MODES, PAPER_SIZES, PAPER_SOURCES, PRINT_DELIVERY_MODES, PRINT_PROTOCOLS,
   facilityPrintForm, facilityPrintProblem, facilityPrintSettingsFromForm, isFacilityPrintProblem,
@@ -215,6 +216,8 @@ export const FacilityPrintingTab: React.FC<Props> = ({ facility, isPerformingLab
           {t(`${K}.save`)}
         </CapabilityButton>
       </div>
+      {/* Batch 734 (Pete, Decision 6): direct browser-to-printer printing, off unless turned on here. */}
+      {isPerformingLab && <DirectPrintingSetting facility={facility} onSaved={onSaved} />}
     </div>
   );
 };

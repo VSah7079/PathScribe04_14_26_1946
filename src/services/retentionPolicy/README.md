@@ -58,3 +58,11 @@ The disposal-eligibility date adds retention days with UTC arithmetic, so it is 
 
 ## Batch 669 (finding batch-4)
 `mostRecentLocation.ts` is the one rule for an item's last location: the entry with the latest `at` time (a tie goes to the entry recorded later). `computeDisposalQueue.ts`, `computeDisposalReport.ts` and `disposeItemByScan.ts` all use it; before, the scan check took the last array entry, so a late-entered older location event could make the queue and the scan disagree about "wrong facility". `mostRecentLocation.test.ts` also guards that none of the three keeps its own copy. Not changed: `MaterialTreePanel.tsx` and `MaterialTrackingHistoryModal.tsx` keep their own (identical) copies of the same sort for display.
+
+## Batch 728
+
+- `resolveCaseDisposalDate.ts` (new, tested): the one disposal date for the Disposal queue, the disposal scan and the Disposal report. A research case counts its retention days from accessioning; any other case from sign-out as before.
+
+## Batch 731
+
+- `disposeItemByScan.ts`: a disposal also records the item's end state "discarded" (`itemEndStates/recordEndStateFromAction.ts`).

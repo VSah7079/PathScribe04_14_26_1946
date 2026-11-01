@@ -1,4 +1,5 @@
 import { recordSimulatedPrint, simulationAllowed } from '@/services/printing/simulatedPrint';
+import type { BlockType } from '@/types/case/blockPieces';
 // src/utils/labels/dispatchCassetteLabel.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Real feature, per direct follow-up: Step 4 of the label-printing build
@@ -35,6 +36,8 @@ export interface CassetteLabelDispatchRequest {
   specimenLabel: string;
   blockLabel: string;
   cassetteId: string;
+  /** Batch 737 (spec §11.1): the block's type; a megablock prints on the megablock cassette template. */
+  blockType?: BlockType;
 }
 
 /** Real, dedicated, matrix-block sibling to CassetteLabelDispatchRequest

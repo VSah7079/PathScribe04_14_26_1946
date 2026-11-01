@@ -1,3 +1,9 @@
+**Batch 747:** `demoDisplayTokens.ts` (new): Issue tokens on the Demo Reset tab issues a fresh token for each demo wall display and the OR Suite terminal, revokes the retired display's, and returns them to be shown once (`config:demo-data:reset`, then the display access service's own checks; audited without the tokens). Test: `demoDisplayTokens.test.ts`.
+
+**Batches 745 and 746:** `demoBaseline456.autopsyMolecular.test.ts` names its five fully authorized autopsies (the baseline now has eight) and expects the S7 molecular runs after the earlier batches.
+
+**Batch 742:** `demoReset.ts` `CASE_KEYS` gains `caseAttachments` (the files and links attached to cases), cleared with the cases.
+
 # services/demoReset/
 
 **Batch 648:** the Lockbox Drop-Off demo (`services/lockbox/lockboxDemoSeed.ts`) is covered by the existing mock-prefix sweep: its two keys are removed by a Full Reset and the mock store re-seeds on the next read, with fresh times. `lockbox/lockboxDemoSeed.test.ts` checks the round trip.
@@ -161,3 +167,16 @@ The seeded consult link stores only a token fingerprint (Batch 522, PS-290).
 ## Batch 716 - cytology demo data
 
 The cytology specimen entries, GYN Cytology department and series, cytology protocols, eight cytology orders and the demo cytology routing default are seeds of the mock services (`specimen_dictionary`, `pathscribe_departments`, `ps_case_masks_v1`, `pathscribe_protocols`, `pathscribe_incoming_orders`, `cytologyRoutingSettings`), all already in the reset lists, so a Full Reset restores them. `specimenDictionary/cytologyDemoSeed.test.ts` checks this round trip.
+
+## Batch 726
+
+`stationScanEvents` (the demo station scan log) is cleared by Full Reset with the batches.
+
+## Batch 730
+
+- `addOnLabelPrintRoutes` cleared with the case data.
+
+## Batch 731
+
+- `itemEndStates` (the demo item end states) is cleared with the case data.
+- Batch 735: `pathscribe_touch_layout` (the computer's touch layout override) is cleared by a Full Reset, back to Auto.

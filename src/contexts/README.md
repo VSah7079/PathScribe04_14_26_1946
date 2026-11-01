@@ -1,3 +1,5 @@
+**Batch 735:** `ScannerProvider.tsx` asks `services/scanner/scanRoutePolicy.ts` what a scanned accession opens: nothing on the station screens (they handle the scan), the grossing screen from Grossing, the report elsewhere. The PATHSCRIBE_SCAN event is always sent.
+
 **Batch 649:** `ScannerProvider.tsx` ignores keystrokes a script sent (browser extension, autofill, the app's own shortcut code): only trusted key events feed the barcode buffer (`services/scanner/scanKeyFilter.ts`). The prop `acceptUntrustedKeyEvents` (default false, never set in the app) exists only so tests, whose events are untrusted, can drive the listener; `simulateScan()` is unaffected.
 
 ## Batch 602

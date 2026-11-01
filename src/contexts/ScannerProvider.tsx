@@ -41,6 +41,7 @@ import { useLocation } from 'react-router';
 import { useAuth } from './AuthContext';
 import { useEnabledIdentifierFormats } from '../hooks/useEnabledIdentifierFormats';
 import { shouldIgnoreScanKeyEvent } from '@/services/scanner/scanKeyFilter';
+import { scanOpensCaseView } from '@/services/scanner/scanRoutePolicy';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -123,26 +124,14 @@ export const ScannerProvider: React.FC<{
     // Fire custom event so components can react (e.g. flash the search bar)
     window.dispatchEvent(new CustomEvent('PATHSCRIBE_SCAN', { detail: scanEvent }));
 
-    // Real feature, per direct, detailed specification: "Barcode Listener &
-    // Form Auto-Ingestion." The Accession page has its own, real
-    // PATHSCRIBE_SCAN listener (AccessionPage.tsx) that resolves a scan
-    // against pending orders/patient records and auto-fills the case form
-    // directly — a genuinely different, more specific real outcome than
-    // this provider's own generic "navigate to an existing case" default.
-    // Auto-navigating away here first would fight that: an accessioner
-    // scanning a NEW specimen label whose payload happens to also match a
-    // configured accession-number pattern would be yanked off the very
-    // page they're using to create the case. The event above still
-    // dispatches unconditionally — this only suppresses the navigation
-    // side effect specifically, on this one real, known-conflicting route.
-    if (location.pathname.startsWith('/accession')) return;
-
-    // Navigate based on scan type
-    if (type === 'accession' && matchedAccession) {
-      void openCasePage(matchedAccession, 'synoptic');
+    // Touch spec T1 (Batch 735): the route decides what an accession opens. Accessioning and the station screens
+    // handle their own scans (the event above), so nothing navigates there; Grossing opens the grossing screen.
+    // services/scanner/scanRoutePolicy.ts.
+    const view = scanOpensCaseView(location.pathname);
+    if (view && type === 'accession' && matchedAccession) {
+      void openCasePage(matchedAccession, view);
     }
     // MRN: could navigate to worklist filtered by MRN — placeholder for now
-    // if (type === 'mrn') navigate(`/worklist?mrn=${cleaned}`);
 
   }, [getEnabledPatterns, location.pathname, openCasePage]);
 

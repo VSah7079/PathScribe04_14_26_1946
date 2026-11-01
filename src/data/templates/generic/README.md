@@ -107,3 +107,7 @@ The files keep their original formatting (2-space indent; the five that escape t
 
 ---
 *See [data/README.md](../../README.md) for the full verification notes covering the templates across `data/templates/` (written when there were 27; there are 31 now).*
+
+## Batch 738 (Pete, Oct 30, 2026): colon resection wording
+
+`colon_resection.json`: every remaining placeholder ("Option 1…", "Category A", "Margin Status A") replaced with PathScribe-authored wording using standard nomenclature (WHO tumour types, AJCC 8th edition categories); **not CAP text**, per the licensing note in `services/templates/templateService.ts` (Pete chose PathScribe's own wording). Questions that only apply in some cases are shown only then (`visibleWhen`): mesorectal envelope for an anterior or abdominoperineal resection, rectal location for a rectal or rectosigmoid tumour, submucosal depth for a submucosal tumour, closest-margin distances when the margins are negative, involved margins when positive, nodes with tumour when nodes are positive, deposit count when deposits are present, distant sites for pM1. Optional now: site not specified, site cannot be determined, budding score, dysplasia margins, TNM descriptors, pT suffix, ancillary studies, comments. The unused trailing pT and pN options were removed. Option ids are unchanged, so stored answers keep their meaning. The other 18 generic templates still carry placeholder options.

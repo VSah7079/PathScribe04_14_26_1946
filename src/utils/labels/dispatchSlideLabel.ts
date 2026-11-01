@@ -39,8 +39,8 @@ export interface SlideLabelDispatchResult {
 
 const DISPATCHED_LOG: SlideLabelDispatchRequest[] = [];
 
-// Batch 606 (PS-14): a slide label is produced once. The scan at microtomy
-// (this file) and the Microtomy Workstation print (printSlideLabel) both
+// Batch 606 (PS-14): a slide label is produced once. The scan at microtome
+// (this file) and the Microtome Workstation print (printSlideLabel) both
 // consult and update this ledger, so one slide never gets two labels. A
 // deliberate reprint ignores it.
 const OUTPUT_LEDGER = new Set<string>();

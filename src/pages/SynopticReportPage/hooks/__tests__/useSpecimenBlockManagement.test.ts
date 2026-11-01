@@ -575,6 +575,9 @@ describe('useSpecimenBlockManagement — attemptPrintedLabel real, end-to-end QZ
     // printCassetteLabel/printSlideLabel refuse cleanly before ever
     // reaching bridge dispatch when gs1Gtin is empty (the real default).
     await printSettingsService.update({ gs1Gtin: '00850000000000' });
+    // Batch 738: the seeded profile now uses the PathScribe agent (simulated in the demo); this suite tests the QZ Tray path.
+    const { printerProfileService } = await import('@/services/index');
+    await printerProfileService.update('printer-zt411-example', { bridgeType: 'qz_tray' });
   });
 
   it('printCassetteForBlock reaches the real QZ Tray dispatch when the effective station is configured for printing', async () => {

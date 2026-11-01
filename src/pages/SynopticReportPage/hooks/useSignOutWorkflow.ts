@@ -108,7 +108,7 @@ import { resolveResidentCountersignRequired } from '@/services/cases/resolveResi
 import type { FixativeGateSpecimen } from '../modals/FixativeTimeGateModal';
 import type { PreAnalyticDateGateSpecimen } from '../modals/PreAnalyticDateGateModal';
 import { PreFinalisationModal, type SynopticForReview } from '../modals/PreFinalisationModal';
-import { getFieldLabel, type ReportingStandard } from '@/utils/synopticFieldLabels';
+import { buildSynopticReviewEntries, type ReviewTemplate } from '@/services/reports/synopticReviewEntries';
 import { getTemplate } from '@/services/templates/templateService';
 import { PathScribeAIService } from '@/services/aiIntegration/PathScribeAIService';
 import type { EditorTemplate } from '@/components/Config/Protocols/SynopticEditor';
@@ -525,67 +525,13 @@ export function useSignOutWorkflow({
   }, [caseData, countersignFeedback, signingUser, showToast, setShowSignOutModal, knownVersionRef, setCaseData, setConcurrencyConflict, t]);
 
   // ── Build SynopticForReview[] for PreFinalisationModal ─────────────────
+  // Batch 738: built in services/reports/synopticReviewEntries.ts (template labels; option labels, not stored ids).
   const buildSynopticsForReview = useCallback(async (): Promise<SynopticForReview[]> => {
     if (!caseData?.synopticReports?.length) return [];
-    const reports = caseData.synopticReports;
-
-    // Real section structure, per feedback — was previously a flat
-    // field list with no grouping at all. getTemplate() gives the same
-    // sections/fields structure that drives the main editor's tabs
-    // (Specimen/Tumor/Margins/...), fetched in parallel per instance.
-    const sectionsByInstance = await Promise.all(reports.map(async report => {
-      try {
-        const detail = await getTemplate(report.templateId);
-        const sections = detail.template?.sections ?? [];
-        return sections.map(s => ({ title: s.title, fieldKeys: (s.fields ?? []).map(f => f.id) }));
-      } catch (e) {
-        console.error(`[PreFinalisation] Could not load template sections for ${report.templateId}:`, e);
-        return [] as { title: string; fieldKeys: string[] }[];
-      }
-    }));
-
-    return reports.map((report, i) => {
-        const specimen  = caseData.specimens?.find((s: Specimen) => s.id === report.specimenId);
-        const answers   = report.answers ?? {};
-        const fieldKeys = Object.keys(answers);
-        const answeredCount = fieldKeys.filter(k => {
-          const v = answers[k];
-          return v !== '' && v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0);
-        }).length;
-        const std: ReportingStandard =
-          report.templateName?.includes('RCPath') ? 'RCPath' :
-          report.templateName?.includes('RCPA')  ? 'RCPA'  :
-          report.templateName?.includes('WHO')   ? 'WHO'   :
-          report.templateName?.includes('CAP')   ? 'CAP'   : 'generic';
-        const fieldLabels: Record<string, string> = {};
-        fieldKeys.forEach(k => { fieldLabels[k] = getFieldLabel(k, std); });
-        return {
-          instanceId:    report.instanceId,
-          templateName:  report.templateName,
-          specimenId:    report.specimenId,
-          specimenLabel: specimen?.label ?? '?',
-          specimenDesc:  specimen?.description ?? 'Specimen',
-          answers, fieldLabels, fieldOrder: fieldKeys,
-          sections: sectionsByInstance[i],
-          answeredCount, totalCount: fieldKeys.length,
-          // Real gap, found during type cleanup, flagged rather than
-          // silently invented a fix for: requiredFields is declared on
-          // SynopticForReview (this function's own OUTPUT type) but was
-          // never actually declared on SynopticReportInstance (the real,
-          // persisted INPUT type) — report.requiredFields never existed,
-          // so this always evaluated to [] regardless of what the real
-          // template marks as required. PreFinalisationModal's own
-          // "required field incomplete — sign-out blocked" warning
-          // (driven by this exact field) can therefore never fire. Left
-          // as an explicit [] here, preserving the exact current
-          // behavior rather than guessing at where the real per-field
-          // required flag should be sourced from (likely the template's
-          // own field definitions) — that's a real, separate fix, not a
-          // type-safety one.
-          requiredFields: [] as string[],
-          status: report.status,
-        };
-      });
+    return buildSynopticReviewEntries(caseData.synopticReports, (caseData.specimens ?? []) as Specimen[], async id => {
+      try { return ((await getTemplate(id)).template ?? null) as ReviewTemplate | null; }
+      catch (e) { console.error(`[PreFinalisation] Could not load template sections for ${id}:`, e); return null; }
+    });
   }, [caseData]);
 
   const [missingFields,          setMissingFields]          = useState<MissingRequiredField[]>([]);

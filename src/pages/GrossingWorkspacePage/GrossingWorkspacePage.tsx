@@ -18,6 +18,7 @@ import { useOpenCase } from '@/hooks/useOpenCase';
 import { caseService } from '@/services';
 import type { Case } from '@/types/case/Case';
 import { waitingToGross, findByAccession } from './grossingQueue';
+import { StationScanField } from '@/components/Workstation/StationScanField';
 
 export default function GrossingWorkspacePage() {
   const { t } = useTranslation();
@@ -26,7 +27,6 @@ export default function GrossingWorkspacePage() {
   const { pushCrumb } = useBreadcrumb();
   const [cases, setCases] = useState<Case[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const [entry, setEntry] = useState('');
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => { pushCrumb(t('grossingWorkspace.pageTitle'), '/workstations/grossing'); }, [pushCrumb, t]);
@@ -40,9 +40,9 @@ export default function GrossingWorkspacePage() {
 
   const queue = waitingToGross(cases ?? []);
 
-  const openByAccession = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const found = findByAccession(cases ?? [], entry);
+  // Touch spec T1 (Batch 735): the shared scan field hands the accession in.
+  const openByAccession = async (value: string) => {
+    const found = findByAccession(cases ?? [], value);
     setNotFound(!found);
     if (found) await openCase(found.id, 'grossing');
   };
@@ -63,23 +63,15 @@ export default function GrossingWorkspacePage() {
             </button>
           </header>
 
-          <form onSubmit={openByAccession} className="ps-mb-16">
+          <div className="ps-mb-16">
             <label htmlFor="grossing-accession" className="ps-home-card-desc">{t('grossingWorkspace.openLabel')}</label>
             <div className="ps-mt-4">
-              <input
-                id="grossing-accession"
-                className="ps-input-dark"
-                value={entry}
-                onChange={e => { setEntry(e.target.value); setNotFound(false); }}
-                placeholder={t('grossingWorkspace.openPlaceholder')}
-                autoComplete="off"
-                data-phi="accession"
-              />
-              {' '}
-              <button type="submit" className="ps-conf-btn-primary" disabled={!entry.trim()}>{t('grossingWorkspace.openButton')}</button>
+              <StationScanField id="grossing-accession" phiKind="accession" onScan={openByAccession}
+                onTextChange={() => setNotFound(false)}
+                placeholder={t('grossingWorkspace.openPlaceholder')} submitLabel={t('grossingWorkspace.openButton')} />
             </div>
             {notFound && <p role="alert" className="ps-home-card-desc ps-mt-4">{t('grossingWorkspace.notFound')}</p>}
-          </form>
+          </div>
 
           <h2 className="ps-home-card-title">{t('grossingWorkspace.waitingTitle', { count: queue.length })}</h2>
           {cases === null && <LoadingState label={t('grossingWorkspace.loading')} />}

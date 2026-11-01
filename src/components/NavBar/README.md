@@ -1,3 +1,7 @@
+**Batch 736:** `NavBar.tsx` runs `hooks/useVisibleHeightVar.ts` (`--ps-visible-height`), so the header search's results stay above the on-screen keyboard (`touchChrome.css`).
+
+**Batch 735 (touch spec §5, T5):** the station menu (`NavBarScanStation.tsx`) has **Touch layout on this computer** (Auto, Always on, Always off; `hooks/useTouchLayout.ts`). `NavBar.tsx` imports `../Touch/touchChrome.css`: 44 px header buttons, 16 px header search, compact header below 1280 px.
+
 # components/NavBar/
 
 ## Files

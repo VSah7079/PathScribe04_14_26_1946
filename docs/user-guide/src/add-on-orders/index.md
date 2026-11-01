@@ -16,7 +16,7 @@ status: Draft
     The Grossing screen has an **Add-On Orders** button (Alt+Shift+4) that opens this builder for the case you are grossing. Pathology assistants and the other grossing roles can also open it from the **Add-On Orders** tile under Pathology Workspace.
 
 !!! note "Where do the labels print?"
-    Nothing prints when you place the order. The order goes to the microtomy queue; the technologist scans the block at the bench, the order opens, and the slide labels print on that bench's printer. A way to choose a different printing place when ordering is being considered.
+    Nothing prints when you place the order. The order goes to the microtome queue; the technologist scans the block at the bench, the order opens, and the slide labels print on that bench's printer. A way to choose a different printing place when ordering is being considered.
 
 ## Overview
 
@@ -24,7 +24,7 @@ status: Draft
 
 **Intended users.** Pathologists, fellows and residents. These roles have the screen and the permission to place orders by default. A person without the permission to place orders can open the screen and read the tracking list, but **Submit Add-On Order** is greyed out for them.
 
-**Where it fits.** There is no Home tile. The usual way in is the **Add-on order** button in the block row of the [report](help:report) screen's header, which opens this screen with that case already loaded. Each slide you order appears as a Pending slide on its block at the [Microtomy Workstation](help:workstations/microtomy), where the technologist cuts, labels and prints it. Finished slides are routed at the [Slide Distribution Station](help:workstations/slide-distribution). A molecular test run in the laboratory goes to the molecular order queue (see [Order Queue](help:molecular/order-queue)); a test that is sent out goes to the reference laboratory you choose.
+**Where it fits.** There is no Home tile. The usual way in is the **Add-on order** button in the block row of the [report](help:report) screen's header, which opens this screen with that case already loaded. Each slide you order appears as a Pending slide on its block at the [Microtome Workstation](help:workstations/microtomy), where the technologist cuts, labels and prints it. Finished slides are routed at the [Slide Distribution Station](help:workstations/slide-distribution). A molecular test run in the laboratory goes to the molecular order queue (see [Order Queue](help:molecular/order-queue)); a test that is sent out goes to the reference laboratory you choose.
 
 ## Screen Tour
 
@@ -44,7 +44,10 @@ Below are three panels side by side, and the **Order Tracking** list underneath.
 |---|---|
 | Specimen heading | The specimen letter and description. |
 | Block row | A tick box, the block label (for example A1), and a note such as "3 level(s) already cut", with **Tiny Tissue** and **Fragile** if those flags are set. The count includes every slide already on the block. |
-| Exhausted, Lost, Damaged, Cancelled | A badge on a block that cannot be ordered from. Its tick box is greyed out. |
+| Block type | Batch 732. "Megablock", "Multi-piece block" or "Matrix block" after the levels note. A megablock's slides are large format. |
+| Pieces | Batch 732. Under a ticked block that has a piece map: a tick box for each piece ("Piece 2 (A)" with its description, and "Used up" when it is). Tick the pieces the order is for; "Tick nothing to order on the whole block." Ticking only used-up pieces shows the exhausted-block choices for them ("The pieces chosen on block A1 are used up."), with **Order from piece 2 (A) instead** among them. Ticking used-up and remaining pieces together is refused. |
+| Shared (matrix) blocks | Batch 737. Under the specimens, a matrix block (one cassette shared by several parts) with its parts ("parts A, B"). Tick it to order for the whole block; under it each part is listed as a piece ("Piece 1 (D)" with its description): tick only the parts the order is for, or none for the whole block. The slide is cut through the whole cassette and marked with the parts it is for. If the tissue chosen is used up, the order is refused: "Matrix block M1: the tissue chosen is used up. Order from another block of the part, or ask for it to be re-embedded." |
+| Exhausted, Lost, Damaged, Cancelled | A badge on the block. A Lost, Damaged or Cancelled block cannot be ordered from (its tick box is greyed out). Batch 731: an Exhausted block can be ticked; the builder then shows what remains and asks what to do with each line (below). |
 
 **Center panel: Add-On Order Builder**
 
@@ -55,7 +58,17 @@ Below are three panels side by side, and the **Order Tracking** list underneath.
 | Search stains… | Narrows the stain buttons by name. |
 | Stain buttons | The stains offered for the kind chosen (the first 24 that match). A recut can use any stain; the others show only stains of their kind. "No matching stains." if none. |
 | Level Depth (µm) | Recut only. Starts at 4. Required only if your organisation requires it. |
+| Levels, Levels per slide | Batch 732. Recut only. A level range: **Levels** (how many) and **Levels per slide** (both start at 1). Three levels two to a slide make two slides; the cart line reads "3 levels, 2 per slide", and the Microtome shows "2 levels on this slide". |
 | Control Pairing | Appears for a stain that needs a control, or when a panel is chosen: **No Control**, **On-Slide Control**, **Separate Control Slide**. |
+
+**Exhausted block** (Batch 731; above the builder, for each ticked block that is exhausted)
+
+| Field | What it means |
+|---|---|
+| Heading | "Block A3 is exhausted. What remains: unstained slides L4 and L5; other blocks of this part: A1, A2." ("none" when there are none). |
+| A line per cart line | The stain and a list, **Choose an alternative…**: **Use unstained slide L4 (already cut)** (not offered for a recut or levels: they need a new section), **Request re-embedding (the order waits until it is done)** (only for people allowed to request it), or **Order from block A1 instead**. Until a choice is made a red note says why the line is blocked: "Needs a new section from this block. Choose re-embedding or another block." or "Choose an unstained slide already cut, re-embedding or another block."; "That slide is no longer free, or another line already uses it." when two lines chose the same slide; "Nothing remains to offer: remove this line." when there is no alternative. |
+| Reason for ordering on an exhausted block | Required. **Quick reasons** fill it: Requested by the pathologist, Last material available, Needed to complete the diagnosis. |
+| Note | "A control slide is not added automatically for a stain put on a slide already cut. The order and the reason are recorded in the audit log." |
 
 **Right panel: Order Summary & Routing**
 
@@ -67,6 +80,7 @@ Below are three panels side by side, and the **Order Tracking** list underneath.
 | Priority | **STAT / Urgent**, **Routine Sign-Out** (the start), **Research / Protocol**. |
 | Slide Media & Charge | **Standard Charged** (the start), **Uncharged**, **Plus Glass**. |
 | Microtome Bench Instructions | Free text for the technologist. Optional unless your organisation requires it. |
+| Print labels at | Batch 730. Shown only to people allowed to send print jobs to another station, when a station has a slide printer. **At the microtome when the block is cut** (the start) keeps today's behaviour. Choosing a station prints the new slides' labels there as soon as the order is placed; the line under it says so, and the message after placing says how many printed (any that failed print at the microtome as before). The microtome then records the cut without printing those labels again. |
 | Submit Add-On Order | Places the order. |
 
 Some fields can be required by your organisation (a red star). A line beginning "Still required" names what is missing, and the button stays grey. By default the blocks, at least one order line, and the reference laboratory of a sent-out test are required.
@@ -76,7 +90,7 @@ Some fields can be required by your organisation (a red star). A line beginning 
 | Field | What it means |
 |---|---|
 | Block and stain | For example "A1 — ER", with the panel tag. |
-| Stage badge | Requested, Block Retrieved, Cut / Pending Stain, Stained / QC, Checked Out / Scanned, Exception or Cancelled. |
+| Stage badge | Requested, Block Retrieved, Cut / Pending Stain, Stained / QC, Checked Out / Scanned, Exception, Awaiting Re-embedding (Batch 731: ordered on an exhausted block, waiting for it to be re-embedded) or Cancelled. |
 | Details | "Ordered by …", the priority, the queue it was routed to, and "Send-out: …". |
 
 ### Prompts and messages
@@ -102,12 +116,13 @@ Some fields can be required by your organisation (a red star). A line beginning 
 | Approve Destructive Cutting | Answers an exception: the technologist may cut the block away. Needs the permission to approve it. |
 | Modify & Resubmit | Answers an exception: opens boxes for the level depth and the bench instructions; **Resubmit** sends the order back to the bench. |
 | Cancel Order | Answers an exception: cancels the order. |
+| Apply | Batch 731. Under **Or use an alternative**, on a "Block exhausted" exception: applies the alternative chosen (an unstained slide already cut, another block of the same part, or re-embedding). |
 
 ### Icons and status indicators
 
 | Indicator | Meaning |
 |---|---|
-| Status badge on a block | Exhausted, Lost, Damaged or Cancelled: no orders can be placed on it. |
+| Status badge on a block | Lost, Damaged or Cancelled: no orders can be placed on it. Exhausted: orders only through an alternative, with a reason. |
 | Stage badge | The order's place in the laboratory (see above). It moves on by itself as the slide is cut, stained and routed. |
 | Banner "Order submitted." | The order was placed. |
 | Banner about molecular orders | "Order submitted, but … molecular order(s) didn’t reach the Molecular Order Queue. Tell the molecular lab." The slides are ordered; only the molecular part needs a call. |
@@ -129,12 +144,23 @@ Both keys work while this screen is open, and each does what its button does, in
 
 Phrases are also available in French, German, Dutch, Korean and Spanish. See [Voice and Keyboard](help:voice-and-keyboard).
 
+### Using a tablet at the bench
+
+Since Batch 735 the station screens work with a finger, including a gloved one.
+
+- **Touch layout.** On a tablet, buttons, chips and tick boxes are at least 44 px, main actions such as Confirm or Print are larger, and text in fields is 16 px. On a desktop the screen keeps its compact layout. Change this per computer with **Touch layout on this computer** in the station menu at the top (**Auto**, **Always on**, **Always off**).
+- **Scanning.** The scan field accepts a barcode scanner without opening the on-screen keyboard and stays ready for the next scan. To type an ID by hand, select **⌨ Type**; **⌨ Scan** hides the keyboard again.
+- **Keyboard up.** When you type in a field, the field stays in view. If the form's Save button would be hidden by the keyboard, a copy of it appears just above the keyboard.
+- **Tooltips.** Tap a label that has extra information to read it.
+- **Answering a Block exhausted flag.** Tap a reason (for example **Needed to complete the diagnosis**; your lab may word them differently); the note box is optional.
+- **Open another case.** The scan field beside the case details opens the next case without going back.
+
 ## Step-by-Step Procedures
 
 ### Standard workflow
 
 1. From the report, select **Add-on order** in the block row. The case opens with its blocks listed. (Or open the screen and enter or scan the accession, then select **Open Case**.)
-2. Tick each block you want to order from. Blocks that are Exhausted, Lost, Damaged or Cancelled cannot be ticked.
+2. Tick each block you want to order from. Blocks that are Lost, Damaged or Cancelled cannot be ticked. An Exhausted block can: see Exception handling.
 3. Choose the kind of order: **Recut / Deep Level**, **Special Stain**, **IHC** or **Molecular / Send-Out**.
 4. Choose the stain (use **Search stains…** to find it) or, for IHC, a panel. For a recut, check the **Level Depth (µm)**. If a control is needed, choose the **Control Pairing**.
 5. Select **Add to Cart**. A line appears in the Order Summary, with where it routes. Repeat from step 3 for further lines.
@@ -156,13 +182,16 @@ Phrases are also available in French, German, Dutch, Korean and Spanish. See [Vo
 ### Exception handling
 
 1. **The bench tells you the block is exhausted.** An order shows the stage **Exception**, with the reason (Block exhausted, Insufficient tissue for panel or Requires re-grossing), the note, and who flagged it. The pathologist who placed the order is also e-mailed the accession, the block and the reason. If the slide was not ordered here (an original H&E, say), or that pathologist has no e-mail address, the Supervisor / Accessioning Desk is e-mailed instead and the technologist is told so; the slide still appears in this list so it can be answered. Type a **Response note** (required only if your organisation requires it) and choose:
-   - **Approve Destructive Cutting**, if the block may be cut down to nothing. The bench is allowed to carry on, and the block stays marked Exhausted.
+   - **Approve Destructive Cutting**, if the block may be cut down to nothing. The bench is allowed to carry on, and the block stays marked Exhausted. Batch 733: for a Block exhausted flag it is offered only while tissue may still remain; when the block was already exhausted before the flag the row says "The block was already exhausted before this flag, so nothing is left to cut: destructive cutting is not offered." A response note is required, and the row warns: "Cutting through uses the last tissue in this block. No later recut, biomarker or molecular test will be possible from it, which matters most for a small biopsy."
    - **Modify & Resubmit**, to change the level depth or the instructions. The order goes back to Pending at the bench.
    - **Cancel Order**, to drop the order. If the flag was Block exhausted, the block's status goes back to what it was before.
+   - Batch 733: one Block exhausted flag covers every slide on the block still waiting to be cut, and one answer applies to all of them ("This answer applies to all 4 waiting slides on A1."; afterwards "Answered for 4 waiting slides."). Tick **Answer this slide only** to answer one slide differently; the line then reads "This answer applies to this slide only." With **Use unstained slide …** for several slides, the chosen slide goes to the slide you answered and the block's other free unstained slides to the rest; if there are not enough, or one of them needs a new section, the answer is refused and says to answer slide by slide.
+   - Batch 731, for a **Block exhausted** flag: under **Or use an alternative** the row shows what remains; choose **Use unstained slide … (already cut)**, **Order from block … instead** or **Request re-embedding (the order waits until it is done)**, and select **Apply**. A **Response note** is required for these ("Type a response note first: it is the reason for the alternative."); a recut or a level is never offered an existing slide. The first two cancel the flagged order (and its control slide, which moves with it to the other block) and place it on the slide or block chosen; re-embedding keeps it, with the stage **Awaiting Re-embedding**, until the Embedding Station marks the block re-embedded. The first two, and **Approve Destructive Cutting**, also record the block's end state as Exhausted. Each answer is recorded in the audit log.
 2. **You see a problem with an order yourself.** Select **Flag Exception** on its row (needs the permission to flag a block exception), choose the reason, type a note and select **Flag Exception**. The row then shows the response buttons, which work only for someone with the matching permission.
 3. **The bench has pulled the block.** Select **Mark Block Retrieved** (needs the permission to mark a block retrieved) on a Requested order to move it to Block Retrieved.
-4. **A block is not available.** If a block is Exhausted, Lost, Damaged or Cancelled you cannot order from it. Ask the technologist to find it, re-embed it, or ask the grossing team for another block.
-5. **The test cannot be run in-house.** "This case’s lab doesn’t run … in-house. Choose send-out." Change the line to send-out and choose a reference laboratory.
+4. **A block is not available.** If a block is Lost, Damaged or Cancelled you cannot order from it. Ask the technologist to find it, re-embed it, or ask the grossing team for another block.
+5. **The block is exhausted** (Batch 731). Tick it anyway. Above the builder the screen says what remains. For each line choose an alternative: an unstained slide already cut (for a stain, IHC or molecular test), re-embedding of the remnant or wet tissue (needs the permission to request it; the order waits until the block is re-embedded), or another block of the same part. A recut or levels cannot go on an existing slide, because they need a new section. Give the reason (required) and submit. Nothing creates tissue that does not exist: if nothing remains, remove the line.
+6. **The test cannot be run in-house.** "This case’s lab doesn’t run … in-house. Choose send-out." Change the line to send-out and choose a reference laboratory.
 
 !!! warning "Approve Destructive Cutting"
     Approving lets the technologist cut the block through to the end, and tissue left on it for other tests may be lost. Approve only when the order justifies it, and write the reason in the response note.
@@ -171,7 +200,7 @@ Phrases are also available in French, German, Dutch, Korean and Spanish. See [Vo
 
 1. If "No case found for “…”." appears, check the accession and try again.
 2. If "Enter or scan an accession number." appears, the search box is empty.
-3. If submitting shows "Block A2 is exhausted; no more cutting orders can be placed on it." (or lost, damaged or cancelled), the whole order is refused and nothing at all is placed. Untick that block and submit again.
+3. If submitting shows "Block A2 is marked lost; …" (or damaged or cancelled), the whole order is refused and nothing at all is placed. Untick that block and submit again. For an exhausted block, "Block A2 is exhausted. Choose what to do for each line …", "Block A2 is exhausted: 1 line still needs an alternative." or "Block A2 is exhausted: give the reason for this order." means a choice or the reason is missing; nothing was placed.
 4. If it shows "Add at least one order line for block …", the cart is empty.
 5. If it shows "You don’t have permission for this. Ask your administrator.", your role cannot place orders, approve destructive cutting, flag a block exception or mark a block retrieved (whichever you tried).
 6. If it shows "That didn’t go through. The order may have changed; reopen the case and try again.", go **Back**, open the case again and check the Order Tracking list before you submit, so that you do not order twice.
@@ -210,7 +239,7 @@ Phrases are also available in French, German, Dutch, Korean and Spanish. See [Vo
 
 ### Downstream workflow
 
-- [Microtomy Workstation](help:workstations/microtomy): ordered slides appear as Pending; the technologist's **Block exhausted** button starts an exception here.
+- [Microtome Workstation](help:workstations/microtomy): ordered slides appear as Pending; the technologist's **Block exhausted** button starts an exception here.
 - [Slide Distribution Station](help:workstations/slide-distribution): a slide checked out or loaded on a scanner moves the order to Checked Out / Scanned.
 - [Molecular Order Queue](help:molecular/order-queue): in-house molecular orders.
 - [Batch Management](help:batch-management): staining and other steps of the chain of custody.

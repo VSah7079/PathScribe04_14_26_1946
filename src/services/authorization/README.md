@@ -1,3 +1,15 @@
+**Batch 742:** `caseAttachmentCapabilities.ts` (new): `case:attachment:upload`, `case:attachment:link`, `case:attachment:unlink`, seeded with `report:case-images:attach` to every role with case access (`capabilitySeeds.ts`, `REPORT_IMAGES`).
+
+**Batch 741:** `cytologyPrepCapabilities.ts`: `material:specimen:divide`, `material:aliquot-status:update`; seeds `SPECIMEN_DIVIDE`, `ALIQUOT_STATUS`.
+
+**Batch 740:** `cytologyPrepCapabilities.ts` (new): `screen:cytology-prep:open`, `cytology:cell-block:hand-off`; seeds in `capabilitySeeds.ts` (Histotechnologist and Cytotechnologist open the bench; `CELL_BLOCK_HANDOFF` for whoever opens it).
+
+**Batch 736:** `benchReasonCapabilities.ts` adds `config:bench-reasons:manage` (configOperations; Admin and Lab Director), spread into the catalog.
+
+**Batch 734:** `printingPolicyCapabilities.ts` adds `config:direct-device-printing:manage` (configOperations; Admin and Lab Director), spread into the catalog.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 **Batch 649:** 17 new capabilities in `workflowCapabilities.ts` (spread into the catalog, like `lockboxCapabilities.ts`), for actions that had none: `surgical:report:sign-out`, `surgical:preliminary:release`, `surgical:amendment:release`, `surgical:correction:release`, `surgical:addendum:release`, `report:release:recall`, `case:pool:claim`, `case:pool:pass`, `case:flag:apply`, `case:flag:remove`, `case:diagnosis-code:apply`, `case:accession:create`, `case:informal-review:request`, `qa:deficiency:raise`, `qa:deficiency:escalate`, `qa:deficiency:contain` and `qa:deficiency:verify` (13 high risk, 4 standard). Each is checked by `authorizationService.enforce` in the service that does the work; screens grey the button with `CapabilityButton`. Seeds (`capabilitySeeds.ts`, least privilege): sign-out, diagnosis codes and informal review requests go to Pathologist, Fellow and Resident; **preliminary release and the amendment, correction and addendum releases go to Pathologist and Fellow only** (Pete, Oct 22, 2026: residents do not issue preliminary releases independently, and a hospital's own roles do not get the preliminary release by default; they do get the three revision releases with case access); pool claim and pass and recall go to Pathologist, Fellow, Resident and Cytotechnologist; flags to every case-access role; creating a case to every role with the Accession screen; the four QA deficiency actions to every role with the Quality Assurance screen. **`admin-override` is gone from `canFinalizeCase`** (`services/auth/`): signing needs the capability *and* being an active participant whose participation type can finalize. The catalog now has **338 capabilities, 287 high risk** (321 and 274 before); rows in `AUTHORIZATION_API.md` and `docs/product/CAPABILITIES.md`. Tests: `authorization.test.ts`, `workflowSeeds.test.ts`.
 
 **Batch 645:** four capabilities for Lockbox Drop-Off, in `lockboxCapabilities.ts` (spread into the catalog so `capabilityCatalog.ts` stays under 1,000 lines): `screen:lockbox-drop-off:open`, and, in the Case work group, `lockbox:specimen:receive`, `lockbox:folder:review` and `lockbox:placeholder:resolve` (all three high risk; each checked with `authorizationService.enforce` in `lockbox/lockboxService.ts`). Seeds: **Accessioner** all four; **Admin** the screen and folder review only (oversight and the QA figures); nobody else, so a Pathologist gets none. Custom roles that get case access are not offered the screen automatically. Locale text in all six languages; rows in `AUTHORIZATION_API.md` and `docs/product/CAPABILITIES.md`. The catalog now has 319 capabilities.
@@ -379,7 +391,7 @@ New capability `case:edit-conflict:override` (high risk, casework): "Save mine a
 
 ## Batch 460
 
-`billing:applied-code:review` ("Review a case's billing codes", high risk): approving, declining, overriding, adding and deleting a case's billing codes, on the report page, in the Cytology Workspace and at Microtomy.
+`billing:applied-code:review` ("Review a case's billing codes", high risk): approving, declining, overriding, adding and deleting a case's billing codes, on the report page, in the Cytology Workspace and at the Microtome.
 - It's checked in `services/billing/caseBillingCharges.ts` (`enforceBillingReview`) before any change.
 - Seeds (`BILLING_REVIEW`): the same roles as `billing:applied-code:correct`, so nobody loses it.
 - `authorization.test.ts` checks the two always go together in the seeds.
@@ -576,7 +588,7 @@ Batch 659: new capability `qa:management-review:submit` (high risk, Quality defi
 `config:or-board-demo:run` (high risk, administration): Start and Stop demo on the OR Suite Live Board. Checked in `services/intraop/mockIntraoperativeService.ts`; Admin gets it with the administration group; the board's buttons are `CapabilityButton`s.
 
 ## Batch 669f
-`add-on:exception:flag` and `add-on:block:mark-retrieved` (standard risk, casework; in `workflowCapabilities.ts`): flagging a block exception and marking a block retrieved, both open to anyone with the screen until now. Seeded (`ADD_ON_BENCH_ACTIONS`) to every role with the Add-On Orders or Microtomy screen (Pathologist, Fellow, Resident, Histotechnologist) and to a hospital's own roles with case access. Checked in `addOnOrders/addOnOrderActions.ts`; the Add-On Orders tracking buttons and the Microtomy Block exhausted button are `CapabilityButton`s.
+`add-on:exception:flag` and `add-on:block:mark-retrieved` (standard risk, casework; in `workflowCapabilities.ts`): flagging a block exception and marking a block retrieved, both open to anyone with the screen until now. Seeded (`ADD_ON_BENCH_ACTIONS`) to every role with the Add-On Orders or Microtome screen (Pathologist, Fellow, Resident, Histotechnologist) and to a hospital's own roles with case access. Checked in `addOnOrders/addOnOrderActions.ts`; the Add-On Orders tracking buttons and the Microtome Block exhausted button are `CapabilityButton`s.
 
 ## Batch 669 (ctl) — Control Rules view capability
 `config:molecular-control-rules:view` (standard risk, administration), defined with `manage` in `molecularControlRulesCapabilities.ts` and spread into the catalog (capabilityCatalog.ts does not grow). The Control Rules route no longer rides on `screen:molecular:open`, which neither Admin nor Lab Director holds by default. Seeds: Admin (administration group), Lab Director (`MOLECULAR_CONTROL_RULES_VIEW` with manage), QA Reviewer, and every role that holds the Molecular screen (Molecular Technologist; a hospital's own role with case access gets it too, keeping today's users). `manage` now `requires` view. Read in `listForReview` (see `services/molecular/README.md`).
@@ -589,3 +601,19 @@ Batch 659: new capability `qa:management-review:submit` (high risk, Quality defi
 
 ## Batch 720
 New capability `screen:grossing:open`, seeded to pathologist, fellow, resident and pa; pa also gets `screen:add-on-orders:open`.
+
+## Batch 726
+
+New capabilities `batch:manifest:seal`, `batch:carrier:advance`, `station:scan-mismatch:continue`, `station:scan-history:view` (standard risk), seeded through `STATION_CARRIER_ACTIONS` to every role with Batch Management or a bench workstation (Pathologists Assistant, Histotechnologist, Cytotechnologist, Molecular Technologist) and to a hospital's own roles with case access. Batch Management's three overrides and these four moved to `batchCarrierCapabilities.ts`, spread into the catalog in the same place, so `capabilityCatalog.ts` stays under 1,000 lines (993).
+
+## Batch 728
+
+- `config:research-cases:manage` and `config:batch-purposes:manage` (configLab, high risk; Admin and Lab Director through `CONFIG_SECTIONS`).
+
+## Batch 730
+
+- `labWorkflowReportCapabilities.ts` (new): `report:<report>:view` and `report:<report>:export` for the seven lab workflow reports; the three that read the scan log require `station:scan-history:view`. Seeded with Batch Management (`LAB_WORKFLOW_REPORTS`).
+
+## Batch 731
+
+- `materialLifecycleCapabilities.ts` (new): `material:end-state:record`, `material:reembed:request`, `material:reembed:complete`. Seeds `MATERIAL_END_STATE` (Microtome or Slide Distribution screen), `REEMBED_REQUEST` (Pathologist, Fellow, Resident), `REEMBED_COMPLETE` (Embedding screen).

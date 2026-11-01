@@ -28,7 +28,7 @@ A role may not hold both of these (the role service refuses it):
 | `screen:tumor-board:open` | Open Tumor Board | See the Tumor Board screen and its tile on the Home page. | standard |  |  |
 | `screen:batch-management:open` | Open Batch Management | See the Batch Management screen and its tile in the Pathology Workspace. | standard |  |  |
 | `screen:cytology-workspace:open` | Open Cytology Workspace | See the Cytology Workspace screen and its tile in Pathology Workspace. | standard |  |  |
-| `screen:microtomy:open` | Open Microtomy Workspace | See the Microtomy Workspace screen and its tile in Pathology Workspace. | standard |  |  |
+| `screen:microtomy:open` | Open Microtome Workspace | See the Microtome Workspace screen and its tile in Pathology Workspace. | standard |  |  |
 | `screen:grossing:open` | Open Grossing Workspace | See the Grossing Workspace screen and its tile in Pathology Workspace. | standard |  |  |
 | `screen:embedding:open` | Open Embedding Workspace | See the Embedding Workspace screen and its tile in Pathology Workspace. | standard |  |  |
 | `screen:slide-distribution:open` | Open Slide Distribution Workspace | See the Slide Distribution Workspace screen and its tile in Pathology Workspace. | standard |  |  |
@@ -92,7 +92,7 @@ A role may not hold both of these (the role service refuses it):
 | `cytology:pathologist-review:take` | Take a positive GYN cytology case for review | Take a positive GYN cytology case from the Worklist's Cytology Review tile. You become the case's pathologist; the cytotechnologist stays on the case. | high |  |  |
 | `add-on:order:place` | Place an add-on order | Order recuts, special stains, IHC or molecular/send-out tests on a case’s blocks, and cancel or modify an add-on order after a block exception. | high |  |  |
 | `add-on:exception:approve-destructive-cut` | Approve destructive cutting | Allow an add-on order to be cut from a block that may be used up by it. | high |  |  |
-| `add-on:exception:flag` | Flag a block exception | Report that a block is used up or otherwise cannot be cut (Block exhausted and the other reasons), on the Add-On Orders tracking list and the Microtomy workstation. The ordering pathologist, or the Supervisor / Accessioning Desk when there is none, is e-mailed. | standard |  |  |
+| `add-on:exception:flag` | Flag a block exception | Report that a block is used up or otherwise cannot be cut (Block exhausted and the other reasons), on the Add-On Orders tracking list and the Microtome workstation. The ordering pathologist, or the Supervisor / Accessioning Desk when there is none, is e-mailed. | standard |  |  |
 | `add-on:block:mark-retrieved` | Mark a block retrieved | Record that the block for an add-on order has been taken from storage. | standard |  |  |
 | `batch:reconciliation:override` | Complete a batch reconciliation anyway | Mark a batch complete when items are missing or unexpected, with a reason. | high |  |  |
 | `batch:run:abort` | Abort a batch | Abort a processing, staining or referral batch, with a reason. | high |  |  |
@@ -112,7 +112,7 @@ A role may not hold both of these (the role service refuses it):
 | `case:follow-up:expect` | Mark a follow-up specimen as expected | At surgical sign-out, mark that a resection or excision is expected, so the lab is told if none arrives in the biopsy-to-resection window. | standard |  |  |
 | `report:organ-map:insert` | Insert the organ map into a report | Place the anatomical map, drawn from the synoptic answers, in the report, or take it out, before sign-out. Audited. | standard |  |  |
 | `report:case-report:print` | Print a case report | Print or reprint a case report, or open a stored version's PDF. Every print is recorded in the audit log. | high |  |  |
-| `report:case-images:attach` | Attach images to a report | Attach images (gross photographs, microphotographs) to a case's report, or take them off. They print after the report's own pages. Audited. | standard |  |  |
+| `report:case-images:attach` | Place images in a report | Place photos, files and links in a case's report (inside a report section), or take them out. A signed report needs an amendment or addendum first. Audited. (Batch 742; the three `case:attachment:*` capabilities added that batch are not yet in this generated list.) | standard |  |  |
 | `report:related-cases:attach` | Attach related cases to a report | Choose a patient's other released cases to send with the report being signed out. They are fixed when the report is signed out. Audited. | standard |  |  |
 | `patient:summary:print` | Print a patient summary | Print a summary of a patient's released cases that you can view, from the patient history. It is labelled as a summary and not a signed report. Every print is audited. | high |  |  |
 | `ai:history-extraction:run` | Run the AI extraction on historical reports | Let the AI read a historical report's Final Diagnosis and Microscopic text and keep the synoptic fields it finds beside the case, for you to look at. Advisory only, never used in reports. Audited. | high |  |  |

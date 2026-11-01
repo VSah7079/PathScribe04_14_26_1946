@@ -1,0 +1,11 @@
+/* Batch 732 (spec §11): block type, slide size and piece map at the benches (BlockPieceMapPanel.tsx). */
+.ps-piece-panel { margin: 8px 0; padding: 8px 10px; border: 1px solid var(--ps-border, rgba(148, 163, 184, 0.35)); border-radius: 8px; font-size: 13px; }
+.ps-piece-panel-head { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 6px; }
+.ps-piece-panel-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ps-piece-panel-item { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ps-piece-panel-item--used { color: var(--ps-text-dim); text-decoration: line-through; }
+.ps-piece-panel-meta { font-size: 12px; color: var(--ps-text-dim); }
+.ps-piece-panel-badge { font-size: 11px; padding: 1px 6px; border-radius: 999px; background: color-mix(in srgb, var(--ps-warning, #fbbf24) 20%, transparent); text-decoration: none; }
+.ps-piece-panel-btn { padding: 2px 8px; font-size: 12px; }
+.ps-piece-panel-note { margin: 6px 0 0; font-size: 12px; color: var(--ps-text-dim); }
+.ps-piece-panel-warn { margin: 6px 0 0; font-size: 12px; color: var(--ps-danger, #f87171); }

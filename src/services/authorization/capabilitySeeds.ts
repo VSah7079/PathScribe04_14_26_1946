@@ -166,8 +166,9 @@ export const SCREEN_SEEDS: Readonly<Record<string, readonly string[]>> = {
   // actually produces; see src/pages/README.md).
   // Batch 645: and the Lockbox Drop-Off screen (the kiosk and the Overnight folder), for the morning accessioning team.
   [SYSTEM_ROLE_IDS.ACCESSIONER]:            screens('accession', 'worklist', 'search', 'bench-contributions', 'lockbox-drop-off'),
-  [SYSTEM_ROLE_IDS.HISTOTECHNOLOGIST]:      screens('batch-management', 'embedding', 'microtomy', 'slide-distribution', 'search', 'bench-contributions'),
-  [SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST]:       screens('cytology-workspace', 'batch-management', 'search', 'bench-contributions'),
+  // Batch 740: both bench roles open the Cytology Preparation bench (fluid decision 1).
+  [SYSTEM_ROLE_IDS.HISTOTECHNOLOGIST]:      screens('batch-management', 'embedding', 'microtomy', 'slide-distribution', 'search', 'bench-contributions', 'cytology-prep'),
+  [SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST]:       screens('cytology-workspace', 'batch-management', 'search', 'bench-contributions', 'cytology-prep'),
   [SYSTEM_ROLE_IDS.MOLECULAR_TECHNOLOGIST]: screens('molecular', 'batch-management', 'search', 'bench-contributions'),
   // Batch 434 (Pete): Admin also opens Batch Management (it couldn't see Slide
   // scanning). The screen only: the batch actions stay with the bench roles,
@@ -200,7 +201,7 @@ const AUTOPSY_RELEASE = ['autopsy:body:release'];
 // print one before (the roles with case access, built-in and a hospital's own).
 const REPORT_PRINT = ['report:case-report:print'];
 // Batch 609 (PS-44): attaching images to a case report, for the same case-access roles.
-const REPORT_IMAGES = ['report:case-images:attach'];
+const REPORT_IMAGES = ['report:case-images:attach', 'case:attachment:upload', 'case:attachment:link', 'case:attachment:unlink']; // Batch 742: and the case's attachments, same roles
 // Batch 613: related cases at sign-out are the signer's decision (Pathologist, Fellow); the Patient summary print is for the case-access roles that can read patient history.
 const RELATED_CASES = ['report:related-cases:attach'];
 const PATIENT_SUMMARY = ['patient:summary:print'];
@@ -322,13 +323,34 @@ export const CYTOLOGY_REVIEW_TAKE = ['cytology:pathologist-review:take'];
 export const ADD_ON_ORDER_ACTIONS = ['add-on:order:place', 'add-on:exception:approve-destructive-cut'];
 const ADD_ON_ORDER_ROLES = ['pathologist', 'fellow', 'resident'];
 // Batch 669 (ws-19): flagging a block exception and marking a block retrieved, for everyone who could do it before
-// (keep today's users): the roles with the Add-On Orders screen and the bench roles with the Microtomy workstation
+// (keep today's users): the roles with the Add-On Orders screen and the bench roles with the Microtome workstation
 // (which flags Block exhausted), and a hospital's own roles with case access.
 export const ADD_ON_BENCH_ACTIONS = ['add-on:exception:flag', 'add-on:block:mark-retrieved'];
 // Batch 404: Batch Management's overrides, for every role that has its screen
 // (Pete: keep today's users).
 // Batch 610 (#17/#123, #12): and trying the Simulated temperature reading, and exporting the Retention Holds queue.
 export const BATCH_OVERRIDE_ACTIONS = ['batch:reconciliation:override', 'batch:run:abort', 'batch:cold-chain-excursion:acknowledge', 'batch:cold-chain-reading:simulate', 'retention:holds-queue:export'];
+// Batch 726 (Lab Workflow & Batch spec): carriers at the workstations and the station scan trail, for every role with
+// Batch Management or a bench workstation (and a hospital's own roles with case access).
+export const STATION_CARRIER_ACTIONS = ['batch:manifest:seal', 'batch:carrier:advance', 'station:scan-mismatch:continue', 'station:scan-history:view'];
+// Batch 730: the lab workflow reports, view and export, for every role with Batch Management (where the reports are).
+export const LAB_WORKFLOW_REPORTS = [
+  'report:workflow-turnaround:view', 'report:workflow-turnaround:export', 'report:station-volume:view', 'report:station-volume:export',
+  'report:stat-performance:view', 'report:stat-performance:export', 'report:add-on-volume:view', 'report:add-on-volume:export',
+  'report:recut-rework:view', 'report:recut-rework:export', 'report:reconciliation-exceptions:view', 'report:reconciliation-exceptions:export',
+  'report:batch-duration:view', 'report:batch-duration:export',
+];
+const STATION_CARRIER_SCREENS = ['screen:batch-management:open', 'screen:embedding:open', 'screen:microtomy:open', 'screen:slide-distribution:open'];
+// Batch 731 (spec §10.5, §10.6): an item's end state, for the roles at the Microtome or Slide Distribution; asking for
+// an exhausted block to be re-embedded, for the roles that place add-on orders; marking it re-embedded, at Embedding.
+export const MATERIAL_END_STATE = ['material:end-state:record'];
+export const REEMBED_REQUEST = ['material:reembed:request'];
+/** Batch 740: whoever opens the Cytology Preparation bench may hand a cell block off to histology. */
+export const CELL_BLOCK_HANDOFF = ['cytology:cell-block:hand-off'];
+/** Batch 741: dividing a specimen (Grossing, Cytology Preparation) and tracking its aliquots (Cytology Preparation, Batch Management). */
+export const SPECIMEN_DIVIDE = ['material:specimen:divide'];
+export const ALIQUOT_STATUS = ['material:aliquot-status:update'];
+export const REEMBED_COMPLETE = ['material:reembed:complete'];
 // Batch 610 (#11): deleting (Invalidating) a block after sign-out: supervisory and administrative roles only.
 export const BLOCK_DELETE_SIGNED_OUT = ['material:block:delete-signed-out'];
 // Batch 610 (#11): flagging a block Invalidated or Superseded on an amended report: Pathologist and Quality Manager (QA Reviewer).
@@ -503,6 +525,8 @@ export function customRoleScreenSeed(role: { caseAccess?: boolean; configAccess?
     ...(role.caseAccess ? [...ADD_ON_BENCH_ACTIONS] : []),
     // Batch 404: and Batch Management's overrides (a role with case access had that screen too).
     ...(role.caseAccess ? [...BATCH_OVERRIDE_ACTIONS] : []),
+    // Batch 726: and carriers at the workstations (case access had those screens too).
+    ...(role.caseAccess ? [...STATION_CARRIER_ACTIONS] : []),
     // Batch 405: and superseding a molecular run.
     ...(role.caseAccess ? [...MOLECULAR_SUPERSEDE] : []),
     // Batch 467: and the molecular Order Queue's actions.
@@ -619,7 +643,15 @@ export const CAPABILITY_SEEDS: Readonly<Record<string, readonly string[]>> = {
     ...(ADD_ON_ORDER_ROLES.includes(r) ? ADD_ON_ORDER_ACTIONS : []),
     ...(caps.includes('screen:add-on-orders:open') || caps.includes('screen:microtomy:open') ? ADD_ON_BENCH_ACTIONS : []),
     ...(caps.includes('screen:batch-management:open') ? BATCH_OVERRIDE_ACTIONS : []),
+    ...(STATION_CARRIER_SCREENS.some(k => caps.includes(k)) ? STATION_CARRIER_ACTIONS : []),
     ...(caps.includes('screen:batch-management:open') ? MATERIAL_DISPOSAL : []),
+    ...(caps.includes('screen:batch-management:open') ? LAB_WORKFLOW_REPORTS : []),
+    ...(caps.includes('screen:microtomy:open') || caps.includes('screen:slide-distribution:open') ? MATERIAL_END_STATE : []),
+    ...(ADD_ON_ORDER_ROLES.includes(r) ? REEMBED_REQUEST : []),
+    ...(caps.includes('screen:embedding:open') ? REEMBED_COMPLETE : []),
+    ...(caps.includes('screen:cytology-prep:open') ? CELL_BLOCK_HANDOFF : []),
+    ...(caps.includes('screen:grossing:open') || caps.includes('screen:cytology-prep:open') ? SPECIMEN_DIVIDE : []),
+    ...(caps.includes('screen:cytology-prep:open') || caps.includes('screen:batch-management:open') ? ALIQUOT_STATUS : []),
     ...(caps.includes('screen:batch-management:open') ? REFERRAL_TRANSIT : []),
     ...(caps.includes('screen:batch-management:open') ? WSI_SCAN_BATCH : []),
     ...(caps.includes('screen:audit-log:open') ? AUDIT_ERROR_RESOLVE : []),

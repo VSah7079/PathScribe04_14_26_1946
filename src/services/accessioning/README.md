@@ -1,3 +1,5 @@
+**Batch 721:** `resolveAccessionPanels.ts` decides which Accession panels show (one at a time on a narrow window; Case & Patient plus Specimens, or Outside Patient Data, on a wide one) and holds the 1,480 px breakpoint. Tested in `resolveAccessionPanels.test.ts`.
+
 **Batch 649:** `createAccessionedCase.ts` checks `case:accession:create` (high risk, audited; requires the Accession screen) before anything is saved; a refusal throws its reason and saves nothing. An order arriving from the LIS, a legacy import or a control slide is not this action.
 
 # services/accessioning/

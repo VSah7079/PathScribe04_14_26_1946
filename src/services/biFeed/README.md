@@ -12,3 +12,15 @@ The reporting feed that lets Power BI and other BI tools read PathScribe data th
 ## Batch 617 (part A): server versions (PS-514)
 
 `biFeedService` now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/BI_FEED_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).
+
+## Batch 730
+
+- `biFeedCatalog.ts`: + `station_events`, `batches`, `add_on_orders` (spec §9.3). Timestamps are generalised to the month when de-identified; turnaround uses `minutes_since_accession` and `minutes_to_cut`. `biFeedRules.ts`: their Simulated row counts.
+
+## Batch 731
+
+- `station_events` gains `parent_item_key` (spec §10.4); new dataset `item_end_states` (spec §10.5; the free-text reason is removed when de-identified).
+
+## Batch 732
+
+- Batch 732: `add_on_orders` gains `block_type`, `slide_size`, `level_count`, `piece_count`.

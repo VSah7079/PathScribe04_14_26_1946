@@ -42,6 +42,7 @@ Richten Sie Stufe 2 in der folgenden Reihenfolge ein. Jeder Bildschirm enthält 
 30. [Länder- und Laborregeln](#screen-cytology_compliance_features): Obergrenze der Arbeitsmenge, Rückschau, dringende Unterschrift und Screening-Intervalle.
 31. [Unterstützte Instrumentierung](#screen-cytology_instrumentation): Whole Slide Imaging oder herkömmliche Durchsicht.
 32. [Zyto-histologische Korrelation (SNOMED)](#screen-snomed_histology_severity_mapping): die SNOMED-Schweregrade, die in der Korrelation verwendet werden.
+33. [Forschungsfälle und Chargenzwecke](#screen-research_cases): wie Forschungsfälle erkannt und aus der klinischen Arbeit herausgehalten werden, und wofür ein Träger verwendet wird (Batch 728).
 
 Die folgenden Teile richten sich nach dem Thema, nicht nach der Einrichtungsreihenfolge: [Teil A](#ch3-anatomic-specialties) die Fachrichtungen der anatomischen Pathologie, [Teil B](#ch3-specimen-tissue) Proben und Gewebe, [Teil C](#ch3-container-cassette) Behälter, Kassetten und Tusche, [Teil D](#ch3-stains-protocols) Färbungen und Protokolle, [Teil E](#ch3-code-libraries) Codebibliotheken und [Teil F](#ch3-physicians-clients) Ärzte, Kunden und Aufsichtsbehörden.
 
@@ -901,6 +902,62 @@ Unlocks: Keine.
 **7. Berechtigungen.** Öffnen: `screen:configuration:open`. Hinzufügen, bearbeiten, deaktivieren, entfernen: `config:cold-chain:manage` (hohes Risiko, protokolliert). Admin, Laborleiter und Superadmin besitzen sie standardmäßig. Das Senden einer simulierten Messung wird gesondert geprüft: Wer keine Berechtigung hat, sieht „Sie dürfen keine simulierte Messung senden.“
 
 **Bekannte Grenzen.** Es ist kein Sensor-Feed angeschlossen. Jede Messung stammt aus dem Bedienelement Simuliert und ist überall als Simuliert gekennzeichnet. Deshalb lautet der Status Teilweise: Die Wörterbücher für Einheiten und Typen sind gebaut, die Live-Messungen nicht. Vorbelegte Typen sind Frozen Tissue (höchstens -20 °C) und Fresh Tissue (höchstens 8 °C).
+
+### Forschungsfälle und Chargenzwecke {#screen-research_cases}
+Breadcrumb: Start > Konfiguration > System > Labormaterialien und Arbeitsabläufe > Forschungsfälle und Chargenzwecke
+
+**Status:** Teilweise
+
+**1. Navigation:** Konfigurationsregister **System** > Gruppe **Labormaterialien und Arbeitsabläufe**
+**2. Pflegeelement:** Forschungsfälle und Chargenzwecke
+
+**3. Geschäftszweck und Umfang.** Zwei Einstellungen für Arbeit, die keine Routineversorgung ist.
+
+*Forschungsfälle.* Bis Forschungsobjekte ohne Eingangsnummer unterstützt werden, wird eine Forschungsprobe als Fall eines fiktiven Forschungspatienten erfasst. Diese Karte legt fest, wie PathScribe diese Fälle erkennt: am Präfix der Eingangsnummer (z. B. `RES`) oder am Präfix der Patientennummer des Forschungspatienten (z. B. `RSCH-`). Ein Forschungsfall wird dann:
+
+- nicht in den klinischen Arbeitslisten gezeigt (Kacheln und Listen; über die Fallsuche auffindbar);
+- bei Durchlaufzeit-, Mengen- und Qualitätszahlen der Contribution-Dashboards nicht mitgezählt;
+- nie als Ergebnis an die Patientenakte gesendet (endgültig, vorläufig, geändert oder Zytologie) und nie per Fax oder Dateiablage zugestellt; das Prüfprotokoll vermerkt jedes nicht gesendete Ergebnis mit Grund;
+- nie an die Abrechnung gesendet: seine Leistungen werden an der Abrechnungswarteschlange abgewiesen, und seine Kostenträgermeldung trägt die **Kostenträgerklasse ohne Abrechnung** ohne Versicherungsschutz;
+- nie an ein Krebs- oder Screeningregister gemeldet;
+- für die **Tage** ab Eingang aufbewahrt und danach in der Entsorgungsliste geführt. Aufbewahrungssperren gelten weiter.
+
+*Chargenzwecke.* Wofür ein Träger verwendet wird. Sechs sind eingebaut: Routine, Forschung, Lehre, Klinische Studie, Biobank, QS / Validierung. Sie lassen sich ausschalten, aber nicht entfernen; Routine ist immer aktiv. Fügen Sie eigene Zwecke des Labors hinzu. Ein neuer Träger ist Routine, sofern in **Neuer Container** nichts anderes gewählt wird. Ein anderer Zweck erscheint auf der Chargendetailseite, und jedes [Anzeigeprofil](#screen-display_profiles) kann nur bestimmte Zwecke zeigen.
+
+**4. Voraussetzungen und Abhängigkeiten.** Keine für die Einstellungen. Für die Forschungslösung den fiktiven Forschungspatienten anlegen (Patientennummer mit dem Präfix) und gegebenenfalls ein Nummernformat mit dem Forschungspräfix.
+
+Setup step: Tier 2, step 33
+Requires: Keine, dies ist ein Ausgangspunkt.
+Unlocks: Keine.
+
+**5. Bildschirm.**
+
+[SCREENSHOT PLACEHOLDER: system-research_cases - Karten Forschungsfälle und Chargenzwecke]
+
+**6. Feldreferenz.**
+
+#### Karte Forschungsfälle
+
+| Feldname | Datentyp / Format | Pflicht/Optional | Beschreibung und Geschäftslogik | Systemstandard |
+|---|---|---|---|---|
+| Passende Fälle als Forschungsfälle behandeln | Kontrollkästchen | Optional | Aus: kein Fall ist ein Forschungsfall. | Ein |
+| Präfixe der Eingangsnummer | Text, durch Kommas getrennt | Pflicht, wenn ein (dies oder die Patientennummer-Präfixe) | Passt, wenn das Präfix des Falls gleich ist oder seine vollständige Nummer damit beginnt. Ohne Leerzeichen; höchstens 20 Zeichen. | RES |
+| Präfixe der Patientennummer (MRN) des Forschungspatienten | Text, durch Kommas getrennt | Pflicht, wenn ein (dies oder die Eingangsnummer-Präfixe) | Passt, wenn die Patientennummer damit beginnt. | RSCH- |
+| Kostenträgerklasse ohne Abrechnung | Text | Pflicht, wenn ein | Wird als Abrechnungsart des Kontos in der Kostenträgermeldung gesendet. | Research - No Charge |
+| Material aufbewahren (Tage nach Eingang) | Ganze Zahl, 0 bis 36500 | Pflicht | Ab wann Blöcke und Objektträger des Falls zur Entsorgung gelistet werden. | 365 |
+| Speichern | Schaltfläche | Nicht zutreffend | Ohne die unten genannte Berechtigung oder bei ungültigen Werten abgewiesen. | Nicht zutreffend |
+
+#### Karte Chargenzwecke
+
+| Feldname | Datentyp / Format | Pflicht/Optional | Beschreibung und Geschäftslogik | Systemstandard |
+|---|---|---|---|---|
+| Zweckzeilen | Name und Kontrollkästchen Aktiv | Nicht zutreffend | Eingebaute Namen erscheinen in der Sprache des Lesers. Der Name eines Laborzwecks wird direkt bearbeitet (eindeutig, höchstens 40 Zeichen). Routine lässt sich nicht abwählen. | Sechs eingebaute Zwecke, alle aktiv |
+| Neuer Zweck, Hinzufügen | Text und Schaltfläche | Optional | Fügt einen Laborzweck hinzu. | Leer |
+| Speichern | Schaltfläche | Nicht zutreffend | Ohne die unten genannte Berechtigung oder bei leerem, zu langem oder doppeltem Namen abgewiesen. | Nicht zutreffend |
+
+**7. Berechtigungen.** Öffnen: `screen:configuration:open`. Forschungsfälle speichern: `config:research-cases:manage`. Chargenzwecke speichern: `config:batch-purposes:manage`. Hohes Risiko; standardmäßig Admin, Laborleitung und Superadmin.
+
+**Bekannte Grenzen.** Der Befundbildschirm kennzeichnet einen Forschungsfall noch nicht als „Forschung, kein klinischer Befund“; er kann freigegeben werden (nichts wird gesendet). Es gibt keine Forschungsarbeitsliste. Qualitätszahlen außerhalb der Contribution-Dashboards und der BI-Feed auf dem Server sind noch nicht gefiltert. Forschungsobjekte ohne Eingangsnummer folgen später.
 
 ### Präparatmängel {#screen-deficiencies}
 Breadcrumb: Startseite > Konfiguration > System > Integrationen > Präparatmängel

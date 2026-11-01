@@ -35,7 +35,7 @@ import type { TFunction } from 'i18next';
 import type { Case } from '@/types/case/Case';
 import type { HistologyBlock, StainOrder, Specimen } from '@/types/case/Specimen';
 import type { Decant, Aliquot, MaterialLocation } from '@/types/case/Material';
-import { DECANT_TYPE_LABEL } from '@/types/case/Material';
+import { decantTypeText } from '@/utils/decantTypeText';
 import {
   resolveSpecimenDisplayId, resolveBlockDisplayId, resolveSlideDisplayId,
   resolveDecantDisplayId, resolveDecantSlideDisplayId,
@@ -338,7 +338,7 @@ function buildFlatTree(specimens: Specimen[], fullAccession: string, query: stri
     for (const decant of sp.decants ?? []) {
       const decantDisplayId = resolveDecantDisplayId(fullAccession, sp.label, decant);
       const decantVisible = spVisible && decantMatches(decant, decantDisplayId, query);
-      items.push({ id: decant.id, depth: 1, icon: '📦', title: t('materialTrackingHistoryModal.itemTitle.decant', { label: decant.label }), displayId: decantDisplayId, subtitle: DECANT_TYPE_LABEL[decant.decantType], locationHistory: decant.locationHistory, visible: decantVisible, directMatch: decantSelfMatches(decant, decantDisplayId, query), readyForReview: allSlidesReady(decant.stains ?? []) });
+      items.push({ id: decant.id, depth: 1, icon: '📦', title: t('materialTrackingHistoryModal.itemTitle.decant', { label: decant.label }), displayId: decantDisplayId, subtitle: decantTypeText(t, decant), locationHistory: decant.locationHistory, visible: decantVisible, directMatch: decantSelfMatches(decant, decantDisplayId, query), readyForReview: allSlidesReady(decant.stains ?? []) });
 
       (decant.stains ?? []).forEach((slide, i) => {
         const level = slideLevelOf(slide, i);

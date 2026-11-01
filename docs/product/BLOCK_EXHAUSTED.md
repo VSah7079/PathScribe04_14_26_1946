@@ -1,4 +1,4 @@
-# Block exhausted, on the Microtomy workstation (Batch 610)
+# Block exhausted, on the Microtome workstation (Batch 610)
 
 Status: **Built (Demo).** The pathologist e-mail goes to the Simulated mail outbox until a mail server is configured.
 

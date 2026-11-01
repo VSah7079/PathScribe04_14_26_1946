@@ -4,12 +4,12 @@
 //
 // The scan path used to call only dispatchSlideLabel, the engraver stand-in that writes to the console, and marked
 // every pending slide "Cut & Placed" whatever the station was set up for. A station with a label printer
-// (supportsPrinting) printed nothing, and the slide was then recorded as done, so the Microtomy Workstation skipped
+// (supportsPrinting) printed nothing, and the slide was then recorded as done, so the Microtome Workstation skipped
 // it too (it trusts the once-only ledger in dispatchSlideLabel.ts).
 //
 // Now the station's two flags are honoured independently, as IScanStationService documents:
 //   supportsEngraving → dispatchSlideLabel (engraver dispatch, unchanged)
-//   supportsPrinting  → printSlideLabel, the same GS1 / ZPL service the Microtomy Workstation's manual Print Next
+//   supportsPrinting  → printSlideLabel, the same GS1 / ZPL service the Microtome Workstation's manual Print Next
 //                       uses (QZ Tray, PathScribe agent or interface engine, per the printer profile)
 // A slide counts as produced only when at least one of them succeeded; the caller leaves the others "Pending Cut" so
 // they can be printed from the workstation. Never throws.

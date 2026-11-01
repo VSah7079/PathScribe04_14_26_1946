@@ -15,11 +15,13 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrentScanStation } from '@/hooks/useCurrentScanStation';
-import { batchService, hardwareContainerRegistryService, actionRegistryService } from '@/services';
+import { batchService, hardwareContainerRegistryService, actionRegistryService, printSettingsService, scanStationService } from '@/services';
+import { isCarrierBarcode, nodesForStationStage, type CarrierPrefixes } from '@/services/batches/stationCarrierRules';
+import type { ScanStation } from '@/services/scanStations/IScanStationService';
 import { VOICE_CONTEXT } from '@/constants/systemActions';
 import { playScanBeep, playScanErrorTone } from '@/utils/playScanBeep';
 import type { ScanEvent } from '@/contexts/ScannerProvider';
@@ -31,6 +33,7 @@ import NewContainerModal from './NewContainerModal';
 import BatchDetailView from './BatchDetailView';
 import { pressable } from '@/utils/a11y/pressable';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { StationScanField } from '@/components/Workstation/StationScanField';
 
 const STATUS_COLOR: Record<Batch['status'], string> = {
   active: '#38bdf8', reconciling: '#f59e0b', complete: '#34d399', aborted: '#f87171',
@@ -70,11 +73,30 @@ const BatchManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
-  const [lookupValue, setLookupValue] = useState('');
   const [stageFilter, setStageFilter] = useState<BatchProcessingNode | null>(null);
-  const lookupRef = useRef<HTMLInputElement>(null);
 
   const [prefillRackId, setPrefillRackId] = useState<string | null>(null);
+
+  // Batch 726 (Lab Workflow & Batch spec, Decision 1): station-aware opening. With a station set, the list opens on
+  // that station's step; a carrier with no Target Workstation scanned here records this station. With no station
+  // set, the all-steps view, as before (the spec allows it: "open the carrier in the all-nodes view").
+  const [searchParams] = useSearchParams();
+  const [station, setStation] = useState<ScanStation | null>(null);
+  const [prefixes, setPrefixes] = useState<CarrierPrefixes>({});
+  const stationNodes = nodesForStationStage(station?.workflowStage);
+  const stageDefaulted = useRef(false);
+  useEffect(() => {
+    printSettingsService.get().then(res => { if (res.ok === true) setPrefixes({ disposable: res.data.disposableBarcodePrefix, rack: res.data.rackBarcodePrefix }); });
+  }, []);
+  useEffect(() => {
+    if (!stationId) { setStation(null); return; }
+    scanStationService.getById(stationId).then(res => {
+      const st = res.ok === true ? res.data : null;
+      setStation(st);
+      const nodes = nodesForStationStage(st?.workflowStage);
+      if (!stageDefaulted.current && nodes.length === 1) { stageDefaulted.current = true; setStageFilter(nodes[0]); }
+    });
+  }, [stationId]);
 
   const refresh = useCallback(async () => {
     const res = await batchService.getAll();
@@ -101,14 +123,19 @@ const BatchManagementPage: React.FC = () => {
     if (!value) return;
     const batchRes = await batchService.getByMasterBarcode(value);
     if ('ok' in batchRes && batchRes.ok) {
-      setSelectedBatchId(batchRes.data.id);
-      setLookupValue('');
+      let opened = batchRes.data;
+      // Batch 726: an open carrier with no Target Workstation records this station when it is scanned here.
+      if (stationId && !opened.stationId && (opened.status === 'active' || opened.status === 'reconciling')) {
+        const rec = await batchService.recordCarrierScan(opened.id, stationId, user?.id ?? 'unknown', user?.name ?? 'Unknown User', 'ok');
+        if (rec.ok === true) opened = rec.data;
+      }
+      setBatches(prev => prev.some(b => b.id === opened.id) ? prev.map(b => b.id === opened.id ? opened : b) : [...prev, opened]);
+      setSelectedBatchId(opened.id);
       playScanBeep();
       return;
     }
     const rackRes = await hardwareContainerRegistryService.getByRackId(value);
     if ('ok' in rackRes && rackRes.ok && rackRes.data.status === 'Available') {
-      setLookupValue('');
       playScanBeep();
       setPrefillRackId(rackRes.data.rackId);
       setShowCreate(true);
@@ -120,7 +147,16 @@ const BatchManagementPage: React.FC = () => {
     } else {
       toast.error(t('batchManagement.notFoundError', { value }));
     }
-  }, [t]);
+  }, [t, stationId, user?.id, user?.name]);
+
+  // Batch 726: /batch-management?carrier=<barcode> (the workstations' "Open in Batch Management") opens that carrier.
+  const carrierParam = searchParams.get('carrier');
+  const carrierParamHandled = useRef(false);
+  useEffect(() => {
+    if (!carrierParam || carrierParamHandled.current || loading) return;
+    carrierParamHandled.current = true;
+    void handleLookup(carrierParam);
+  }, [carrierParam, loading, handleLookup]);
 
   // Real feature, per the spec's own "Master Barcode Lookup: Scanning a
   // master batch barcode on any workstation displays its active
@@ -138,13 +174,14 @@ const BatchManagementPage: React.FC = () => {
     const listener = (e: Event) => {
       const scanEvent = (e as CustomEvent<ScanEvent>).detail;
       const upper = scanEvent?.raw?.trim().toUpperCase();
-      if (upper?.startsWith('CONT-') || upper?.startsWith('RACK-')) {
+      // Batch 726: the configured prefixes (Print Settings), not fixed text.
+      if (upper && isCarrierBarcode(upper, prefixes)) {
         handleLookup(scanEvent.raw);
       }
     };
     window.addEventListener('PATHSCRIBE_SCAN', listener);
     return () => window.removeEventListener('PATHSCRIBE_SCAN', listener);
-  }, [selectedBatchId, handleLookup]);
+  }, [selectedBatchId, handleLookup, prefixes]);
 
   if (selectedBatch) {
     return (
@@ -156,6 +193,8 @@ const BatchManagementPage: React.FC = () => {
         userName={user?.name ?? 'Unknown User'}
         stationId={stationId}
         allBatches={batches}
+        stationName={station?.name}
+        stationNodes={stationNodes}
       />
     );
   }
@@ -369,18 +408,27 @@ const BatchManagementPage: React.FC = () => {
                 {'\u00A0'}
               </div>
             </button>
+            {/* Batch 730 (Lab Workflow spec §9): the built-in lab workflow reports. */}
+            <button
+              className="ps-wl-filter-tile ps-batch-tile--equipment-log"
+              title={t('labWorkflowReports.tileTitle')}
+              onClick={() => navigate('/batch-management/workflow-reports')}
+            >
+              <div className="ps-wl-filter-tile__label ps-batch-tile-label--muted">
+                {t('labWorkflowReports.tile')}
+              </div>
+              <div className="ps-wl-filter-tile__count ps-batch-tile-count--engraver-monitor">
+                📊
+              </div>
+              <div className="ps-wl-filter-tile__sublabel ps-batch-tile-count--engraver-monitor">
+                {'\u00A0'}
+              </div>
+            </button>
           </div>
 
           <div className="ps-batch-toolbar">
-            <input
-              ref={lookupRef}
-              className="ps-batch-lookup-input"
-              type="text"
-              placeholder={t('batchManagement.lookupPlaceholder')}
-              value={lookupValue}
-              onChange={e => setLookupValue(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleLookup(lookupValue); }}
-            />
+            {/* Touch spec T1 (Batch 735): the shared scan field (no on-screen keyboard, focus kept). */}
+            <StationScanField onScan={handleLookup} placeholder={t('batchManagement.lookupPlaceholder')} submitLabel={t('batchManagement.lookupButton')} />
             <button className="ps-btn-primary" onClick={() => setShowCreate(true)}>🖨️ {t('batchManagement.newContainer')}</button>
           </div>
 

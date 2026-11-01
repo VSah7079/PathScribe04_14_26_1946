@@ -1,9 +1,10 @@
 ---
 module: Workstations
-screen: Microtomy
+screen: Microtome
+slug: workstations/microtomy
 workflow: Bench and Workstation Work
 role: [Histotechnologist, Laboratory Manager]
-keywords: [microtomy, microtome, sectioning, cutting, slide label, print etch, recut, levels, add stain, control slide, decant, fluid, cytology prep, block exhausted, batch print, reprint]
+keywords: [microtome, microtomy, sectioning, cutting, slide label, print etch, recut, levels, add stain, control slide, decant, fluid, cytology prep, block exhausted, batch print, reprint]
 routes: [/workstations/microtomy]
 previous: workstations/embedding
 next: workstations/slide-distribution
@@ -11,27 +12,64 @@ related: [pathology-workspace, batch-management, add-on-orders, workstations/emb
 status: Draft
 ---
 
-# Microtomy Workstation {#top}
+# Microtome Workstation {#top}
 
 ## Overview
 
-**Purpose.** The Microtomy Workstation is the bench screen for the person cutting blocks. You scan a block (or a cytology decant or fluid container), see every slide that has been ordered from it, add stains and levels, and print or etch the slide labels, either one slide at a time as you cut or as a batch. It also lets you write comments for the block or a slide, flag a block that has run out of tissue, and read what each slide will be billed.
+**Purpose.** The Microtome Workstation is the bench screen for the person cutting blocks. You scan a block (or a cytology decant or fluid container), see every slide that has been ordered from it, add stains and levels, and print or etch the slide labels, either one slide at a time as you cut or as a batch. It also lets you write comments for the block or a slide, flag a block that has run out of tissue, and read what each slide will be billed.
 
-**Intended users.** Histotechnologists at the microtome, and laboratory managers who oversee the bench. The screen opens only for roles that have the Microtomy screen switched on; by default that is the Histotechnologist role. If the tile is missing from the Pathology Workspace, ask your laboratory manager.
+**Intended users.** Histotechnologists at the microtome, and laboratory managers who oversee the bench. The screen opens only for roles that have the Microtome screen switched on; by default that is the Histotechnologist role. If the tile is missing from the Pathology Workspace, ask your laboratory manager.
 
-**Where it fits.** Embedding comes first: the block was embedded at the [Embedding Station](help:workstations/embedding). Slides are ordered from the report screen, from [Add-On Orders](help:add-on-orders), or here. After cutting and staining, finished slides move on to the [Slide Distribution Station](help:workstations/slide-distribution). The microtomy bench is also one of the processing steps tracked in [Batch Management](help:batch-management). You reach this screen from the [Pathology Workspace](help:pathology-workspace) (the **Microtomy Workspace** tile) or with the **Go to Bench** button in the top bar when your station is a microtomy station.
+**Where it fits.** Embedding comes first: the block was embedded at the [Embedding Station](help:workstations/embedding). Slides are ordered from the report screen, from [Add-On Orders](help:add-on-orders), or here. After cutting and staining, finished slides move on to the [Slide Distribution Station](help:workstations/slide-distribution). The microtome bench is also one of the processing steps tracked in [Batch Management](help:batch-management). You reach this screen from the [Pathology Workspace](help:pathology-workspace) (the **Microtome Workspace** tile) or with the **Go to Bench** button in the top bar when your station is a microtome station.
 
 !!! note "Printers and labels today"
     Slide labels go to the label printer set up for your scan station. In a demonstration setup the printing is simulated, and the **Label Preview** is always a drawing of the label (a pattern standing in for the barcode), not the barcode itself. Check the first real labels on your laboratory's own printer.
 
 ## Screen Tour
 
-![The Microtomy Workstation with a block open: block summary on the left, slide grid in the middle, print controls on the right](capture:workstations-microtomy-overview)
+![The Microtome Workstation with a block open: block summary on the left, slide grid in the middle, print controls on the right](capture:workstations-microtomy-overview)
 
-The page is titled **Microtomy Workstation**. A **Back** button at the top left returns to the Worklist (not to the Pathology Workspace). Before anything is scanned, the screen shows only the prompt "Scan a block or decant/fluid container barcode to begin" and a scan box. Once a block or decant is open, a grey bar shows its identity and the screen splits into three columns.
+The page is titled **Microtome Workstation**. A **Back** button at the top left returns to the Worklist (not to the Pathology Workspace). Before anything is scanned, the screen shows only the prompt "Scan a block or decant/fluid container barcode to begin" and a scan box. Once a block or decant is open, a grey bar shows its identity and the screen splits into three columns.
 
 !!! note "Your station"
     The top bar carries a small station indicator (a pin and a station name). The label printer used here is the one linked to **that** station. If it says "No station", click it and choose your bench. Station setup is an administrator task; see the Administrator Guide.
+
+### Carriers at this station
+
+A card at the top of the screen, **Carriers at this station**, links this bench to [Batch Management](help:batch-management). A carrier is the basket, rack or tray that moves a group of blocks and slides between steps. Using one is optional: an item scanned on its own is still recorded at this station.
+
+- **The list.** The card lists the open carriers for this station: the ones routed to it (marked **Routed here**) and the ones at Microtome / Sectioning. STAT carriers come first, then the oldest; with none it reads "No open carriers for this station." Select one, or scan its barcode (it starts with CONT- or RACK-), to open it here.
+- **A carrier from the step before.** A tray of embedded blocks from Embedding moves to Microtome / Sectioning when you scan it here. It stays the same batch, and every block in it is recorded as received from the carrier.
+- **Unloading.** With a carrier open, scan each item as you take it out. The first scan starts the unloading. The card counts what has been scanned off (the line "… of … scanned off", for example 3 of 12) and lists what is still to scan. When everything is scanned off, **Finish unloading** closes the carrier.
+- **An item that is not in the carrier.** The item does not open straight away. The card says it is not in the carrier: **Continue anyway** opens it and records it as unexpected (this is audited), **Cancel** does nothing.
+- **A carrier for another step.** The card warns you which step the carrier belongs to. **Open here anyway** opens it and records that it was opened at another step.
+- **A closed or unknown carrier.** The card says so plainly, with the date it was completed or aborted.
+- **No station set.** The card asks you to choose this computer's station from the list and select **Use this station**. Until you do, nothing scanned here is recorded and carriers can't be opened here.
+- **Seal manifest** stops anything being added to or removed from the carrier.
+- **Output tray.** Scan an open Staining carrier (a staining rack) to make it this bench's output tray. After printing a block's slides, **Add printed slides to tray** puts them in it. Slides you do not add stay loose, which is fine.
+
+Every scan here is recorded with this station, the time and your name, which is what the scan trail and the turnaround reports are built from. Each slide label printed here is recorded as printed, and when the last slide of a block has printed the block is recorded as completed here (it goes to filing).
+
+**Other blocks still waiting.** Under the identity bar, a line says when other blocks of the same case are still waiting to be cut, for example "2 other blocks of this case are still waiting to be cut: A3, M1". It counts routine slides only (add-on orders have their own timing on the wall display) and needs no click.
+
+### Scan history
+
+With a case open, **Show scan history** (just below the carrier card) opens the case's scan trail: every station scan of its cassettes, blocks and slides, newest first. The columns are **When**, **Item**, **Where** (the station and the step), **Who** and **What happened** (Received, Loaded into carrier, Taken out of carrier, Matched, Missing, Unexpected, Label printed, Completed here), with the outcome when it was not OK (Wrong item, Not found, Mismatch), the carrier the item was in ("In carrier" and its barcode), and "Recorded when the carrier was scanned" for a scan made for every item in a carrier. **Hide scan history** closes it. While it reads the trail it says "Loading scan history…". It is closed until you open it, and it is shown only to people allowed to see scan history; if the service refuses, it says "You do not have permission to see the scan history." With nothing recorded yet it reads "No station scans recorded for this case yet."
+
+!!! note "Picture"
+    The picture above was taken before the carrier card was added.
+
+### Exhausted blocks
+
+Batch 731. When the block at the bench is exhausted, an amber line above the work says so and what remains: "Block A3 is exhausted. What remains: unstained slides L4 and L5; other blocks of this part: A1, A2." ("none" when there are none). When orders wait for the block to be re-embedded it adds "1 order waits for this block to be re-embedded."
+
+### Block type and pieces
+
+Batch 732. In the block panel, for a megablock, a multi-piece or a matrix block: the type, "Slides: Large-format slide" or "Slides: Standard slide", and each piece ("Piece 1 (A)" with its description, orientation and ink). **Piece exhausted** marks a piece used up ("Piece marked used up."); it is struck through with "Used up". When it was the last piece, "That was the last piece: the block is now Exhausted." and the block's end state is recorded. It needs the permission to record an item's end state; otherwise "You don’t have permission to record this. Ask your administrator." In the slide list, a slide can show "2 levels on this slide", "Large-format slide" and "For 1 piece". A megablock's slide labels print on the large-format label. Batch 737: on a matrix block each part is a piece, so **Piece exhausted** marks one part used up; the last part makes the matrix block Exhausted.
+
+### End state
+
+Batch 731. **End state** records where an item finished: Returned to storage, Archived, Sent out, Consumed for testing or Discarded. The line shows the current end state with its reason, who and when, or "No end state recorded yet." (while it reads, "Loading the end state…") **Record end state** opens the form: choose the end state, pick one of the **Quick reasons** or type a **Reason** (required), and select **Record**. "End state recorded." confirms it; the earlier end states are kept as history. Recording needs the permission to record an item's end state (Histotechnologists have it by default); without it the button is grey, and if it was withdrawn the line says "You don’t have permission to record an end state. Ask your administrator." "A reason is required." means the reason was empty. Some end states are recorded for you: Discarded when the item is disposed of by scan, Sent out when a referral batch is completed, and Exhausted (no tissue remaining) when the pathologist confirms a "Block exhausted" flag or the block's last piece is used up; Exhausted is not chosen by hand, so it always matches the block. When an exhausted block is re-embedded its end state is withdrawn and the line reads "No end state recorded yet." again; the history keeps both.
 
 ### Field definitions
 
@@ -89,6 +127,7 @@ The page is titled **Microtomy Workstation**. A **Back** button at the top left 
 | Appearance | Clear, Bloody or Turbid. |
 | Decant Yield / Pellet Size | Low, Moderate or High. |
 | Suggested preparation | Appears once a yield is chosen. For example "2× ThinPrep (Liquid-Based), 2× Cell Block, 1× Direct Smear (Air-Dried)". |
+| Suggestion for a CSF or a small fluid | Batch 739. A cerebrospinal fluid, or any fluid of 5 mL or less, is suggested two cytospin slides instead of a liquid-based slide and a smear; a cell block is added only when the yield is high and it is not a CSF. |
 | Accept suggestion | Adds the suggested slides that are not on the decant yet. Pressing it again adds nothing: once every suggested slide is on the decant the button is replaced by the line "The suggested slides are already on this decant." The suggestion counts a slide with the same preparation method that has not been cancelled, including one you added yourself. |
 
 **Right column**
@@ -159,12 +198,23 @@ Both keys work only while this screen is open, and each does exactly what its bu
 
 There are no keys for scanning, printing in a batch or reprinting. Phrases are also available in French, German, Dutch, Korean and Spanish. See [Voice and Keyboard](help:voice-and-keyboard).
 
+### Using a tablet at the bench
+
+Since Batch 735 the station screens work with a finger, including a gloved one.
+
+- **Touch layout.** On a tablet, buttons, chips and tick boxes are at least 44 px, main actions such as Confirm or Print are larger, and text in fields is 16 px. On a desktop the screen keeps its compact layout. Change this per computer with **Touch layout on this computer** in the station menu at the top (**Auto**, **Always on**, **Always off**).
+- **Scanning.** The scan field accepts a barcode scanner without opening the on-screen keyboard and stays ready for the next scan. To type an ID by hand, select **⌨ Type**; **⌨ Scan** hides the keyboard again.
+- **Keyboard up.** When you type in a field, the field stays in view. If the form's Save button would be hidden by the keyboard, a copy of it appears just above the keyboard.
+- **Tooltips.** Tap a label that has extra information to read it.
+- **Slide order in Batch print mode.** Use **↑** and **↓** on each row (Move this slide up the print order, Move this slide down the print order) instead of dragging. Tick the box at the start of a row (Include this slide in the batch print) to add it to the batch.
+- **Block exhausted.** Tap a reason (for example **No tissue left in the block**; your lab may word them differently); tap it again to clear it. The box underneath is an optional note.
+
 ## Step-by-Step Procedures
 
 ### Standard workflow
 
 1. Check the station indicator in the top bar shows your bench. If it does not, select it and choose your station.
-2. Open the **Microtomy Workspace** tile in the [Pathology Workspace](help:pathology-workspace). The scan box is ready with the cursor in it.
+2. Open the **Microtome Workspace** tile in the [Pathology Workspace](help:pathology-workspace). The scan box is ready with the cursor in it.
 3. Scan the block barcode (or a slide barcode from that block). You can scan even when the cursor is not in the box. The identity bar appears and the three columns fill in. A decant or fluid container opens the decant panel instead of the block summary.
 4. Read the identity bar against the block in your hand. Look at the alert badges (Tiny Tissue, Fragile, Decal Required) and the block comments.
 5. Look at the slide grid. Slides ordered earlier show as Pending.
@@ -178,16 +228,16 @@ There are no keys for scanning, printing in a batch or reprinting. Phrases are a
 1. **Batch printing.** Switch **Print Mode** to **Batch**. Tick the slides to print, select **Print Batch**, and watch the **Batch Print Progress** window. In Batch mode you can also drag a row to change the order of the grid (blocks only); labels print in that order.
 2. **Another level.** To cut another level of a stain already on the block, select **+ Level** on its row. A new Pending row appears with the same stain.
 3. **Control slides.** Tick **Pair with control slide** before **+ Add** to add a control slide next to the patient slide. The control carries a **Control** badge.
-4. **Cytology decant.** Scan the decant or fluid container. Enter **Total Volume (mL)**, choose **Appearance** and **Decant Yield / Pellet Size**. When a suggestion appears, select **Accept suggestion** to add the suggested slides, then print them as usual. You can also use **+ Add** for any other stain.
-5. **Scan at the station.** If your station is set to the Microtomy / Sectioning stage, scanning a block with a handheld scanner can also trigger the slide labels automatically through Batch Management. See Related Features.
+4. **Cytology decant.** Batch 740: fluids and aliquots are now prepared at the [Cytology Preparation](workstations/cytology-prep) bench, and the Microtome takes only a cell block that has been handed off there ("… is a fluid or aliquot: prepare it at the Cytology Preparation bench.", "Cell block … has not been handed off: hand it off at the Cytology Preparation bench first."). The steps below are those of the preparation bench. Scan the decant or fluid container. Enter **Total Volume (mL)**, choose **Appearance** and **Decant Yield / Pellet Size**. When a suggestion appears, select **Accept suggestion** to add the suggested slides, then print them as usual. You can also use **+ Add** for any other stain.
+5. **Scan at the station.** If your station is set to the Microtome / Sectioning stage, scanning a block with a handheld scanner can also trigger the slide labels automatically through Batch Management. See Related Features.
 
 ### Exception handling
 
-1. **The block has run out of tissue.** Select **Block exhausted**, type a note (required only if your organisation requires one), and select **Flag as exhausted**. A red banner says "Block exhausted. Flagged by …. Cutting is blocked until the ordering pathologist answers." While the banner shows, Print/Etch Next and Print Batch do not print. If the slide was ordered through Add-On Orders, the ordering pathologist is e-mailed. If it was not (an original H&E, say), or the pathologist has no e-mail address, the notice goes to the Supervisor / Accessioning Desk (the people with the Lab Director or Accessioner role) and a line beside the button says so. The flagged slide appears in the Add-On Orders tracking list either way. The pathologist answers on the [Add-On Orders](help:add-on-orders) screen: **Approve Destructive Cutting** turns the banner green and cutting goes on, while **Cancel Order** or **Modify & Resubmit** puts the block's status back.
+1. **The block has run out of tissue.** Select **Block exhausted**, type a note (required only if your organisation requires one), and select **Flag as exhausted**. A red banner says "Block exhausted. Flagged by …. Cutting is blocked until the ordering pathologist answers." While the banner shows, Print/Etch Next and Print Batch do not print. If the slide was ordered through Add-On Orders, the ordering pathologist is e-mailed. If it was not (an original H&E, say), or the pathologist has no e-mail address, the notice goes to the Supervisor / Accessioning Desk (the people with the Lab Director or Accessioner role) and a line beside the button says so. The flagged slide appears in the Add-On Orders tracking list either way. The pathologist answers on the [Add-On Orders](help:add-on-orders) screen: **Approve Destructive Cutting** turns the banner green and cutting goes on, while **Cancel Order** or **Modify & Resubmit** puts the block's status back. Batch 731: the pathologist can also answer with an alternative: put the order on an unstained slide already cut (the slide takes the stain and goes on without cutting), order from another block of the same part, or request re-embedding (the order then waits, cutting stays blocked, and the amber line counts it until the Embedding Station marks the block re-embedded). Batch 732: on an exhausted block every slide still to be cut waits for an answer. Printing it says "This block is exhausted. This slide waits for the ordering pathologist: flag it with Block exhausted so they can choose an alternative." Batch 733: one **Block exhausted** flag covers every slide on the block still waiting to be cut (never a slide already cut or cancelled), and every ordering pathologist of those slides is e-mailed once. The pathologist answers once for all of them, or slide by slide.
 2. **Cancel a slide already printed.** Select **Remove**. A window titled "Reason required" says "This slide has already printed — select a reason to cancel it." Choose Damaged Section, Ordered in Error, Tissue Exhausted or Other. The slide is canceled as soon as you choose, with no second confirmation; use **Undo** in the message that appears if you chose wrongly. **Cancel** closes the window without removing it.
 3. **A label did not print well.** Select **Reprint** on the row and choose Jam, Scratched Glass, Misprint or Other. The slide shows "Reprinted 1×" and an **Undo** message appears for a few seconds. This works on decant slides too. Undo clears the reprint from the record; if the label has already come out of the printer, discard it.
 4. **A bad barcode scan.** A message such as "That scan didn’t resolve to a case, block, or decant — check the barcode and try again." appears under the scan box. Scan again or type the barcode and select **Go**.
-5. **A specimen label scanned instead of a block.** The message "A bare specimen scan isn't supported at the Microtomy Workstation. Scan a block, matrix block or decant/fluid container barcode." appears.
+5. **A specimen label scanned instead of a block.** The message "A bare specimen scan isn't supported at the Microtome Workstation. Scan a block, matrix block or decant/fluid container barcode." appears.
 
 !!! warning "Cancelling a printed slide"
     Removing a printed slide cancels it on the case, and it may already be on its way to staining. Tell the stainer. A removed level number is not reused, so a replacement slide gets a new level.
@@ -230,10 +280,10 @@ There are no keys for scanning, printing in a batch or reprinting. Phrases are a
 
 ### Upstream workflow
 
-- [Pathology Workspace](help:pathology-workspace): the Microtomy Workspace tile and the Go to Bench button.
+- [Pathology Workspace](help:pathology-workspace): the Microtome Workspace tile and the Go to Bench button.
 - [Embedding Station](help:workstations/embedding): confirms the piece count and sets the block's mold and orientation notes.
 - [Add-On Orders](help:add-on-orders): pathologists order extra levels, stains and tests; each order appears here as a Pending slide, and the pathologist answers a Block exhausted flag there.
-- [Batch Management](help:batch-management): the Microtomy / Sectioning step of chain of custody. A block scanned at a Microtomy / Sectioning station can generate its pending slide labels on the scan itself; this screen then recognises a label already produced and does not print a second one.
+- [Batch Management](help:batch-management): the Microtome / Sectioning step of chain of custody. A block scanned at a Microtome / Sectioning station can generate its pending slide labels on the scan itself; this screen then recognises a label already produced and does not print a second one.
 
 ### Downstream workflow
 
@@ -247,7 +297,7 @@ There are no keys for scanning, printing in a batch or reprinting. Phrases are a
 
 | Problem | Likely cause |
 |---|---|
-| No Microtomy Workspace tile in the Pathology Workspace | Your role does not include the Microtomy screen. |
+| No Microtome Workspace tile in the Pathology Workspace | Your role does not include the Microtome screen. |
 | "Block … not found." or "Case not found." | The barcode is for a block that does not exist on that case. Check the label. |
 | Print/Etch Next does nothing | The panel says every slide is printed, or there is no slide still Pending. Otherwise a red line above the columns gives the reason (the block is flagged exhausted, the print could not start, or the printer's message). |
 | Print Batch is greyed out | No slide is ticked. Printed and canceled slides cannot be ticked. |

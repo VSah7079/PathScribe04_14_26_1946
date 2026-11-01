@@ -1,9 +1,9 @@
 // src/services/cytology/computeCytologyPrepSuggestions.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// Real, per PS-284 (Microtomy Workstation)'s own "Dynamic Preparation
+// Real, per PS-284 (Microtome Workstation)'s own "Dynamic Preparation
 // Rules: automated slide count/type suggestions from decant protocol
 // logic (e.g. >20mL + high yield → 2 ThinPrep, 2 Cell Block, 1 Direct
-// Smear)." A real, pure, testable function — the Microtomy Workstation
+// Smear)." A real, pure, testable function — the Microtome Workstation
 // page calls this to populate a suggestion the tech can accept,
 // adjust, or ignore; it never creates slides on its own.
 //
@@ -26,6 +26,18 @@ export interface CytologyPrepSuggestion {
 export interface CytologyPrepSuggestionInput {
   totalVolumeMl?: number;
   yieldPelletSize?: 'Low' | 'Moderate' | 'High';
+  /** Batch 739 (fluid decision 5): the specimen is cerebrospinal fluid. */
+  csf?: boolean;
+}
+
+/** Batch 739 (fluid decision 5): at or below this volume a fluid is spun onto slides (cytospin) rather than run on
+ *  the liquid-based processor, so the little material there is goes onto as few slides as possible. */
+export const CYTOSPIN_MAX_VOLUME_ML = 5;
+
+/** Batch 739: whether a specimen is cerebrospinal fluid (its dictionary entry, or its description). Pure. */
+export function isCsfSpecimen(sp: { specimenDictionaryEntryId?: string; description?: string } | null | undefined): boolean {
+  if (!sp) return false;
+  return sp.specimenDictionaryEntryId === 'sp-cyto-csf' || /\b(CSF|cerebrospinal)\b/i.test(sp.description ?? '');
 }
 
 /**
@@ -43,7 +55,12 @@ export function computeCytologyPrepSuggestions(input: CytologyPrepSuggestionInpu
     suggestions.set(method, (suggestions.get(method) ?? 0) + by);
   };
 
-  if (yieldPelletSize === 'Low') {
+  // Batch 739 (Pete, fluid decision 5): a CSF, or any fluid of 5 mL or less, gets two cytospin slides instead of a liquid-based slide and a smear; a cell block only when the yield is high and it isn't a
+  // CSF (a CSF pellet is too small to embed). Cytospin stays a slide's preparation method, never a batch step.
+  if (input.csf || (totalVolumeMl !== undefined && totalVolumeMl <= CYTOSPIN_MAX_VOLUME_ML)) {
+    bump('Cytospin', 2);
+    if (yieldPelletSize === 'High' && !input.csf) bump('Cell Block', 1);
+  } else if (yieldPelletSize === 'Low') {
     // Real, deliberate choice — a low-yield specimen has too little
     // real material to justify a cell block, which needs a genuine
     // pellet to process; a single ThinPrep + smear conserves what

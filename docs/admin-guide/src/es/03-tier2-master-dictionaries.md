@@ -42,6 +42,7 @@ Configure el nivel 2 en el orden siguiente. Cada pantalla incluye un cuadro **Or
 30. [Reglas del país y del laboratorio](#screen-cytology_compliance_features): límite de carga de trabajo, revisión retrospectiva, firma urgente e intervalos de cribado.
 31. [Instrumentación asistida](#screen-cytology_instrumentation): imagen de preparación completa o revisión tradicional.
 32. [Correlación citohistológica (SNOMED)](#screen-snomed_histology_severity_mapping): los rangos de gravedad de SNOMED que se utilizan en la correlación.
+33. [Casos de investigación y finalidades de lote](#screen-research_cases): cómo se reconocen los casos de investigación y se mantienen fuera del trabajo clínico, y para qué sirve un soporte (Batch 728).
 
 Las partes siguientes siguen el tema, no el orden de configuración: la [parte A](#ch3-anatomic-specialties) las especialidades de anatomía patológica, la [parte B](#ch3-specimen-tissue) las muestras y el tejido, la [parte C](#ch3-container-cassette) los recipientes, los casetes y la tinta, la [parte D](#ch3-stains-protocols) las tinciones y los protocolos, la [parte E](#ch3-code-libraries) las bibliotecas de códigos y la [parte F](#ch3-physicians-clients) los médicos, los clientes y los organismos reguladores.
 
@@ -902,6 +903,62 @@ Unlocks: Ninguno.
 **7. Permisos.** Abrir la pantalla: `screen:configuration:open`. Añadir, editar, desactivar, quitar: `config:cold-chain:manage` (riesgo alto, auditado). Admin, Lab Director y Superadmin la tienen de forma predeterminada. Enviar una lectura simulada se comprueba por separado: una persona sin permiso ve «You don't have permission to send a simulated reading.»
 
 **Límites conocidos.** No hay ningún sensor conectado. Todas las lecturas proceden del control Simulada y se etiquetan como Simulada en todas partes. Por eso el estado es Parcial: los diccionarios de unidades y de tipos están construidos, las lecturas en directo no. Los tipos incluidos de serie son Frozen Tissue (como máximo -20 °C) y Fresh Tissue (como máximo 8 °C).
+
+### Casos de investigación y finalidades de lote {#screen-research_cases}
+Breadcrumb: Inicio > Configuración > Sistema > Materiales y flujos de trabajo del laboratorio > Casos de investigación y finalidades de lote
+
+**Estado:** Parcial
+
+**1. Navegación:** pestaña de Configuración **Sistema** > grupo **Materiales y flujos de trabajo del laboratorio**
+**2. Elemento de mantenimiento:** Casos de investigación y finalidades de lote
+
+**3. Finalidad de negocio y alcance.** Dos ajustes para el trabajo que no es asistencia rutinaria.
+
+*Casos de investigación.* Hasta que existan los elementos de investigación sin registro, una muestra de investigación se registra como un caso de un paciente de investigación ficticio. Esta tarjeta define cómo PathScribe reconoce esos casos: por el prefijo del número de registro (por ejemplo `RES`) o por el prefijo del NHC del paciente de investigación (por ejemplo `RSCH-`). Un caso de investigación entonces:
+
+- queda fuera de las listas de trabajo clínicas (mosaicos y listas; búsquelo con la Búsqueda de casos);
+- queda fuera de las cifras de tiempo de respuesta, volumen y calidad de los paneles de Contribución;
+- nunca se envía a la historia clínica como resultado (definitivo, preliminar, modificado o de citología) ni se entrega por fax o depósito de archivos; el registro de auditoría anota cada resultado no enviado y el motivo;
+- nunca se envía a facturación: sus cargos se rechazan en la cola de facturación y su mensaje de clase financiera lleva la **clase financiera sin cargo**, sin cobertura;
+- nunca se notifica a un registro de cáncer o de cribado;
+- se conserva durante los **días** contados desde el registro y después aparece en la cola de eliminación. Las retenciones siguen aplicándose.
+
+*Finalidades de lote.* Para qué sirve un soporte. Hay seis integradas: Rutina, Investigación, Docencia, Ensayo clínico, Biobanco, Garantía de calidad / validación. Pueden desactivarse pero no eliminarse; Rutina siempre está activa. Añada las propias del laboratorio. Un soporte nuevo es Rutina salvo que se elija otra en **Nuevo contenedor**. Otra finalidad aparece en el detalle del lote, y cada [perfil de pantalla](#screen-display_profiles) puede mostrar solo algunas finalidades.
+
+**4. Requisitos previos y dependencias.** Ninguno para los ajustes. Para la solución de investigación, registre el paciente de investigación ficticio (con un NHC que empiece por el prefijo) y, si procede, un formato de número con el prefijo de investigación.
+
+Setup step: Tier 2, step 33
+Requires: Ninguno, es un punto de partida.
+Unlocks: Ninguno.
+
+**5. Pantalla.**
+
+[SCREENSHOT PLACEHOLDER: system-research_cases - Tarjetas Casos de investigación y Finalidades de lote]
+
+**6. Referencia de campos.**
+
+#### Tarjeta Casos de investigación
+
+| Nombre del campo | Tipo de datos / formato | Obligatorio/Opcional | Descripción y lógica de negocio | Valor predeterminado del sistema |
+|---|---|---|---|---|
+| Tratar los casos coincidentes como casos de investigación | Casilla | Opcional | Desactivada: ningún caso es de investigación. | Activada |
+| Prefijos de número de registro | Texto separado por comas | Obligatorio si está activada (esto o los prefijos de NHC) | Coincide si el prefijo del caso es igual o su número completo empieza por uno de ellos. Sin espacios; 20 caracteres como máximo. | RES |
+| Prefijos de NHC del paciente de investigación | Texto separado por comas | Obligatorio si está activada (esto o los prefijos de registro) | Coincide si el NHC del paciente empieza por uno de ellos. | RSCH- |
+| Clase financiera sin cargo | Texto | Obligatorio si está activada | Se envía como tipo de facturación de la cuenta en el mensaje de clase financiera. | Research - No Charge |
+| Conservar el material (días tras el registro) | Número entero, de 0 a 36500 | Obligatorio | Cuándo los bloques y portaobjetos del caso pasan a la cola de eliminación. | 365 |
+| Guardar | Botón | No aplicable | Se rechaza sin el permiso indicado abajo o si un valor no supera las comprobaciones. | No aplicable |
+
+#### Tarjeta Finalidades de lote
+
+| Nombre del campo | Tipo de datos / formato | Obligatorio/Opcional | Descripción y lógica de negocio | Valor predeterminado del sistema |
+|---|---|---|---|---|
+| Filas de finalidad | Nombre y casilla Activa | No aplicable | Los nombres integrados se muestran en el idioma del lector. El nombre de una finalidad del laboratorio se edita en el sitio (único, 40 caracteres como máximo). La casilla de Rutina no se puede desmarcar. | Seis finalidades integradas, todas activas |
+| Nueva finalidad, Añadir | Texto y botón | Opcional | Añade una finalidad del laboratorio. | En blanco |
+| Guardar | Botón | No aplicable | Se rechaza sin el permiso indicado abajo, o si un nombre está vacío, es demasiado largo o está repetido. | No aplicable |
+
+**7. Permisos.** Abrir: `screen:configuration:open`. Guardar los casos de investigación: `config:research-cases:manage`. Guardar las finalidades de lote: `config:batch-purposes:manage`. Riesgo alto; Administrador, Director de laboratorio y Superadministrador por defecto.
+
+**Limitaciones conocidas.** La pantalla del informe aún no marca un caso de investigación como «investigación, no un informe clínico»; el caso puede firmarse (no se envía nada). No hay lista de trabajo de investigación. Las cifras de calidad fuera de los paneles de Contribución y el flujo de BI en el servidor aún no se filtran. Los elementos de investigación sin registro llegarán más adelante.
 
 ### Deficiencias de muestras {#screen-deficiencies}
 Breadcrumb: Inicio > Configuración > Sistema > Integraciones > Deficiencias de muestras

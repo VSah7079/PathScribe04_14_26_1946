@@ -20,7 +20,7 @@ export interface DecantEvent {
   parentId: string;
   /** The decant itself. */
   childId: string;
-  /** Decant['decantType']: 'residual_fluid' | 'cell_block'. */
+  /** Decant['decantType']: 'residual_fluid' | 'cell_block' | 'aliquot' (Batch 739). */
   materialType: string;
   /** Volume in mL when recorded, else the pellet yield, else null. */
   volumeOrWeight: number | string | null;

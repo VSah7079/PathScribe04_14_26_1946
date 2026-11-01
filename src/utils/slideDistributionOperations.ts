@@ -27,7 +27,7 @@ export type SlideDistributionOperationResult =
 export type SlideExceptionReason = 'Unreadable Barcode' | 'Unassigned Accession' | 'Missing Glass';
 export const SLIDE_EXCEPTION_REASONS: readonly SlideExceptionReason[] = ['Unreadable Barcode', 'Unassigned Accession', 'Missing Glass'];
 
-/** Batch 402 (Pete): a slide label reprint needs a reason, as at Microtomy and
+/** Batch 402 (Pete): a slide label reprint needs a reason, as at the Microtome and
  *  Embedding. Stored in English on the chain-of-custody record. */
 export type SlideLabelReprintReason = 'Damaged Label' | 'Unreadable Barcode' | 'Smudged Print' | 'Other';
 export const SLIDE_LABEL_REPRINT_REASONS: readonly SlideLabelReprintReason[] = ['Damaged Label', 'Unreadable Barcode', 'Smudged Print', 'Other'];
@@ -203,7 +203,7 @@ export function resolveSlideException(specimen: Specimen, blockId: string, stain
 /** Real, per the spec's own "trigger a replacement label print"
  *  exception action — records the real event only; the caller
  *  dispatches the actual print (printSlideLabel, same real GS1/ZPL
- *  path PS-284's Microtomy Workstation already proved), same
+ *  path PS-284's Microtome Workstation already proved), same
  *  "function records the audited reason, caller does the real I/O"
  *  split as embeddingOperations.ts's own recordCassetteReprint. */
 export function recordLabelReprintRequest(

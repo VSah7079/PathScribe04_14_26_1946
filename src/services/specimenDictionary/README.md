@@ -1,3 +1,9 @@
+**Batch 745:** `mockSpecimenDictionaryService.ts`: `sp-autopsy-complete`, "Autopsy, Complete (Body)", the whole-body autopsy entry.
+
+**Batch 739:** the ThinPrep and SurePath Pap entries have their protocols.
+
+**Batch 738:** the starter entries for colon, breast, skin and prostate get their demo grossing protocol (`applySurgicalDemoProtocols`, `services/protocols/surgicalDemoProtocols.ts`).
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/specimenDictionary/

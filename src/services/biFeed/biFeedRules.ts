@@ -219,7 +219,7 @@ export function decideBiPull(
   return 'ok';
 }
 
-const BASE_ROWS: Record<BiDatasetId, number> = { cases: 4200, specimens: 9800, billing: 12600, qa: 380, workload: 900, audit: 1500 };
+const BASE_ROWS: Record<BiDatasetId, number> = { cases: 4200, specimens: 9800, billing: 12600, qa: 380, workload: 900, audit: 1500, station_events: 64000, batches: 1100, add_on_orders: 520, item_end_states: 7400 };
 
 /** A made-up but steady row count for the Simulated pull: the same dataset and facilities always give the same number (pure). */
 export function simulatedRowCount(datasetId: BiDatasetId, facilityCount: number): number {

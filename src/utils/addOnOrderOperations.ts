@@ -56,11 +56,17 @@ import {
   type BlockExceptionReason, type AddOnOrderKind, type ControlMode,
 } from '@/types/case/AddOnOrder';
 import { isExhausted, isLost, isDamaged } from '@/utils/blockExceptionStates';
+import { reembedException, type SlideOrderFields } from '@/utils/exhaustedBlockRules';
+import { BLOCK_TYPE_PROFILES, blockTypeOf } from '@/utils/blockPieceRules';
 import { molecularRoutingChoices } from '@/services/molecularOrders/molecularRouting';
 import type { ExecutionRouting } from '@/services/molecularOrders/molecularOrderTypes';
 
 /** Batch 403: why an order was refused, for the screen's locale key (`addOnOrder.errors.<code>`). */
-export type AddOnOrderErrorCode = 'blockNotFound' | 'blockExhausted' | 'blockLost' | 'blockDamaged' | 'blockCancelled' | 'noLines';
+/** Batch 731 (spec §10.6): an exhausted block needs a choice for every line (exhaustedNeedsChoice) and a reason (exhaustedReasonRequired).
+ *  Batch 732 (§11.5): an order for used-up pieces needs the same (pieceExhausted); used-up and remaining pieces together are refused (mixedPieces). */
+export type AddOnOrderErrorCode = 'blockNotFound' | 'blockExhausted' | 'blockLost' | 'blockDamaged' | 'blockCancelled' | 'noLines' | 'exhaustedNeedsChoice' | 'exhaustedReasonRequired' | 'mixedPieces' | 'pieceExhausted'
+  /** Batch 737: a matrix block (or the parts chosen) is used up; its alternatives are not offered here. */
+  | 'matrixExhausted';
 
 export type AddOnOrderOperationResult =
   | { ok: true; specimen: Specimen; createdStainIds: string[] }
@@ -147,6 +153,10 @@ export interface AddOnOrderLineInput {
   /** Batch 467: a molecular line's routing — run in-house or send out (services/molecularOrders/molecularRouting.ts).
    *  Not set: sent out, as before. */
   molecularRouting?: ExecutionRouting;
+  /** Batch 732 (spec §11.3, §11.4): a level range — how many levels (default 1) and how many go on each slide
+   *  (default 1). Three levels two to a slide make two slides, the first carrying two levels. */
+  levelCount?: number;
+  levelsPerSlide?: number;
 }
 
 export interface AddOnOrderSubmissionInput {
@@ -176,10 +186,13 @@ export function createAddOnOrder(
   lines: AddOnOrderLineInput[],
   submission: AddOnOrderSubmissionInput,
   actor: { id: string; name: string },
+  /** Batch 731 (spec §10.6): the pathologist chose re-embedding for these lines on an exhausted block. The orders are
+   *  placed and wait (cutting held) until the block is re-embedded at the Embedding Station. */
+  opts?: { holdForReembed?: { note?: string }; pieceIds?: string[] },
 ): AddOnOrderOperationResult {
   const block = findBlock(specimen, blockId);
   if (!block) return { ok: false, error: 'Block not found.', errorCode: 'blockNotFound' };
-  if (isExhausted(block)) return { ok: false, error: 'This block is already marked Exhausted — no further cutting orders can be placed against it.', errorCode: 'blockExhausted' };
+  if (isExhausted(block) && !opts?.holdForReembed) return { ok: false, error: 'This block is already marked Exhausted — no further cutting orders can be placed against it.', errorCode: 'blockExhausted' };
   if (isLost(block)) return { ok: false, error: 'This block is marked Lost — cannot place a cutting order until it is located.', errorCode: 'blockLost' };
   if (isDamaged(block)) return { ok: false, error: 'This block is marked Damaged — cannot place a cutting order until it is re-embedded.', errorCode: 'blockDamaged' };
   if (block.status === 'Cancelled') return { ok: false, error: 'This block is Cancelled.', errorCode: 'blockCancelled' };
@@ -190,7 +203,15 @@ export function createAddOnOrder(
   let nextLevel = nextSlideLevelNumber(block.stains) - 1;
   const orderedAt = new Date().toISOString();
 
-  for (const line of lines) {
+  // Batch 732 (spec §11.1, §11.4): the slide size the block's type produces (only a large-format size is written), and
+  // the pieces of a multi-piece block the order is for.
+  const sizeOfBlock = BLOCK_TYPE_PROFILES[blockTypeOf(block)].slideSize;
+  const slideExtras: Partial<StainOrder> = {
+    ...(sizeOfBlock !== 'standard' ? { slideSize: sizeOfBlock } : {}),
+    ...(opts?.pieceIds && opts.pieceIds.length > 0 ? { pieceIds: [...opts.pieceIds] } : {}),
+  };
+
+  for (const line of expandLevelRanges(lines)) {
     nextLevel += 1;
     const routing = resolveAddOnRouting(line.orderKind, line.stainType.category, line.molecularRouting);
     const isSendOut = routing.queueLabel === 'Reference/Send-Out Lab Queue';
@@ -218,6 +239,8 @@ export function createAddOnOrder(
       routedWorkflowStage: routing.workflowStage,
       sendOutReferenceLabFacilityId: isSendOut ? labId : undefined,
       sendOutReferenceLabName: isSendOut ? labName : undefined,
+      ...slideExtras,
+      ...(line.slideLevels && line.slideLevels > 1 ? { levelCount: line.slideLevels, sectionCount: line.slideLevels } : {}),
     };
 
     // Real, per the spec's own Auto-Control Pairing. Explicit caller
@@ -256,18 +279,55 @@ export function createAddOnOrder(
         routedWorkflowStage: routing.workflowStage,
         sendOutReferenceLabFacilityId: isSendOut ? labId : undefined,
         sendOutReferenceLabName: isSendOut ? labName : undefined,
+        ...(slideExtras.slideSize ? { slideSize: slideExtras.slideSize } : {}),
       };
       clinical.pairedControlSlideId = controlId;
       newStains.push(control);
     }
   }
 
+  if (opts?.holdForReembed) {
+    const hold = reembedException(actor, opts.holdForReembed.note, orderedAt);
+    for (const s of newStains) {
+      s.exception = hold;
+      s.exceptionEvents = [{ id: genId('exev'), action: 'reembed_requested', timestamp: orderedAt, actorId: actor.id, actorName: actor.name, detail: `Ordered on an exhausted block; waits until the block is re-embedded${hold.note ? ` — ${hold.note}` : ''}` }];
+    }
+  }
   const createdStainIds = newStains.map(s => s.id);
   return {
     ok: true,
     specimen: replaceBlockStains(specimen, blockId, [...block.stains, ...newStains], { userModified: true }),
     createdStainIds,
   };
+}
+
+/** Batch 731 (spec §10.6): the order details an unstained slide already cut takes when a line is put on it (the same
+ *  routing and order-level fields createAddOnOrder stamps on a new slide). No control slide is added. */
+export function addOnLineFields(line: AddOnOrderLineInput, submission: AddOnOrderSubmissionInput, actor: { id: string; name: string }, orderedAt: string, performingLabFacilityId?: string): SlideOrderFields {
+  const routing = resolveAddOnRouting(line.orderKind, line.stainType.category, line.molecularRouting);
+  const isSendOut = routing.queueLabel === 'Reference/Send-Out Lab Queue';
+  const labId = line.sendOutReferenceLabFacilityId ?? submission.sendOutReferenceLabFacilityId;
+  const labName = line.sendOutReferenceLabFacilityId ? line.sendOutReferenceLabName : submission.sendOutReferenceLabName;
+  return {
+    stainName: line.stainType.name, addOnPriority: submission.priority, orderedByPathologistId: actor.id, orderedByPathologistName: actor.name,
+    orderedAt, addOnPanelId: line.panelId, addOnPanelName: line.panelName, slideMediaType: submission.slideMediaType,
+    cuttingInstructions: submission.cuttingInstructions, routedQueueLabel: routing.queueLabel, routedWorkflowStage: routing.workflowStage,
+    sendOutReferenceLabFacilityId: isSendOut ? labId : undefined, sendOutReferenceLabName: isSendOut ? labName : undefined,
+    ...(performingLabFacilityId ? { performingLabFacilityId } : {}),
+  };
+}
+
+/** Batch 732 (spec §11.3): one entry per slide a line makes. A level range of N levels, M to a slide, makes
+ *  ceil(N / M) slides; each slide says how many levels it carries (`slideLevels`). Pure. */
+export function expandLevelRanges(lines: readonly AddOnOrderLineInput[]): (AddOnOrderLineInput & { slideLevels?: number })[] {
+  const out: (AddOnOrderLineInput & { slideLevels?: number })[] = [];
+  for (const line of lines) {
+    const levels = Math.max(1, Math.floor(line.levelCount ?? 1));
+    const perSlide = Math.max(1, Math.floor(line.levelsPerSlide ?? 1));
+    if (levels === 1) { out.push(line); continue; }
+    for (let left = levels; left > 0; left -= perSlide) out.push({ ...line, slideLevels: Math.min(perSlide, left) });
+  }
+  return out;
 }
 
 /** Real, per this ticket's own direct Jira comment — stamps a real
@@ -288,7 +348,8 @@ export function stampPerformingLab(specimen: Specimen, blockId: string, stainIds
 
 // ─── §4 Real-Time Order Tracking ────────────────────────────────────────────
 
-export type AddOnTrackingStage = 'Requested' | 'Block Retrieved' | 'Cut / Pending Stain' | 'Stained / QC' | 'Checked Out / Scanned' | 'Exception' | 'Cancelled';
+/** Batch 731: 'Awaiting Re-embedding' — ordered on an exhausted block, waiting for it to be re-embedded (spec §10.6). */
+export type AddOnTrackingStage = 'Requested' | 'Block Retrieved' | 'Cut / Pending Stain' | 'Stained / QC' | 'Checked Out / Scanned' | 'Exception' | 'Awaiting Re-embedding' | 'Cancelled';
 
 /** Real, per the spec's own §4 "Real-Time Pathologist Order Tracking:
  *  Requested → Block Retrieved → Cut/Pending Stain → Stained/QC →
@@ -299,6 +360,7 @@ export type AddOnTrackingStage = 'Requested' | 'Block Retrieved' | 'Cut / Pendin
 export function computeAddOnTrackingStage(order: StainOrder): AddOnTrackingStage {
   if (order.exception?.status === 'pending_pathologist_review') return 'Exception';
   if (order.status === 'Cancelled') return 'Cancelled';
+  if (order.exception?.status === 'reembed_requested') return 'Awaiting Re-embedding';
   if (order.distributionStatus === 'Checked Out' || order.distributionStatus === 'Loaded on Scanner') return 'Checked Out / Scanned';
   if (order.status === 'Coverslipped' || order.status === 'Ready for Review' || order.status === 'QC Failed') return 'Stained / QC';
   if (order.status === 'Staining' || order.status === 'Cut & Placed') return 'Cut / Pending Stain';
@@ -477,6 +539,9 @@ export function buildAddOnLines(input: {
   stainTypes: readonly StainType[];
   levelDepth: string;
   controlMode: ControlMode;
+  /** Batch 732 (spec §11.3): a recut's level range: how many levels, and how many on each slide (text; blank = 1). */
+  levelCount?: string;
+  levelsPerSlide?: string;
 }): AddOnOrderLineInput[] {
   const control = input.controlMode === 'none' ? undefined : input.controlMode;
   if (input.orderKind === 'ihc' && input.panel) {
@@ -493,7 +558,15 @@ export function buildAddOnLines(input: {
     orderKind: input.orderKind,
     levelDepthMicrons: input.orderKind === 'recut' && depth ? Number(depth) : undefined,
     controlMode: control,
+    ...(input.orderKind === 'recut' ? levelRangeOf(input.levelCount, input.levelsPerSlide) : {}),
   }];
+}
+
+/** Batch 732: the level range fields of a recut line (left out when they are 1). */
+function levelRangeOf(count: string | undefined, perSlide: string | undefined): Pick<AddOnOrderLineInput, 'levelCount' | 'levelsPerSlide'> {
+  const n = Math.floor(Number(count?.trim() || '1'));
+  const m = Math.floor(Number(perSlide?.trim() || '1'));
+  return { ...(n > 1 ? { levelCount: n } : {}), ...(n > 1 && m > 1 ? { levelsPerSlide: m } : {}) };
 }
 
 /** A molecular/send-out line starts with its test's default reference lab (or its only approved one). Batch 467: and

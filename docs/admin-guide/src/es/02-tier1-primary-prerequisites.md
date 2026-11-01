@@ -802,13 +802,15 @@ Unlocks: [Perfiles de impresora](#screen-printer_profiles), [Hardware de tallado
 |---|---|---|---|---|
 | Código | Texto, letras, números, "_" y "-" | Obligatorio | El ID que llevan otros registros, por ejemplo PANTHER_02 en un lote molecular y en el código de barras de su plataforma. Debe ser único. No se puede cambiar después de crearlo. | En blanco |
 | Nombre | Texto | Obligatorio | | En blanco |
-| Tipo | Opción: Analizador, Tintor, Procesador de tejidos, Escáner de preparaciones, Cámara, Báscula, Impresora de etiquetas, Grabadora, Unidad de almacenamiento, Otro | Obligatorio | Los analizadores activos son los que pueden recibir los lotes moleculares. | Analizador |
+| Tipo | Opción: Analizador, Tintor, Procesador de tejidos, Procesador de citología en medio líquido, Escáner de preparaciones, Cámara, Báscula, Impresora de etiquetas, Grabadora, Unidad de almacenamiento, Otro | Obligatorio | Los analizadores activos son los que pueden recibir los lotes moleculares. | Analizador |
 | Marca, Modelo | Texto | Opcional | | En blanco |
 | Número de serie | Texto | Opcional | | En blanco |
 | Laboratorio ejecutor | Lista | Obligatorio | Al cambiarlo se borra la estación de escaneo. | Sede seleccionada |
 | Estación de escaneo | Lista de las estaciones de ese laboratorio | Opcional | Dónde está. En un analizador, el envío de la lista de trabajo comprueba que se envía desde esta estación. Se rechaza una estación de otro laboratorio. | Ninguna |
 | Calibración cada (días) | Número entero, de 1 a 3650 | Opcional | En blanco significa sin programación. Las fechas de vencimiento se cuentan desde la última entrada superada del registro de servicio. | En blanco |
 | Mantenimiento cada (días) | Número entero, de 1 a 3650 | Opcional | La misma regla. | En blanco |
+| Temperatura mínima (°C), Temperatura máxima (°C) | Números, mínimo por debajo del máximo; cualquiera puede quedar en blanco | Opcional | Lote 730: el intervalo de un control de temperatura del registro de equipos. Una lectura fuera de él es un fallo; el intervalo se copia en cada entrada. | En blanco |
+| Admite portaobjetos de gran formato | Casilla, solo teñidores y escáneres de portaobjetos | Opcional | Lote 732: el equipo admite portaobjetos de gran formato (megabloques). La distribución de portaobjetos envía un portaobjetos de gran formato solo a un escáner con esta casilla marcada. | Sin marcar |
 | Estado | Activo / Inactivo | Opcional | | Activo |
 | Disposición de la plataforma | Filas, solo analizadores | Opcional | Las posiciones de la plataforma del analizador. Cada fila: Plataforma o bahía, ID de posición (letras, dígitos, "_", sin repetirse) y Admite (Placa de extracción, Cartucho de reactivo, Gradilla de tubos de muestra; al menos uno). La carga de gradillas ofrece solo las posiciones adecuadas. El ID de posición se imprime en el código de barras de la posición de la plataforma. | Ninguna |
 
@@ -822,6 +824,10 @@ Unlocks: [Perfiles de impresora](#screen-printer_profiles), [Hardware de tallado
 | Realizado por | Texto | Obligatorio | Miembro del personal o técnico de servicio. | Su nombre |
 | Resultado | Opción: Superado, No superado, No aplicable | Obligatorio | | Superado |
 | Notas | Texto | Obligatorio en un fallo o una avería | | En blanco |
+
+#### Gradillas de tinción
+
+Lote 737. Se muestra bajo el registro cuando el laboratorio tiene gradillas de tinción reutilizables (identificadores RACK- grabados). Cada fila es una gradilla con la casilla **Admite portaobjetos de gran formato**, que se guarda al instante (requiere `config:equipment:manage`). Gestión de lotes rechaza un portaobjetos de gran formato (cortado de un megabloque) escaneado en un soporte de tinción que no los admite; un soporte de tinción desechable los admite cuando se marca **Admite portaobjetos de gran formato (megabloques)** en Nuevo contenedor. La demo tiene una gradilla así, RACK-STAIN-LF-01.
 
 **7. Permisos.** Abrir: `screen:configuration:open`. Añadir, editar, desactivar: `config:equipment:manage`. Registrar una entrada del registro de servicio: `equipment:maintenance:record`. Ambas de riesgo alto. Administrador y Director de laboratorio tienen las dos. Los roles Histotecnólogo, Citotécnico y Técnico molecular también tienen el permiso del registro.
 **Límites conocidos.** Las fechas de vencimiento del servicio se calculan en la zona horaria del centro definida en los ajustes del Panel de contribución.

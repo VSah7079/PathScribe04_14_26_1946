@@ -238,6 +238,7 @@ Which contact fields are required comes from [Field Requirements](#screen-field_
 | Queue name, IPP path, Display name | Text | Optional | Queue for LPR, path for IPP. | Blank |
 | Paper tray | Choice: Report default, Tray 1 letterhead, Tray 2 plain | Optional | Any facility. | Report default |
 | Sides | Choice: Report default, Double-sided, Single-sided | Optional | Any facility. | Report default |
+| Allow direct printing from the browser (Batch 734) | Yes/No switch, saved at once | Optional | Performing Lab only. Lets bench screens send labels straight from the browser to a printer on the bench (QZ Tray, the PathScribe agent, Zebra Browser Print, BarTender). Off: in a server deployment those prints are refused and the bench uses the interface engine or the browser print dialog. Every direct print and every refused one is recorded in the audit log. The demo always allows it. The printer's own address stays on its printer profile. | Off |
 
 #### Editor window: Secure messaging tab (edit mode only, Enterprise only)
 
@@ -257,7 +258,7 @@ Which contact fields are required comes from [Field Requirements](#screen-field_
 
 **How spell check uses this list.** The checker tries a word against, in order: the person's own dictionary, this facility word list (the list of the case's performing laboratory), the regional spelling rule, PathScribe's pathology word list, and the language's standard dictionary. The first list that accepts the word wins. Words with digits, capital-letter abbreviations of up to six letters, and web or e-mail addresses are never checked. The language comes from the case, then the pathologist's **Spelling language** on the Staff record, then the facility's jurisdiction, then US English. Each addition or removal here is recorded in the audit log under "Facility spelling dictionary word added" or "removed". Only single words can be added. The pathology word lists for French, German, Dutch, Spanish and Korean are starter lists that still need native-speaker review, so expect some correct specialist terms to be underlined until you add them here.
 
-**7. Permissions.** Open: `screen:configuration:open`. Add, change, deactivate, reactivate and verify: `config:facilities:manage`. Printing tab: `config:print-settings:manage`. Secure messaging tab: `config:secure-messaging:manage`. Admin and Lab Director hold these by default. Field-level changes the page audits are listed above.
+**7. Permissions.** Open: `screen:configuration:open`. Add, change, deactivate, reactivate and verify: `config:facilities:manage`. Printing tab: `config:print-settings:manage`; the direct-printing switch: `config:direct-device-printing:manage`. Secure messaging tab: `config:secure-messaging:manage`. Admin and Lab Director hold these by default. Field-level changes the page audits are listed above.
 **Known limits.** Sending by secure messaging is simulated: `messageService.sendSecureEmail` records the message but no real gateway transport exists yet (PS-332). The AI & Performance tab text points the release buffer default at "Configuration > System > LIS Integration", but that default lives on [Post-Sign-Out Release Buffer](#screen-release_buffer).
 
 ### Scope reference {#screen-scope_reference}
@@ -453,6 +454,8 @@ Unlocks: [Members](#screen-staff-members), [Support Access](#screen-support_acce
 #### List page
 
 **Permissions added in October 2026 (Batches 654 to 669).** Give these to the roles that need them: *Print a report during its release hold (supervisor override)* (Lab Director and Admin have it by default; used by the Release Hold Print Policy), `qa:management-review:submit`, `config:molecular-control-rules:view` (seeded to Administrator, Laboratory Director, Quality Reviewer and Molecular Technologist; changing the rules still needs the manage permission), `add-on:exception:flag` and `add-on:block:mark-retrieved` (offered once to Pathologist, Fellow, Resident, Histotechnologist and custom roles with case access), and `config:macros:manage` (replaces the role-name test for seeing every macro and creating Enterprise macros). A facility-limited person can now act on cases at their own facility (Batch 653); a case with no facility on record is still refused.
+
+**Permissions added in Batch 731 (exhausted blocks and end states).** `material:end-state:record` (record a block's or slide's end state with a reason; seeded to roles with the Microtome or Slide Distribution screen), `material:reembed:request` (ask for an exhausted block to be re-embedded from Add-On Orders; Pathologist, Fellow, Resident) and `material:reembed:complete` (mark the block re-embedded at the Embedding Station; roles with the Embedding screen). Give them to any custom role that needs them.
 
 | Field Name | Data Type / Format | Required/Optional | Description & Business Logic | System Default |
 |---|---|---|---|---|
@@ -809,13 +812,15 @@ Unlocks: [Printer Profiles](#screen-printer_profiles), [Grossing Hardware](#scre
 |---|---|---|---|---|
 | Code | Text, letters, numbers, "_" and "-" | Required | The ID other records carry, for example PANTHER_02 on a molecular batch and its deck barcode. Must be unique. Cannot be changed after creation. | Blank |
 | Name | Text | Required | | Blank |
-| Kind | Choice: Analyser, Stainer, Tissue processor, Slide scanner, Camera, Scale, Label printer, Engraver, Storage unit, Other | Required | Active analysers are what molecular batches can target. | Analyser |
+| Kind | Choice: Analyser, Stainer, Tissue processor, Liquid-based cytology processor, Slide scanner, Camera, Scale, Label printer, Engraver, Storage unit, Other | Required | Active analysers are what molecular batches can target. | Analyser |
 | Make, Model | Text | Optional | | Blank |
 | Serial Number | Text | Optional | | Blank |
 | Performing Lab | Picklist | Required | Changing it clears the scan station. | Selected site |
 | Scan Station | Picklist of stations in that lab | Optional | Where it sits. For an analyser, worklist dispatch checks it is sent from this station. A station in another lab is refused. | None |
 | Calibration Every (days) | Whole number, 1 to 3650 | Optional | Blank means no schedule. Due dates count from the last passing entry in the service log. | Blank |
 | Maintenance Every (days) | Whole number, 1 to 3650 | Optional | Same rule. | Blank |
+| Lowest temperature (°C), Highest temperature (°C) | Numbers, lowest below highest; either may be blank | Optional | Batch 730: the range a Temperature check in the Equipment Log is held to. A reading outside it is a Fail; the range is copied onto each entry when it is made. | Blank |
+| Takes large-format slides | Tick box, stainers and slide scanners only | Optional | Batch 732: the device takes large-format (megablock) slides. Slide Distribution sends a large-format slide only to a scanner with this ticked. | Not ticked |
 | Status | Active / Inactive | Optional | | Active |
 | Deck layout | Rows, analysers only | Optional | The slots on the analyser's deck. Each row: Deck or bay, Slot ID (letters, digits, "_", no two alike), and Takes (Extraction plate, Reagent cartridge, Sample tube rack; at least one). Rack Loading offers only slots that fit. The slot ID is printed on the deck-position barcode. | None |
 
@@ -829,6 +834,10 @@ Unlocks: [Printer Profiles](#screen-printer_profiles), [Grossing Hardware](#scre
 | Done By | Text | Required | Staff member or service engineer. | Your name |
 | Outcome | Choice: Pass, Fail, Not applicable | Required | | Pass |
 | Notes | Text | Required for a failure or malfunction | | Blank |
+
+#### Staining racks
+
+Batch 737. Shown below the register when the lab has reusable staining racks (engraved RACK- ids). Each row is a rack with the tick box **Takes large-format slides**, saved at once (needs `config:equipment:manage`). Batch Management refuses a large-format slide (cut from a megablock) scanned onto a staining carrier that does not take large-format slides; a disposable staining carrier takes them when **Takes large-format slides (megablocks)** is ticked in New Container. The demo has one such rack, RACK-STAIN-LF-01.
 
 **7. Permissions.** Open: `screen:configuration:open`. Add, edit, deactivate: `config:equipment:manage`. Record a service log entry: `equipment:maintenance:record`. Both high risk. Admin and Lab Director hold both. The Histotechnologist, Cytotechnologist and Molecular Technologist roles also hold the log permission.
 **Known limits.** Service due dates are worked out in the facility's time zone on the Contribution Dashboard settings.
@@ -999,7 +1008,7 @@ Unlocks: [Print Settings](#screen-print_settings), [Workstation Groups](#screen-
 | Station Name | Text | Required | For example Grossing Station 4. | Blank |
 | Barcode Code | Text | Required | Printed on the station's label as `STATION:` plus the code. For example GROSSING-04. | Blank |
 | Facility | Picklist of performing labs | Required | The lab the bench is in, not a referring facility. | Selected site |
-| Workflow Stage | Choice: Accessioning, Grossing, Processing, Embedding, Microtomy / Sectioning, Staining, Slide Archival, Other | Required | | Accessioning |
+| Workflow Stage | Choice: Accessioning, Grossing, Decal / Special Processing, Processing, Embedding, Microtome / Sectioning, Staining, Slide Distribution, Checkout, External Referral, Cytology Processing, Cytology Staining, Cytology Imaging, Slide Archival, Other | Required | Batch 726: the stage decides which carriers the station's workstation lists and opens (Slide Distribution works on Checkout and External Referral carriers). Set it on every bench that scans carriers. Without a station on a computer, nothing scanned there is recorded. | Accessioning |
 | Printer IP | Text | Optional | The network label printer on this bench. Separate from the printer profile. | Blank |
 | Supports Engraving | Yes/No switch | Optional | Engraving hardware such as Leica CEREBRO. Sending to the engraver is a placeholder until the vendor integration is built. | Off |
 | Supports Printing | Yes/No switch | Optional | Prints GS1 DataMatrix cassette and slide labels here. | Off |
@@ -1382,7 +1391,7 @@ Unlocks: None.
 
 | Field Name | Data Type / Format | Required/Optional | Description & Business Logic | System Default |
 |---|---|---|---|---|
-| Page | Picklist of 16 pages: Accession, Add-On Orders, Batch Management, Clinical history (cytology), Cytology screening, Embedding station, Facility editor, Grossing, Intraoperative consultation, Messaging, Microtomy workstation, Molecular plate builder, Molecular rack loading, Case report, Slide distribution station, Staff | Required | Shows the fields of one page, in groups. | Accession |
+| Page | Picklist of 16 pages: Accession, Add-On Orders, Batch Management, Clinical history (cytology), Cytology screening, Embedding station, Facility editor, Grossing, Intraoperative consultation, Messaging, Microtome workstation, Molecular plate builder, Molecular rack loading, Case report, Slide distribution station, Staff | Required | Shows the fields of one page, in groups. | Accession |
 | Settings for (organisation) | Text | Not applicable | The organisation you are changing. | Your organisation |
 | Required | Check box, one per field | Optional | Turns the requirement on or off. A note shows "Changed from default" when you have changed it. | Per field |
 | Always required | Locked badge and reason | Not applicable | The field cannot be turned off. The reason is shown, for example that laboratory standards require two patient identifiers. | Locked |

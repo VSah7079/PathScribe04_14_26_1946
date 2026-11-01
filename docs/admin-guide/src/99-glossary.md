@@ -115,7 +115,7 @@ Each term below is linked the first time it is used in a section of the guide. A
 - **macro**: A saved piece of text or a set of settings, such as a report phrase or a stain order, that can be inserted in one step.
 - **MDT**: Multidisciplinary team meeting, also called a tumor board, where specialists discuss a patient's care.
 - **MFA**: Multi-factor authentication, signing in with a second proof such as a code from an authenticator app, as well as a password.
-- **microtomy**: Cutting thin sections from a block with a microtome to make slides.
+- **microtome**: The instrument that cuts thin sections from a block to make slides, and the bench where this is done.
 - **MIPS**: The Merit-based Incentive Payment System, a US Medicare program that adjusts payment by reported quality measures.
 - **Milan System**: The reporting system for salivary gland fine-needle aspiration cytology.
 - **modifier**: A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.

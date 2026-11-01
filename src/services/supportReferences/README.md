@@ -1,3 +1,5 @@
+**Batch 740:** `/workstations/cytology-prep` is a known route.
+
 **Batch 645:** `/lockbox-drop-off` is in `SUPPORT_ROUTE_PATTERNS` (`supportTicketRules.ts`), so a support ticket raised from the Lockbox Drop-Off screen carries its route. The screen shows no case, so no support reference is needed.
 
 # services/supportReferences/
@@ -96,3 +98,4 @@ The route tests read both `App.tsx` and `SignedInApp.tsx`, where every route aft
 ## Batch 617 (part C): server versions (PS-514)
 
 The support reference service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/DICTIONARIES_CONFIG_API.md`. The mocks are unchanged.
+- Batch 730: `/batch-management/workflow-reports` added to `SUPPORT_ROUTE_PATTERNS`.

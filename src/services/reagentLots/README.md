@@ -1,3 +1,5 @@
+**Batch 746:** `mockReagentLotService.ts`: the molecular kits' master mix lots for the demo (HPV, EGFR, KRAS; EGFR-MM-26041 expired, KRAS-MM-26087 failed QC), dates relative to today. A seed lot missing from a browser's stored lots is added, so the registry no longer needs a version bump to reach browsers that stored it.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/reagentLots

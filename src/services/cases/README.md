@@ -1,3 +1,17 @@
+**Batch 747:** `demoWallVolumeCases.ts` (new): forty-one Desert Valley cases and six at Midwest Pathology, at the bench steps, not yet assigned to a pathologist, for the wall displays (seed row S8). In `DEMO_BASELINE_CASES`; `MOCK_VERSION` 67.
+
+**Batch 746:** `demoMolecularCases.ts` (new): the surgical cases behind the molecular seed (seed row S7): S26-5201 to 5209 lung with an EGFR mutation PCR add-on, S26-5211 to 5216 colorectal with a KRAS one; S26-5208, 5209 and 5216 resulted (the lung synoptics carry the EGFR result). In `DEMO_BASELINE_CASES`; `MOCK_VERSION` 66.
+
+**Batch 745:** `demoBaselineCases.ts`: autopsies A26-4665 (written authorization pending), A26-4666 (ready for body release) and A26-4667 (closed), for Video 4 (seed row S6). `MOCK_VERSION` 65.
+
+**Batch 744:** `demoFluidCases.ts` (new): seed row S14, five body fluids (one per preparation stage), an EBUS FNA, a ThinPrep and a SurePath Pap; `withFluidDemo` gives S26-5005 its ROSE and assigns it to Priya Desai. In the baseline and the case seed; `MOCK_VERSION` 64.
+
+**Batch 742:** `demoSignOutReadyCase.ts`: S26-4680 carries two gross photos and a block-face photo (demo illustrations in `public/demo/attachments/`, labelled as such) for the Attachments window. `MOCK_VERSION` 63.
+
+**Batch 738:** `demoSignOutReadyCase.ts` (new): S26-4680, a sigmoid colectomy that passes every sign-out check (Video 1), added to the demo baseline (`demoBaselineCases.ts`); `MOCK_VERSION` 62. Test: `demoSignOutReadyCase.test.ts`.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 **Batch 650:** `poolClaimWindow.ts`: Accept case / Pass case (Alt+A, Ctrl+Alt+P) press the pool claim window's buttons only once it is ready and the capability (`case:pool:claim` / `case:pool:pass`) is held; the window takes the context the registry files them under (`POOL_WINDOW_VOICE_CONTEXT`). Test: `poolClaimWindow.test.ts`.
 
 **Batch 649:** `poolCaseActions.ts`: claiming (`case:pool:claim`, high risk, audited) and passing (`case:pool:pass`) a pool case check their capability in the service; pool membership rules still apply. A refusal is reported as `isPoolActionNotPermitted`.

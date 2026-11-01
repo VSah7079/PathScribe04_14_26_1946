@@ -30,7 +30,7 @@ const CassetteReprintModal: React.FC<CassetteReprintModalProps> = ({ requirement
 
   return (
     <div className="ps-overlay" onClick={onCancel}>
-      <div className="ps-modal-dark" onClick={e => e.stopPropagation()}>
+      <div className="ps-modal-dark" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         <div className="ps-batch-modal-header"><div className="ps-batch-modal-title">{t('embeddingStation.reprintReason.title')}</div></div>
         <div className="ps-batch-modal-body">
           <p>{t('embeddingStation.reprintReason.body')}</p>

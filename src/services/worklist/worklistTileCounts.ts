@@ -15,8 +15,12 @@
 //     so they answer the same question "All Cases" does.
 //   • PS-309: closed by the PS-307 fix (the DP tile is a status tile).
 //
+// Batch 728 (Lab Workflow spec, Decision 4): research cases are left out of
+// both, so the counts still match the lists. Find them with Case Search.
+//
 // Pure: everything that varies (access check, specimen dictionary, the
-// viewer, the clock, the asynchronously loaded id sets) is passed in.
+// viewer, the clock, the asynchronously loaded id sets) is passed in; the
+// research rule defaults to the lab's settings.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Case } from '@/types/case/Case';
@@ -25,6 +29,7 @@ import { resolveCaseDisciplineBranch, type CaseDisciplineBranch } from '@/servic
 import { resolveCaseHasSpecimenCategory } from '@/services/specimenDictionary/resolveCaseHasSpecimenCategory';
 import { getFacilityDateParts } from '@/utils/facilityTime';
 import { isUrgentCase } from '@/utils/caseUrgency';
+import { isResearchCaseNow } from '@/services/researchCases/researchCaseSettings';
 
 export type WorklistContextFilter = 'lis' | 'outreach';
 export type WorklistBranchFilter = 'all' | CaseDisciplineBranch;
@@ -54,6 +59,15 @@ export interface WorklistCountDeps {
   dpResultByCaseId: CaseIdLookup;
   facilityTimezone: string;
   now: Date;
+  /** Batch 728 (Lab Workflow spec, Decision 4): research cases are left off the clinical worklists. Defaults to the
+   *  lab's research-case settings (services/researchCases/); tests pass their own. */
+  isResearchCase?: (c: Case) => boolean;
+}
+
+/** Batch 728: the cases a clinical worklist shows: everything but research cases. */
+export function clinicalWorklistCases(cases: readonly Case[], deps: Pick<WorklistCountDeps, 'isResearchCase'>): Case[] {
+  const isResearch = deps.isResearchCase ?? isResearchCaseNow;
+  return cases.filter(c => !isResearch(c));
 }
 
 // Fields some cases carry that the Case type reaches through nested shapes.
@@ -162,7 +176,7 @@ export interface WorklistListInput {
 /** The list a tile opens: context, then branch, then status filter. */
 export function filterWorklistCases(input: WorklistListInput, deps: WorklistCountDeps): Case[] {
   if (input.activeFilter === 'cytologyreview') return [...input.cytologyReviewCases];
-  const { lisCases, orchCases } = splitByReportingMode(input.cases);
+  const { lisCases, orchCases } = splitByReportingMode(clinicalWorklistCases(input.cases, deps));
   const source = input.contextFilter === 'outreach' ? orchCases : lisCases;
   const filter = input.activeFilter;
   return filterCasesToBranch(source, input.branchFilter, deps.specimenDictionary)
@@ -237,7 +251,7 @@ export function computeWorklistTileCounts(input: WorklistCountInput, deps: Workl
   // restricted cases out (reading lower than their list) while the LIS pool
   // and Outreach counts kept them (so those could exceed All Cases).
   const { specimenDictionary, userId, viewedCaseIds } = deps;
-  const { lisCases, orchCases } = splitByReportingMode(input.cases);
+  const { lisCases, orchCases } = splitByReportingMode(clinicalWorklistCases(input.cases, deps));
 
   // LIS tile: assigned cases plus pool cases, as the list shows them.
   const lisAssigned = lisCases.filter(c => c.status !== 'pool');

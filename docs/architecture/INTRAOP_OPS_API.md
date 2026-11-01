@@ -67,3 +67,5 @@ Batch 616. The calls the browser makes to the API server for these services, in 
 | `deactivate` | POST `/api/ops-dashboard/display-profiles/{id}/deactivate` | none | audited |
 
 The mock stays the default when no API server address is configured. See `HTTP_SERVICES_PATTERN.md` §6 for which services still have only the mock.
+
+**Batch 727 (Lab Workflow & Batch spec, Decisions 2-3, section 9).** A profile carries `addOnAgeLimitMinutes` (X): optional, whole minutes 15 to 1440; refuse anything else on `add` and `update`. Blank means 120. A sixth view id, `station_overview` (Stations), joins `assignedViews`. The server computes the views' figures for a bound display the same way as `src/services/facilityOpsDashboard/` (the Embedding & Microtome view reads add-on slides still Pending Cut, not only batches; `openAddOnOrders.ts`, `stationOverviewRules.ts`). Rows carry accession numbers, batch barcodes and counts; never a name or MRN.

@@ -1,3 +1,21 @@
+**Batch 747:** `Config/System/DemoDisplayTokensCard.tsx` (+ `.css`, new): the Demo display tokens card on the Demo Reset tab (`DemoResetTab.tsx`).
+
+**Batch 745:** `Autopsy/AutopsyAuthorizationCompletionForm.tsx`: the verbal order's time in the reader's date and time format.
+
+**Batch 743:** `CaseAttachments/CaseAttachmentsModal.tsx`: references only on an Assist case.
+
+**Batch 742:** `CaseAttachments/` (new): `CaseAttachmentsModal.tsx` (+ `.css`), the Attachments window; `PlacedImages.tsx`, placed images in the report preview. `ReportImages/` removed (replaced).
+
+**Batch 741:** `Material/DivideSpecimenPanel.tsx` (new, + `.css`): Divide specimen and aliquot tracking.
+
+**Batch 737:** `Config/System/StainingRacksPanel.tsx` (new).
+
+**Batch 735:** `Touch/` (new: the station touch layout, `TouchLayoutScope.tsx`, `touchLayout.css`, `touchChrome.css`), `Workstation/StationScanField.tsx`, `Common/QuickReasonPicks.tsx`; the station picker (`ScanStationPrompt.tsx`) is a dialog sized for touch.
+
+**Batch 734:** `FacilityDictionary/DirectPrintingSetting.tsx` (direct printing per facility).
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 **Batch 711:** `Auth/PasswordResetRequest.tsx` (the sign-in page's "Ask my administrator to reset my password"); `Config/Staff/StaffTab.tsx` opens the record named by `?staff=<id>`.
 
 **Batch 668:** the Help buttons moved from floating buttons over the screen into the top bar, beside the microphone (`Help/TopBarHelpButtons`, in `NavBar`).
@@ -367,7 +385,7 @@ subfolder work — summarized here for a single cross-folder view:
 
 ## Batch 609 (part A)
 
-- `ReportImages/`: the Attach images window for a case's report.
+- `CaseAttachments/`: the Attachments window (Batch 742; replaced `ReportImages/`, the Batch 609 Attach images window).
 
 ## Batch 353
 
@@ -611,7 +629,7 @@ Pool claim modal: losing a claim race is shown.
 
 ## Batch 460
 
-`Billing/CaseBillingReview.tsx`: the billing review panel and its prompts, for the Cytology Workspace and Microtomy.
+`Billing/CaseBillingReview.tsx`: the billing review panel and its prompts, for the Cytology Workspace and Microtome.
 
 ## Batch 461
 
@@ -1058,3 +1076,31 @@ Batch 669: `Flags/FlagManagerModal.tsx` audits flag changes at Save only (Cancel
 `EnhancementRequest/` (Oct 28, 2026): the QA modal has an AI / Template validation category with optional study and template lists; see its README.
 
 **Batch 715:** `FacilityDictionary/FacilityLabelStyleField.tsx`: letters or numbers for specimens, blocks and slides.
+
+## Batch 726
+
+New folder `Workstation/`: `StationCarrierPanel` (the Carriers at this station card on the bench workstations). See its README.
+
+## Batch 727
+
+Config/System/DisplayProfilesSection: time limit X and the Stations view.
+
+## Batch 728
+
+`Config/System/ResearchCasesSection.tsx` (new).
+
+## Batch 729
+
+`Workstation/ScanTrailPanel.tsx` and `WrongCaseScanBanner.tsx` (new).
+
+## Batch 730
+
+`Config/System/EquipmentSection.tsx`, `EquipmentLogModal.tsx`: temperature.
+
+## Batch 731
+
+`Workstation/ExhaustedBlockBanner.tsx` and `Workstation/ItemEndStatePanel.tsx` (new).
+
+## Batch 732
+
+Batch 732: `Workstation/BlockPieceMapPanel.tsx` (new); Equipment large-format flag.

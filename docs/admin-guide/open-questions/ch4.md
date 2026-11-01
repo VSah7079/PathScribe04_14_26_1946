@@ -6,7 +6,7 @@
 - Two editors write the same rule list: Routing Rules (keyword only, unique priority check, can delete custom rules) and Case Routing (richer, no delete, no priority check). Keep both?
 - `components/Config/Macros/index.tsx` hard-codes the font list of the macro editor.
 - `pages/BatchManagement/README.md` says the Retention Holds queue is not built; `RetentionHoldsQueuePage.tsx` exists with a tile and a route.
-- The Embedding, Microtomy and Slide Distribution stations are not in OWNERSHIP.md. They are documented as `screen-embedding-station`, `screen-microtomy-workstation` and `screen-slide-distribution-station` (reference pages). Add them to OWNERSHIP.md, or move them?
+- The Embedding, Microtome and Slide Distribution stations are not in OWNERSHIP.md. They are documented as `screen-embedding-station`, `screen-microtomy-workstation` and `screen-slide-distribution-station` (reference pages). Add them to OWNERSHIP.md, or move them?
 - The Engraver Monitor still reads a Firestore collection (`engraver_devices`) and shows simulated devices without it. Firebase is not production.
 - Forward dependency: Workstation Groups (Chapter 2, Tier 1) consumes Action Groups (Tier 3). The Chapter 2 author must not make Tier 1 require Tier 3.
 - No configuration screen for priority levels was found.

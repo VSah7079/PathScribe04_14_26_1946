@@ -3,7 +3,7 @@
 // Real, per PS-289's own comment thread's "default action fires on the
 // next scan" piece — the single highest-leverage turnaround-time
 // mechanism in that whole design: the most probable action at a
-// given bench (e.g. "Log Slide/Block" at a Microtomy desk) fires the
+// given bench (e.g. "Log Slide/Block" at a Microtome desk) fires the
 // moment a technician scans, with no click in between.
 //
 // Mirrors useGlobalMaterialScanTracking.ts's own real, proven

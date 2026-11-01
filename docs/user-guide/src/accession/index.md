@@ -27,7 +27,7 @@ status: Draft
 
 ![The Accession screen on the Case & Patient tab](capture:accession-overview)
 
-The screen is titled **Accession** ("Log a new Orchestration case and assign Grossing Templates per specimen"). It has two tabs, **Case & Patient** and **Specimens**. A third tab, **Outside Patient Data**, appears only for an outside or contract case.
+The screen is titled **Accession** ("Log a new Orchestration case and assign Grossing Templates per specimen"). On a wide window (about 1,480 pixels or more, which includes a full-HD monitor) it shows two columns at once: **Case & Patient** on the left, and **Specimens** on the right, with the Cytology card under the specimens when a cytology specimen is chosen. On a narrower window it has two tabs, **Case & Patient** and **Specimens**, one at a time. A third tab, **Outside Patient Data**, appears only for an outside or contract case; on a wide window it replaces the Specimens column while it is selected.
 
 ![The Specimens tab with one specimen entered](capture:accession-specimens)
 
@@ -177,12 +177,12 @@ The screen is titled **Accession** ("Log a new Orchestration case and assign Gro
 
 | Button | What it does |
 |---|---|
-| Case & Patient, Specimens | The tabs. The Specimens tab shows how many specimens have a description, for example "Specimens (2)". |
+| Case & Patient, Specimens | The tabs on a narrow window, and the two column headings on a wide window. The Specimens heading shows how many specimens have a description, for example "Specimens (2)". |
 | Search (magnifier) | Searches waiting orders. Enter does the same. |
-| Next: Specimens | Moves to the Specimens tab. Greyed out until the required case fields are filled. |
+| Next: Specimens | Moves to the Specimens tab. Greyed out until the required case fields are filled. Not shown on a wide window, where the specimens are already beside the case. |
 | + Add Specimen | Adds the next specimen (B, C... or 2, 3...). |
 | Remove specimen (x) | Removes that specimen and relabels the rest, in your laboratory's letters or numbers. Shown only when there is more than one. |
-| Back | Returns to Case & Patient. |
+| Back | Returns to Case & Patient. Not shown on a wide window. |
 | Submit Accession | Saves the case. It reads "Assigning Grossing Templates..." while working. |
 | Print Labels | Labels print by themselves when you save, unless your laboratory has turned that off (Configuration > Print Settings > Print labels when a case is accessioned). The button stays on the card for reprints: it prints one requisition label and one label per container. |
 | Accession Another Case | Clears the form for the next case. |
@@ -203,20 +203,20 @@ The screen is titled **Accession** ("Log a new Orchestration case and assign Gro
 
 ### Hotkeys
 
-On this screen: **Alt+N** adds a specimen, **Alt+I** goes to Import from Order, **Alt+Shift+C** opens the case comment, **Alt+.** and **Alt+,** move between the two tabs, and **Alt+1** to **Alt+6** jump to the clinical history categories (cytology only). **Alt+Enter** ("Submit Case") only takes you to the Specimens tab; you must still select **Submit Accession** yourself. F1 opens this guide.
+On this screen: **Alt+N** adds a specimen, **Alt+I** goes to Import from Order, **Alt+Shift+C** opens the case comment, **Alt+.** and **Alt+,** move between the two tabs (on a wide window both are already on screen, so they change nothing you can see), and **Alt+1** to **Alt+6** jump to the clinical history categories (cytology only). **Alt+Enter** ("Submit Case") only takes you to the Specimens tab (on a wide window it changes nothing you can see); you must still select **Submit Accession** yourself. F1 opens this guide.
 
 ## Step-by-Step Procedures
 
 ### Standard workflow
 
-1. Open Accession from the Home tile. The Case & Patient tab opens.
+1. Open Accession from the Home tile. The Case & Patient tab opens (on a wide window the specimens are beside it).
 2. If an order is waiting, type its number, MRN, name or date of birth in **Import from Order**. Select the order in the list. The patient, facility, provider, clinical indication and specimens fill in; read the note under Clinical Indication and edit the text if it needs it. If the form already holds your typing, a window "Replace Unsaved Information" asks you to confirm.
 3. If there is no order, leave that box and keep going.
 4. Check **Patient Origin / Intake Type**; leave it on Standard unless one of the exceptions below applies.
 5. Enter or check the names, Date of Birth, Sex, Patient ID and Priority.
 6. Choose the **Submitting Facility**. The Patient ID hint now shows the facility's format.
 7. Enter the **Requesting Provider**, and a Clinical Indication if you have one.
-8. Select **Next: Specimens**. The Specimens tab opens with Specimen A.
+8. Select **Next: Specimens**. The Specimens tab opens with Specimen A. (On a wide window skip this step: Specimen A is already on the right.)
 9. Select the Dictionary Entry button, pick the specimen type, then check the Description, site and laterality against the requisition.
 10. Choose the Container Type, then enter the times you know: collected, placed in fixative, received.
 11. For another specimen, select **+ Add Specimen** (or Alt+N) and repeat.

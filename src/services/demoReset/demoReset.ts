@@ -411,6 +411,8 @@ export const CASE_KEYS = [
   'frozenSectionSuggestionDecisions', 'simulatedEngineReceived',
   // Batch 609: the images attached to case reports (links only: no image is stored).
   'caseReportImages',
+  // Batch 742: the files and links attached to cases (pointers only).
+  'caseAttachments',
   // Batch 613: the related released cases chosen for a report, and the patient summaries printed (counts only).
   'relatedCaseAttachments',
   // Batch 442: found by the widened scan in DemoResetTab.coverage.test.ts —
@@ -478,7 +480,7 @@ export const CASE_KEYS = [
   // Real, per-case/per-tester records, requests, and assignments —
   // all genuinely accumulate during demo/test usage; none of these
   // are admin-configured dictionaries.
-  'access_requests', 'aiScreeningResults', 'batches', 'billing_deficiency_records_v1',
+  'access_requests', 'aiScreeningResults', 'batches', 'stationScanEvents', 'addOnLabelPrintRoutes', 'itemEndStates', 'billing_deficiency_records_v1',
   'code_review_pool_v1', 'countersign_records', 'critical_findings_by_case_v1', 'critical_result_notifications_v1',
   'critical_alert_dispatches_v1',
   'cytology_review_records', 'cytology_sign_out_records', 'held_report_releases', 'report_documents', 'cytology_workload_ledger_v1', 'cytology_screening_hours_signoff_v1',
@@ -543,6 +545,8 @@ export const STATE_KEYS = [
   'pathscribe:desktopViewOverride', 'ps_sidebar_collapsed', 'ps_preview_margins', 'ps_preview_page_size',
   'pathscribe:savedSearches', 'pathscribe:lastSearch', 'ps_post_signout_pref',
   'pathscribe_show_superseded_notice', 'pathscribe_footpedal_bindings', 'ps_voice_ai_available',
+  // Batch 735: this computer's touch layout override (utils/touch/touchLayout.ts); a reset returns it to Auto.
+  'pathscribe_touch_layout',
   // Real, per the same follow-up as orEventLog above — the OR Suite
   // Live Board's own terminal binding (useCurrentOrTerminal.ts).
   // Exact same real reasoning already established for

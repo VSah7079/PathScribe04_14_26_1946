@@ -197,7 +197,7 @@ Screens found while writing that were not in the table above. Each has its canon
 | Canonical id | Where | Owning chapter |
 |---|---|---|
 | `screen-embedding-station` | Embedding Station (`/workstations/embedding`) | Chapter 4 |
-| `screen-microtomy-workstation` | Microtomy Workstation (`/workstations/microtomy`) | Chapter 4 |
+| `screen-microtomy-workstation` | Microtome Workstation (`/workstations/microtomy`) | Chapter 4 |
 | `screen-slide-distribution-station` | Slide Distribution Station (`/workstations/slide-distribution`) | Chapter 4 |
 | `screen-interface-engines` | Interface engines status and channels | Chapter 7 |
 | `screen-outbound-interface-dlq` | Outbound Interface DLQ | Chapter 7 |

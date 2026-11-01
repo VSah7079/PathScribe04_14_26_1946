@@ -998,6 +998,59 @@ def test_entrypoint_reads_page_setup():
     check(cyto.status_code == 200 and _approx(_page_size_pt(cyto.data)[0], 297 * 72 / 25.4), "the cytology template prints the page size sent")
 
 
+def test_section_images_print_inside_their_section():
+    """Batch 742 (Pete: images print inside their report section, not appended): an image under its section, at
+    300 DPI or better and at most the text width; Image Unavailable in place of one that can't be read; a document
+    named; anything placed at the end or under a missing section after the report text under "Images"; text too."""
+    print("test_section_images_print_inside_their_section")
+    import base64
+    from io import BytesIO as _BytesIO
+    from PIL import Image as _PILImage
+    from pypdf import PdfReader
+    buf = _BytesIO()
+    _PILImage.new('RGB', (1200, 900), (200, 120, 120)).save(buf, format='JPEG')
+    jpg = base64.b64encode(buf.getvalue()).decode('ascii')
+    buf2 = _BytesIO()
+    _PILImage.new('RGB', (1200, 900), (90, 140, 200)).save(buf2, format='PNG')
+    png = base64.b64encode(buf2.getvalue()).decode('ascii')
+    body = [{"order": 0, "nodes": [
+        {"type": "section", "id": "gross", "printHeading": "Gross Description", "children": [{"type": "static-label", "text": "Received fresh."}]},
+        {"type": "section", "id": "micro", "printHeading": "Microscopic Description", "children": [{"type": "static-label", "text": "Sections show adenocarcinoma."}]},
+    ]}]
+    images = [
+        {"id": "p1", "sectionId": "gross", "sectionLabel": "Gross Description", "caption": "Opened colon, tumour at 12 cm", "kind": "image", "imageBase64": jpg, "format": "jpeg", "widthPx": 1200, "heightPx": 900},
+        {"id": "p2", "sectionId": "micro", "sectionLabel": "Microscopic Description", "caption": "Block A3", "kind": "unavailable"},
+        {"id": "p3", "sectionId": "micro", "sectionLabel": "Microscopic Description", "caption": "Outside consult report", "kind": "document"},
+        {"id": "p4", "sectionId": "report-end", "sectionLabel": "End", "caption": "Closing image", "kind": "image", "imageBase64": png, "format": "png", "widthPx": 1200, "heightPx": 900},
+        {"id": "p5", "sectionId": "gone", "sectionLabel": "Old section", "caption": "Bad bytes", "kind": "image", "imageBase64": "not base64!!"},
+    ]
+    payload = {"caseHeader": {"accession": "S26-4680"}, "bodyAssembly": body, "sectionImages": images}
+    pdf = main.build_report_pdf(payload)
+    text = " ".join(p.extract_text() for p in PdfReader(_BytesIO(pdf)).pages)
+    flat = " ".join(text.split())
+    order = [flat.find(x) for x in ("Received fresh.", "Opened colon, tumour at 12 cm", "Sections show adenocarcinoma.", "Block A3",
+                                    "Attached document: Outside consult report. Its pages follow the report.", "Images", "Closing image", "Bad bytes")]
+    check(all(i >= 0 for i in order) and order == sorted(order), "each image under its own section, then the end-of-text block, in order")
+    check(flat.count("Image unavailable") == 2, "Image Unavailable in place of an unreadable or missing image, never a gap")
+    check(pdf.count(b"/Subtype /Image") == 2, "the two readable images are embedded once each")
+    check(flat.find("Opened colon") < flat.find("Microscopic Description"), "the gross photo prints before the next section, not at the end")
+    main._current_geometry.set(None)
+    w, h = main.section_image_size(1200, 900)
+    check(abs(w - 288.0) < 0.01 and abs(h - 216.0) < 0.01, "a 1200 x 900 photo prints at 300 DPI (4 x 3 in), never enlarged past it")
+    w2, _ = main.section_image_size(6000, 1000)
+    check(w2 <= main._text_width() + 0.01, "a wide photo is held to the text width")
+    _, h3 = main.section_image_size(1000, 9000)
+    check(h3 <= main.SECTION_IMAGE_MAX_HEIGHT_MM * main.mm + 0.01, "a tall photo is held to the height cap")
+    out = main.build_report_text(dict(payload, outputFormat="text"))
+    check("[Images] Opened colon, tumour at 12 cm" in out and out.index("[Images] Opened colon") < out.index("Microscopic Description"), "the text output names the image under its section")
+    check(main.build_report_pdf({"caseHeader": {"accession": "S26-4680"}, "bodyAssembly": body})[:4] == b"%PDF", "a report with no sectionImages renders as before")
+    plain = main.build_report_text({"caseHeader": {"accession": "S26-4680"}, "bodyAssembly": body})
+    check("Images" not in plain, "no Images heading when nothing is placed")
+    fr = main.build_report_pdf(dict(payload, labels={"imagesTitle": "Images jointes", "imageUnavailable": "Image indisponible."}))
+    frt = " ".join(" ".join(p.extract_text() for p in PdfReader(_BytesIO(fr)).pages).split())
+    check("Images jointes" in frt and "Image indisponible." in frt, "the wording follows the report's language")
+
+
 if __name__ == '__main__':
     test_labels_follow_the_report_language()
     test_korean_report_uses_pretendard()
@@ -1051,4 +1104,5 @@ if __name__ == '__main__':
     test_intraoperative_diagnosis_is_part_of_the_report()
     test_related_cases_print_exactly_as_attached()
     test_technical_lab_line_on_a_split_case()
+    test_section_images_print_inside_their_section()
     print(f"\nALL {PASS_COUNT} REAL CHECKS PASSED")

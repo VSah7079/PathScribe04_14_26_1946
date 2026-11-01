@@ -21,5 +21,6 @@ export const createHttpFacilityService = (client: ApiHttpClient): IFacilityServi
     reactivate: result('POST', () => route('reactivate'), { body: (id: Args<'reactivate'>[0]) => ({ id }) }),
     verify: result('POST', () => route('verify'), { body: (id: Args<'verify'>[0]) => ({ id }) }),
     setPrintSettings: result('POST', () => route('setPrintSettings'), { body: (id: string, s: FacilityReportPrintSettings) => ({ id, settings: s }) }),
+    setDirectDevicePrinting: result('POST', () => route('setDirectDevicePrinting'), { body: (id: string, allowed: boolean) => ({ id, allowed }) }),
     findOrCreateByAssigningAuthority: result('POST', () => route('findOrCreateByAssigningAuthority'), { body: (assigningAuthority: string, name: string, note?: string) => ({ assigningAuthority, name, note }) }),
   });

@@ -1,7 +1,7 @@
 // src/pages/EmbeddingStationPage/hooks/useEmbeddingStation.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Real, per PS-285 (Embedding Station) — the ticket's own "sibling,
-// bench-focused workstation" to PS-284's Microtomy Workstation. Same
+// bench-focused workstation" to PS-284's Microtome Workstation. Same
 // real optimistic-update + real persistence shape as
 // useMicrotomyWorkstation.ts (wraps embeddingOperations.ts's pure
 // functions), plus the exact same real cassette-print dispatch chain
@@ -9,12 +9,15 @@
 // -> printCassetteLabel) already proven there and, before that, in
 // useSpecimenBlockManagement.ts's own attemptPrintedLabel.
 //
-// Real, deliberate scope cut, matching PS-284's own stated precedent:
-// this resolves a scanned/selected ordinary HistologyBlock only — a
-// shared MatrixBlock (cassette spanning multiple specimens) is not yet
-// supported here. Kept consistent with PS-284's identical cut rather
-// than solved once, ad hoc, in whichever ticket happens to touch it
-// first.
+// Batch 729 (Lab Workflow & Batch spec §11.6): a matrix block (a cassette
+// shared by several specimens, Case.matrixBlocks[]) is accepted too, the way
+// the Microtome has since Batch 460: it is worked through a one-block view
+// (utils/embeddingMatrixView.ts), so every operation below applies to it
+// unchanged, and its save writes Case.matrixBlocks. Superseded: this header
+// used to say matrix blocks were "not yet supported here" (observed:
+// S26-4404-M1 refused while S26-4403-A1 was accepted). A Tissue Discrepancy on
+// a matrix block is raised against its first participant specimen. A
+// confirmed block is recorded on the station scan log as "completed".
 //
 // Real, deliberate reuse note on the discrepancy deficiency: this
 // raises the real, existing def-tissue-discrepancy deficiency through
@@ -47,10 +50,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
 import {
   printerProfileService, printSettingsService, scanStationService, specimenDeficiencyService, specimenDictionaryService,
-  userService, auditService,
+  userService, auditService, authorizationService,
   embeddingCommentMissing, embeddingConfirmMissing, embeddingReprintMissing, parseObservedPieceCount,
 } from '@/services';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { matrixBlockAsEmbeddingView, matrixBlocksWithEmbeddingView } from '@/utils/embeddingMatrixView';
+import { recordStationScan } from '@/services/stationScans/recordStationScan';
+import { completeReembedding, type AddOnActionResult } from '@/services/addOnOrders/addOnOrderActions';
+import { withdrawEndStateFromAction } from '@/services/itemEndStates/recordEndStateFromAction';
+import { blockTypeOf, piecesOf, BLOCK_TYPE_PROFILES } from '@/utils/blockPieceRules';
+import type { MatrixBlock } from '@/types/case/MatrixBlock';
+import { cassetteIdentifier, matrixBlockIdentifier } from '@/types/labels/LabelData';
 import { useWorkstationSave } from '@/hooks/useWorkstationSave';
 import { replaceSpecimenById, type SpecimenOpResult } from '@/services/workstationSave/runCaseAction';
 import { printCassetteLabel } from '@/utils/labels/printCassetteSlideLabel';
@@ -88,8 +98,24 @@ export interface EmbeddingActionResult {
 
 export interface EmbeddingWorkItem {
   caseData: Case;
+  /** For a matrix block, its one-block view (label ''). */
   specimen: Specimen;
   block: HistologyBlock;
+  /** Batch 729: set when the work item is a matrix block. */
+  matrixBlock?: MatrixBlock;
+}
+
+/** The work item again, from another copy of the case (null when its block is gone). */
+function workItemIn(caseData: Case, item: EmbeddingWorkItem): EmbeddingWorkItem | null {
+  if (item.matrixBlock) {
+    const mb = (caseData.matrixBlocks ?? []).find(m => m.id === item.matrixBlock!.id);
+    if (!mb) return null;
+    const view = matrixBlockAsEmbeddingView(mb);
+    return { caseData, specimen: view, block: (view.blocks ?? [])[0], matrixBlock: mb };
+  }
+  const specimen = (caseData.specimens ?? []).find(x => x.id === item.specimen.id);
+  const block = specimen?.blocks?.find(b => b.id === item.block.id);
+  return specimen && block ? { caseData, specimen, block } : null;
 }
 
 export function useEmbeddingStation() {
@@ -104,7 +130,7 @@ export function useEmbeddingStation() {
   const [discrepancyNotice, setDiscrepancyNotice] = useState<(EmbeddingMessage & { kind: 'raised' | 'failed' }) | null>(null);
   // Batch 669 (ws-10): the flagger's name (the block stores the user id).
   const [flaggerName, setFlaggerName] = useState<string | null>(null);
-  const { saveError, clearSaveError, saveChange } = useWorkstationSave();
+  const { saveError, clearSaveError, saveChange, saveCaseFields, runAction } = useWorkstationSave();
 
   const actor = useMemo(() => ({ id: user?.id ?? 'unknown', name: user?.name ?? user?.id ?? 'unknown' }), [user?.id, user?.name]);
 
@@ -131,8 +157,19 @@ export function useEmbeddingStation() {
     const resolved = await resolveMaterialFromScan(rawScanValue);
     if (!resolved) return fail({ key: 'embeddingStation.scanErrors.notResolved' });
     const { caseData, specimenLetter, target } = resolved;
-    // Batch 460: the target is checked first, so a matrix block (no specimen
-    // letter) gets "not supported here" rather than "specimen not found".
+    // Batch 729 (spec §11.6): a matrix block is embedded through its one-block view.
+    if (target.level === 'matrix_block') {
+      const mb = (caseData.matrixBlocks ?? []).find(m => m.id === target.matrixBlockId);
+      if (!mb) return fail({ key: 'embeddingStation.scanErrors.blockNotFound', values: { block: rawScanValue.trim() } });
+      const view = matrixBlockAsEmbeddingView(mb);
+      clearSaveError();
+      setDiscrepancyNotice(null);
+      setDictionaryType({});
+      setWorkItem({ caseData, specimen: view, block: (view.blocks ?? [])[0], matrixBlock: mb });
+      return { ok: true };
+    }
+    // Batch 460: the target is checked first, so a bare specimen or decant scan gets
+    // "not supported here" rather than "specimen not found".
     if (target.level !== 'block' && target.level !== 'slide') return fail({ key: 'embeddingStation.scanErrors.unsupportedTarget' });
     const specimen = (caseData.specimens ?? []).find(sp => sp.label === specimenLetter);
     if (!specimen) return fail({ key: 'embeddingStation.scanErrors.specimenNotFound' });
@@ -170,37 +207,46 @@ export function useEmbeddingStation() {
   const commit = useCallback(async (item: EmbeddingWorkItem, op: (specimen: Specimen) => SpecimenOpResult): Promise<{ saved: boolean; item: EmbeddingWorkItem } | null> => {
     const local = op(item.specimen);
     if (!local.ok) return null;
-    const itemFor = (caseData: Case, specimen: Specimen | undefined): EmbeddingWorkItem | null => {
-      const block = specimen?.blocks?.find(b => b.id === item.block.id);
-      return specimen && block ? { caseData, specimen, block } : null;
-    };
-    const shown = itemFor({ ...item.caseData, specimens: replaceSpecimenById(item.caseData.specimens, local.specimen) }, local.specimen);
+    const mbId = item.matrixBlock?.id;
+    const localCase: Case = mbId
+      ? { ...item.caseData, matrixBlocks: matrixBlocksWithEmbeddingView(item.caseData, mbId, local.specimen) ?? item.caseData.matrixBlocks }
+      : { ...item.caseData, specimens: replaceSpecimenById(item.caseData.specimens, local.specimen) };
+    const shown = workItemIn(localCase, item);
     if (shown) setWorkItem(shown);
-    const outcome = await saveChange(item.caseData.id, current => {
-      const sp = (current.specimens ?? []).find(x => x.id === item.specimen.id);
-      const res = sp ? op(sp) : null;
-      return res && res.ok ? replaceSpecimenById(current.specimens, res.specimen) : null;
-    });
+    const outcome = mbId
+      ? await saveCaseFields(item.caseData.id, current => {
+        const mb = (current.matrixBlocks ?? []).find(m => m.id === mbId);
+        const res = mb ? op(matrixBlockAsEmbeddingView(mb)) : null;
+        const list = res && res.ok ? matrixBlocksWithEmbeddingView(current, mbId, res.specimen) : null;
+        return list ? { matrixBlocks: list } : null;
+      })
+      : await saveChange(item.caseData.id, current => {
+        const sp = (current.specimens ?? []).find(x => x.id === item.specimen.id);
+        const res = sp ? op(sp) : null;
+        return res && res.ok ? replaceSpecimenById(current.specimens, res.specimen) : null;
+      });
     if (outcome.status === 'saved') {
-      const saved = itemFor(outcome.caseData, (outcome.caseData.specimens ?? []).find(x => x.id === item.specimen.id));
+      const saved = workItemIn(outcome.caseData, item);
       if (saved) { setWorkItem(saved); return { saved: true, item: saved }; }
       return { saved: true, item: shown ?? item };
     }
     // Not saved: show the block as stored now, so the tech can redo the change.
-    const reloaded = outcome.latest ? itemFor(outcome.latest, (outcome.latest.specimens ?? []).find(x => x.id === item.specimen.id)) : null;
+    const reloaded = outcome.latest ? workItemIn(outcome.latest, item) : null;
     const back = reloaded ?? item;
     setWorkItem(back);
     return { saved: false, item: back };
-  }, [saveChange]);
+  }, [saveChange, saveCaseFields]);
 
   /** Batch 669 (ws-11): raises the Tissue Discrepancy item and says on screen whether it was raised. */
   const raiseTissueDiscrepancy = useCallback(async (item: EmbeddingWorkItem, comment: string) => {
     const failed = () => setDiscrepancyNotice({ kind: 'failed', key: 'embeddingStation.discrepancy.raiseFailed' });
     try {
+      // Batch 729: a matrix block's discrepancy is raised against its first participant (the item text names the block).
+      const firstParticipant = item.matrixBlock ? (item.caseData.specimens ?? []).find(sp => sp.id === item.matrixBlock!.participants[0]?.specimenId) : undefined;
       const res = await specimenDeficiencyService.raise({
         caseId: item.caseData.id,
-        specimenId: item.specimen.id,
-        specimenLabel: item.specimen.label,
+        specimenId: firstParticipant?.id ?? item.specimen.id,
+        specimenLabel: firstParticipant?.label ?? item.specimen.label,
         deficiencyTypeId: 'def-tissue-discrepancy',
         comment,
         raisedBy: actor.id,
@@ -259,8 +305,15 @@ export function useEmbeddingStation() {
     if (typeof expected === 'number' && expected !== observedCount) {
       void raiseTissueDiscrepancy(workItem, `Block ${workItem.specimen.label}${workItem.block.label}: ${expected} piece${expected === 1 ? '' : 's'} recorded at grossing, ${observedCount} observed at embedding.`);
     }
+    // Batch 729 (spec §7.1): the embedded block is "completed" at this station.
+    const fullAccession = workItem.caseData.accession?.fullAccession ?? workItem.caseData.id;
+    recordStationScan({
+      stationId: effectiveStationId, itemId: workItem.matrixBlock ? matrixBlockIdentifier(fullAccession, workItem.matrixBlock.label) : cassetteIdentifier(fullAccession, workItem.specimen.label, workItem.block.label),
+      materialType: workItem.matrixBlock ? 'matrix_block' : 'block', caseAccession: fullAccession, node: 'Embedding',
+      userId: actor.id, userName: actor.name, action: 'completed', result: 'ok',
+    });
     return { ok: true };
-  }, [workItem, commit, raiseTissueDiscrepancy, requirements]);
+  }, [workItem, commit, raiseTissueDiscrepancy, requirements, effectiveStationId, actor]);
 
   /** Real, per the spec's own "Discrepancy Reporting: one-touch buttons
    *  ... Audit Triggers: a flagged discrepancy halts the block
@@ -379,19 +432,52 @@ export function useEmbeddingStation() {
     const fullAccession = workItem.caseData.accession?.fullAccession ?? workItem.caseData.id;
     const patientName = `${workItem.caseData.patient.givenNames ?? ''} ${workItem.caseData.patient.familyNames ?? ''}`.trim();
     const result = await printCassetteLabel(
-      { fullAccession, specimenLabel: specimen.label, blockLabel: block.label, cassetteId: `${fullAccession}-${specimen.label}${block.label}`, patientName, tissueDescription: block.tissueDescription },
+      { fullAccession, specimenLabel: specimen.label, blockLabel: block.label, cassetteId: `${fullAccession}-${specimen.label}${block.label}`, patientName, tissueDescription: block.tissueDescription, blockType: block.blockType },
       ctx.printer, ctx.gtin, ctx.layout,
     );
     return result.ok ? { ok: true } : { ok: false, printerMessage: (result as { ok: false; message: string }).message };
   }, [workItem, commit, getPrinterContext, actor.id, requirements]);
 
+  /** Batch 731 (spec §10.6): the block's remnant or wet tissue has been re-embedded: the orders waiting for it go to
+   *  the Microtome (services/addOnOrders checks material:reembed:complete and audits it). */
+  const handleReembedded = useCallback(async (): Promise<AddOnActionResult> => {
+    if (!workItem || workItem.matrixBlock) return { ok: false, failed: true };
+    const blockId = workItem.block.id;
+    const outcome = await runAction(workItem.caseData.id, (current, save) => completeReembedding({ caseData: current, blockId, actor }, {
+      enforce: (capability, context) => authorizationService.enforce(capability, context),
+      saveSpecimens: (_c, specimens) => save(specimens),
+      audit: entry => auditService.logEvent(entry),
+      // Batch 732: the block is back in use, so its "exhausted" end state is withdrawn.
+      withdrawEndState: (itemId, acc, reason) => withdrawEndStateFromAction(itemId, acc, reason, actor),
+    }));
+    if (outcome.status === 'failed') {
+      const back = outcome.latest ? workItemIn(outcome.latest, workItem) : null;
+      if (back) setWorkItem(back);
+      return { ok: false, notSaved: outcome.reason };
+    }
+    if (outcome.status === 'saved') { const next = workItemIn(outcome.caseData, workItem); if (next) setWorkItem(next); }
+    return outcome.value;
+  }, [workItem, runAction, actor]);
+
+  /** Batch 732 (spec §11.1, §11.2, §11.6): the block's type, the slide size it produces, and its piece map. */
+  const pieceView = useMemo(() => {
+    if (!workItem) return null;
+    const blockType = workItem.matrixBlock ? 'matrix' as const : blockTypeOf(workItem.block);
+    const pieces = workItem.matrixBlock ? piecesOf(workItem.matrixBlock, workItem.caseData.specimens ?? []) : piecesOf(workItem.block);
+    return { blockType, slideSize: BLOCK_TYPE_PROFILES[blockType].slideSize, pieces };
+  }, [workItem]);
+
   const alertBadges = workItem ? resolveEmbeddingAlertBadges(workItem.block, dictionaryType.type, dictionaryType.procedure) : [];
+  /** Batch 729: for a matrix block, the labels of the specimens sharing it (A, B), shown instead of a specimen type. */
+  const matrixSpecimens = workItem?.matrixBlock
+    ? workItem.matrixBlock.participants.map(p => (workItem.caseData.specimens ?? []).find(sp => sp.id === p.specimenId)?.label).filter(Boolean).join(', ')
+    : null;
 
   return {
     workItem, scanError, saveError, discrepancyNotice, flaggerName, resolveScan, clearWorkItem, requirements,
-    alertBadges, splitBlockGroupStatus,
+    alertBadges, splitBlockGroupStatus, matrixSpecimens,
     handleConfirmPieceCount, handleFlagDiscrepancy, handleClearDiscrepancy, handleSetMoldAndOrientation, handleSetAlertFlags, handleGroupSplitBlocks,
-    handleAddComment, handleReprintCassette,
+    handleAddComment, handleReprintCassette, handleReembedded, pieceView,
     effectiveStationId, actor,
   };
 }

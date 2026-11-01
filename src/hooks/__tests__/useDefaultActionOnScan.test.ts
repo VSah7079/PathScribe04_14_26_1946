@@ -35,8 +35,8 @@ vi.mock('@/services/actionRegistry/mockActionRegistryService', () => ({
   },
 }));
 
-const REAL_STATION = { id: 'station-micro-1', name: 'Microtomy — Bench 1', workstationGroupId: 'wg-microtomy-1', facilityId: 'c-fenwick-general' };
-const REAL_GROUP = { id: 'wg-microtomy-1', name: 'Microtomy Group', defaultActionId: 'LOG_SLIDE_BLOCK' };
+const REAL_STATION = { id: 'station-micro-1', name: 'Microtome — Bench 1', workstationGroupId: 'wg-microtomy-1', facilityId: 'c-fenwick-general' };
+const REAL_GROUP = { id: 'wg-microtomy-1', name: 'Microtome Group', defaultActionId: 'LOG_SLIDE_BLOCK' };
 const REAL_ACTION = { id: 'LOG_SLIDE_BLOCK', label: 'Log Slide/Block', category: 'GROSSING', isActive: true };
 
 function fireScan(raw: string) {

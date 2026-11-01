@@ -330,7 +330,7 @@
         "/batch-management/equipment-log"
       ],
       "previous": "batch-management/wsi-scan",
-      "next": "batch-management/retention-holds",
+      "next": "batch-management/workflow-reports",
       "related": [
         "batch-management",
         "batch-management/engraver-monitor",
@@ -473,12 +473,53 @@
       "routes": [
         "/batch-management/retention-holds"
       ],
-      "previous": "batch-management/equipment-log",
+      "previous": "batch-management/workflow-reports",
       "next": "batch-management/disposal",
       "related": [
         "batch-management/disposal",
         "batch-management/disposal-report",
         "report"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "batch-management/workflow-reports",
+      "title": "Lab Workflow Reports",
+      "module": "Batch Management",
+      "screen": "Lab Workflow Reports",
+      "workflow": "Bench chain of custody",
+      "roles": [
+        "Laboratory Manager",
+        "Histotechnologist",
+        "Cytotechnologist",
+        "Molecular Technologist"
+      ],
+      "keywords": [
+        "reports",
+        "turnaround",
+        "TAT",
+        "volume",
+        "STAT",
+        "add-on",
+        "recut",
+        "rework",
+        "reconciliation",
+        "exceptions",
+        "batch duration",
+        "CSV",
+        "Power BI"
+      ],
+      "routes": [
+        "/batch-management/workflow-reports"
+      ],
+      "previous": "batch-management/equipment-log",
+      "next": "batch-management/retention-holds",
+      "related": [
+        "batch-management",
+        "facility-operations",
+        "workstations/embedding",
+        "workstations/microtomy",
+        "workstations/slide-distribution"
       ],
       "status": "Draft"
     },
@@ -911,7 +952,7 @@
         "grossing",
         "intake",
         "embedding",
-        "microtomy",
+        "microtome",
         "staining",
         "IHC",
         "send-out",
@@ -1677,7 +1718,7 @@
       ],
       "keywords": [
         "pathology workspace",
-        "microtomy",
+        "microtome",
         "embedding",
         "slide distribution",
         "cytology",
@@ -2566,6 +2607,44 @@
       "status": "Draft"
     },
     {
+      "slug": "workstations/cytology-preparation",
+      "title": "Cytology Preparation",
+      "module": "Workstations",
+      "screen": "Cytology Preparation",
+      "workflow": "Bench and Workstation Work",
+      "roles": [
+        "Cytotechnologist",
+        "Histotechnologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "cytology preparation",
+        "fluid",
+        "decant",
+        "aliquot",
+        "cell block",
+        "hand-off",
+        "cytospin",
+        "liquid-based",
+        "ThinPrep",
+        "SurePath",
+        "volume",
+        "yield"
+      ],
+      "routes": [
+        "/workstations/cytology-prep"
+      ],
+      "previous": "workstations/embedding",
+      "next": "workstations/microtomy",
+      "related": [
+        "pathology-workspace",
+        "cytology",
+        "batch-management",
+        "workstations/microtomy"
+      ],
+      "status": "Draft"
+    },
+    {
       "slug": "workstations/embedding",
       "title": "Embedding Station",
       "module": "Workstations",
@@ -2607,17 +2686,17 @@
     },
     {
       "slug": "workstations/microtomy",
-      "title": "Microtomy Workstation",
+      "title": "Microtome Workstation",
       "module": "Workstations",
-      "screen": "Microtomy",
+      "screen": "Microtome",
       "workflow": "Bench and Workstation Work",
       "roles": [
         "Histotechnologist",
         "Laboratory Manager"
       ],
       "keywords": [
-        "microtomy",
         "microtome",
+        "microtomy",
         "sectioning",
         "cutting",
         "slide label",

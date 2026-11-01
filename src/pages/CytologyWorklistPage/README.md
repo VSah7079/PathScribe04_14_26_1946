@@ -1,3 +1,9 @@
+**Batch 744:** `CytologyWorklistPage.tsx`: the row shows the patient's name from either name shape (`resolvePatientNameValue`); it showed the MRN for the seeded patients.
+
+**Batch 742:** `CytologyScreeningPage.tsx`: the Attachments badge opens the Attachments window with no section offered (the cytology report prints images after its pages). 1,539 lines to 1,536.
+
+**Batch 739:** `components/CytologyMaterialView.tsx`: decant heading by template key, aliquots named by purpose (`utils/decantTypeText.ts`).
+
 **Batch 649:** pool Claim and Pass show a refusal for want of `case:pool:claim` / `case:pool:pass` (`isPoolActionNotPermitted`).
 
 # pages/CytologyWorklistPage

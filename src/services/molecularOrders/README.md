@@ -1,3 +1,7 @@
+**Batch 746:** `mockMolecularOrderStore.ts`: the seed gains the S7 orders (`molecular/molecularRunHistoryDemoSeed.ts`): twelve in-house EGFR and KRAS orders waiting for a plate and three resulted ones.
+
+**Batch 744:** `molecularOrderDemoSeed.ts`: the two processing batches' instrument orders (one Sent, one Queued).
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/molecularOrders/

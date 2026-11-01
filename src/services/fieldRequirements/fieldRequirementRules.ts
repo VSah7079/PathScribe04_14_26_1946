@@ -254,7 +254,7 @@ export const FIELD_REQUIREMENT_PAGES: Readonly<Record<FieldRequirementPageId, re
     { id: 'revisionReason',              group: 'cytologyRevision', default: 'locked', lockReason: 'revisionRecord' },
     { id: 'revisionAddendumText',        group: 'cytologyRevision', default: 'locked', lockReason: 'revisionRecord' },
   ],
-  // Microtomy workstation (Batch 388, PS-359): the comment drawer and the slide
+  // Microtome workstation (Batch 388, PS-359): the comment drawer and the slide
   // grid. A comment needs text and a slide order needs a stain, as before. The
   // level depth (µm) is a switch. A reprint or the cancelling of a printed slide
   // already needed a reason (utils/microtomyOperations.ts, for duplicate-label
@@ -323,7 +323,7 @@ export const FIELD_REQUIREMENT_PAGES: Readonly<Record<FieldRequirementPageId, re
   // or a location (any one; the page still insists on that), and a scanner
   // routing needed the instrument, which is locked. The rest were optional
   // and are now switches. The label reprint reason is new and locked (Pete,
-  // Batch 402), matching Microtomy and Embedding: a reprinted slide label is a
+  // Batch 402), matching Microtome and Embedding: a reprinted slide label is a
   // possible duplicate, so the reason goes on the chain-of-custody record.
   // Checked by services/fieldRequirements/slideDistributionChecks.ts.
   slideDistribution: [

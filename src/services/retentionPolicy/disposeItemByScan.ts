@@ -28,6 +28,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { isSlideAtLevel, stainAtLevel, stainIndexAtLevel } from '../material/slideLevels';
+import { recordEndStateFromAction } from '../itemEndStates/recordEndStateFromAction';
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { updateCaseWithRetryOrThrow } from '@/services/cases/caseWrite';
@@ -35,7 +36,8 @@ import { auditService } from '@/services/auditlog/auditServiceInstance';
 import { authorizationService } from '@/services/authorization/defaultAuthorizationService';
 import { mostRecentLocation } from './mostRecentLocation';
 import { getCurrentJurisdiction } from './RetentionPolicy';
-import { resolveMostConservativeEligibleDate, resolveFacilityIdForLocation } from './resolveRetentionEligibility';
+import { resolveFacilityIdForLocation } from './resolveRetentionEligibility';
+import { caseDisposalClock, resolveCaseDisposalDate } from './resolveCaseDisposalDate';
 import type { HistologyBlock, StainOrder, Specimen } from '@/types/case/Specimen';
 import type { MatrixBlock } from '@/types/case/MatrixBlock';
 import type { Case } from '@/types/case/Case';
@@ -196,7 +198,7 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
     return refuse('alreadyDisposed', `${displayId} was already disposed on ${record.disposedAt.slice(0, 10)}.`, { displayId, date: record.disposedAt });
   }
 
-  if (!caseData.finalizedAt) {
+  if (caseDisposalClock(caseData) === 'notStarted') {
     return refuse('notSignedOut', `${displayId}'s case hasn't been signed out yet — no real retention clock has started.`, { displayId });
   }
   const activeHold = (caseData.retentionHolds ?? []).find(h => h.active);
@@ -205,7 +207,7 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
   }
 
   const jurisdiction = getCurrentJurisdiction();
-  const eligibleDate = await resolveMostConservativeEligibleDate(materialType, jurisdiction, caseData.finalizedAt, record.specimenDictionaryEntryIds);
+  const eligibleDate = await resolveCaseDisposalDate(caseData, materialType, jurisdiction, record.specimenDictionaryEntryIds);
   if (!eligibleDate || eligibleDate.getTime() > Date.now()) {
     return refuse('notEligible', `${displayId} isn't retention-eligible for disposal until ${eligibleDate ? eligibleDate.toISOString().slice(0, 10) : 'an unknown date'}.`, { displayId, date: eligibleDate?.toISOString() });
   }
@@ -326,6 +328,12 @@ export async function disposeItemByScan(scannedValue: string, facilityId: string
     detail: `${displayId} disposed — retention-eligible since ${eligibleDate.toISOString().slice(0, 10)}, no active hold, verified at scan.`,
     user: byUserName, caseId: fullAccession, confidence: null,
   }).catch(() => {});
+  // Batch 731 (spec §10.5): the item's end state is "discarded" (the disposal already checked retention:material:dispose).
+  recordEndStateFromAction([{
+    itemId: displayId, materialType: target.level === 'matrix_block' ? 'matrix_block' : target.level === 'matrix_slide' ? 'matrix_slide' : target.level === 'decant' ? 'decant' : target.level === 'decant_slide' ? 'decant_slide' : materialType,
+    caseAccession: fullAccession, state: 'discarded', reason: `Disposed at the end of retention (eligible since ${eligibleDate.toISOString().slice(0, 10)})`,
+    userId: byUserId, userName: byUserName, source: 'disposal',
+  }]);
 
   return { outcome: 'disposed', displayId };
 }

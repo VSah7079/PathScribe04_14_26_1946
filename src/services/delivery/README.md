@@ -88,3 +88,7 @@ Before, anyone who could open Configuration could change this; now each change i
 ## Batch 617 (part B): server version (PS-514)
 
 The delivery rule, retry setting and retry services now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/DELIVERY_PRINTING_API.md`.
+
+## Batch 728
+
+- `deliverReport.ts`: a research case's report is not delivered by fax or file drop (`not_configured`, nothing queued).

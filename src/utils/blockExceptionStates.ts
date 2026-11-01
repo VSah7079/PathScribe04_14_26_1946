@@ -11,7 +11,7 @@
 
 import type { TFunction } from 'i18next';
 import type { Case } from '@/types/case/Case';
-import type { HistologyBlock, Specimen } from '@/types/case/Specimen';
+import type { StainOrder, HistologyBlock, Specimen } from '@/types/case/Specimen';
 
 /** A block's own priority override wins if set; otherwise it inherits
  *  the case's own order.priority — the same real resolution
@@ -29,10 +29,31 @@ export function isExhausted(block: Pick<HistologyBlock, 'status'>): boolean {
  * pathologist answers: Approve destructive cutting lets it go on; Cancel or Modify puts
  * the block's status back. True while any order on the block has that flag still open.
  * (A block whose status is Exhausted from grossing, with no flag, is not held up.)
+ * Batch 731 (spec §10.6): also true while an order waits for the block to be re-embedded.
  */
 export function cuttingBlockedByExhaustion(block: Pick<HistologyBlock, 'status' | 'stains'>): boolean {
-  return block.status === 'Exhausted'
-    && (block.stains ?? []).some(s => s.exception?.reason === 'Block exhausted' && s.exception.status === 'pending_pathologist_review');
+  const open = (st: string) => (block.stains ?? []).some(s => s.exception?.reason === 'Block exhausted' && s.status !== 'Cancelled' && s.exception.status === st);
+  // Batch 732: an order waiting for re-embedding holds the block even when only its pieces were used up.
+  return (block.status === 'Exhausted' && open('pending_pathologist_review')) || open('reembed_requested');
+}
+
+/**
+ * Batch 732 (review of Batch 731, spec §10.6 "never silently proceeds"): whether this one slide may be cut now.
+ * Besides the holds above, on an Exhausted block a slide still waiting to be cut (Pending Cut) is held unless the
+ * ordering pathologist approved destructive cutting for it or its block was re-embedded for it. The tech flags it
+ * ("Block exhausted") so the pathologist can choose an alternative.
+ */
+export function stainCuttingBlocked(block: Pick<HistologyBlock, 'status' | 'stains'>, stain: Pick<StainOrder, 'status' | 'exception'> | undefined): boolean {
+  if (cuttingBlockedByExhaustion(block)) return true;
+  if (block.status !== 'Exhausted' || !stain || stain.status !== 'Pending Cut') return false;
+  return stain.exception?.status !== 'approved_destructive_cut' && stain.exception?.status !== 'reembedded';
+}
+
+/** The order a "Block exhausted" flag goes on: a slide still waiting to be cut, not a control, with no open flag and
+ *  not waiting for re-embedding (never a finished or cancelled slide). Undefined: nothing left to flag. */
+export function exhaustionFlagTarget(block: Pick<HistologyBlock, 'stains'>): StainOrder | undefined {
+  return (block.stains ?? []).find(s => s.status === 'Pending Cut' && !s.isControlSlide
+    && s.exception?.status !== 'pending_pathologist_review' && s.exception?.status !== 'reembed_requested');
 }
 
 export function isLost(block: Pick<HistologyBlock, 'status'>): boolean {
@@ -71,4 +92,20 @@ export function entirelySubmittedBlockRangeText(specimen: Pick<Specimen, 'label'
   if (labels.length === 0) return '';
   const range = labels.length === 1 ? labels[0] : `${labels[0]}–${labels[labels.length - 1]}`;
   return t('blockExceptionStates.entirelySubmittedRange', { count: labels.length, range });
+}
+
+/** Batch 737 (spec §10.6): whether a block scanned into a batch is exhausted (no tissue remains), so Batch
+ *  Management can warn before it goes on to processing or cutting. A block or matrix block on the case; any other
+ *  item (a slide, a decant) is never flagged here. Pure. */
+export function exhaustedOnScan(
+  caseData: { specimens?: { label: string; blocks?: Pick<HistologyBlock, 'label' | 'status'>[] }[]; matrixBlocks?: { id: string; status: HistologyBlock['status'] }[] },
+  target: { level: string; blockNumber?: string; matrixBlockId?: string },
+  specimenLetter: string | undefined,
+): boolean {
+  if (target.level === 'block') {
+    const block = (caseData.specimens ?? []).find(sp => sp.label === specimenLetter)?.blocks?.find(b => b.label === target.blockNumber);
+    return !!block && isExhausted(block);
+  }
+  if (target.level === 'matrix_block') return (caseData.matrixBlocks ?? []).find(m => m.id === target.matrixBlockId)?.status === 'Exhausted';
+  return false;
 }

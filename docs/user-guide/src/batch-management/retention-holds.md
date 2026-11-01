@@ -6,7 +6,7 @@ workflow: Retention and disposal
 role: [Histotechnologist, Laboratory Manager, Pathologist]
 keywords: [retention hold, litigation hold, research hold, patient requested retention, release hold, hold queue, block disposal, export holds]
 routes: [/batch-management/retention-holds]
-previous: batch-management/equipment-log
+previous: batch-management/workflow-reports
 next: batch-management/disposal
 related: [batch-management/disposal, batch-management/disposal-report, report]
 status: Draft

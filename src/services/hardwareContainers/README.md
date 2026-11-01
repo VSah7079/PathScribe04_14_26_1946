@@ -1,3 +1,5 @@
+**Batch 737:** `HardwareContainer.supportsLargeFormat`; `update` now needs `config:equipment:manage`; seed rack RACK-STAIN-LF-01 (merged into a browser's stored list with `withMissingSeedRecords`).
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/hardwareContainers/

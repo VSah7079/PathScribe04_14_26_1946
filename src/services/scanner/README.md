@@ -1,3 +1,7 @@
+**Batch 740:** `/workstations/cytology-prep` handles its own scans.
+
+**Batch 735 (touch spec T1):** `scanRoutePolicy.ts`: what an accession scanned with nothing focused opens. Accessioning and the station screens (Embedding, Microtome, Slide Distribution, Add-On Orders, Batch Management) handle their own scans, so `contexts/ScannerProvider.tsx` no longer navigates there; on Grossing it opens the case's grossing screen, elsewhere the report.
+
 # services/scanner/
 
 Batch 649. Which key events the global barcode listener (`contexts/ScannerProvider.tsx`) treats as scanner input.

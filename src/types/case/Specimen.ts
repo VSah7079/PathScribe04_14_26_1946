@@ -309,7 +309,7 @@ export interface StainOrder {
    *  repeat requested due to a technical artifact), distinct from
    *  the block-level or specimen-level threads. */
   comments?: MaterialComment[];
-  /** Real, per PS-284 (Microtomy Workstation) — "toggle for whether a
+  /** Real, per PS-284 (Microtome Workstation) — "toggle for whether a
    *  comment prints on the human-readable label area or stays
    *  LIS-only." Governs the most recent entry in `comments` above;
    *  undefined/false means LIS-only (the safe default — a slide label
@@ -318,7 +318,7 @@ export interface StainOrder {
    *  disclosure on a specimen that leaves the bench). */
   commentPrintsOnLabel?: boolean;
 
-  // ── PS-284 Microtomy Workstation: real print-tracking fields ─────────
+  // ── PS-284 Microtome Workstation: real print-tracking fields ─────────
   // Deliberately additive, never a new StainOrderStatus value — same
   // "purely additive, safe" reasoning as disposedAt/disposedBy above.
   // A slide's clinical status (Pending Cut/Cut & Placed/etc.) and its
@@ -328,7 +328,7 @@ export interface StainOrder {
   /** Real, per PS-284's own "Per-slide status: Pending, Etching/
    *  Printing, Printed, Failed, Canceled." Undefined means never
    *  attempted — the common case for a slide that predates this
-   *  field, or was cut before ever reaching the Microtomy Workstation
+   *  field, or was cut before ever reaching the Microtome Workstation
    *  page. */
   printStatus?: 'Pending' | 'Printing' | 'Printed' | 'Failed' | 'Canceled';
   printedAt?: string;
@@ -606,6 +606,12 @@ export interface StainOrder {
    *  transition this order's own exception has gone through — see
    *  exception's own doc comment. */
   exceptionEvents?: AddOnOrderExceptionEvent[];
+  /** Batch 732 (spec §11.1, §11.3, §11.4): the slide's size (none: from its block's type, blockPieceRules.ts), how many
+   *  sections and how many levels it carries, and the pieces of a multi-piece block it was ordered for (none: whole block). */
+  slideSize?: import('./blockPieces').SlideSize;
+  sectionCount?: number;
+  levelCount?: number;
+  pieceIds?: string[];
 }
 
 /** See StainOrder.distributionEvents's own doc comment. */
@@ -622,35 +628,9 @@ export interface SlideDistributionEvent {
   detail: string;
 }
 
-/** See StainOrder.exception's own doc comment (PS-287). */
-export interface AddOnOrderException {
-  reason: 'Block exhausted' | 'Insufficient tissue for panel' | 'Requires re-grossing';
-  note?: string;
-  flaggedBy: string;
-  flaggedByName: string;
-  flaggedAt: string;
-  /** 'pending_pathologist_review' the moment a tech flags it — the
-   *  real trigger for the spec's own "Pathologist Notification Loop."
-   *  The other three are the loop's own real, closed set of responses
-   *  ("cancel/modify/approve-destructive-cutting options"). */
-  status: 'pending_pathologist_review' | 'approved_destructive_cut' | 'modified' | 'cancelled';
-  pathologistResponseBy?: string;
-  pathologistResponseByName?: string;
-  pathologistResponseAt?: string;
-  responseNote?: string;
-  /** Batch 610 (#16): the block's status when 'Block exhausted' was flagged, so a Cancel or Modify answer puts it back. */
-  blockStatusBefore?: BlockStatus;
-}
-
-/** See StainOrder.exceptionEvents's own doc comment (PS-287). */
-export interface AddOnOrderExceptionEvent {
-  id: string;
-  action: 'flagged' | 'approved_destructive_cut' | 'cancelled' | 'modified';
-  timestamp: string;
-  actorId: string;
-  actorName: string;
-  detail: string;
-}
+// Batch 732: AddOnOrderException and AddOnOrderExceptionEvent moved to addOnOrderException.ts (this file may not grow).
+export type { AddOnOrderException, AddOnOrderExceptionEvent } from './addOnOrderException';
+import type { AddOnOrderException, AddOnOrderExceptionEvent } from './addOnOrderException';
 
 /** Real, shared shape for a stain-attributed applied or rejected
  *  ancillary code - mirrors the shape already used by
@@ -939,7 +919,7 @@ export interface HistologyBlock {
    *  and mapped to the cassette/matrix block record." Real, genuine
    *  QA value across the real pipeline: embedding checks this count
    *  against what's actually visible before processing continues,
-   *  microtomy checks it against the ribbon, sign-out checks it
+   *  microtome checks it against the ribbon, sign-out checks it
    *  against the slide — a real, load-bearing number, not a cosmetic
    *  one. Same real shape as MatrixBlock's own identical fields
    *  (types/case/MatrixBlock.ts) — intentionally identical so
@@ -948,6 +928,9 @@ export interface HistologyBlock {
    *  matter. */
   pieceCount?: number;
   pieceDescription?: string;
+  /** Batch 732 (spec §11.1, §11.2): the block's type (none: standard) and its piece map (types/case/blockPieces.ts). */
+  blockType?: import('./blockPieces').BlockType;
+  pieces?: import('./blockPieces').BlockPiece[];
   /** Real feature, per direct follow-up: "The embedding technician
    *  relies on the recorded piece count to verify that 100% of the
    *  grossed tissue made it through processing into the paraffin
@@ -986,7 +969,7 @@ export interface HistologyBlock {
    *  the common case — means every stain on this block still matches
    *  exactly what generateDefaultMaterial.ts originally generated. */
   userModified?: boolean;
-  /** Real, per PS-284 (Microtomy Workstation) — "high-contrast alert
+  /** Real, per PS-284 (Microtome Workstation) — "high-contrast alert
    *  badges for Tiny Tissue, Decal Required, Fragile." Decal Required
    *  already exists as requiresDecal above; these two are the real,
    *  genuinely missing pair — greenfield, additive booleans, same
@@ -1443,7 +1426,7 @@ export interface Specimen {
   /** Cytology material — residual fluid / cell block prep, with its own
    *  slides. A specimen populates either blocks (surgical) or decants
    *  (cytology), never both — see Material.ts's file header. */
-  decants?: import('./Material').Decant[];
+  decants?: import('./Material').Decant[]; division?: import('./Material').SpecimenDivision; // Batch 741: a Divide specimen record (fluid decision 2)
   /** A gross photo of this specimen/container itself, if one exists.
    *  See Material.ts's DigitalAsset — left empty everywhere for now. */
   digitalAssets?: import('./Material').DigitalAsset[];

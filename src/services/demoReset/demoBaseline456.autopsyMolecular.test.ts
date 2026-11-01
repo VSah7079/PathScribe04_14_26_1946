@@ -17,6 +17,7 @@ import { mockMolecularBatchService } from '../molecular/mockMolecularBatchServic
 import { mockMolecularExtractionRackService } from '../molecular/mockMolecularExtractionRackService';
 import { mockMolecularAssayControlRuleService } from '../molecular/mockMolecularAssayControlRuleService';
 import { MOLECULAR_DEMO_BATCHES, MOLECULAR_DEMO_RACKS, MOLECULAR_DEMO_VIALS } from '../molecular/molecularDemoSeed';
+import { MOLECULAR_RUN_HISTORY_BATCHES } from '../molecular/molecularRunHistoryDemoSeed'; // Batch 746 (S7)
 import { resolveMolecularControlRequirementValidation } from '../molecular/resolveMolecularControlRequirementValidation';
 import { resolveMolecularReagentLotGating } from '../molecular/resolveMolecularReagentLotGating';
 import { resolveMolecularRunValidationGating } from '../molecular/resolveMolecularRunValidationGating';
@@ -32,8 +33,9 @@ const autopsy = (id: string) => byId(id).autopsy as AutopsyCaseDetails;
 describe('Batch 456: autopsy cases', () => {
   it('five autopsies at Metro General (four hospital-consented, one forensic), ids unique among the baseline', () => {
     expect(new Set(DEMO_BASELINE_CASE_IDS).size).toBe(DEMO_BASELINE_CASE_IDS.length);
-    const autopsies = cases.filter(c => c.autopsy);
-    expect(autopsies.map(c => c.id)).toEqual(['A26-4660', 'A26-4661', 'A26-4662', 'A26-4663', 'A26-4664']);
+    // Batch 745 (S6) adds A26-4665..4667 at other stages (demoAutopsyStages.test.ts); these five are fully authorized.
+    expect(cases.filter(c => c.autopsy).map(c => c.id)).toEqual(['A26-4660', 'A26-4661', 'A26-4662', 'A26-4663', 'A26-4664', 'A26-4665', 'A26-4666', 'A26-4667']);
+    const autopsies = cases.filter(c => c.autopsy && ['A26-4660', 'A26-4661', 'A26-4662', 'A26-4663', 'A26-4664'].includes(c.id));
     for (const c of autopsies) {
       expect(c.order.facilityId, c.id).toBe('c1');
       expect(c.accession).toEqual(expect.objectContaining({ accessionPrefix: 'A', fullAccession: c.id }));
@@ -118,7 +120,7 @@ describe('Batch 456: autopsy cases', () => {
     const pete = await mockCaseService.listCasesForUser('PATH-001');
     const sarah = await mockCaseService.listCasesForUser('PATH-SJ-001');
     expect(pete.filter(c => c.autopsy).map(c => c.id).sort()).toEqual(['A26-4660', 'A26-4661', 'A26-4663']);
-    expect(sarah.filter(c => c.autopsy).map(c => c.id)).toEqual(['A26-4662', 'A26-4664']);
+    expect(sarah.filter(c => c.autopsy).map(c => c.id).sort()).toEqual(['A26-4662', 'A26-4664', 'A26-4665', 'A26-4666', 'A26-4667']); // Batch 745: S6
     expect((await mockCaseService.getCase('A26-4661') as any)?.orchSections).toHaveLength(3);
   });
 });
@@ -141,7 +143,7 @@ describe('Batch 456: Molecular workcenter queue', () => {
   it('the batches show on the Active tab: one running, one blocked for the technologist', async () => {
     const res = await mockMolecularBatchService.getAll();
     const all = res.ok ? res.data : [];
-    expect(all.map(b => b.id)).toEqual(['mb-001', 'mb-demo-456-run', 'mb-demo-456-fail', 'mb-demo-467-egfr']); // Batch 467: the draft EGFR plate
+    expect(all.map(b => b.id)).toEqual(['mb-001', 'mb-demo-456-run', 'mb-demo-456-fail', 'mb-demo-467-egfr', ...MOLECULAR_RUN_HISTORY_BATCHES.map(b => b.id)]); // Batch 467: the draft EGFR plate; Batch 746: the run history
     const run = all.find(b => b.id === 'mb-demo-456-run')!;
     const fail = all.find(b => b.id === 'mb-demo-456-fail')!;
     expect(run.status).toBe('active');
@@ -172,7 +174,7 @@ describe('Batch 456: Molecular workcenter queue', () => {
     localStorage.setItem('pathscribe_mock_molecular_batches', JSON.stringify([{ id: 'mb-001', status: 'completed' }]));
     const res = await mockMolecularBatchService.getAll();
     const all = res.ok ? res.data : [];
-    expect(all.map(b => b.id)).toEqual(['mb-001', 'mb-demo-456-run', 'mb-demo-456-fail', 'mb-demo-467-egfr']); // Batch 467: the draft EGFR plate
+    expect(all.map(b => b.id)).toEqual(['mb-001', 'mb-demo-456-run', 'mb-demo-456-fail', 'mb-demo-467-egfr', ...MOLECULAR_RUN_HISTORY_BATCHES.map(b => b.id)]); // Batch 467: the draft EGFR plate; Batch 746: the run history
     expect(all[0].status).toBe('completed'); // what the browser had is kept
   });
 });

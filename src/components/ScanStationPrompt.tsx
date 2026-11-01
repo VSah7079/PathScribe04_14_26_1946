@@ -98,7 +98,7 @@ export function ScanStationPrompt() {
 
   return (
     <div className="ps-overlay ps-scan-prompt-overlay">
-      <div className="ps-modal-dark ps-scan-prompt-modal">
+      <div className="ps-modal-dark ps-scan-prompt-modal" role="dialog" aria-modal="true">
         <div>
           <div className="ps-scan-prompt-title">📍 {t('scanStationPrompt.title')}</div>
           <div className="ps-scan-prompt-subtitle">

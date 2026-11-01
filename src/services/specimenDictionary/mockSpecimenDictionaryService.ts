@@ -9,6 +9,7 @@ import { guardConfigWrites } from '../authorization/guardConfigWrites';
 import { DEMO_DEPARTMENT_IDS } from '../departments/demoDepartmentIds';
 import { CYTOLOGY_DEMO_PROTOCOL_IDS } from '../protocols/cytologyDemoProtocols';
 import { CYTOLOGY_DEMO_SPECIMENS, applyDemoDepartments } from './cytologyDemoSpecimens';
+import { applySurgicalDemoProtocols } from '../protocols/surgicalDemoProtocols';
 
 // ─── Starter data seed ────────────────────────────────────────────────────────
 // Moved here from useSpecimenDictionary.tsx (June 2026) — same seed data,
@@ -28,7 +29,8 @@ import { CYTOLOGY_DEMO_SPECIMENS, applyDemoDepartments } from './cytologyDemoSpe
 // correctly capture all 7 real breast-pathology-relevant specimens, including
 // Mastectomy and axillary/sentinel-node entries that don't even contain the
 // word "breast" in their name (a name-substring check would have missed them).
-const STARTER_SPECIMENS: SpecimenEntry[] = applyDemoDepartments((starterData.specimens as unknown as SpecimenEntry[]).map(e =>
+// Batch 738 (Demo Seed Data S1): applySurgicalDemoProtocols gives colon, breast, skin and prostate entries a protocol.
+const STARTER_SPECIMENS: SpecimenEntry[] = applySurgicalDemoProtocols(applyDemoDepartments((starterData.specimens as unknown as SpecimenEntry[]).map(e =>
   e.subspecialty === 'Breast Pathology' ? { ...e, requireFixativeTimeBeforeSignout: true } : e
 ).concat([
   // Medical Renal — the clearest real example of a specimen that
@@ -75,6 +77,20 @@ const STARTER_SPECIMENS: SpecimenEntry[] = applyDemoDepartments((starterData.spe
   // protocols/mockProtocolService.ts) as a genuine, working example
   // of the Targeted Organ / Multi-Specimen scenario (Part B's own
   // Rule Set 4, Specimen Container C: Heart).
+  // Batch 745 (Pete's seed row S6, Video 4 step 2): the whole-body entry an autopsy is accessioned under. Its category
+  // opens Accession's Case Authority & Authorization block and the Organ(s) Included picker (every organ in
+  // types/autopsy/AutopsyOrganCode.ts); no protocol, since the organs ticked decide the grossing sections.
+  {
+    id: 'sp-autopsy-complete',
+    name: 'Autopsy, Complete (Body)',
+    description: 'The decedent, received for postmortem examination. Tick the organs the examination covers at accession.',
+    type: 'Autopsy', procedure: 'Autopsy Examination',
+    site: 'Body',
+    specimenCategory: 'AUTOPSY',
+    normalizedLabel: 'Autopsy, Complete (Body)',
+    synonyms: ['Autopsy', 'Postmortem Examination', 'Body, Autopsy', 'Necropsy'],
+    active: true, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(),
+  },
   {
     id: 'sp-heart-autopsy',
     name: 'Heart, Autopsy',
@@ -161,7 +177,7 @@ const STARTER_SPECIMENS: SpecimenEntry[] = applyDemoDepartments((starterData.spe
   },
   // Batch 716: the rest of the cytology entries a training video needs (cytologyDemoSpecimens.ts).
   ...CYTOLOGY_DEMO_SPECIMENS,
-]));
+])));
 
 const STORAGE_KEY = 'specimen_dictionary';
 

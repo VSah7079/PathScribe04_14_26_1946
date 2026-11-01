@@ -1,6 +1,6 @@
 // src/pages/MicrotomyWorkstationPage/components/BlockExhaustedControl.tsx
 // ─────────────────────────────────────────────────────────────────────────────
-// Batch 610 (#16). The "Block exhausted" button on the Microtomy workstation.
+// Batch 610 (#16). The "Block exhausted" button on the Microtome workstation.
 // The tech flags that the block has no more tissue to give. The block is marked
 // Exhausted, the ordering pathologist is e-mailed (the Simulated mail outbox when
 // the site has no mail server; the message holds no patient details) and cutting
@@ -15,18 +15,23 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { HistologyBlock } from '@/types/case/Specimen';
-import { cuttingBlockedByExhaustion } from '@/utils/blockExceptionStates';
+import { cuttingBlockedByExhaustion, exhaustionFlagTarget } from '@/utils/blockExceptionStates';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { QuickReasonPicks } from '@/components/Common/QuickReasonPicks';
+import { useBenchReasons } from '@/hooks/useBenchReasons';
+import { EMPTY_BENCH_REASON, benchReasonCode, type BenchReasonChoice } from '@/services/reasons/benchReasons';
 
 export interface BlockExhaustedControlProps {
   block: HistologyBlock;
-  onFlag: (note: string) => Promise<{ ok: boolean; missing?: string[]; failed?: boolean; notPermitted?: boolean; noticeToDesk?: boolean; noticeNotSent?: boolean }>;
+  /** Batch 736: the reason text (picked reason and/or note) and the picked reason's code. */
+  onFlag: (note: string, reasonCode?: string) => Promise<{ ok: boolean; missing?: string[]; failed?: boolean; notPermitted?: boolean; noticeToDesk?: boolean; noticeNotSent?: boolean }>;
 }
 
 const BlockExhaustedControl: React.FC<BlockExhaustedControlProps> = ({ block, onFlag }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [note, setNote] = useState('');
+  const [choice, setChoice] = useState<BenchReasonChoice>(EMPTY_BENCH_REASON);
+  const reasons = useBenchReasons('BENCH_BLOCK_EXHAUSTED');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** Batch 669 (ws-3): who was told, shown beside the button once the flag is saved (no extra window to dismiss). */
@@ -35,14 +40,15 @@ const BlockExhaustedControl: React.FC<BlockExhaustedControlProps> = ({ block, on
   const pending = block.stains.find(s => s.exception?.reason === 'Block exhausted' && s.exception.status === 'pending_pathologist_review');
   const approved = block.stains.find(s => s.exception?.reason === 'Block exhausted' && s.exception.status === 'approved_destructive_cut');
   const blocked = cuttingBlockedByExhaustion(block);
-  const canFlag = !pending && block.stains.some(s => !(s.exception && s.exception.status === 'pending_pathologist_review'));
+  // Batch 732: only while a slide is still waiting to be cut (the flag goes on that slide).
+  const canFlag = !pending && !!exhaustionFlagTarget(block);
 
   const submit = async () => {
     setBusy(true); setError(null);
-    const r = await onFlag(note);
+    const r = await onFlag(reasons.textOf(choice), benchReasonCode(choice));
     setBusy(false);
     if (r.ok) {
-      setOpen(false); setNote('');
+      setOpen(false); setChoice(EMPTY_BENCH_REASON);
       setSentNotice(r.noticeNotSent ? { key: 'microtomyWorkstation.exhausted.nobodyNotified', warn: true } : r.noticeToDesk ? { key: 'microtomyWorkstation.exhausted.sentToDesk', warn: false } : null);
       return;
     }
@@ -67,12 +73,14 @@ const BlockExhaustedControl: React.FC<BlockExhaustedControlProps> = ({ block, on
       </CapabilityButton>
       {open && (
         <div className="ps-overlay" onClick={() => !busy && setOpen(false)}>
-          <div className="ps-modal-dark" role="dialog" aria-label={t('microtomyWorkstation.exhausted.title')} onClick={e => e.stopPropagation()}>
+          <div className="ps-modal-dark" aria-modal="true" role="dialog" aria-label={t('microtomyWorkstation.exhausted.title')} onClick={e => e.stopPropagation()}>
             <div className="ps-batch-modal-header"><div className="ps-batch-modal-title">{t('microtomyWorkstation.exhausted.title')}</div></div>
             <div className="ps-batch-modal-body">
               <p>{t('microtomyWorkstation.exhausted.body')}</p>
               <label className="ps-microtomy-field-label" htmlFor="ps-exhausted-note">{t('microtomyWorkstation.exhausted.note')}</label>
-              <textarea id="ps-exhausted-note" className="ps-microtomy-field-select" rows={3} value={note} onChange={e => setNote(e.target.value)} />
+              {/* Touch spec T3; Batch 736: the lab's reasons from the Reason Dictionary, one tap; the note is optional. */}
+              <QuickReasonPicks category="BENCH_BLOCK_EXHAUSTED" options={reasons.options} value={choice} onChange={setChoice} disabled={busy} />
+              <textarea id="ps-exhausted-note" className="ps-microtomy-field-select" rows={3} value={choice.note} onChange={e => setChoice(c => ({ ...c, note: e.target.value }))} />
               {error && <div className="ps-microtomy-save-error" role="alert">{error}</div>}
             </div>
             <div className="ps-batch-modal-footer">

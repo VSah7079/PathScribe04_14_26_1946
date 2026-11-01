@@ -136,7 +136,7 @@ export async function embedImageAssociationsIntoPdf(
       continue;
     }
 
-    const kind = resolveImageAssociationEmbedKind(assoc.imageUrl);
+    const kind = resolveImageAssociationEmbedKind(assoc.imageUrl, assoc.mimeType);
     if (kind === 'pdf_page') {
       // Real, per spec §3.2 — stream-level merge, never rasterized.
       const attachmentDoc = await PDFDocument.load(resolved);

@@ -7,6 +7,7 @@ vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
 }));
 import { mockPrintSettingsService } from './mockPrintSettingsService';
 import { DEFAULT_PRINT_SETTINGS_CONFIG } from './IPrintSettingsService';
+import { DEMO_RESTRICTED_CIRCULATION_GTIN } from './mockPrintSettingsService';
 
 beforeEach(() => {
   const store: Record<string, string> = {};
@@ -21,7 +22,7 @@ describe('mockPrintSettingsService — real feature, per direct follow-up on the
   it('get() returns the real, documented default config when nothing has been saved yet', async () => {
     const res = await mockPrintSettingsService.get();
     expect(res.ok).toBe(true);
-    if (res.ok) expect(res.data).toEqual(DEFAULT_PRINT_SETTINGS_CONFIG);
+    if (res.ok) expect(res.data).toEqual({ ...DEFAULT_PRINT_SETTINGS_CONFIG, gs1Gtin: DEMO_RESTRICTED_CIRCULATION_GTIN }); // Batch 738: the demo's internal-use GTIN
   });
 
   it('the real default is genuinely on_demand, matching the researched patient-safety recommendation', () => {
@@ -49,7 +50,7 @@ describe('mockPrintSettingsService — real feature, per direct follow-up on the
     await mockPrintSettingsService.update({ defaultPrintBehavior: 'batch', enforceOnDemandGuardrails: true });
     const res = await mockPrintSettingsService.reset();
     expect(res.ok).toBe(true);
-    if (res.ok) expect(res.data).toEqual(DEFAULT_PRINT_SETTINGS_CONFIG);
+    if (res.ok) expect(res.data).toEqual({ ...DEFAULT_PRINT_SETTINGS_CONFIG, gs1Gtin: DEMO_RESTRICTED_CIRCULATION_GTIN }); // Batch 738: the demo's internal-use GTIN
   });
 
   it('a real, valid containerLabelPresetId can be updated independently of the other fields', async () => {

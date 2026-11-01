@@ -1,3 +1,5 @@
+**Batch 738:** `generic/colon_resection.json` wording (see `generic/README.md`).
+
 # data/templates/
 
 31 synoptic reporting protocol templates, split into four subfolders by kind.

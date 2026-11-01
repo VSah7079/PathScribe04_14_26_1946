@@ -51,9 +51,14 @@ const equipmentLogServiceUnchecked: IEquipmentLogService = {
   async add(entry, today): Promise<ServiceResult<EquipmentLogEntry>> {
     const device = await mockEquipmentService.getById(entry.equipmentId);
     if (!device.ok) return fail('equipmentNotFound');
-    if (Object.keys(validateEquipmentLogEntry(entry, today)).length > 0) return fail('invalid');
+    // Batch 730: a temperature entry keeps the device's range as it was when the reading was taken; no other type has a reading.
+    const { temperatureCelsius, minCelsius: _min, maxCelsius: _max, ...rest } = entry; // eslint-disable-line @typescript-eslint/no-unused-vars
+    const checked = entry.type === 'temperature_check'
+      ? { ...rest, temperatureCelsius, minCelsius: device.data.temperatureMinCelsius, maxCelsius: device.data.temperatureMaxCelsius }
+      : rest;
+    if (Object.keys(validateEquipmentLogEntry(checked, today)).length > 0) return fail('invalid');
     const created: EquipmentLogEntry = {
-      ...entry,
+      ...checked,
       id: 'eqlog-' + Date.now(),
       performedBy: entry.performedBy.trim(),
       notes: entry.notes?.trim() || undefined,

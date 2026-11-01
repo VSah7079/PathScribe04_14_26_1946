@@ -18,8 +18,11 @@ import { getSessionUser } from '../auth/caseAccessControl';
 import { normaliseDeckSlotId } from '../equipment/equipmentRules';
 
 const STORE_KEY = 'molecular_assay_control_rules';
-const LATE_SEED_KEY = 'molecular_assay_control_rules_seed_467';
-const LATE_SEED_IDS = ['rule-467-egfr'];
+// Each later seed reaches a browser once, under its own flag (Batch 746 adds the KRAS rule).
+const LATE_SEEDS: { key: string; ids: string[] }[] = [
+  { key: 'molecular_assay_control_rules_seed_467', ids: ['rule-467-egfr'] },
+  { key: 'molecular_assay_control_rules_seed_746', ids: ['rule-746-kras'] },
+];
 const ok = <T>(data: T) => ({ ok: true as const, data });
 const err = (message: string) => ({ ok: false as const, error: message });
 const delay = () => new Promise(res => setTimeout(res, 30));
@@ -55,15 +58,32 @@ const SEED: MolecularAssayControlRule[] = [
     ],
     createdAt: '2026-10-06T15:00:00.000Z',
   },
+  {
+    // Batch 746 (S7): the in-house KRAS mutation PCR at Desert Valley, laid out as the EGFR plate is.
+    id: 'rule-746-kras',
+    assayCode: 'st-kras-pcr',
+    requiredControls: [
+      { sampleType: 'CONTROL_NTC', positionMode: 'fixed', fixedWellPosition: 'A01' },
+      { sampleType: 'CONTROL_PTC_HIGH', positionMode: 'fixed', fixedWellPosition: 'A02' },
+    ],
+    createdAt: '2026-10-30T15:00:00.000Z',
+  },
 ];
+/** The seeded rules, as a new browser starts with them (tests and the demo seed check against these). */
+export const MOLECULAR_CONTROL_RULE_SEED: readonly MolecularAssayControlRule[] = SEED;
 
 // Batch 406: the seeded rule's allowed deck slots reach browsers that stored it earlier.
 const load = (): MolecularAssayControlRule[] => {
   const stored = storageGet(STORE_KEY, SEED);
   // Batch 467: a rule seeded later (the EGFR PCR one) reaches browsers that stored the rules earlier — once, so a
   // rule an admin deletes afterwards stays deleted.
-  const late = storageGet<boolean>(LATE_SEED_KEY, false) ? { records: stored, added: 0 } : withMissingSeedRecords(stored, SEED.filter(r => LATE_SEED_IDS.includes(r.id)));
-  if (!storageGet<boolean>(LATE_SEED_KEY, false)) storageSet(LATE_SEED_KEY, true);
+  let late = { records: stored, added: 0 };
+  for (const seed of LATE_SEEDS) {
+    if (storageGet<boolean>(seed.key, false)) continue;
+    const merged = withMissingSeedRecords(late.records, SEED.filter(r => seed.ids.includes(r.id)));
+    late = { records: merged.records, added: late.added + merged.added };
+    storageSet(seed.key, true);
+  }
   const { records, filled } = withSeedFieldBackfill(late.records, SEED, 'allowedSampleRackSlotIds');
   if (filled > 0 || late.added > 0) storageSet(STORE_KEY, records);
   return records;

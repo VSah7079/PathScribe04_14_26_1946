@@ -1,6 +1,8 @@
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # MicrotomyWorkstationPage/components
 
-Panels of the microtomy workstation (`CytologyPanel`, `SlideGridPanel`, and others).
+Panels of the microtome workstation (`CytologyPanel`, `SlideGridPanel`, and others).
 
 ## Batch 524 (PS-491): accessibility
 

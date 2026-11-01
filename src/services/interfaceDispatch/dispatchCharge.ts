@@ -18,6 +18,11 @@ import { dispatchInterfaceMessage, type InterfaceTransactionType } from './dispa
 import { isEngineSimulated } from '../mockInterfaceEngine/simulatedEngineReceiver';
 import { auditService } from '../auditlog/auditServiceInstance';
 import type { OutboundChargeQueueEntry } from '@/types/billing/OutboundChargeQueueEntry';
+import { getResearchCaseSettings } from '../researchCases/researchCaseSettings';
+import { isResearchCase } from '../researchCases/researchCaseRules';
+
+/** Batch 728 (Lab Workflow spec, Decision 4): the text a refused research-case charge carries. */
+export const RESEARCH_NO_CHARGE_MESSAGE = 'This is a research case: no charges are sent to billing (Configuration > System > Research Cases).';
 
 export interface ChargeDispatchResult {
   ok: boolean;
@@ -44,6 +49,7 @@ export async function dispatchQueuedCharge(entry: OutboundChargeQueueEntry, acto
   try {
     const caseData = await caseRouter.getCase(entry.caseId);
     if (!caseData) return await fail('The case for this charge was not found.');
+    if (isResearchCase(caseData, getResearchCaseSettings())) return await fail(RESEARCH_NO_CHARGE_MESSAGE);
     const [chargesRes, defRes] = await Promise.all([serviceChargeService.getChargesForCase(entry.caseId), billingDeficiencyService.getByCaseId(entry.caseId)]);
     const gate = canCaseExportDft(defRes.ok ? defRes.data : []);
     if (!gate.allowed) return await fail(`${gate.blocking.length} open billing deficiency(ies) block the export.`);
@@ -87,6 +93,7 @@ export async function dispatchQueuedChargesForCase(caseId: string, actor = 'syst
 
 /** From the export preview: queues a case's charges that have no entry yet, then sends the queued ones. */
 export async function sendCaseChargesToBillingEngine(caseId: string, actor: string): Promise<{ ok: boolean; message: string; attempted: number; sent: number }> {
+  if (isResearchCase(await caseRouter.getCase(caseId), getResearchCaseSettings())) return { ok: false, message: RESEARCH_NO_CHARGE_MESSAGE, attempted: 0, sent: 0 };
   const [chargesRes, defRes] = await Promise.all([serviceChargeService.getChargesForCase(caseId), billingDeficiencyService.getByCaseId(caseId)]);
   const gate = canCaseExportDft(defRes.ok ? defRes.data : []);
   if (!gate.allowed) return { ok: false, message: `${gate.blocking.length} open billing deficiency(ies) block the export.`, attempted: 0, sent: 0 };
@@ -109,7 +116,12 @@ export async function dispatchFinancialClass(caseId: string, actor: string): Pro
   const simulated = isEngineSimulated();
   const caseData = await caseRouter.getCase(caseId);
   if (!caseData) return { ok: false, simulated, error: 'Case not found.', sent: [] };
-  const payload = await buildFinancialClassPayload(caseData);
+  const built = await buildFinancialClassPayload(caseData);
+  // Batch 728 (Decision 4): a research case carries the lab's no-charge financial class and no coverage.
+  const research = getResearchCaseSettings();
+  const payload = isResearchCase(caseData, research)
+    ? { ...built, accountBillingType: research.noChargeFinancialClass, primaryCoverage: undefined, secondaryCoverage: undefined }
+    : built;
   const text = JSON.stringify(payload, null, 2);
   const r = await dispatchInterfaceMessage(`FC-${caseId}-${Date.now().toString(36)}`, 'FINANCIAL_CLASS', payload);
   await audit(simulated ? 'Simulated Financial Class Sent' : 'Financial Class Sent', `${simulated ? 'SIMULATED: ' : ''}financial-class payload ${r.ok ? 'sent' : 'not sent'} (preview-level).`, caseId, actor);

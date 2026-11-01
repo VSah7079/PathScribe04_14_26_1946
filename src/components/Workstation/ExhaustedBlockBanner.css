@@ -1,0 +1,25 @@
+/* Batch 731 (spec §10.6): the exhausted-block warning at the stations (ExhaustedBlockBanner.tsx). */
+.ps-exhausted-block-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--ps-warning, #f59e0b) 55%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ps-warning, #f59e0b) 12%, transparent);
+  color: inherit;
+  font-size: 0.9rem;
+}
+.ps-exhausted-block-banner--ok {
+  border-color: color-mix(in srgb, var(--ps-success, #10b981) 55%, transparent);
+  background: color-mix(in srgb, var(--ps-success, #10b981) 10%, transparent);
+}
+.ps-exhausted-block-banner-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.ps-exhausted-block-banner-btn { padding: 4px 10px; font-size: 0.85rem; }
+.ps-exhausted-block-banner-warn { color: var(--ps-danger, #ef4444); }

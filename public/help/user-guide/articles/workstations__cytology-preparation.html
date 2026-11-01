@@ -1,0 +1,127 @@
+<h1 id="top">Cytology Preparation</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Cytology Preparation bench is where a fluid or other cell sample is prepared (Batch 740): you scan the container, record how much there is and what came out of it, accept or change the suggested slides, print their labels, and make cell blocks. A cell block goes on to the Microtome only after its <strong>hand-off</strong>: you scan the fluid or aliquot it was made from, then its cassette, and both must match. Until then the Microtome refuses it ("Cell block … has not been handed off"), so no cell block reaches histology without its source.</p>
+<p><strong>Intended users.</strong> Cytotechnologists and histotechnologists who prepare fluids. The screen opens for roles with the Cytology Preparation screen switched on; by default the Cytotechnologist and Histotechnologist roles.</p>
+<h2 id="screen">Screen Tour</h2>
+<p>Pathology Workspace → <strong>Cytology Preparation</strong>.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scan a container or decant barcode</td>
+<td>Scan a fluid (residual fluid), an aliquot or a cell block. A block is refused: "This is a block: cut it at the Microtome."</td>
+</tr>
+<tr>
+<td>Decant</td>
+<td>The decant on the bench and its type, for example "D1 — Residual Fluid" or "D3 — Aliquot for flow cytometry".</td>
+</tr>
+<tr>
+<td>Total Volume (mL), Appearance, Decant Yield / Pellet Size</td>
+<td>As at the Microtome before Batch 740. A CSF, or any fluid of 5 mL or less, is suggested two cytospin slides.</td>
+</tr>
+<tr>
+<td>Accept suggestion</td>
+<td>Adds the suggested slides; print them with <strong>Print/Etch Next</strong> or in a batch, as at the Microtome.</td>
+</tr>
+<tr>
+<td>Cell blocks</td>
+<td>The specimen's cell blocks. <strong>Make a cell block from this decant</strong> adds one ("Cell block A D2 made. Print its label, then hand it off once the pellet is in the cassette.").</td>
+</tr>
+<tr>
+<td>Print label</td>
+<td>Prints the cell block's label; its barcode is what the hand-off scans.</td>
+</tr>
+<tr>
+<td>Hand off</td>
+<td>Two scans: <strong>Scan the source fluid or aliquot</strong>, then <strong>Scan the cell block cassette</strong>. "Cell block … handed off to histology." The row then reads "Handed off by (name), (time)".</td>
+</tr>
+<tr>
+<td>Waiting for hand-off</td>
+<td>The cell block has not been handed off yet; the Microtome will refuse it.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="divide-specimen">Divide specimen</h3>
+<p>Batch 741. Under each specimen, <strong>Divide specimen</strong> splits it into aliquots, one per destination (for example flow cytometry, microbiology, molecular). Enter <strong>Starting volume (mL)</strong>; each row has <strong>For</strong> (the purpose), <strong>Volume (mL)</strong>, <strong>Destination type</strong> (Department or Reference laboratory) and <strong>Destination</strong>. A fluid or FNA specimen's protocol pre-fills its usual rows; <strong>+ Add aliquot</strong> and <strong>Remove</strong> change them. The line under the rows accounts for the volume: "Split 8 mL of 30 mL; 22 mL remaining." <strong>Divide</strong> saves it once: "Divided into D2, D3; 22 mL remaining." A specimen can be divided once; the record then reads "Divided by (name), (time): 8 mL of 30 mL into aliquots, 22 mL remaining."</p>
+<p>Each aliquot shows its volume and destination ("5 mL → Flow Cytometry") and its status: <strong>Not sent</strong>, <strong>Sent</strong>, <strong>Received</strong>, <strong>Result back</strong>. <strong>Mark Sent</strong> (and so on) moves it forward one step; the status never goes back. For <strong>Result back</strong>, type the <strong>Receiving accession number</strong> (the receiving department's own number for it) first. Results stay in that department's system.</p>
+<p>Messages: "Enter the starting volume first.", "Add at least one aliquot.", "Every aliquot needs a volume above 0 mL.", "Every aliquot needs a destination.", "The aliquots add up to more than the starting volume.", "This specimen has already been divided.", "An aliquot's status only moves forward.", "Enter the receiving department's accession number to record Result back."</p>
+<h3 id="prompts-and-messages">Prompts and messages</h3>
+<p>See Troubleshooting below.</p>
+<h3 id="toolbar">Toolbar</h3>
+<p><strong>Back</strong> returns to Pathology Workspace; <strong>Scan next</strong> clears the bench for the next container.</p>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<p>A cell block row shows <strong>Waiting for hand-off</strong> (amber) until it is handed off, then "Handed off by (name), (time)" (green).</p>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>The foot pedal and keyboard shortcuts of the Microtome are not set up here yet; scan and the buttons work by touch, mouse or keyboard.</p>
+<h3 id="using-a-tablet-at-the-bench">Using a tablet at the bench</h3>
+<p>The scan fields take a barcode without opening the on-screen keyboard, as at the other stations.</p>
+<h2 id="steps">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Scan the fluid container. Enter the volume, appearance and yield; select <strong>Accept suggestion</strong>, then print the slides.</li>
+<li>To make a cell block, select <strong>Make a cell block from this decant</strong>, then <strong>Print label</strong> and put the label on the cassette.</li>
+<li>When the pellet is in the cassette, select <strong>Hand off</strong>, scan the fluid, then scan the cassette.</li>
+<li>Take the cell block to the Microtome.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<p>An aliquot (for example for flow cytometry) is scanned the same way; it carries no slides of its own unless you add them.</p>
+<h3 id="exception-handling">Exception handling</h3>
+<p>A cell block planned at Accession (by the specimen's protocol) has no parent: hand it off against any fluid or aliquot of the same specimen.</p>
+<h3 id="error-recovery">Error recovery</h3>
+<p>If a hand-off or a new cell block shows "Not saved", scan the container again and repeat; nothing was recorded.</p>
+<h2 id="tips">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<p>Scanning the cassette first: the hand-off asks for the source first, then the cassette.</p>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<p>Print a cell block's label as soon as you make it, so the hand-off scan is ready when the pellet is.</p>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<p>Hand off cell blocks in a group at the end of a run, before they go to processing.</p>
+<h2 id="related">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<p>Accession (the specimen and, from its protocol, its fluid, aliquots and planned cell blocks).</p>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<p><a href="batch-management">Batch Management</a> (Liquid-Based Cytology Processing and Cytology Staining batches), <a href="workstations/microtomy">Microtome Workspace</a> (handed-off cell blocks), <a href="cytology">Cytology</a> (screening).</p>
+<h2 id="messages">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Message</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Not handed off: the first scan is not the fluid or aliquot this cell block was made from.</td>
+<td>Scan the container the cell block was made from. A cell block planned at Accession can be scanned against any fluid or aliquot of the same specimen.</td>
+</tr>
+<tr>
+<td>Not handed off: the second scan is not this cell block's cassette.</td>
+<td>Scan the cassette of this cell block (print its label if needed).</td>
+</tr>
+<tr>
+<td>This cell block was already handed off.</td>
+<td>Nothing to do: take it to the Microtome.</td>
+</tr>
+<tr>
+<td>You don't have permission to hand off a cell block.</td>
+<td>Ask your administrator for "Hand off a cell block to histology".</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the message under the scan box or in the Cell blocks panel.</li>
+<li>Scan the container again, or type its barcode and select <strong>Go</strong>.</li>
+<li>For a hand-off that was refused, select <strong>Hand off</strong> again and scan the fluid first, then the cassette.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a hand-off is refused although both labels are right, or when a cell block made here does not appear after reloading. Have the case number, the decant and cassette labels and the time ready.</p>
+<h2 id="microtome">At the Microtome</h2>
+<p>The Microtome now takes only blocks and handed-off cell blocks. Scanning a fluid or aliquot there says "… is a fluid or aliquot: prepare it at the Cytology Preparation bench."</p>

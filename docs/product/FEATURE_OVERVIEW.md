@@ -51,7 +51,7 @@ completion, sign-out/finalize, and more).
 
 ### Case Accessioning (`/accession`) — Live
 
-**For the practitioner.** This is where a case is created. You bring in the order, the patient and visit are matched, and you enter the specimens.
+**For the practitioner.** This is where a case is created. You bring in the order, the patient and visit are matched, and you enter the specimens. On a wide window (Batch 721) the patient and case details are on the left and the specimens on the right, so you can see both without switching tabs; a narrower window keeps the two tabs.
 
 **For the system administrator.** The accessioning page handles case creation, order import, patient and encounter resolution and specimen entry. The description lists no settings or permissions for it.
 
@@ -94,9 +94,9 @@ entry.
 - Writers (each in the service doing the work): `cases/poolCaseActions.ts`, `delegations/delegationAudit.ts`, `cases/saveCaseTeam.ts` + `caseTeamAudit.ts`, `cases/postCaseComment.ts` (moved out of the 7,000-line report page), `spellcheck/mockCustomDictionaryService.ts`, `userSettings/personalLanguage.ts`, `deficiencies/qaDeficiencyActions.ts`. Event catalogue: `services/auditlog/README.md` (Batch 651).
 - Tests: one per service (entry written on success with actor, case and facility; none when refused; no PHI).
 
-### Defect fixes: peer averages, microtomy scan labels, multi-recipient delegation, https-only links, report barcode — Built (Demo), Batch 652
+### Defect fixes: peer averages, microtome scan labels, multi-recipient delegation, https-only links, report barcode — Built (Demo), Batch 652
 
-**For the practitioner.** My Contribution shows real peer averages (colleagues with your role at your facility) or "Not enough data" when there are fewer than three. Scanning a block at a microtomy bench prints its slide labels; a failed print leaves the slide pending. Teaching Case can go to several residents or fellows. Insecure (http) resource links are greyed and do not open. The footer barcode on a pending-release print is solid black and scans.
+**For the practitioner.** My Contribution shows real peer averages (colleagues with your role at your facility) or "Not enough data" when there are fewer than three. Scanning a block at a microtome bench prints its slide labels; a failed print leaves the slide pending. Teaching Case can go to several residents or fellows. Insecure (http) resource links are greyed and do not open. The footer barcode on a pending-release print is solid black and scans.
 
 **For the system administrator.** Scan Stations: "Supports printing" plus a slide printer profile now drives the scan-time label. Delegation Types: the multi-recipient switch is honoured. External Resources: https only for new and edited links; old http links show a warning. No new capability: `case:delegation:create` is checked once per recipient.
 
@@ -490,11 +490,123 @@ The Role Dictionary lists every voice and shortcut command by group, including t
 
 ## Batch Management & Chain of Custody
 
+### Cytology preparation, cell block hand-off and Divide specimen — Built (Demo), Batches 739 to 741
+
+**For the practitioner.** Fluids are prepared at their own Cytology Preparation bench; every cell block is handed off to histology with two scans (source, then cassette); aliquots say what they are for; a CSF or small fluid is suggested cytospins.
+
+**For the system administrator.** Two permissions (`screen:cytology-prep:open`, `cytology:cell-block:hand-off`); the Cytology Preparation station stage; Equipment kind Liquid-based cytology processor; ThinPrep and SurePath Pap protocols.
+
+**For marketing.** Vendor-neutral liquid-based cytology with a scanned chain of custody from fluid to cell block.
+
+**For FormedrixAI and partners (the plain reality).** Status: Built (Demo). Pete's fluid decisions 1, 4, 5 and 6 (Oct 30, 2026). Batch 741 added Divide specimen with the volume accounted for, aliquot destinations and statuses (decisions 2 and 3). Not built: dividing on Accession; moving an aliquot to Sent when its referral batch completes; the bench's foot pedal, comments and billing panel. The API server must apply the hand-off and aliquot rules and the HPV-aliquot migration.
+
+*Technical detail:* `services/cytology/cellBlockHandoff.ts`, `pages/CytologyPrepStationPage/`, `utils/aliquotMigration.ts`, `services/cytology/computeCytologyPrepSuggestions.ts`, `services/protocols/cytologyDemoProtocols.ts`.
+
+### Megablocks and multi-piece blocks — Partial (Demo), Batch 732
+
+**For the practitioner.** Block type and piece map at grossing; orders for a piece or a level range; piece-by-piece exhaustion at the Microtome; large-format slides labelled and routed as such.
+
+**For the system administrator.** One equipment flag (Takes large-format slides) for stainers, scanners and, since Batch 737, staining racks.
+
+**For marketing.** One barcode per cassette, every piece accounted for.
+
+**For FormedrixAI and partners (the plain reality).** Status: Partial (Demo). Lab Workflow & Batch spec §11.1–11.6. Batch 737 added add-on orders on a matrix block or some of its parts, marking a matrix part used up, the megablock cassette template on the cassette label path, staining racks that take large-format slides (Equipment), and Batch Management's refusal of a large-format slide on a carrier that does not take it, with a warning for an exhausted block scanned into a batch. Not built: configurable block-type profiles; adding or retiring racks on a screen. The printers need the large-format and megablock templates.
+
+*Technical detail:* `types/case/blockPieces.ts`, `utils/blockPieceRules.ts`, `services/material/pieceExhaustion.ts`, `components/Workstation/BlockPieceMapPanel.tsx`, `pages/GrossingScreenPage/components/BlockPieceMapEditor.tsx`.
+
+### Exhausted-block rule, item end states and lineage — Built (Demo), Batch 731
+
+**For the practitioner.** An exhausted block is no longer a dead end: the Add-On Order builder and the answer to a Microtome "Block exhausted" flag offer an unstained slide already cut, re-embedding or another block of the same part, with a reason. Stations warn about an exhausted block and say what remains. Blocks and slides get an end state with a reason; the scan history shows which block a slide came from.
+
+**For the system administrator.** Three permissions (`material:end-state:record`, `material:reembed:request`, `material:reembed:complete`); one more reporting-feed dataset (item end states).
+
+**For marketing.** Safe choices instead of a refusal, and a recorded final disposition for every block and slide.
+
+**For FormedrixAI and partners (the plain reality).** Status: Built (Demo). Lab Workflow & Batch spec §10.4–10.6 as decided by Pete on Oct 29, 2026. Not built: the per-piece check for multi-piece blocks (Batch 732, with the piece map), re-embedding a matrix block, automatic control slides for a stain on an existing slide. The API server must apply the same rules and write the system's end states itself.
+
+*Technical detail:* `utils/exhaustedBlockRules.ts`, `services/addOnOrders/addOnOrderActions.ts` (`placeOnExhaustedBlock`, `completeReembedding`), `services/itemEndStates/`, `services/material/materialLineage.ts`, `components/Workstation/ExhaustedBlockBanner.tsx`, `ItemEndStatePanel.tsx`, `pages/AddOnOrderPage/components/ExhaustedBlockChoices.tsx`, `authorization/materialLifecycleCapabilities.ts`.
+
+### Lab Workflow Reports, reporting feed datasets and Power BI kit — Partial (Demo), Batch 730
+
+**For the practitioner.** Seven built-in reports on Batch Management, each exportable as CSV; "print labels at" for add-on orders; temperature checks in the Equipment Log.
+
+**For the system administrator.** One view and one export permission per report; equipment temperature ranges; three more reporting-feed datasets.
+
+**For marketing.** Management reporting from day one, and a governed feed for Power BI.
+
+**For FormedrixAI and partners (the plain reality).** Status: Partial (Demo). Reports, CSV export, print labels at and temperature checks are built in the demo. The BI feed server, the tested .pbit template and scheduled report delivery are not.
+
+*Technical detail:* `services/labWorkflowReports/`, `services/labelPrintRoutes/`, `services/biFeed/biFeedCatalog.ts`, `docs/product/powerbi/`.
+
+### Station tracking part 2: matrix blocks, scan history, stopped work — Built (Demo), Batch 729
+
+**For the practitioner.** Matrix blocks are embedded and distributed like other blocks; each bench shows the case's scan history; Grossing warns about a cassette from another case; the Microtome says which blocks of the case are still waiting.
+
+**For the system administrator.** Display Profiles: the not-scanned time for the Stations view.
+
+**For marketing.** Item-level chain of custody at every bench, with early warning when work goes quiet.
+
+**For FormedrixAI and partners (the plain reality).** Status: Built (Demo). A Case History screen outside the benches, step-specific wrong-item checks at Embedding and the Microtome, cell blocks and decants at those benches, and server-side storage (`STATION_TRACKING_API.md`) are not built.
+
+*Technical detail:* `services/stationScans/stationTrailRules.ts`, `wrongCaseScan.ts`, `recordStationScan.ts`; `services/material/incompleteSectioning.ts`; `utils/embeddingMatrixView.ts`; `components/Workstation/ScanTrailPanel.tsx`.
+
+### Research cases and batch purposes — Partial (Demo), Batch 728
+
+**For the practitioner.** Research cases stay off clinical worklists and figures and send nothing out; carriers say what they are for, and New Container no longer pre-sets the step.
+
+**For the system administrator.** Configuration → System → Research Cases & Batch Purposes (prefixes, no-charge financial class, retention days; built-in and lab purposes); Display Profiles purpose filter. Permissions `config:research-cases:manage`, `config:batch-purposes:manage`.
+
+**For marketing.** One lab, clinical and research work side by side, cleanly separated.
+
+**For FormedrixAI and partners (the plain reality).** Status: Partial (Demo). The workaround of spec Decision 4 is built; the report screen marking, a research worklist, filtering beyond the Contribution dashboards, the server's BI feed rule and unaccessioned research items are not.
+
+*Technical detail:* `services/researchCases/`, `services/batches/batchPurposes.ts`, `services/retentionPolicy/resolveCaseDisposalDate.ts`, `components/Config/System/ResearchCasesSection.tsx`.
+
+### Add-ons on the wall display and the Stations view — Built (Demo), Batch 727
+
+**For the practitioner.** Add-ons waiting at the microtome are on the Embedding & Microtome wall view with an ADD-ON tag, timed against the lab's limit and pinned when STAT or late; a Stations view shows what is waiting at each step.
+
+**For the system administrator.** Display Profiles: Time limit X (15 to 1440 minutes, default 120) and the Stations view.
+
+**For marketing.** Urgent and late add-on work is visible on the wall, at the top.
+
+**For FormedrixAI and partners (the plain reality).** Status: Built (Demo). Demo data in the browser; server side per `INTRAOP_OPS_API.md`.
+
+*Technical detail:* `services/facilityOpsDashboard/openAddOnOrders.ts`, `stationOverviewRules.ts`, `computeStationOverviewSummary.ts`, `displayProfileRules.ts`; `pages/FacilityOpsDashboard/components/DashboardSummaryView.tsx`.
+
+### Carriers at the workstations and station tracking — Built (Demo), Batch 726
+
+**For the practitioner.** The Embedding, Microtome and Slide Distribution screens list the carriers for your station and open one when you scan it; items are ticked off as you take them out, and anything unexpected stops and asks. Every scan is recorded with the station.
+
+**For the system administrator.** Set a station (with the right workflow stage) on every bench computer. Permissions: `batch:manifest:seal`, `batch:carrier:advance`, `station:scan-mismatch:continue`, `station:scan-history:view`.
+
+**For marketing.** Item-level tracking at every bench, with carriers when the lab uses them and without when it does not.
+
+**For FormedrixAI and partners (the plain reality).** Status: Built (Demo). Server side Planned (`STATION_TRACKING_API.md`). Case History screen, reports, the reporting feed, lineage and end states are later batches (727–732).
+
+*Technical detail (for developers and Jira):*
+- `services/stationScans/` (event log), `services/batches/stationCarrierRules.ts`, `hooks/useStationCarrier.ts`, `components/Workstation/StationCarrierPanel.tsx`, `pages/BatchManagement/BatchCarrierStepPanel.tsx`.
+- IBatchService: `sealManifest`, `advanceToNode`, `recordCarrierScan`; `stationId` on `addItemByScan`, `scanItemOut`, `overrideAndComplete`; Decal `transferToProcessing` keeps the same batch.
+- Batch 734: an open ad-hoc carrier scanned at another station moves there without a question (`carrierMovesHere`, `Batch.stationMoves`); the mismatch rule still asks when the step does not fit.
+
+### Station screens by touch — Built (Demo), Batch 735
+
+**For the practitioner.** On a bench tablet the station screens have finger-sized targets, scan fields that never pop up the keyboard and stay ready for the next scan, one-tap reasons, Move up / Move down instead of dragging, and the Save button kept in view above the keyboard.
+
+**For the system administrator.** Automatic on touch devices; per computer, **Touch layout on this computer** (Auto, Always on, Always off) in the header's station menu. No permission or server setting.
+
+**For marketing.** Bench screens built for gloved hands and barcode scanners, without giving up the compact desktop view.
+
+**For FormedrixAI and partners (the plain reality).** Status: Built (Demo). Re-audited in desktop Chromium only; the real-tablet check the spec requires (iPad at 1280 × 800 and 1024 × 768, keyboard-wedge scanner, gloves) is still to do, and until it passes no material may call a screen touch-ready. Batch 736: the preset reasons are the lab's own, in the Reason Dictionary (Configuration → System → Bench Reasons), with stable codes kept in records, audits and the Reconciliation exceptions report. Out of scope for now: wall displays, the Worklist, Molecular batches, Cytology.
+
+*Technical detail (for developers and Jira):*
+- Spec and status: `docs/product/STATION_TOUCH.md`. Code: `components/Touch/`, `components/Workstation/StationScanField.tsx`, `components/Common/QuickReasonPicks.tsx`, `utils/touch/`, `hooks/useTouchLayout.ts`, `hooks/useScanFieldFocus.ts`, `hooks/useKeyboardKeepVisible.ts`, `services/scanner/scanRoutePolicy.ts`, `services/reasons/quickReasonSets.ts`, `utils/listOrder.ts`. Guard: `services/styleRules/touchLayout.guard.test.ts`.
+
 ### Batch Management (`/batch-management`) — Live
 
 **For the practitioner.** This tracks cassettes and slides through processing steps by scanning container barcodes. The New Container form follows your organisation's Field Requirements, and refusals appear in your language.
 
-**For the system administrator.** Chain of custody runs through Decal/Special Processing, Processing, Embedding, Microtomy/Sectioning, Staining and Checkout. The New Container form follows the organisation's Field Requirements. Aborting, overriding a reconciliation, acknowledging a cold-chain excursion, disposing of retained material and exporting the disposal report each need their own permission.
+**For the system administrator.** Chain of custody runs through Decal/Special Processing, Processing, Embedding, Microtome/Sectioning, Staining and Checkout. The New Container form follows the organisation's Field Requirements. Aborting, overriding a reconciliation, acknowledging a cold-chain excursion, disposing of retained material and exporting the disposal report each need their own permission.
 
 **For marketing.** Batch Management gives scan-driven chain of custody for cassettes and slides, a two-column New Container form, fine-grained permissions and refusals shown in the user's language.
 
@@ -513,17 +625,17 @@ user's language.
 
 ### Bench workstations (`/workstations/embedding`, `/workstations/microtomy`, `/workstations/slide-distribution`) — Live (Sep 2026)
 
-**For the practitioner.** These are scan-driven stations for embedding, microtomy and slide distribution. They cover checking pieces, reprinting cassette and slide labels, checkout, scanner loading and exceptions.
+**For the practitioner.** These are scan-driven stations for embedding, microtome and slide distribution. They cover checking pieces, reprinting cassette and slide labels, checkout, scanner loading and exceptions.
 
-**For the system administrator.** The workstations are for embedding (piece-count check, cassette reprint), microtomy and slide distribution (checkout, scanner loading, exceptions, label reprint). What each needs before it acts comes from the organisation's Field Requirements.
+**For the system administrator.** The workstations are for embedding (piece-count check, cassette reprint), microtome and slide distribution (checkout, scanner loading, exceptions, label reprint). What each needs before it acts comes from the organisation's Field Requirements.
 
-**For marketing.** Dedicated, scan-driven bench stations support embedding, microtomy and slide distribution, with requirements driven by your organisation's own Field Requirements.
+**For marketing.** Dedicated, scan-driven bench stations support embedding, microtome and slide distribution, with requirements driven by your organisation's own Field Requirements.
 
-**For FormedrixAI and partners (the plain reality).** Status: Live (Sep 2026). Embedding, microtomy and slide distribution stations. The description names nothing as not built.
+**For FormedrixAI and partners (the plain reality).** Status: Live (Sep 2026). Embedding, microtome and slide distribution stations. The description names nothing as not built.
 
 *Technical detail (for developers and Jira):*
 Scan-driven stations for embedding (piece-count check, cassette reprint),
-microtomy and slide distribution (checkout, scanner loading, exceptions,
+microtome and slide distribution (checkout, scanner loading, exceptions,
 label reprint). What each needs before it acts comes from the organisation's
 Field Requirements. See `src/pages/` for each workstation.
 
@@ -654,7 +766,7 @@ rendering, GS1/ZPL encoding, and dispatch).
 
 **For marketing.** Labels for cassettes, slides, requisitions, containers, decants and molecular work print through the QZ Tray bridge today, with network print on the way.
 
-**For FormedrixAI and partners (the plain reality).** Status: Partial. Built: the QZ Tray bridge. NOT built: sending of network print jobs through the Interface Engine and the Local Bridge Agent path, which wait on the API server. Tracked in Jira as PS-51 through PS-55.
+**For FormedrixAI and partners (the plain reality).** Status: Partial. Built: the QZ Tray bridge. NOT built: sending of network print jobs through the Interface Engine and the Local Bridge Agent path, which wait on the API server. Tracked in Jira as PS-51 through PS-55. Batch 734 (Pete's Decision 4): in a server deployment, direct browser-to-printer printing (QZ Tray, the PathScribe agent, Zebra Browser Print, BarTender) is refused unless the facility's **Allow direct printing from the browser** switch is on (`config:direct-device-printing:manage`); every direct and refused print is audited. The browser print dialog stays the fallback and demo path.
 
 *Technical detail (for developers and Jira):*
 The QZ Tray bridge is wired: cassette, slide, requisition, container,
@@ -879,7 +991,20 @@ The digital readiness line, PathScribe's own AI lines and the shipped flag names
 *Technical detail (for developers and Jira):*
 The customer records the SNOMED CT and ICD-O-3 licences it holds (holder, edition, reference, last valid day; audited by the same permission as code systems). An abnormal-result rule can carry real codes; they replace the clearly marked test codes only while that licence is on and unexpired. PathScribe ships no code sets and does not check a code against the customer's edition. One licence per enterprise. Real codes for AI-narrative findings are Planned.
 
-### Report PDF layout and images in reports — Live in the demo (Batch 609, redeploy `functions/`)
+### Case attachments and images inside report sections — Built (Demo), Batch 742 (redeploy `functions/`)
+
+**For the practitioner.** One Attachments window per case, opened from the Attachments badge: the case's gross, block-face and intraoperative photos, plus PDF, JPG or PNG files from your computer or a network drive and links into hospital systems. Tick, caption, pick the section, and the image prints right there in the report.
+
+**For the system administrator.** Three permissions (`case:attachment:upload`, `case:attachment:link`, `case:attachment:unlink`). Files go to the hospital's own storage through the storage adapter, configured per deployment (cloud bucket, network share or interface engine); PathScribe keeps the pointer. A signed report changes only through an amendment or addendum. Redeploy `functions/`.
+
+**For marketing.** Every image and document for a case in one place, placed exactly where it belongs in the report, and kept in the hospital's own storage.
+
+**For FormedrixAI and partners (the plain reality).** Built (Demo), Batch 742; Batch 743: on an Assist case the window keeps references only (the LIS writes the report), and the LIS pushing attachment URLs in is Planned. The adapter and its endpoints, server-side fetching at render time, slide regions and inline images in the cytology report are not built. The demo keeps an attached file for the browser tab only. Contract: `docs/architecture/CASE_ATTACHMENTS_API.md`.
+
+*Technical detail (for developers and Jira):*
+`src/services/caseAttachments/` (records, file checks, the catalog the window lists, the storage adapter interface with mock and HTTP versions), `src/services/imageAssociation/caseReportImages.ts` (placements now carry a section and an origin; `insertIntoReport`, `takeOutOfReport`), `reportSectionImages.ts` (the renderer's `sectionImages`), `components/CaseAttachments/` (window, preview figures), `functions/main.py` (`section_image_flows`, 300 DPI, Image Unavailable in place). Replaces the Batch 609 Attach images window.
+
+### Report PDF layout and images in reports — Live in the demo (Batch 609, redeploy `functions/`; images inside sections since Batch 742)
 
 **For the practitioner.** Printed reports follow your lab's page setup and style, and attached images print after the report, one per page with a caption. Report font sizes are in points, with a minimum of 8 pt. PathScribe links to images rather than storing them.
 
@@ -926,7 +1051,7 @@ page requires; locked fields can't be switched off.
 *Corrected in the Batch 496 README audit (Oct 9, 2026): current capability count 244 (`capabilityCatalog.ts`).*
 
 **Field Requirements cover 16 pages (Batch 528, PS-359):** Accession, Grossing, Case report,
-Messaging, Cytology screening, Microtomy, Intraoperative consultation, Embedding,
+Messaging, Cytology screening, Microtome, Intraoperative consultation, Embedding,
 Slide distribution, Add-on orders, Batch management, Molecular plate builder,
 Molecular rack loading, and now **Staff**, the **Facility editor** and **Clinical
 history (cytology)**. Settings are per organisation (the performing-lab tenant);
@@ -1285,7 +1410,7 @@ When no mail service is connected, e-mail the system would send is kept in the b
 
 *Technical detail (for developers and Jira):*
 
-`/facility-ops-dashboard` and `/or-suite-dashboard` are shared screens with no signed-in user. Each binds to its display profile or terminal only with an administrator-issued Display Token (Configuration; revocable, long-lived, stored as a hash) and blanks within a minute of revocation or expiry. The OR board identifies rows by surgical case ID and room, never patient name or MRN; the Facility Ops display carries no patient identifiers. Server-side 401 check: Planned. Implementation: `src/services/displayAccess/`, `docs/architecture/DISPLAY_ACCESS_API.md`.
+`/facility-ops-dashboard` and `/or-suite-dashboard` are shared screens with no signed-in user. Each binds to its display profile or terminal only with an administrator-issued Display Token (Configuration; revocable, long-lived, stored as a hash) and blanks within a minute of revocation or expiry. The OR board identifies rows by surgical case ID and room, never patient name or MRN; the Facility Ops display carries no patient identifiers. Server-side 401 check: Planned. Implementation: `src/services/displayAccess/`, `docs/architecture/DISPLAY_ACCESS_API.md`. Batch 747: the Facility Ops views match a case to the profile's facility through `facilityOpsDashboard/caseFacility.ts` (a legacy tenant id such as HOSP-001 resolves to its enterprise facility); before, no case-backed item matched any profile. Demo tokens: Configuration → Demo Reset → Demo display tokens (`demoReset/demoDisplayTokens.ts`).
 
 ## Break-glass rebind permission (Batch 603)
 
@@ -1313,7 +1438,7 @@ Rebinding a downtime patient identity (Audit Log) needs `patient:break-glass:reb
 
 *Technical detail (for developers and Jira):*
 
-With no printer service connected, a label, engraving or report print goes down the same route it would use and comes back labelled Simulated: a notice, an audit entry (kind, printer, copies; no patient data) and a row in Configuration, System, Simulated print log, with a switch that makes simulated prints fail. With an API server configured nothing is simulated and a missing transport is a real error. The slide label layout (Print settings) and layouts saved in the Label Designer now drive the printed labels (ZPL and browser print); the designer adds show rules, version history and export to ZPL, EPL and DPL. A slide label is produced once across the microtomy scan and the workstation print. The specimen form captures gross weight (scale agent, simulated in the demo, or typed) and gross photos. Report render requests carry the lab page size and margins, and a case can name a technical component facility whose letterhead is sent as a second block. Implementation: `src/services/printing/simulatedPrint.ts`, `src/utils/labels/`, `src/services/labelDesigner/`.
+With no printer service connected, a label, engraving or report print goes down the same route it would use and comes back labelled Simulated: a notice, an audit entry (kind, printer, copies; no patient data) and a row in Configuration, System, Simulated print log, with a switch that makes simulated prints fail. With an API server configured nothing is simulated and a missing transport is a real error. The slide label layout (Print settings) and layouts saved in the Label Designer now drive the printed labels (ZPL and browser print); the designer adds show rules, version history and export to ZPL, EPL and DPL. A slide label is produced once across the microtome scan and the workstation print. The specimen form captures gross weight (scale agent, simulated in the demo, or typed) and gross photos. Report render requests carry the lab page size and margins, and a case can name a technical component facility whose letterhead is sent as a second block. Implementation: `src/services/printing/simulatedPrint.ts`, `src/utils/labels/`, `src/services/labelDesigner/`.
 
 ## Simulated interface engine (Batch 605)
 

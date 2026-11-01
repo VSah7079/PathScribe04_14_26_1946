@@ -26,6 +26,7 @@ import type { ReportPdf } from '../reportDocuments/reportDocuments';
 import type { InterfaceDispatchResult } from '../interfaceDispatch/dispatchInterfaceMessage';
 import type { ReportReleasedEventType } from '../reports/publishReportReleasedEvent';
 import { deliveryDocumentName, faxRecipient, type ChannelOutcome, type ChannelRole } from './deliveryPlan';
+import { isResearchCaseNow } from '../researchCases/researchCaseSettings';
 
 export interface ReportDeliveryDeps {
   getCase(caseId: string): Promise<Case | undefined>;
@@ -156,6 +157,8 @@ export async function deliverReport(input: DeliverReportInput, deps: ReportDeliv
   if (input.channel === 'FILE_DROP' && !input.fileDropTargetId?.trim()) return 'not_configured';
   const c = await deps.getCase(input.caseId);
   if (!c) return 'failed';
+  // Batch 728 (Lab Workflow spec, Decision 4): a research case's report is not delivered by fax or file drop.
+  if (isResearchCaseNow(c)) return 'not_configured';
   const accession = accessionOf(c);
   const recipient = input.channel === 'FAX' ? await findFaxRecipient(c, input.ruleFaxNumber, deps) : null;
   const queued = await deps.queue.enqueue({

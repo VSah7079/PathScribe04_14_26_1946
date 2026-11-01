@@ -19,7 +19,7 @@ status: Draft
 
 **Intended users.** Histotechnologists who distribute slides, and laboratory managers. The screen opens only for roles that have the Slide Distribution screen switched on; by default that is the Histotechnologist role.
 
-**Where it fits.** Slides arrive here after cutting at the [Microtomy Workstation](help:workstations/microtomy) and staining. A checked-out slide goes to the pathologist's desk; a slide routed to a scanner appears in the scanning queue in [Batch Management](help:batch-management) (see [WSI Scan](help:batch-management/wsi-scan)), where it is loaded onto the scanner and scanned. Slides ordered through [Add-On Orders](help:add-on-orders) show their progress as "Checked Out / Scanned" once they are checked out or loaded on a scanner here. Open the screen from the [Pathology Workspace](help:pathology-workspace) (the **Slide Distribution Workspace** tile) or with the **Go to Bench** button when your station is a distribution station.
+**Where it fits.** Slides arrive here after cutting at the [Microtome Workstation](help:workstations/microtomy) and staining. A checked-out slide goes to the pathologist's desk; a slide routed to a scanner appears in the scanning queue in [Batch Management](help:batch-management) (see [WSI Scan](help:batch-management/wsi-scan)), where it is loaded onto the scanner and scanned. Slides ordered through [Add-On Orders](help:add-on-orders) show their progress as "Checked Out / Scanned" once they are checked out or loaded on a scanner here. Open the screen from the [Pathology Workspace](help:pathology-workspace) (the **Slide Distribution Workspace** tile) or with the **Go to Bench** button when your station is a distribution station.
 
 !!! note "What the queue is"
     The queue lives on the screen while you work. Each routing you confirm is saved on the slide at once, but the list of scanned slides itself is not kept: if you leave the page or reload it, the queue starts empty again. The slides keep their routing and their history.
@@ -29,6 +29,40 @@ status: Draft
 ![The Slide Distribution Station with a queue of slides, the active slide in the middle and the destination controls on the right](capture:workstations-slide-distribution-overview)
 
 The page is titled **Slide Distribution Station**. **Back** at the top left returns to the Worklist. Unlike the other two stations, the scan box is always on screen, with the prompt "Scan a slide or block/cassette barcode — the queue grows continuously".
+
+### Carriers at this station
+
+A card at the top of the screen, **Carriers at this station**, links this bench to [Batch Management](help:batch-management). A carrier is the basket, rack or tray that moves a group of slides between steps. Using one is optional: an item scanned on its own is still recorded at this station.
+
+- **The list.** The card lists the open carriers for this station: the ones routed to it (marked **Routed here**) and the ones at Checkout and External Referral. STAT carriers come first, then the oldest; with none it reads "No open carriers for this station." Select one, or scan its barcode (it starts with CONT- or RACK-), to open it here.
+- **A carrier from the step before.** A staining rack from Staining moves to Checkout when you scan it here. It stays the same batch, and every slide in it is recorded as received from the carrier.
+- **Unloading.** With a carrier open, scan each item as you take it out. The first scan starts the unloading. The card counts what has been scanned off (the line "… of … scanned off", for example 3 of 12) and lists what is still to scan. When everything is scanned off, **Finish unloading** closes the carrier.
+- **An item that is not in the carrier.** The item does not open straight away. The card says it is not in the carrier: **Continue anyway** opens it and records it as unexpected (this is audited), **Cancel** does nothing.
+- **A carrier for another step.** The card warns you which step the carrier belongs to. **Open here anyway** opens it and records that it was opened at another step.
+- **A closed or unknown carrier.** The card says so plainly, with the date it was completed or aborted.
+- **No station set.** The card asks you to choose this computer's station from the list and select **Use this station**. Until you do, nothing scanned here is recorded and carriers can't be opened here.
+- **Seal manifest** stops anything being added to or removed from the carrier.
+
+Every scan here is recorded with this station, the time and your name, which is what the scan trail and the turnaround reports are built from. A slide sent to a pathologist or loaded on a scanner is recorded as completed here. Slides cut from a matrix block (for example M1) are queued the same way: scan the matrix block for all its slides, or one of its slides.
+
+### Scan history
+
+With a slide active, **Show scan history** (just below the carrier card) opens the case's scan trail: every station scan of its cassettes, blocks and slides, newest first. The columns are **When**, **Item**, **Where** (the station and the step), **Who** and **What happened** (Received, Loaded into carrier, Taken out of carrier, Matched, Missing, Unexpected, Label printed, Completed here), with the outcome when it was not OK (Wrong item, Not found, Mismatch), the carrier the item was in ("In carrier" and its barcode), and "Recorded when the carrier was scanned" for a scan made for every item in a carrier. **Hide scan history** closes it. While it reads the trail it says "Loading scan history…". It is closed until you open it, and it is shown only to people allowed to see scan history; if the service refuses, it says "You do not have permission to see the scan history." With nothing recorded yet it reads "No station scans recorded for this case yet."
+
+!!! note "Picture"
+    The picture above was taken before the carrier card was added.
+
+### Exhausted blocks
+
+Batch 731. When the active slide's block is exhausted, an amber line above the work says so and what remains: "Block A3 is exhausted. What remains: unstained slides L4 and L5; other blocks of this part: A1, A2." ("none" when there are none). When orders wait for the block to be re-embedded it adds "1 order waits for this block to be re-embedded."
+
+### Slide size and pieces
+
+Batch 732. For a slide from a megablock, a multi-piece or a matrix block, a panel shows the block type, "Slides: Large-format slide" or "Slides: Standard slide", and the pieces the slide was ordered for (all of them when it names none). A large-format slide is loaded only on a scanner marked as taking large-format slides; otherwise the message is "… doesn’t take large-format slides. Choose a scanner marked for large-format slides."
+
+### End state
+
+Batch 731. **End state** records where the active slide finished: Returned to storage, Archived, Sent out, Consumed for testing or Discarded. The line shows the current end state with its reason, who and when, or "No end state recorded yet." (while it reads, "Loading the end state…") **Record end state** opens the form: choose the end state, pick one of the **Quick reasons** or type a **Reason** (required), and select **Record**. "End state recorded." confirms it; the earlier end states are kept as history. Recording needs the permission to record an item's end state (the roles with this station have it by default); without it the button is grey, and if it was withdrawn the line says "You don’t have permission to record an end state. Ask your administrator." "A reason is required." means the reason was empty. Some end states are recorded for you: Discarded when the item is disposed of by scan, Sent out when a referral batch is completed, and Exhausted (no tissue remaining) when the pathologist confirms a "Block exhausted" flag or the block's last piece is used up; Exhausted is not chosen by hand, so it always matches the block. When an exhausted block is re-embedded its end state is withdrawn and the line reads "No end state recorded yet." again; the history keeps both.
 
 ### Field definitions
 
@@ -104,7 +138,7 @@ When you select a slide that has not been routed, the physical side is filled in
 | Confirm Scanner Routing | Saves the scanner routing for the active slide. |
 | Unreadable Barcode, Unassigned Accession, Missing Glass | Flags the active slide with that reason, and the note if you typed one. |
 | Resolve | Clears the open exception on the active slide. |
-| Trigger Replacement Label | Opens a reason window, then prints a new label. The label uses your laboratory's configured slide label layout (the same one the Microtomy Workstation prints with). |
+| Trigger Replacement Label | Opens a reason window, then prints a new label. The label uses your laboratory's configured slide label layout (the same one the Microtome Workstation prints with). |
 
 ### Icons and status indicators
 
@@ -128,6 +162,15 @@ Both keys work while this screen is open, and each acts only for the side of the
 | F1 | none | Opens this help article. |
 
 Each key applies the same "Still required" checks as its button. Phrases are also available in French, German, Dutch, Korean and Spanish. See [Voice and Keyboard](help:voice-and-keyboard). There is no foot pedal action on this screen.
+
+### Using a tablet at the bench
+
+Since Batch 735 the station screens work with a finger, including a gloved one.
+
+- **Touch layout.** On a tablet, buttons, chips and tick boxes are at least 44 px, main actions such as Confirm or Print are larger, and text in fields is 16 px. On a desktop the screen keeps its compact layout. Change this per computer with **Touch layout on this computer** in the station menu at the top (**Auto**, **Always on**, **Always off**).
+- **Scanning.** The scan field accepts a barcode scanner without opening the on-screen keyboard and stays ready for the next scan. To type an ID by hand, select **⌨ Type**; **⌨ Scan** hides the keyboard again.
+- **Keyboard up.** When you type in a field, the field stays in view. If the form's Save button would be hidden by the keyboard, a copy of it appears just above the keyboard.
+- **Tooltips.** Tap a label that has extra information to read it.
 
 ## Step-by-Step Procedures
 
@@ -153,7 +196,7 @@ Each key applies the same "Still required" checks as its button. Phrases are als
 2. **Resolve an exception.** Once the problem is fixed, select **Resolve**. A "Resolved" line is added to the history.
 3. **A label is damaged.** Select **Trigger Replacement Label**. In the "Reason required" window the text reads "A reprinted slide label could be a duplicate, so the reason is kept on the slide’s chain-of-custody record." Choose Damaged label, Unreadable barcode, Smudged print or Other, and select **Reprint**. The reason goes in the history.
 4. **No scanner is listed.** The panel says "No slide scanners are set up in Configuration → Equipment." Ask an administrator to add the scanner. Until then a digital routing cannot be confirmed.
-5. **A block with no slides.** "Block A1 has no slides to distribute." Check that the slides were cut and recorded at the [Microtomy Workstation](help:workstations/microtomy).
+5. **A block with no slides.** "Block A1 has no slides to distribute." Check that the slides were cut and recorded at the [Microtome Workstation](help:workstations/microtomy).
 
 !!! warning "Missing glass"
     Flagging a slide as Missing Glass records the problem and sends nothing anywhere. Tell your supervisor, and do not route the slide until the glass is found and you have selected **Resolve**.
@@ -192,7 +235,7 @@ Each key applies the same "Still required" checks as its button. Phrases are als
 
 ### Upstream workflow
 
-- [Microtomy Workstation](help:workstations/microtomy): where the slides were cut and labelled.
+- [Microtome Workstation](help:workstations/microtomy): where the slides were cut and labelled.
 - [Add-On Orders](help:add-on-orders): additional slides ordered by pathologists reach this bench.
 - [Batch Management](help:batch-management): staining and other steps of chain of custody before distribution.
 
@@ -212,7 +255,7 @@ Each key applies the same "Still required" checks as its button. Phrases are als
 | Confirm Physical Routing is grey | No pathologist, pool or location, or a required field is empty. |
 | Confirm Scanner Routing is grey | No scanner chosen, or a required field (rack or slot) is empty. |
 | The Ctrl+Alt+Shift+P or D key does nothing | The other side of the destination panel is showing, or a required field is empty. |
-| "This station takes block and slide barcodes only." | You scanned a matrix block, cell block, decant or specimen barcode. |
+| "This station takes block, matrix block and slide barcodes." | You scanned a cell block, decant or specimen barcode. |
 | Queue is empty after a reload | The queue is kept only while the page is open. |
 | A red "Not saved" line above the queue | The last routing, flag or reprint reason was not stored. PathScribe tried again on the newest copy of the case, then reloaded the queued slides as they are stored. Repeat the change. |
 | The case's pathologist did not fill in | The case has no assigned pathologist or pool. |

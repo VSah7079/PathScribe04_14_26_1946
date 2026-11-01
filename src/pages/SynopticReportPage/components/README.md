@@ -1,3 +1,5 @@
+**Batch 742:** `BottomActionBar.tsx`: the Attach images button is now the case's Attachments badge, "Attachments (n)" or "Add Attachments" (`useCaseAttachmentCount`).
+
 **Batch 650:** `BottomActionBar.tsx` draws Sign Out Case, Finalise / Finalise & Next and Request Amendment from `bottomBarVisibility` and calls `useBottomBarActionEvents`, so a command and its button can never disagree.
 
 **Batch 649 (Amendment window):** `BottomActionBar.tsx` Amend is greyed (title: `caseActionPermissions.revisionNone`) when the person may release none of an amendment, a correction or an addendum; `AmendmentDraftBanner.tsx` Edit likewise. Test: `AmendmentDraftBanner.capability.test.tsx`.

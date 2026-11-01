@@ -1,8 +1,20 @@
+**Batch 740:** `hooks/useMicrotomyWorkstation.ts` takes `{ bench }`: the Microtome refuses fluids, aliquots and cell blocks not yet handed off; the Cytology Preparation bench (a new page using the same hook) refuses blocks.
+
+**Batch 739:** `components/CytologyPanel.tsx` takes the decant's specimen, so a CSF gets cytospins.
+
+**Batch 737:** `hooks/useMicrotomyWorkstation.ts`: a matrix block's parts can be marked used up (Piece exhausted), through the matrix block's one-block view.
+
+**Batch 736:** Block exhausted takes the lab's reasons (Reason Dictionary) and an optional note; the code goes with the flag (`handleFlagBlockExhausted(note, reasonCode)`).
+
+**Batch 735:** the shared `StationScanField` before and during a block; Batch print order has Move up / Move down (`utils/listOrder.ts`) beside dragging, and the tick box sits in a label; Block exhausted has one-tap reasons (`QuickReasonPicks`); windows are dialogs; in the station touch layout.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # pages/MicrotomyWorkstationPage/
 
-**NEW (Sep 2026)** — PS-284, first of the PS-284→285→286→287→288 workstation-build sequence. A dedicated, bench-facing surface for the microtomy tech: scan a block or a cytology decant/fluid container, see every slide it needs cut and stained, and print/etch labels for them — either on-demand (one slide at a time, as the tech cuts) or as a batch (select several, print them together). Built to visually match `GrossingScreenPage.tsx`/`SynopticReportPage.tsx` (same header/back-button pattern, same `ps-overlay`/`ps-modal-dark` modal convention, same dark palette) per direct guidance, not a new visual language.
+**NEW (Sep 2026)** — PS-284, first of the PS-284→285→286→287→288 workstation-build sequence. A dedicated, bench-facing surface for the microtome tech: scan a block or a cytology decant/fluid container, see every slide it needs cut and stained, and print/etch labels for them — either on-demand (one slide at a time, as the tech cuts) or as a batch (select several, print them together). Built to visually match `GrossingScreenPage.tsx`/`SynopticReportPage.tsx` (same header/back-button pattern, same `ps-overlay`/`ps-modal-dark` modal convention, same dark palette) per direct guidance, not a new visual language.
 
-**Route**: `/workstations/microtomy` — deliberately NOT nested under the `:caseId`-scoped, `synopticLoader`-gated clinical route group. This is a bench-scoped workstation a tech opens once and scans multiple cases through, the same shape as `/batch-management/*`, so it lives in that same non-case-scoped, `ScannerProvider`-wrapped route group in `App.tsx`. Reached from the Microtomy tile on the Pathology Workspace hub (`/pathology-workspace`, `PathologyWorkspacePage.tsx`); the route needs `screen:microtomy:open`.
+**Route**: `/workstations/microtomy` — deliberately NOT nested under the `:caseId`-scoped, `synopticLoader`-gated clinical route group. This is a bench-scoped workstation a tech opens once and scans multiple cases through, the same shape as `/batch-management/*`, so it lives in that same non-case-scoped, `ScannerProvider`-wrapped route group in `App.tsx`. Reached from the Microtome tile on the Pathology Workspace hub (`/pathology-workspace`, `PathologyWorkspacePage.tsx`); the route needs `screen:microtomy:open`.
 
 *Corrected in the Batch 496 README audit (Oct 9, 2026): the tile is on the Pathology Workspace hub, not `Home.tsx` (`PathologyWorkspacePage.tsx`, `App.tsx` ScreenGate `microtomy`).*
 
@@ -122,3 +134,27 @@ Correction: the note above that the scan path runs only the engraver stub "regar
 - **Block exhausted (ws-3, ws-19).** The button needs `add-on:exception:flag` (greyed without it; the service checks again). When the slide has no ordering pathologist, or none with an e-mail address, the notice goes to the Supervisor / Accessioning Desk (`services/addOnOrders/blockExceptionRouting.ts`), and the control says so, or warns that nobody could be told.
 - **Tests:** `hooks/useMicrotomyWorkstation.test.tsx` (new), `components/BlockExhaustedControl.test.tsx`, `components/microtomyPanels.test.tsx`, `utils/microtomyOperations.test.ts`.
 - **Not done:** the two print paths (this page and the global scan tracker) are still not reconciled (ws-7).
+
+## Batch 726
+
+The **Carriers at this station** card: a tray of blocks from Embedding moves here when scanned; block scans are checked off against it. An open Staining carrier scanned here becomes the **output tray**, and **Add printed slides to tray** regroups the current block's printed slides into it (spec 2, row 5).
+
+## Batch 729
+
+- `hooks/useMicrotomyWorkstation.ts`: `printed` for each slide label, `completed` for the block after its last; `blocksStillWaiting`. Page: the waiting note (`MicrotomyWorkstationPage.css`, new) and the scan history.
+
+## Batch 730
+
+- `hooks/useMicrotomyWorkstation.ts`: a slide whose add-on label was printed at another station is not printed again (the cut is still recorded).
+
+## Batch 731
+
+- The block panel shows `ExhaustedBlockBanner` and `ItemEndStatePanel` (the block's end state); a printed slide's scan event carries `parentItemId` (the block, matrix block or decant). `useMicrotomyWorkstation.ts` now 611 lines.
+
+## Batch 732
+
+- Batch 732: `BlockPieceMapPanel` in the block panel with "Piece exhausted" (`handleMarkPieceExhausted`, `pieceView`); `SlideGridPanel.tsx` shows levels on the slide, large format and the pieces; slide labels carry the slide size.
+
+## Batch 733
+
+- Batch 733: the Block exhausted flag goes on every slide still waiting to be cut (`flagBlockExhaustedOnce`).

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 // src/hooks/useGlobalMaterialScanTracking.test.ts
-// PS-71 (Batch 458): the microtomy "slides engraved" save is applied to the
+// PS-71 (Batch 458): the microtome "slides engraved" save is applied to the
 // newest case and carries its version.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 

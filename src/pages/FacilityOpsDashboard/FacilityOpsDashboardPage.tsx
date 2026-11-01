@@ -135,7 +135,7 @@ const FacilityOpsDashboardPage: React.FC = () => {
     if (!currentView || !profile) return;
     const mine = ++readGeneration.current;
     try {
-      const result = await currentView.compute(profile.facilityId);
+      const result = await currentView.compute(profile.facilityId, { addOnAgeLimitMinutes: profile.addOnAgeLimitMinutes, batchPurposeIds: profile.batchPurposeIds, staleScanMinutes: profile.staleScanMinutes });
       if (mine !== readGeneration.current) return;
       setSummary(result);
       setLastSuccessAt(Date.now());

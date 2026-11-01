@@ -801,13 +801,15 @@ Unlocks: [Druckerprofile](#screen-printer_profiles), [Zuschnitt-Hardware](#scree
 |---|---|---|---|---|
 | Code | Text, Buchstaben, Ziffern, „_“ und „-“ | Pflicht | Die ID, die andere Datensätze tragen, zum Beispiel PANTHER_02 in einem molekularen Ansatz und dessen Deck-Barcode. Muss eindeutig sein. Kann nach dem Anlegen nicht geändert werden. | Leer |
 | Name | Text | Pflicht | | Leer |
-| Art | Auswahl: Analysegerät, Färbeautomat, Gewebeeinbettautomat, Objektträgerscanner, Kamera, Waage, Etikettendrucker, Graviergerät, Lagereinheit, Sonstiges | Pflicht | Aktive Analysegeräte sind das, worauf molekulare Ansätze zielen können. | Analysegerät |
+| Art | Auswahl: Analysegerät, Färbeautomat, Gewebeeinbettautomat, Flüssigkeitszytologie-Prozessor, Objektträgerscanner, Kamera, Waage, Etikettendrucker, Graviergerät, Lagereinheit, Sonstiges | Pflicht | Aktive Analysegeräte sind das, worauf molekulare Ansätze zielen können. | Analysegerät |
 | Hersteller, Modell | Text | Optional | | Leer |
 | Seriennummer | Text | Optional | | Leer |
 | Durchführendes Labor | Auswahlliste | Pflicht | Eine Änderung leert die Scanstation. | Gewählter Standort |
 | Scanstation | Auswahlliste der Stationen in diesem Labor | Optional | Wo es steht. Bei einem Analysegerät prüft die Arbeitslistenzuteilung, dass von dieser Station gesendet wird. Eine Station in einem anderen Labor wird abgelehnt. | Keine |
 | Kalibrierung alle (Tage) | Ganze Zahl, 1 bis 3650 | Optional | Leer bedeutet kein Plan. Fälligkeitsdaten zählen ab dem letzten bestandenen Eintrag im Wartungsprotokoll. | Leer |
 | Wartung alle (Tage) | Ganze Zahl, 1 bis 3650 | Optional | Gleiche Regel. | Leer |
+| Niedrigste Temperatur (°C), Höchste Temperatur (°C) | Zahlen, niedrigste unter höchster; beide dürfen leer sein | Optional | Batch 730: der Bereich für eine Temperaturkontrolle im Gerätelogbuch. Ein Messwert außerhalb gilt als nicht bestanden; der Bereich wird in jeden Eintrag übernommen. | Leer |
+| Nimmt Großformat-Objektträger | Kontrollkästchen, nur Färbeautomaten und Objektträgerscanner | Optional | Batch 732: Das Gerät nimmt Großformat-Objektträger (Megablöcke). Die Objektträgerverteilung schickt einen Großformat-Objektträger nur an einen so markierten Scanner. | Nicht angekreuzt |
 | Status | Aktiv / Inaktiv | Optional | | Aktiv |
 | Deck-Layout | Zeilen, nur Analysegeräte | Optional | Die Steckplätze auf dem Deck des Analysegeräts. Jede Zeile: Deck oder Fach, Steckplatz-ID (Buchstaben, Ziffern, „_“, keine zwei gleich) und Nimmt auf (Extraktionsplatte, Reagenzkartusche, Probenröhrchen-Rack; mindestens eines). Die Rack-Beladung bietet nur passende Steckplätze an. Die Steckplatz-ID wird auf den Barcode der Deckposition gedruckt. | Keine |
 
@@ -821,6 +823,10 @@ Unlocks: [Druckerprofile](#screen-printer_profiles), [Zuschnitt-Hardware](#scree
 | Durchgeführt von | Text | Pflicht | Mitarbeiterin oder Mitarbeiter oder Servicetechniker. | Ihr Name |
 | Ergebnis | Auswahl: Bestanden, Nicht bestanden, Nicht zutreffend | Pflicht | | Bestanden |
 | Anmerkungen | Text | Pflicht bei einem Fehlschlag oder einer Störung | | Leer |
+
+#### Färbegestelle
+
+Batch 737. Wird unter dem Register angezeigt, wenn das Labor wiederverwendbare Färbegestelle hat (gravierte RACK-IDs). Jede Zeile ist ein Gestell mit dem Kästchen **Nimmt Großformat-Objektträger auf**, sofort gespeichert (erfordert `config:equipment:manage`). Die Chargenverwaltung weist einen Großformat-Objektträger (aus einem Megablock geschnitten) zurück, der auf einen Färbeträger gescannt wird, der keine Großformat-Objektträger aufnimmt; ein Einweg-Färbeträger nimmt sie auf, wenn in Neuer Behälter **Nimmt Großformat-Objektträger auf (Megablöcke)** angekreuzt ist. Die Demo hat ein solches Gestell, RACK-STAIN-LF-01.
 
 **7. Berechtigungen.** Öffnen: `screen:configuration:open`. Hinzufügen, bearbeiten, deaktivieren: `config:equipment:manage`. Einen Eintrag im Wartungsprotokoll erfassen: `equipment:maintenance:record`. Beide mit hohem Risiko. Admin und Laborleitung besitzen beide. Die Rollen Histologie-Fachkraft, Zytologieassistent und Molekulartechnologe besitzen ebenfalls die Berechtigung für das Protokoll.
 **Bekannte Grenzen.** Fälligkeitsdaten der Wartung werden in der Zeitzone der Einrichtung berechnet, die in den Einstellungen des Beitrags-Dashboards festgelegt ist.

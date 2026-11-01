@@ -8,7 +8,7 @@
 // correcting a code) asked; a specimen's own billing codes (adding or
 // removing a specimen base code, applying a matrix-block code to a specimen)
 // charged or credited a signed-out case with no reason at all, on the report
-// page and in the shared billing review (Cytology Workspace, Microtomy). Every
+// page and in the shared billing review (Cytology Workspace, Microtome). Every
 // one of those paths now asks through this decision, and the reason goes on
 // the charge or credit and its audit entry (caseBillingCharges.ts
 // postSignoutNote), exactly as the case-level path records it.

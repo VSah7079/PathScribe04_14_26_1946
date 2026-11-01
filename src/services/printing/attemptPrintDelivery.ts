@@ -21,6 +21,8 @@
 // actually carry it.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { checkDirectDevicePrint, type DirectPrintDeps } from './directDevicePrinting';
+import { directDevicePrintingDeps } from './directDevicePrintingDeps';
 import { printQueueService } from './printQueueServiceInstance';
 import { recordSimulatedPrint, simulationAllowed } from './simulatedPrint';
 import { printPdfViaQzTray, isQzTrayConnected } from '@/utils/labels/qzTrayBridge';
@@ -44,6 +46,8 @@ export interface AttemptPrintDeliveryInput {
   pdfBase64: string;
   /** Only meaningful for NATIVE_QZ_TRAY. */
   printerName?: string;
+  /** Batch 734: the performing facility, for the direct-printing check (NATIVE_QZ_TRAY prints from the browser). */
+  facilityId?: string;
   paperSize?: PaperSize;
   /** Only meaningful for DIRECT_NETWORK_PRINT — the already-decided
    *  real target (freshly resolved on first dispatch, or the job's
@@ -61,7 +65,7 @@ export interface AttemptPrintDeliveryResult {
   retriable?: boolean;
 }
 
-export async function attemptPrintDelivery(input: AttemptPrintDeliveryInput): Promise<AttemptPrintDeliveryResult> {
+export async function attemptPrintDelivery(input: AttemptPrintDeliveryInput, direct: DirectPrintDeps = directDevicePrintingDeps): Promise<AttemptPrintDeliveryResult> {
   const { jobId, caseId, reportType, priority, mode, pdfBase64 } = input;
 
   if (mode === 'NATIVE_QZ_TRAY') {
@@ -70,6 +74,14 @@ export async function attemptPrintDelivery(input: AttemptPrintDeliveryInput): Pr
         errorCode: 'PRINT_REJECTED', errorMessage: 'No printer configured for Native QZ Tray delivery.', maxRetriesExceeded: true,
       });
       return { outcome: 'failed', jobId };
+    }
+    // Batch 734 (Pete, Decision 6): QZ Tray prints from the browser straight to the printer. In a server deployment
+    // that is blocked unless the facility allows it (audited); the job goes to the exception queue and its fallback.
+    if ((await checkDirectDevicePrint({ bridgeType: 'qz_tray', facilityId: input.facilityId, printerId: input.printerName }, `report ${reportType}`, direct)) === 'blocked') {
+      await printQueueService.markFailed(jobId, {
+        errorCode: 'PRINT_REJECTED', errorMessage: 'Direct printing from the browser is off for this facility. Use the interface engine or the browser print dialog.', maxRetriesExceeded: true,
+      });
+      return { outcome: 'failed', jobId, retriable: false };
     }
     if (!isQzTrayConnected()) {
       // Real, per the source spec's own Use Case 2 — an unreachable

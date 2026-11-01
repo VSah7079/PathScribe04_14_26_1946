@@ -54,6 +54,8 @@ A `resolve` call that creates a physician makes an Unverified, auto-created one 
 
 ## 7. Reason dictionary (`IReasonDictionaryService`)
 
-Writes need `config:revision-reasons:manage`.
+Writes need `config:revision-reasons:manage`, except the bench categories (`BENCH_BLOCK_EXHAUSTED`, `BENCH_ADDON_EXHAUSTED`, `BENCH_BATCH_ABORT`, `BENCH_BATCH_OVERRIDE`, `BENCH_BATCH_COLD_CHAIN`, Batch 736), which need `config:bench-reasons:manage`. The server decides by the category of the entry being written.
 
-`GET /api/reasons?category=` (the category is always sent; the server returns that category only), `POST /api/reasons/reason-dictionary/add`, `POST /api/reasons/reason-dictionary/update` (the category cannot change), `POST /api/reasons/reason-dictionary/deactivate`, `.../reactivate`.
+`GET /api/reasons?category=` (the category is always sent; the server returns that category only), `POST /api/reasons/reason-dictionary/add`, `POST /api/reasons/reason-dictionary/update` (neither the id nor the category can change), `POST /api/reasons/reason-dictionary/deactivate`, `.../reactivate`.
+
+**Bench reasons (Batch 736).** The entry's `id` is the reason's **code**: it never changes, so a lab can reword (`name`) without breaking reports. Entries carry `sortOrder` (the bench shows active reasons lowest first). The server seeds the 18 defaults with the ids in `services/reasons/benchReasons.ts` (`BE_*`, `AE_*`, `BA_*`, `BO_*`, `CC_*`) and their English wording; the browser shows the translation while the wording is the default. Every action that takes a bench reason sends its code beside the text and stores both: `AddOnOrderException.reasonCode` / `responseReasonCode` (CASE_WORKFLOWS_API.md), `Batch.abortReasonCode`, `BatchOverride.reasonCode`, `coldChainExcursion.acknowledgedReasonCode` (the batch routes take `reasonCode`), and the audit detail ends `[reason code <code>]`.

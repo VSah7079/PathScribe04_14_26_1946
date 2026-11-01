@@ -61,7 +61,7 @@ const MicrotomyBillingPanel: React.FC<Props> = ({ caseData, preview, fullReview,
 
       {fullReview && (
         <div className="ps-overlay" onClick={() => onSetFullReview(false)}>
-          <div className="ps-modal-dark ps-microtomy-billing-modal" onClick={e => e.stopPropagation()} role="dialog" aria-label={t('microtomyWorkstation.billing.fullReview')}>
+          <div className="ps-modal-dark ps-microtomy-billing-modal" aria-modal="true" onClick={e => e.stopPropagation()} role="dialog" aria-label={t('microtomyWorkstation.billing.fullReview')}>
             <div className="ps-batch-modal-header">
               <div className="ps-batch-modal-title">{t('microtomyWorkstation.billing.fullReview')}</div>
               <button type="button" className="ps-research-close" onClick={() => onSetFullReview(false)} aria-label={t('common.close')}>✕</button>

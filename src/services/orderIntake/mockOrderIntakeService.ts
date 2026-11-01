@@ -53,6 +53,11 @@ const SEED_CROSSWALK: SpecimenCodeCrosswalkEntry[] = [
     id: 'xwalk-002', clientId: 'c-royal-manchester', externalCode: 'CYTO-FL',
     dictionaryEntryId: 'sp034', createdAt: '2026-05-12', createdBy: 'admin',
   },
+  // Batch 738 (Demo Seed Data S2): the Video 1 colon order and the prostate biopsy resolve to dictionary entries that
+  // carry a grossing protocol, so the import makes the protocol's blocks with no pending dictionary entry.
+  { id: 'xwalk-003', clientId: 'c-fenwick-general', externalCode: 'COLRES-T', dictionaryEntryId: 'sp014', createdAt: '2026-05-12', createdBy: 'admin' },
+  { id: 'xwalk-004', clientId: 'c5', externalCode: 'PROS-NBX', dictionaryEntryId: 'sp028', createdAt: '2026-05-12', createdBy: 'admin' },
+  { id: 'xwalk-005', clientId: 'c-fenwick-general', externalCode: 'CONSULT-OS', dictionaryEntryId: 'sp041', createdAt: '2026-05-12', createdBy: 'admin' },
 ];
 
 const loadCrosswalk    = () => storageGet<SpecimenCodeCrosswalkEntry[]>('pathscribe_specimen_crosswalk', SEED_CROSSWALK);
@@ -74,7 +79,7 @@ let CROSSWALK: SpecimenCodeCrosswalkEntry[] = loadCrosswalk();
 const SEED_ORDERS: IncomingOrder[] = [
   {
     id: 'ord-001', externalOrderNumber: 'FGH-ORD-88213', source: 'hl7',
-    receivedAt: '2026-06-29T08:14:00.000Z', status: 'pending',
+    receivedAt: isoDaysAgo(1), status: 'pending',
     externalAssigningAuthority: 'FGH',
     patient: { firstName: 'Margaret', lastName: 'Wilcox', dateOfBirth: '1958-02-11', sex: 'F', mrn: '' },
     requestingProvider: { rawName: 'Mr. Ian Faulkner', namePrefix: 'Mr.', givenNames: 'Ian', familyNames: 'Faulkner' }, priority: 'Routine',
@@ -88,7 +93,7 @@ const SEED_ORDERS: IncomingOrder[] = [
   },
   {
     id: 'ord-002', externalOrderNumber: 'NC-2026-0447', source: 'api',
-    receivedAt: '2026-06-29T09:02:00.000Z', status: 'pending',
+    receivedAt: isoDaysAgo(1), status: 'pending',
     externalAssigningAuthority: 'NEWCLINIC01',
     patient: { firstName: 'Daniel', lastName: 'Ortiz', dateOfBirth: '1990-07-23', sex: 'M', mrn: '778812' },
     requestingProvider: { rawName: 'Dr. Priya Nair', namePrefix: 'Dr.', givenNames: 'Priya', familyNames: 'Nair' }, priority: 'Routine',
@@ -100,7 +105,7 @@ const SEED_ORDERS: IncomingOrder[] = [
   },
   {
     id: 'ord-003', externalOrderNumber: 'RMANC-ORD-55190', source: 'hl7',
-    receivedAt: '2026-06-29T10:31:00.000Z', status: 'pending',
+    receivedAt: isoDaysAgo(0), status: 'pending',
     externalAssigningAuthority: 'RMANC',
     patient: { firstName: 'Robert', lastName: 'Fenn', dateOfBirth: '1971-11-04', sex: 'M', mrn: '' },
     requestingProvider: { rawName: 'Mr. Colin Baxter', namePrefix: 'Mr.', givenNames: 'Colin', familyNames: 'Baxter' }, priority: 'STAT',
@@ -289,7 +294,15 @@ const SEED_ORDERS: IncomingOrder[] = [
     requestingProvider: { rawName: 'Dr. Owen Fairweather', namePrefix: 'Dr.', givenNames: 'Owen', familyNames: 'Fairweather' }, priority: 'Routine',
     clinicalIndication: 'Elevated PSA 8.4 ng/mL with abnormal digital rectal exam. MRI-fusion guided prostate biopsy for tissue diagnosis.',
     icd10Codes: [{ code: 'C61', description: 'Malignant neoplasm of prostate' }],
-    specimens: [{ description: 'Prostate needle core biopsies (12 cores: 6 right, 6 left)' }],
+    // Batch 738 (Demo Seed Data S2): one part per site, two cores each, as a urologist sends them (was one line, "12 cores").
+    specimens: [
+      { description: 'Prostate needle core biopsy, right base (2 cores)', externalSpecimenCode: 'PROS-NBX' },
+      { description: 'Prostate needle core biopsy, right mid (2 cores)', externalSpecimenCode: 'PROS-NBX' },
+      { description: 'Prostate needle core biopsy, right apex (2 cores)', externalSpecimenCode: 'PROS-NBX' },
+      { description: 'Prostate needle core biopsy, left base (2 cores)', externalSpecimenCode: 'PROS-NBX' },
+      { description: 'Prostate needle core biopsy, left mid (2 cores)', externalSpecimenCode: 'PROS-NBX' },
+      { description: 'Prostate needle core biopsy, left apex (2 cores)', externalSpecimenCode: 'PROS-NBX' },
+    ],
   },
   {
     id: 'ord-020', externalOrderNumber: 'EPO-ORD-40167', source: 'hl7',
@@ -399,6 +412,28 @@ const SEED_ORDERS: IncomingOrder[] = [
     clinicalIndication: 'Left lower lobe mass on CT chest; bronchoscopy performed with bronchial washing and brushing for cytological evaluation.',
     icd10Codes: [{ code: 'C34.90', description: 'Malignant neoplasm of unspecified part of unspecified bronchus or lung' }],
     specimens: [{ description: 'Left lower lobe bronchial washing and brushing (Pulmonary Cytology - Direct Smear & Cell Block)' }],
+  },
+  // Batch 738 (Demo Seed Data S2): the order Video 1 imports (a colon resection whose dictionary entry has a grossing
+  // protocol), and an outside-slides consultation (choose Intake Type "Outside" on Accession; orders carry no intake type).
+  {
+    id: 'ord-038', externalOrderNumber: 'FGH-ORD-88402', source: 'hl7',
+    receivedAt: isoDaysAgo(0), status: 'pending',
+    externalAssigningAuthority: 'FGH',
+    patient: { firstName: 'Walter', lastName: 'Brennick', dateOfBirth: '1959-08-22', sex: 'M', mrn: '20458813' },
+    requestingProvider: { rawName: 'Dr. Miriam Castellano', namePrefix: 'Dr.', givenNames: 'Miriam', familyNames: 'Castellano' }, priority: 'Routine',
+    clinicalIndication: 'Sigmoid colon mass at 25 cm on colonoscopy; biopsy showed adenocarcinoma. CT: no distant disease. Laparoscopic sigmoid colectomy.',
+    clinicalIndicationSource: 'obr31',
+    icd10Codes: [{ code: 'C18.7', description: 'Malignant neoplasm of sigmoid colon' }],
+    specimens: [{ description: 'Sigmoid colon, segmental resection for tumor', externalSpecimenCode: 'COLRES-T' }],
+  },
+  {
+    id: 'ord-039', externalOrderNumber: 'FGH-ORD-88417', source: 'hl7',
+    receivedAt: isoDaysAgo(1), status: 'pending',
+    externalAssigningAuthority: 'FGH',
+    patient: { firstName: 'Lorraine', lastName: 'Ashdown', dateOfBirth: '1972-04-09', sex: 'F', mrn: '20461177' },
+    requestingProvider: { rawName: 'Dr. Henrik Solberg', namePrefix: 'Dr.', givenNames: 'Henrik', familyNames: 'Solberg' }, priority: 'Routine',
+    clinicalIndication: 'Second opinion requested by the treating oncologist: outside diagnosis of follicular lymphoma, grade 1-2, cervical lymph node excision (outside case CVH-S26-1187, Canyon View Hospital). Six H&E slides and one block received.',
+    specimens: [{ description: 'Outside slides and block for consultation, cervical lymph node excision', externalSpecimenCode: 'CONSULT-OS' }],
   },
   // Batch 716: eight cytology orders (Pap with HPV co-test, ThinPrep Pap, HPV-only swab, thyroid, lymph node, urine,
   // pleural fluid, breast FNA) for the Cytology Part 2 training video (cytologyDemoOrders.ts).

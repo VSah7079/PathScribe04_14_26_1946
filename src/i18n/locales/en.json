@@ -890,6 +890,8 @@
       "fragile": "Fragile",
       "levelsCut": "{{count}} level(s) already cut",
       "lost": "Lost",
+      "matrixParts": "parts {{parts}}",
+      "matrixTitle": "Shared (matrix) blocks",
       "noBlocks": "No blocks on this specimen.",
       "specimen": "Specimen {{label}} {{description}}",
       "tinyTissue": "Tiny Tissue",
@@ -909,7 +911,9 @@
         "recut": "Recut / Deep Level",
         "special_stain": "Special Stain"
       },
+      "levelCount": "Levels",
       "levelDepth": "Level Depth (µm)",
+      "levelsPerSlide": "Levels per slide",
       "noStains": "No matching stains.",
       "panelPicker": "IHC Panel",
       "panelStainsMissingAll": "None of this panel’s stains are in the stain dictionary ({{stains}}), so nothing can be added. Ask your administrator to add them.",
@@ -924,28 +928,69 @@
       "primaryPathologistLine": "Primary pathologist: {{name}}"
     },
     "errors": {
+      "alternativeRefused": {
+        "needsNewSection": "One of the waiting slides needs a new section, so it cannot go on an unstained slide. Tick “Answer this slide only” and answer slide by slide.",
+        "notEnoughSlides": "There are not enough unstained slides for every waiting slide. Tick “Answer this slide only” and answer slide by slide.",
+        "nothingLeft": "The block was already exhausted, so destructive cutting is not possible. Choose an alternative."
+      },
       "blockCancelled": "Block {{block}} is cancelled.",
       "blockDamaged": "Block {{block}} is marked damaged; it can’t be ordered from until it is re-embedded.",
-      "blockExhausted": "Block {{block}} is exhausted; no more cutting orders can be placed on it.",
+      "blockExhausted": "Block {{block}} is exhausted. Choose what to do for each line in the box above the builder: an unstained slide already cut, re-embedding, or another block of the same part.",
       "blockLost": "Block {{block}} is marked lost; it can’t be ordered from until it is found.",
       "blockNotFound": "Block {{block}} wasn’t found on this case.",
       "caseNotFound": "No case found for “{{query}}”.",
       "enterAccession": "Enter or scan an accession number.",
+      "exhaustedNeedsChoice_one": "Block {{block}} is exhausted: {{count}} line still needs an alternative.",
+      "exhaustedNeedsChoice_other": "Block {{block}} is exhausted: {{count}} lines still need an alternative.",
+      "exhaustedReasonRequired": "Block {{block}} is exhausted: give the reason for this order.",
       "failed": "That didn’t go through. The order may have changed; reopen the case and try again.",
       "inHouseNotAvailable": "This case’s lab doesn’t run {{tests}} in-house. Choose send-out.",
+      "matrixExhausted": "Matrix block {{block}}: the tissue chosen is used up. Order from another block of the part, or ask for it to be re-embedded.",
+      "mixedPieces": "Block {{block}}: some of the pieces chosen are used up. Choose only remaining pieces, or only used-up ones to see the alternatives.",
       "noLines": "Add at least one order line for block {{block}}.",
-      "notPermitted": "You don’t have permission for this. Ask your administrator."
+      "notPermitted": "You don’t have permission for this. Ask your administrator.",
+      "pieceExhausted": "Block {{block}}: the pieces chosen are used up. Choose what to do for each line in the box above the builder."
     },
     "exceptionReasons": {
       "blockExhausted": "Block exhausted",
       "insufficientTissue": "Insufficient tissue for panel",
       "requiresRegrossing": "Requires re-grossing"
     },
+    "exhausted": {
+      "addLines": "Add the order lines; what happens to each line on this block is shown here.",
+      "choose": "Choose an alternative…",
+      "controlsNote": "A control slide is not added automatically for a stain put on a slide already cut. The order and the reason are recorded in the audit log.",
+      "noAlternative": "Nothing remains to offer: remove this line.",
+      "otherBlock": "Order from block {{block}} instead",
+      "otherPiece": "Order from piece {{position}} ({{part}}) instead",
+      "problem": {
+        "blockUnusable": "That block can no longer be cut.",
+        "chooseAlternative": "Choose an unstained slide already cut, re-embedding or another block.",
+        "needsNewSection": "Needs a new section from this block. Choose re-embedding or another block.",
+        "pieceUnusable": "That piece is used up or no longer on the block.",
+        "slideUnavailable": "That slide is no longer free, or another line already uses it."
+      },
+      "reason": "Reason for ordering on an exhausted block",
+      "reembed": "Request re-embedding (the order waits until it is done)",
+      "useSlide": "Use unstained slide {{level}} (already cut)"
+    },
     "pageTitle": "Add-On Order Builder",
     "panels": {
       "panel-breast": "Breast Panel (ER/PR/HER2/Ki-67)",
       "panel-lynch-mmr": "Lynch/MMR Panel (MLH1/MSH2/MSH6/PMS2)",
       "panel-renal-if": "Renal IF Panel (IgG/IgA/IgM/C3/C1q/Kappa/Lambda)"
+    },
+    "printAt": {
+      "atMicrotome": "At the microtome when the block is cut",
+      "hint": "The labels print at that station now. The microtome records the cut without printing them again.",
+      "label": "Print labels at",
+      "noPrinter": "The labels were not printed at {{station}}: it has no slide printer set up. They will print at the microtome.",
+      "notPermitted": "The labels were not printed at {{station}}: you do not have permission to send print jobs to another station. They will print at the microtome.",
+      "printedSomeFailed_one": "{{count}} label printed at {{station}}; {{failed}} did not print and will print at the microtome.",
+      "printedSomeFailed_other": "{{count}} labels printed at {{station}}; {{failed}} did not print and will print at the microtome.",
+      "printed_one": "{{count}} label printed at {{station}}.",
+      "printed_other": "{{count}} labels printed at {{station}}.",
+      "withPlaced": "{{placed}} {{printed}}"
     },
     "priority": {
       "Research_Protocol": "Research / Protocol",
@@ -975,6 +1020,8 @@
       "inHouseQueue": "Goes to the Molecular Workcenter’s Order Queue.",
       "labsAll": "No labs are linked to this test yet, so every reference lab is listed.",
       "labsApprovedForTest": "Only the labs approved for this test are listed.",
+      "levelRange_one": "{{count}} level, {{perSlide}} per slide",
+      "levelRange_other": "{{count}} levels, {{perSlide}} per slide",
       "microns": "{{count}} µm levels",
       "molecularRouting": "Performed",
       "noPerformingLab": "This case's performing lab could not be resolved — orders will still be created, without a lab-scoped station match.",
@@ -994,11 +1041,22 @@
       "title": "Order Summary & Routing"
     },
     "tracking": {
+      "alternative": "Or use an alternative",
+      "alternativeNeedsNote": "Type a response note first: it is the reason for the alternative.",
+      "answerAppliesToAll_one": "This answer applies to the {{count}} waiting slide on {{block}}.",
+      "answerAppliesToAll_other": "This answer applies to all {{count}} waiting slides on {{block}}.",
+      "answerIndividually": "Answer this slide only",
+      "answerThisOnly": "This answer applies to this slide only.",
+      "answeredCount_one": "Answered for {{count}} waiting slide.",
+      "answeredCount_other": "Answered for {{count}} waiting slides.",
+      "applyAlternative": "Apply",
       "approveDestructive": "Approve Destructive Cutting",
       "cancelFlag": "Cancel",
       "cancelOrder": "Cancel Order",
       "confirmFlag": "Flag Exception",
       "count": "{{count}}",
+      "destructiveNotOffered": "The block was already exhausted before this flag, so nothing is left to cut: destructive cutting is not offered.",
+      "destructiveWarning": "Cutting through uses the last tissue in this block. No later recut, biomarker or molecular test will be possible from it, which matters most for a small biopsy. A response note is required.",
       "empty": "No add-on orders placed yet on this case.",
       "exceptionNote": "Optional note…",
       "exceptionNoteLabel": "Note",
@@ -1015,6 +1073,7 @@
       "resubmit": "Resubmit",
       "sendOutTo": "Send-out: {{lab}}",
       "stage": {
+        "AwaitingRe-embedding": "Awaiting Re-embedding",
         "BlockRetrieved": "Block Retrieved",
         "Cancelled": "Cancelled",
         "CheckedOutScanned": "Checked Out / Scanned",
@@ -2268,6 +2327,18 @@
     "unexpectedError": "Unexpected barcode scan error",
     "unknownError": "unknown error"
   },
+  "batchCarrier": {
+    "closedAborted": "This carrier is closed: it was aborted on {{at}}.",
+    "closedComplete": "This carrier is closed: it was completed on {{at}}.",
+    "historyLabel": "Steps this carrier has moved through",
+    "historyStep": "{{from}} → {{to}}, {{name}}, {{at}}",
+    "moveTo": "Move to {{node}}",
+    "movedToast": "{{barcode}} moved to {{node}}. Items: {{count}}.",
+    "otherStep": "This computer's station ({{station}}) works on {{stationSteps}}; this carrier is at {{node}}.",
+    "seal": "Seal manifest",
+    "sealedBy": "Manifest sealed by {{name}} on {{at}}.",
+    "sealedToast": "{{barcode}} sealed."
+  },
   "batchDetail": {
     "abortBatch": "Abort Batch",
     "abortModalText": "This batch and its manifest will be preserved for audit, but marked Aborted and can no longer accept scans.",
@@ -2290,7 +2361,10 @@
     "completeDisabledTitle": "{{missing}} missing, {{unexpected}} unexpected — resolve or override",
     "emptyManifest": "No items scanned into this batch yet.",
     "errors": {
+      "alreadySealed": "{{barcode}} is already sealed.",
       "batchNotFound": "This batch no longer exists. Go back to the list and reopen it.",
+      "batchSealed": "{{barcode}} is sealed: nothing can be added or removed.",
+      "cannotAdvance": "{{barcode}} can't move to that step.",
       "coldChainUnacknowledged": "This batch has a cold-chain excursion that hasn't been acknowledged. Acknowledge it, or use a supervisor override.",
       "destinationNotActive": "Items can only be moved into an active batch.",
       "excursionAlreadyOpen": "Batch {{barcode}} already has an unacknowledged cold-chain excursion. Acknowledge it before recording another.",
@@ -2301,7 +2375,7 @@
       "noItemsToTransfer": "This batch has no items to transfer.",
       "noRack": "This batch has no reusable rack to release.",
       "notActive": "Batch {{barcode}} isn't active any more. It may already have been reconciled, transferred or closed.",
-      "notCytologyProcessing": "Instrument status only applies to a Cytology Processing batch.",
+      "notCytologyProcessing": "Instrument status only applies to a Liquid-Based Cytology Processing batch.",
       "notDecal": "Transfer to Processing only applies to a Decal / Special Processing batch.",
       "notReconciling": "Start reconciliation on batch {{barcode}} first.",
       "notStaining": "This only applies to a Staining batch.",
@@ -2310,9 +2384,11 @@
       "rackNotRegistered": "Rack {{rackId}} isn't registered. Check the ID or register the rack first.",
       "sameBatch": "That's the batch the item is already in. Choose another batch.",
       "sourceNotActive": "Items can only be moved out of an active batch.",
+      "stationRequired": "Set this computer's station first.",
       "unexpectedScans_one": "{{count}} item that doesn't belong to this batch was scanned. Resolve it, or use a supervisor override.",
       "unexpectedScans_other": "{{count}} items that don't belong to this batch were scanned. Resolve them, or use a supervisor override."
     },
+    "exhaustedWarning": "{{displayId}} is exhausted: no tissue remains in this block. It was added to the batch; check with the pathologist before it is processed or cut.",
     "forceCompletedToast": "Batch {{barcode}} force-completed with override.",
     "instrumentReports": "Instrument reports: {{status}}",
     "manifestSection": "Manifest ({{count}})",
@@ -2363,15 +2439,19 @@
     "removedToast": "{{displayId}} removed from batch.",
     "scanHintActive": "Scan a cassette or slide barcode to add it to this batch. Hands-free — no need to click into a field first.",
     "scanHintReconcile": "Out-of-Process Verification: scan each physical item as you remove it from the carrier.",
+    "scanHintSealed": "The manifest is sealed. Start the verification to scan items out.",
     "scanRejected": {
       "alreadyInBatch": "{{displayId}} is already in this batch.",
       "inOtherActiveBatch": "{{displayId}} is already in active batch {{barcode}}.",
-      "notFound": "“{{value}}” doesn't match any cassette or slide on any case."
+      "notAccepting": "{{barcode}} is no longer taking items.",
+      "notFound": "“{{value}}” doesn't match any cassette or slide on any case.",
+      "sealed": "{{barcode}} is sealed: no more items can be added.",
+      "slideTooLarge": "{{displayId}} is a large-format slide, and {{barcode}} does not take large-format slides. Use a large-format staining rack."
     },
     "startReconciliation": "Start Reconciliation",
     "supervisorOverrideLink": "Supervisor Override…",
     "transferToProcessing": "Transfer to Processing",
-    "transferredToast": "{{count}} item(s) transferred to new Processing batch {{barcode}}.",
+    "transferredToast": "{{barcode}} moved to Processing as the same batch. Items: {{count}}.",
     "unexpected": "Unexpected",
     "unexpectedFlash": "Unexpected — not on this batch's manifest",
     "unexpectedSection": "Unexpected / Extra ({{count}})"
@@ -2395,34 +2475,35 @@
     "labelReprintTile": "Label reprint",
     "labelReprintTitle": "Reprint labels for many cases at once",
     "loading": "Loading batches…",
+    "lookupButton": "Look up",
     "lookupPlaceholder": "Scan or enter a master batch barcode…",
     "newContainer": "New Container",
     "nodeTileLabel": {
       "Checkout": "Checkout",
       "Cytology Imaging": "Cyto Imaging",
-      "Cytology Processing": "Cyto Processing",
+      "Cytology Processing": "LBC Processing",
       "Cytology Staining": "Cyto Staining",
       "Decal / Special Processing": "Decal / Special",
       "Embedding": "Embedding",
       "External Referral": "Referral",
-      "Microtomy / Sectioning": "Microtomy",
+      "Microtomy / Sectioning": "Microtome",
       "Processing": "Processing",
       "Staining": "Staining"
     },
     "nodes": {
       "Checkout": "Checkout",
       "Cytology Imaging": "Cytology Imaging",
-      "Cytology Processing": "Cytology Processing",
+      "Cytology Processing": "Liquid-Based Cytology Processing",
       "Cytology Staining": "Cytology Staining",
       "Decal / Special Processing": "Decal / Special Processing",
       "Embedding": "Embedding",
       "External Referral": "External Referral",
-      "Microtomy / Sectioning": "Microtomy / Sectioning",
+      "Microtomy / Sectioning": "Microtome / Sectioning",
       "Processing": "Processing",
       "Staining": "Staining"
     },
     "notFoundError": "No batch or registered container found for \"{{value}}\".",
-    "pageSubtitle": "Track groups of cassettes and slides through processing nodes (Decal / Special Processing, Processing, Embedding, Microtomy, Staining, Checkout) via container barcodes — chain-of-custody scanning, reconciliation, and QA discrepancy logging.",
+    "pageSubtitle": "Track groups of cassettes and slides through processing nodes (Decal / Special Processing, Processing, Embedding, Microtome, Staining, Checkout) via container barcodes — chain-of-custody scanning, reconciliation, and QA discrepancy logging.",
     "pageTitle": "Batch Management",
     "pendingLoadTile": "Pending Load",
     "pendingLoadTitle": "Pending Batch Load — printed items not yet scanned into any batch",
@@ -2437,6 +2518,17 @@
     },
     "wsiScanTile": "Slide scanning",
     "wsiScanTitle": "Load slides onto a slide scanner, send the batch, unload it"
+  },
+  "batchPurposes": {
+    "builtIn": {
+      "biobank": "Biobank",
+      "clinical-trial": "Clinical Trial",
+      "qa-validation": "QA / Validation",
+      "research": "Research",
+      "routine": "Routine",
+      "teaching": "Teaching"
+    },
+    "label": "Purpose"
   },
   "batchRegistryFeedSection": {
     "addProgram": "Add a program",
@@ -2607,6 +2699,62 @@
     "title": "Bench Contributions",
     "windowLabel": "Last {{days}} days"
   },
+  "benchReasons": {
+    "AE_DIAGNOSIS_NEEDED": "Needed to complete the diagnosis",
+    "AE_LAST_MATERIAL": "Last material available",
+    "AE_PATHOLOGIST_REQUEST": "Requested by the pathologist",
+    "BA_CREATED_IN_ERROR": "Created in error",
+    "BA_EQUIPMENT_FAILURE": "Equipment failure",
+    "BA_RUN_CANCELLED": "Run cancelled by the lab",
+    "BA_WRONG_CONTAINER": "Wrong container or rack",
+    "BE_BLOCK_DAMAGED": "Block damaged",
+    "BE_FEW_SECTIONS": "Only a few sections left",
+    "BE_INCOMPLETE_FACE": "Cannot get a full face",
+    "BE_NO_TISSUE": "No tissue left in the block",
+    "BO_ACCOUNTED_ELSEWHERE": "Items accounted for elsewhere",
+    "BO_LABEL_DAMAGED": "Label damaged, identity checked by eye",
+    "BO_SCANNED_BY_HAND": "Checked by hand: barcode would not scan",
+    "BO_SUPERVISOR_APPROVED": "Approved by the supervisor",
+    "CC_BACK_IN_RANGE": "Temperature back in range on arrival",
+    "CC_COURIER_DELAY": "Courier delay; contents checked",
+    "CC_LOGGER_FAULT": "Packaging intact; logger fault"
+  },
+  "benchReasonsSection": {
+    "add": "Add reason",
+    "addAria": "New reason for {{category}}",
+    "addPlaceholder": "A new reason, in your lab’s words",
+    "categories": {
+      "BENCH_ADDON_EXHAUSTED": "Add-On Orders: order or answer on an exhausted block",
+      "BENCH_BATCH_ABORT": "Batch Management: Abort Batch",
+      "BENCH_BATCH_COLD_CHAIN": "Batch Management: acknowledge a cold-chain excursion",
+      "BENCH_BATCH_OVERRIDE": "Batch Management: complete with exceptions",
+      "BENCH_BLOCK_EXHAUSTED": "Microtome: Block exhausted"
+    },
+    "columns": {
+      "actions": "Actions",
+      "code": "Code",
+      "wording": "Wording"
+    },
+    "defaultWording": "Default wording, shown in each user’s language",
+    "errors": {
+      "duplicate": "This category already has a reason with that wording.",
+      "required": "Enter the wording."
+    },
+    "labWording": "Your lab’s wording, shown as entered",
+    "moveDown": "Move this reason down",
+    "moveDownShort": "↓",
+    "moveUp": "Move this reason up",
+    "moveUpShort": "↑",
+    "notSaved": "Not saved. You may not have permission to change bench reasons; ask your administrator.",
+    "restore": "Restore",
+    "retire": "Retire",
+    "reword": "Reword",
+    "rewordAria": "New wording for “{{reason}}”",
+    "saved": "Saved.",
+    "subtitle": "The reasons staff tap at the bench. Reword them in your lab’s language, add your own, put them in order or retire them. Each keeps its code, so reports count it the same way after rewording. A note stays optional.",
+    "title": "Bench Reasons",
+    "useDefault": "Use the default wording"
+  },
   "biFeed": {
     "approval": {
       "approver": "Approved by",
@@ -2646,9 +2794,17 @@
     "copy": "Copy",
     "copyFailed": "Could not copy. Select the token and copy it by hand.",
     "datasets": {
+      "add_on_orders": {
+        "description": "Add-on orders with type, priority, order and cut times, status and routed queue.",
+        "name": "Add-on orders"
+      },
       "audit": {
         "description": "Daily counts of allowed and denied actions by event type. Counts only; no user or patient detail.",
         "name": "Audit summaries"
+      },
+      "batches": {
+        "description": "Each carrier with its purpose, current step, step history, times, target and reconciliation counts. No case data.",
+        "name": "Carriers and batches"
       },
       "billing": {
         "description": "Charge capture and billing events sent to the billing system, with CPT code, quantity, amount and financial class.",
@@ -2658,6 +2814,10 @@
         "description": "Cases with accession and sign-out times, status, priority, pathologist, diagnosis codes and turnaround hours.",
         "name": "Cases and turnaround"
       },
+      "item_end_states": {
+        "description": "Each end state recorded for a block or slide (exhausted, returned to storage, archived, sent out, consumed, discarded), with the item it came from, who and when. The free-text reason is removed when de-identified.",
+        "name": "Item end states"
+      },
       "qa": {
         "description": "Quality events such as discordance, deficiencies and amendments, with severity, outcome and timing.",
         "name": "Quality and discordance"
@@ -2665,6 +2825,10 @@
       "specimens": {
         "description": "Specimens with type, collection and receipt times, and counts of blocks, slides and stains.",
         "name": "Specimens"
+      },
+      "station_events": {
+        "description": "Every scan of a cassette, block or slide at a station: when, where, which step, what happened, and whether it came from a carrier scan.",
+        "name": "Station scans"
       },
       "workload": {
         "description": "Cases, specimens, blocks and slides handled per person and day. No patient data.",
@@ -3407,6 +3571,53 @@
     "entirelySubmittedRange_one": "Entirely submitted in block {{range}}",
     "entirelySubmittedRange_other": "Entirely submitted in blocks {{range}}"
   },
+  "blockPieces": {
+    "addPiece": "+ Add piece",
+    "cols": {
+      "description": "Description",
+      "ink": "Ink",
+      "orientation": "Orientation",
+      "part": "Part",
+      "position": "Position",
+      "remove": "Remove piece"
+    },
+    "edit": "Type & pieces",
+    "exhausted": "Used up",
+    "lastPieceUsed": "That was the last piece: the block is now Exhausted.",
+    "markExhausted": "Piece exhausted",
+    "notPermitted": "You don’t have permission to record this. Ask your administrator.",
+    "notSaved": "Not saved. Check the pieces and try again.",
+    "orderFor": "Pieces",
+    "pieceCount_one": "{{count}} piece",
+    "pieceCount_other": "{{count}} pieces",
+    "pieceLabel": "Piece {{position}} ({{part}})",
+    "pieceMarked": "Piece marked used up.",
+    "problems": {
+      "partMissing": "Each piece needs its part.",
+      "pieceInUse": "A piece that is used up or named on an order cannot be removed.",
+      "piecesNeedMultiPiece": "Several pieces need the type Multi-piece block or Megablock.",
+      "positionInvalid": "Each position must be a whole number from 1.",
+      "positionRepeated": "Two pieces have the same position.",
+      "typeUnknown": "Choose a block type."
+    },
+    "save": "Save",
+    "saved": "Saved.",
+    "slideSizes": {
+      "large_format": "Large-format slide",
+      "standard": "Standard slide"
+    },
+    "slidesAre": "Slides: {{size}}",
+    "title": "Block type and pieces",
+    "typeLabel": "Block type",
+    "typeNote": "Slides from this block: {{slideSize}}.",
+    "types": {
+      "matrix": "Matrix block",
+      "megablock": "Megablock",
+      "multi_piece": "Multi-piece block",
+      "standard": "Standard block"
+    },
+    "wholeBlockHint": "Tick nothing to order on the whole block."
+  },
   "blockStainEditorModal": {
     "addPhotoButton": "📷 Add Photo",
     "blockCommentsLabel": "Block Comments",
@@ -3539,9 +3750,10 @@
       "label": "Finalized — structured data complete, LIS handles official sign-out",
       "title": "Assist-mode cases are completed via Finalize — the LIS owns official sign-out for this reporting mode, not PathScribe."
     },
-    "attachImages": {
-      "label": "Attach images",
-      "title": "Attach images to this report; they print after its pages"
+    "attachments": {
+      "add": "Add Attachments",
+      "label": "Attachments ({{number}})",
+      "title": "Photos, files and links for this case, and what is placed in its report"
     },
     "common": {
       "synopticPendingTitle": "Disabled — Stage 1 synoptic assignment evaluation in progress or awaiting review"
@@ -3754,7 +3966,7 @@
         "label": "Approve destructive cutting"
       },
       "addOnExceptionFlag": {
-        "description": "Report that a block is used up or cannot be cut (Block exhausted and the other reasons), on the Add-On Orders tracking list and the Microtomy workstation. The ordering pathologist, or the Supervisor / Accessioning Desk when there is none, is e-mailed.",
+        "description": "Report that a block is used up or cannot be cut (Block exhausted and the other reasons), on the Add-On Orders tracking list and the Microtome workstation. The ordering pathologist, or the Supervisor / Accessioning Desk when there is none, is e-mailed.",
         "label": "Flag a block exception"
       },
       "addOnOrderPlace": {
@@ -3853,6 +4065,10 @@
         "description": "Record the result of an ordered postmortem toxicology test, and clear the hold it started if it's still open.",
         "label": "Record a toxicology result"
       },
+      "batchCarrierAdvance": {
+        "description": "Move a carrier to its next processing step, updating every item in it.",
+        "label": "Move a carrier to its next step"
+      },
       "batchColdChainExcursionAcknowledge": {
         "description": "Acknowledge a temperature excursion on a batch, with a note, so it can be completed.",
         "label": "Acknowledge a cold-chain excursion"
@@ -3860,6 +4076,10 @@
       "batchColdChainReadingSimulate": {
         "description": "Send a labelled Simulated temperature reading for a storage unit or container, to see an excursion, a batch hold and a CAPA without a sensor.",
         "label": "Try a simulated temperature reading"
+      },
+      "batchManifestSeal": {
+        "description": "Seal a carrier's manifest so nothing can be added to it or removed from it.",
+        "label": "Seal a carrier's manifest"
       },
       "batchReconciliationOverride": {
         "description": "Mark a batch complete when items are missing or unexpected, with a reason.",
@@ -3896,6 +4116,18 @@
       "caseAccessionCreate": {
         "description": "Create a new case on the Accession screen. Needs the Accession screen.",
         "label": "Create a case at accessioning"
+      },
+      "caseAttachmentLink": {
+        "description": "Attach an https link into a hospital system (an image or a document) to a case. Audited with the link’s host only.",
+        "label": "Link files to a case"
+      },
+      "caseAttachmentUnlink": {
+        "description": "Unlink an attached file or link from a case. The file stays in the hospital’s storage. Audited.",
+        "label": "Remove attachments from a case"
+      },
+      "caseAttachmentUpload": {
+        "description": "Attach a PDF, JPG or PNG to a case. The file is sent to the hospital’s own storage through the storage adapter and only a link to it is kept. Audited.",
+        "label": "Attach files to a case"
       },
       "caseClinicalHistoryRecord": {
         "description": "Add or reconcile a case’s coded clinical history after accession (grossing, report review, sign-out), until the case is signed out. Pathologist, Fellow, Resident and PA by default.",
@@ -4073,9 +4305,17 @@
         "description": "Set how often and where PathScribe polls the LIS in Assist mode. Audited.",
         "label": "Manage Assist LIS polling"
       },
+      "configBatchPurposesManage": {
+        "description": "Switch built-in batch purposes on or off and add the lab's own.",
+        "label": "Manage batch purposes"
+      },
       "configBatchRegistryFeedManage": {
         "description": "Set up the file layout of each registry or screening programme that takes a batch file, and turn it on or off. Audited.",
         "label": "Manage registry batch files"
+      },
+      "configBenchReasonsManage": {
+        "description": "Reword, add, order and retire the tap-to-pick reasons used at the bench. Reasons keep their codes, so reports stay consistent.",
+        "label": "Manage bench reasons"
       },
       "configBiFeedIdentifiedApprove": {
         "description": "Record who approved identified (not de-identified) feed tokens and why, or withdraw that approval. Audited.",
@@ -4257,6 +4497,10 @@
         "description": "Add and edit departments and their retention overrides. Audited.",
         "label": "Manage departments"
       },
+      "configDirectDevicePrintingManage": {
+        "description": "Turn direct browser-to-printer printing (QZ Tray, PathScribe Agent, Zebra Browser Print, BarTender) on or off for a facility. Off by default in a server deployment; changes and each direct print are audited.",
+        "label": "Allow direct printing from the browser"
+      },
       "configDisplayProfilesManage": {
         "description": "Choose what the wall dashboards show. Audited.",
         "label": "Manage wall display profiles"
@@ -4437,6 +4681,10 @@
         "description": "Put a report layout or part into use. Audited.",
         "label": "Publish report templates and parts"
       },
+      "configResearchCasesManage": {
+        "description": "Set how research cases are recognised, the no-charge financial class sent for them, and how long their material is kept. These cases are left off clinical worklists and statistics and are never sent as results or charges.",
+        "label": "Manage research case settings"
+      },
       "configResearchFeedManage": {
         "description": "Change the literature feed's search. Audited.",
         "label": "Manage the research feed"
@@ -4573,6 +4821,10 @@
         "description": "Finalize a cytology case before every one of its specimens is signed out, with a reason. Audited; the unsigned specimens are named and can still be signed out.",
         "label": "Finalize a cytology case early"
       },
+      "cytologyCellBlockHandOff": {
+        "description": "At the Cytology Preparation bench, after scanning its source and its cassette; the Microtome takes only a handed-off cell block.",
+        "label": "Hand off a cell block to histology"
+      },
       "cytologyCsmsEligibilityVerify": {
         "description": "Record the answer to the CSMS eligibility check on a case in the CSMS QA tab: verified, or not eligible with a reason. This clears the case's verification flag. Audited with who, when and the outcome.",
         "label": "Record a CSMS eligibility check"
@@ -4701,6 +4953,10 @@
         "description": "Scan a container barcode and write its permanent \"Received in Lockbox\" receipt, with the server time and your name. A barcode with no pending order gets a placeholder record, never an accession number.",
         "label": "Receive specimens in the lockbox"
       },
+      "materialAliquotStatusUpdate": {
+        "description": "Sent, Received, Result back (with the receiving department’s accession number).",
+        "label": "Update an aliquot’s status"
+      },
       "materialBlockDeleteInProcess": {
         "description": "Delete a block that is still in process. Its pending cuts and stains are cancelled, a reason is recorded, and a credit item is queued for billing staff. The block stays on the case, marked Deleted. Audited.",
         "label": "Delete a block in process"
@@ -4712,6 +4968,22 @@
       "materialBlockFlagAmended": {
         "description": "Mark a block Invalidated or Superseded on an amended report. Only a flag: the block is not deleted. Audited.",
         "label": "Flag a block on an amended report"
+      },
+      "materialEndStateRecord": {
+        "description": "Record a block’s or slide’s end state at the bench (exhausted, returned to storage, archived, sent out, consumed for testing, discarded), with a reason.",
+        "label": "Record an item’s end state"
+      },
+      "materialReembedComplete": {
+        "description": "At the Embedding Station, record that an exhausted block’s tissue has been re-embedded; the orders waiting for it go to the Microtome.",
+        "label": "Mark a block re-embedded"
+      },
+      "materialReembedRequest": {
+        "description": "Ask for an exhausted block’s remnant or wet tissue to be re-embedded, from the Add-On Order builder or in answer to a “Block exhausted” flag. The order waits until it is done.",
+        "label": "Request re-embedding of an exhausted block"
+      },
+      "materialSpecimenDivide": {
+        "description": "At Grossing or the Cytology Preparation bench, with the starting volume and each aliquot’s volume and destination.",
+        "label": "Divide a specimen into aliquots"
       },
       "messageSecureEmailSend": {
         "description": "Send a secure email to an address outside the organisation.",
@@ -4937,9 +5209,25 @@
         "description": "Send the synthetic test cases (fictitious patients only) to a registry's test system, on a validation instance only. Audited.",
         "label": "Run the registry test suite"
       },
+      "reportAddOnVolumeExport": {
+        "description": "Download the report as a CSV file. Audited with the row count.",
+        "label": "Export the lab workflow report: add-on orders"
+      },
+      "reportAddOnVolumeView": {
+        "description": "Totals only, from the station scans, cases and carriers; research cases are left out.",
+        "label": "View the lab workflow report: add-on orders"
+      },
+      "reportBatchDurationExport": {
+        "description": "Download the report as a CSV file. Audited with the row count.",
+        "label": "Export the lab workflow report: batch duration"
+      },
+      "reportBatchDurationView": {
+        "description": "Totals only, from the station scans, cases and carriers; research cases are left out.",
+        "label": "View the lab workflow report: batch duration"
+      },
       "reportCaseImagesAttach": {
-        "description": "Attach images (gross photographs, microphotographs) to a case's report, or take them off. They print after the report's own pages. Audited.",
-        "label": "Attach images to a report"
+        "description": "Place photos, files and links in a case’s report (inside a report section), or take them out. A signed report needs an amendment or addendum first. Audited.",
+        "label": "Place images in a report"
       },
       "reportCaseReportPrint": {
         "description": "Print or reprint a case report, or open a stored version's PDF. Every print is recorded in the audit log.",
@@ -4953,6 +5241,22 @@
         "description": "Place the anatomical map, drawn from the synoptic answers, in the report, or take it out, before sign-out. Audited.",
         "label": "Insert the organ map into a report"
       },
+      "reportReconciliationExceptionsExport": {
+        "description": "Download the report as a CSV file. Audited with the row count.",
+        "label": "Export the lab workflow report: reconciliation exceptions"
+      },
+      "reportReconciliationExceptionsView": {
+        "description": "Totals only, from the station scans, cases and carriers; research cases are left out.",
+        "label": "View the lab workflow report: reconciliation exceptions"
+      },
+      "reportRecutReworkExport": {
+        "description": "Download the report as a CSV file. Audited with the row count.",
+        "label": "Export the lab workflow report: recut and rework"
+      },
+      "reportRecutReworkView": {
+        "description": "Totals only, from the station scans, cases and carriers; research cases are left out.",
+        "label": "View the lab workflow report: recut and rework"
+      },
       "reportRelatedCasesAttach": {
         "description": "Choose a patient's other released cases to send with the report being signed out. They are fixed when the report is signed out. Audited.",
         "label": "Attach related cases to a report"
@@ -4964,6 +5268,30 @@
       "reportRestrictedCasePrint": {
         "description": "Print, reprint or open the PDF of a case carrying a flag that restricts printing (VIP, confidential consultation). Needs \"Print a case report\" as well.",
         "label": "Print a restricted case"
+      },
+      "reportStatPerformanceExport": {
+        "description": "Download the report as a CSV file. Audited with the row count.",
+        "label": "Export the lab workflow report: STAT performance"
+      },
+      "reportStatPerformanceView": {
+        "description": "Totals only, from the station scans, cases and carriers; research cases are left out.",
+        "label": "View the lab workflow report: STAT performance"
+      },
+      "reportStationVolumeExport": {
+        "description": "Download the report as a CSV file. Audited with the row count.",
+        "label": "Export the lab workflow report: volume per station"
+      },
+      "reportStationVolumeView": {
+        "description": "Totals only, from the station scans, cases and carriers; research cases are left out.",
+        "label": "View the lab workflow report: volume per station"
+      },
+      "reportWorkflowTurnaroundExport": {
+        "description": "Download the report as a CSV file. Audited with the row count.",
+        "label": "Export the lab workflow report: turnaround by step"
+      },
+      "reportWorkflowTurnaroundView": {
+        "description": "Totals only, from the station scans, cases and carriers; research cases are left out.",
+        "label": "View the lab workflow report: turnaround by step"
       },
       "retentionDisposalReportExport": {
         "description": "Download the waste-tracking report of disposed material, which lists case accessions.",
@@ -5005,6 +5333,10 @@
         "description": "See the Configuration screen and its tile on the Home page.",
         "label": "Open Configuration"
       },
+      "screenCytologyPrepOpen": {
+        "description": "See the Cytology Preparation bench and its tile in Pathology Workspace.",
+        "label": "Open Cytology Preparation"
+      },
       "screenCytologyQcQueueOpen": {
         "description": "See the Cytology QC Peer Review Queue in the Worklist.",
         "label": "Open Cytology QC Peer Review Queue"
@@ -5034,8 +5366,8 @@
         "label": "Open Margin Exception Review"
       },
       "screenMicrotomyOpen": {
-        "description": "See the Microtomy Workspace screen and its tile in Pathology Workspace.",
-        "label": "Open Microtomy Workspace"
+        "description": "See the Microtome Workspace screen and its tile in Pathology Workspace.",
+        "label": "Open Microtome Workspace"
       },
       "screenMolecularOpen": {
         "description": "See the Molecular Workspace screen and its tile in Pathology Workspace.",
@@ -5088,6 +5420,14 @@
       "searchReportScheduleManage": {
         "description": "Set up, change, pause or delete a schedule that runs a saved report and sends it to chosen users as CSV. Every change is recorded in the audit log.",
         "label": "Schedule case search reports"
+      },
+      "stationScanHistoryView": {
+        "description": "See which item was scanned, at which station, by whom and when.",
+        "label": "Read the station scan trail"
+      },
+      "stationScanMismatchContinue": {
+        "description": "Open a carrier at a station for another step, or keep an item that is not in the loaded carrier, after the warning. Recorded in the audit trail.",
+        "label": "Continue after a station mismatch warning"
       },
       "surgicalAddendumRelease": {
         "description": "Release an addendum to a signed surgical report (added information).",
@@ -5162,6 +5502,86 @@
     "reviewRequest": "You don't have permission to send review requests.",
     "revisionNone": "You don't have permission to release an amendment, a correction or an addendum.",
     "signOut": "You don't have permission to sign out surgical reports."
+  },
+  "caseAttachments": {
+    "accessionLine": "Case {{accession}}",
+    "addLink": "Add link",
+    "afterReportPages": "This report prints images after its own pages.",
+    "assistNote": "On an Assist case your LIS writes the report. Attachments here are references for this case, to open while you work; nothing here is added to the LIS report.",
+    "attachAnyway": "Attach anyway",
+    "attachFile": "Attach External File…",
+    "cancel": "Cancel",
+    "captionLabel": "Caption (optional)",
+    "captionPlaceholder": "Printed under it in the report",
+    "close": "Done",
+    "dismiss": "Dismiss",
+    "document": "PDF document: named in its section, its pages follow the report",
+    "empty": {
+      "external": "No files or links attached yet.",
+      "gross": "No gross or block-face photos on this case.",
+      "intraop": "No intraoperative or consultation photos on this case.",
+      "slide": "Regions saved with Add to report in the slide viewer appear here. The slide viewer is not built yet."
+    },
+    "fileHint": "PDF, JPG or PNG. Save a Word document as PDF first.",
+    "groupCount": "{{title}} ({{number}})",
+    "groups": {
+      "external": "External files and links",
+      "gross": "Gross photos",
+      "intraop": "Intraoperative and consultation captures",
+      "slide": "Microscopic and slide regions"
+    },
+    "inReport": "In the report: {{section}}",
+    "inReportAfter": "In the report, on its own page after the report",
+    "inReportEmpty": "Nothing is placed in the report yet.",
+    "inReportTitle": "In the report",
+    "insert": "Insert into Report ({{number}})",
+    "insertInto": "Insert into",
+    "kinds": {
+      "blockFacePhoto": "Block-face photo",
+      "grossPhoto": "Gross photo",
+      "intraopPhoto": "Intraoperative photo",
+      "link": "Link",
+      "uploadedFile": "Attached file"
+    },
+    "large": "This file is {{size}} MB, over {{limit}} MB. Large files take longer to send and to print.",
+    "linkLabel": "Link (https)",
+    "linkPlaceholder": "https://imaging.hospital.org/…",
+    "notices": {
+      "inserted": "Placed in the report: {{number}}.",
+      "uploaded": "File attached. It is kept in your hospital’s storage."
+    },
+    "open": "Open",
+    "problems": {
+      "assistCase": "On an Assist case the LIS writes the report, so nothing is placed in a report here.",
+      "duplicate": "That link is already attached to this case.",
+      "empty": "This file is empty.",
+      "expired": "The upload took too long. Try again.",
+      "failed": "That could not be done. Try again.",
+      "inReport": "It is placed in the report. Take it out of the report first.",
+      "invalidLink": "Enter an https:// link to a named server (no user name or password in it).",
+      "notConfigured": "Attachment storage is not set up for this site. Ask your administrator.",
+      "notFound": "That item is no longer there.",
+      "notPermitted": "You do not have permission to do that.",
+      "nothingChosen": "Tick at least one item.",
+      "refused": "Your hospital’s storage refused this file.",
+      "signedNeedsAmendment": "This report is signed. Start an amendment or addendum first.",
+      "tooLarge": "This file is larger than your hospital’s storage accepts.",
+      "tooMany": "A report can hold at most {{max}} images and documents.",
+      "unavailable": "The file can’t be reached right now.",
+      "unsupportedType": "Only PDF, JPG and PNG files can be attached.",
+      "wordDocument": "This is a Word document. Save it as PDF, then attach the PDF."
+    },
+    "removeFromCase": "Remove from case",
+    "reportEnd": "End of the report text",
+    "rowDetail": "{{when}} · {{by}}",
+    "rowTitle": "{{kind}} · {{owner}}",
+    "select": "Select {{name}}",
+    "signedNote": "This report is signed. To place or take out images, start an amendment or addendum first. Files can still be attached to the case.",
+    "source": "From {{host}}",
+    "storageNote": "PathScribe keeps only a link to each item. A file you attach is sent to your hospital’s own storage, and a link to it is kept on the case.",
+    "takeOut": "Take out of report",
+    "thisCase": "this case",
+    "title": "Attachments"
   },
   "caseClinicalHistory": {
     "add": "Add clinical history",
@@ -6837,6 +7257,9 @@
       "sys-asset-locations": {
         "description": "The governed reference list for physical/asset locations, including mortuary storage slots and their real-time occupancy."
       },
+      "sys-bench-reasons": {
+        "description": "Reword, add, order and retire the reasons staff tap at the bench (Block exhausted, batch Abort and Override, cold chain)."
+      },
       "sys-bi-feed": {
         "description": "Let Power BI and other reporting tools read PathScribe data: choose datasets and facilities, issue and revoke feed tokens, approve identified data, browse the field catalogue."
       },
@@ -6877,7 +7300,7 @@
         "description": "Labels for case delegation (Peer Review, Second Opinion, Subspecialty Referral, MDT Discussion)."
       },
       "sys-display-profiles": {
-        "description": "Real, data-only device registry for the five Facility Ops Dashboard wall displays (Grossing & Intake, Embedding & Microtomy, Staining & IHC, Send-Out & Reference, Diagnostic Sign-Out/Scanner) — each profile bound to one performing lab and one or more views."
+        "description": "Real, data-only device registry for the five Facility Ops Dashboard wall displays (Grossing & Intake, Embedding & Microtome, Staining & IHC, Send-Out & Reference, Diagnostic Sign-Out/Scanner) — each profile bound to one performing lab and one or more views."
       },
       "sys-dp-vendors": {
         "description": "Real, named computational-pathology AI vendors (Paige, Ibex, PathAI, Proscia, Hologic) this lab may order screening results from — shared across cytology and surgical pathology. One category within the consolidated Vendor Integrations screen.",
@@ -6947,6 +7370,9 @@
       },
       "sys-qa-trend-policy": {
         "description": "When a pattern of major discordances is flagged for a pathologist or a specimen type: window, minimum reviews, thresholds and routing, per site."
+      },
+      "sys-research-cases": {
+        "description": "How research cases are recognised, kept and kept off clinical worklists, results and billing; and the purposes a carrier can have."
       },
       "sys-revision-reasons": {
         "description": "The reasons for amending or correcting a released report, and which are clinically significant: releasing a revision for one recommends a CAPA."
@@ -7890,6 +8316,40 @@
     "startBtn": "Send urgent preliminary",
     "title": "Urgent preliminary report"
   },
+  "cytologyPrep": {
+    "decant": "Decant:",
+    "handoff": {
+      "cellBlock": "Cell block {{label}}",
+      "confirm": "Hand off",
+      "done": {
+        "cellBlockMade": "Cell block {{label}} made. Print its label, then hand it off once the pellet is in the cassette.",
+        "handedOff": "Cell block {{label}} handed off to histology."
+      },
+      "handedOffBy": "Handed off by {{name}}, {{when}}",
+      "intro": "A cell block goes to histology only after its hand-off: scan the fluid or aliquot it was made from, then its cassette.",
+      "make": "Make a cell block from this decant",
+      "next": "Next",
+      "none": "No cell blocks on this specimen yet.",
+      "printLabel": "Print label",
+      "problem": {
+        "alreadyHandedOff": "This cell block was already handed off.",
+        "cassetteMismatch": "Not handed off: the second scan is not this cell block’s cassette.",
+        "notCellBlock": "That is not a cell block.",
+        "notPermitted": "You don’t have permission to hand off a cell block. Ask your administrator.",
+        "notSaved": "Not saved. The case may have changed; scan it again and repeat.",
+        "sourceMismatch": "Not handed off: the first scan is not the fluid or aliquot this cell block was made from."
+      },
+      "scanCassette": "Scan the cell block cassette",
+      "scanSource": "Scan the source fluid or aliquot",
+      "start": "Hand off",
+      "title": "Cell blocks",
+      "waiting": "Waiting for hand-off"
+    },
+    "pageTitle": "Cytology Preparation",
+    "patientName": "{{given}} {{family}}",
+    "scanPlaceholder": "Scan a container or decant barcode",
+    "scanPrompt": "Scan a fluid, aliquot or cell block to prepare it."
+  },
   "cytologyQaTab": {
     "apacPtTable": {
       "challenge": "Challenge",
@@ -8418,8 +8878,9 @@
   },
   "cytologyScreening": {
     "assistModeOnly": "This case is managed by an external LIS (assist mode). PathScribe's structured cytology review and sign-out workflow is only available for cases in Orchestration mode.",
-    "attachImagesBtn": "Attach images",
-    "attachImagesTitle": "Attach images to this case's report; they print after its pages",
+    "attachmentsAddBtn": "Add Attachments",
+    "attachmentsBtn": "Attachments ({{number}})",
+    "attachmentsTitle": "Photos, files and links for this case; images print after the report",
     "backToWorklist": "Back to Worklist",
     "billingBtn": "Billing",
     "billingDrawer": {
@@ -8569,8 +9030,18 @@
     "materialDrawer": {
       "addCellBlockBtn": "Add Cell Block",
       "addResidualFluidBtn": "Add Residual Fluid",
+      "aliquotPurpose": {
+        "flow_cytometry": "flow cytometry",
+        "hpv": "HPV testing",
+        "microbiology": "microbiology",
+        "molecular": "molecular testing",
+        "other": "other tests"
+      },
+      "aliquotType": "Aliquot for {{purpose}}",
       "decantConflict": "Someone else changed this case’s material while you were working, so your decant change wasn’t saved. The case has been reloaded; make the change again.",
+      "decantHeading": "{{label}} — {{type}}",
       "decantType": {
+        "aliquot": "Aliquot",
         "cell_block": "Cell Block",
         "residual_fluid": "Residual Fluid"
       },
@@ -9665,11 +10136,32 @@
     },
     "subtitle": "Use these tools to clear out demo or test data and return the app to a clean starting state. This only affects the mock demo backend — never a real, live customer database.",
     "testingTools": {
+      "displayTokensDescription": "Issue a new token for each Desert Valley wall display, the spare display and the OR Suite terminal, and revoke the old break room display's token to show the Display unavailable screen. Issue new ones after each Full Reset.",
+      "displayTokensTitle": "Demo display tokens",
+      "issueTokensBtn": "Issue tokens",
       "molecularOrderQueueDescription": "Simulate ordering and inbound HPV results against a fixed seed case. A testing/demo surface, not a production ordering workflow.",
       "molecularOrderQueueTitle": "Molecular Order Queue",
       "openBtn": "Open",
       "subtitle": "Other tools for testing and simulating scenarios in this demo environment.",
-      "title": "Testing & Demo Tools"
+      "title": "Testing & Demo Tools",
+      "tokens": {
+        "copied": "Copied",
+        "copy": "Copy",
+        "display": "Display",
+        "issueFailed": "The tokens could not all be issued. Try again.",
+        "notPermitted": "You don't have permission to issue demo display tokens.",
+        "shownOnce": "Shown once. Copy each token where you need it: it can't be read back later.",
+        "token": "Token",
+        "use": "Shows",
+        "uses": {
+          "orSuite": "OR Suite board",
+          "revoked": "Revoked: the Display unavailable screen",
+          "rotating": "All five views, rotating",
+          "secondSite": "Second facility",
+          "singleView": "One department",
+          "spare": "Spare"
+        }
+      }
     },
     "title": "Demo & Test Data Reset"
   },
@@ -9810,6 +10302,15 @@
     },
     "removeAria": "Remove “{{word}}”"
   },
+  "directPrinting": {
+    "allow": "Allow direct printing from the browser at this facility",
+    "intro": "Labels and reports normally reach printers through the interface engine, with the browser print dialog as the fallback. Tick this only if this facility must print straight from the browser to a printer (QZ Tray, the PathScribe Agent, Zebra Browser Print or BarTender). Each such print is recorded in the audit log.",
+    "notPermitted": "You don’t have permission to change direct printing. Ask your administrator.",
+    "save": "Save direct printing",
+    "saveFailed": "Not saved. Try again.",
+    "saved": "Saved. The change was recorded in the audit log.",
+    "title": "Direct printing from the browser"
+  },
   "discordanceReconciliationModal": {
     "categoryDiffersNote": "Final category differs from frozen — this needs to be logged as a discordance before sign-out can continue.",
     "commentLabel": "Comment — required",
@@ -9907,6 +10408,9 @@
   },
   "displayProfiles": {
     "addButton": "+ Add Display Profile",
+    "addOnLimitHint": "Add-ons waiting longer than this turn red and move to the top of the Embedding & Microtome view; they turn amber shortly before. The Stations view counts carriers and add-ons past it. Blank: 120 minutes.",
+    "addOnLimitInvalid": "Enter whole minutes from 15 to 1440.",
+    "addOnLimitLabel": "Time limit X (minutes)",
     "addTitle": "Add Display Profile",
     "assignedViewsLabel": "Assigned Dashboard View(s)",
     "carouselIntervalLabel": "Carousel Interval (seconds)",
@@ -9922,11 +10426,16 @@
     "launchDashboardButton": "🖥️ Open Facility Ops Dashboard",
     "nameLabel": "Display Name",
     "namePlaceholder": "e.g. Histology Bench 3 — Wall Display",
+    "purposesHint": "None ticked shows every purpose. Add-on orders are not carriers and always show.",
+    "purposesLabel": "Show carriers for these purposes",
     "reactivate": "Reactivate",
     "sectionSubtitle": "Real, data-only registry for the five Facility Ops Dashboard wall displays — each profile binds a physical display to one performing lab and one or more department views. No physical hardware binding is verified or enforced; deviceToken is informational only.",
     "sectionTitle": "Display Profiles (Facility Ops Dashboards)",
     "selectFacility": "— select facility —",
-    "showInactive": "Show inactive"
+    "showInactive": "Show inactive",
+    "staleScanHint": "The Stations view lists cassettes, blocks and slides not scanned at any station for longer than this. Blank: 240 minutes.",
+    "staleScanInvalid": "Enter whole minutes from 30 to 10080.",
+    "staleScanLabel": "Not-scanned warning (minutes)"
   },
   "disposalQueue": {
     "computing": "Computing the real, current queue…",
@@ -10003,6 +10512,52 @@
       "total": "Total Disposed"
     },
     "unknownLocation": "Unknown"
+  },
+  "divideSpecimen": {
+    "add": "+ Add aliquot",
+    "aliquotLine": "{{volume}} mL → {{destination}}",
+    "destination": "Destination",
+    "destinationKind": "Destination type",
+    "divide": "Divide",
+    "done": {
+      "divided": "Divided into {{labels}}; {{remaining}} mL remaining.",
+      "statusSaved": "Status saved."
+    },
+    "kind": {
+      "department": "Department",
+      "reference_lab": "Reference laboratory"
+    },
+    "markAs": "Mark {{status}}",
+    "open": "Divide specimen",
+    "problem": {
+      "alreadyDivided": "This specimen has already been divided.",
+      "noRows": "Add at least one aliquot.",
+      "noStartingVolume": "Enter the starting volume first.",
+      "notAliquot": "That is not an aliquot.",
+      "notForward": "An aliquot’s status only moves forward.",
+      "notFound": "That aliquot is no longer on the case.",
+      "notPermitted": "You don’t have permission for this. Ask your administrator.",
+      "notSaved": "Not saved. The case may have changed; try again.",
+      "overStartingVolume": "The aliquots add up to more than the starting volume.",
+      "receivingAccessionRequired": "Enter the receiving department’s accession number to record Result back.",
+      "rowDestination": "Every aliquot needs a destination.",
+      "rowVolume": "Every aliquot needs a volume above 0 mL."
+    },
+    "purpose": "For",
+    "receivingAccession": "Receiving accession number",
+    "record": "Divided by {{name}}, {{when}}: {{split}} mL of {{start}} mL into aliquots, {{remaining}} mL remaining.",
+    "remove": "Remove",
+    "startingVolume": "Starting volume (mL)",
+    "status": {
+      "not_sent": "Not sent",
+      "received": "Received",
+      "result_back": "Result back",
+      "sent": "Sent"
+    },
+    "statusWithReceiving": "{{status}}, receiving accession {{accession}}",
+    "title": "Divide specimen {{label}}",
+    "totals": "Split {{split}} mL of {{start}} mL; {{remaining}} mL remaining.",
+    "volume": "Volume (mL)"
   },
   "documentStyleSection": {
     "bold": "Bold",
@@ -10114,6 +10669,7 @@
         "requiresDecal": "Decal Required",
         "tinyTissue": "Tiny Tissue"
       },
+      "matrixBlockOf": "Matrix block of specimens {{specimens}}",
       "patient": "Patient:",
       "scanNext": "Scan next cassette →",
       "specimenBlock": "Specimen/Block:",
@@ -10199,7 +10755,7 @@
       "blockNotFound": "Block {{block}} wasn’t found.",
       "notResolved": "That scan didn’t match a case or block. Check the barcode and try again.",
       "specimenNotFound": "The specimen wasn’t found on that case.",
-      "unsupportedTarget": "The Embedding station takes block cassettes only. Matrix or cell-block cassettes, decants and specimen barcodes aren’t supported yet."
+      "unsupportedTarget": "The Embedding station takes block and matrix block cassettes. Cell-block cassettes, decants and specimen barcodes aren’t supported yet."
     },
     "scanPlaceholder": "Scan or type a barcode…",
     "scanPrompt": "Scan a cassette barcode to begin",
@@ -10369,6 +10925,7 @@
     "camera": "Camera",
     "engraver": "Engraver",
     "label_printer": "Label printer",
+    "lbc_processor": "Liquid-based cytology processor",
     "other": "Other",
     "scale": "Scale",
     "slide_scanner": "Slide scanner",
@@ -10381,9 +10938,11 @@
       "dateInFuture": "The date can't be in the future.",
       "dateRequired": "Enter the date it was done.",
       "notesRequired": "Describe what happened: required for a failure or malfunction.",
+      "outcomeMismatch": "The outcome must match the reading against the range.",
       "outcomeRequired": "Choose an outcome.",
       "performedByRequired": "Enter who did it.",
       "saveFailed": "The entry could not be saved.",
+      "temperatureRequired": "Enter the temperature reading.",
       "typeRequired": "Choose a type."
     },
     "headers": {
@@ -10403,6 +10962,7 @@
       "historyEmpty": "No entries yet.",
       "historyTitle": "History",
       "lastDone": "Last done {{date}}",
+      "noRange": "No range is set for this equipment (Configuration → System → Equipment); choose the outcome yourself.",
       "notScheduled": "Not scheduled",
       "notesHint": "Required for a failure or malfunction.",
       "notesLabel": "Notes",
@@ -10410,6 +10970,8 @@
       "outcomeLabel": "Outcome",
       "performedByLabel": "Done By",
       "performedByPlaceholder": "Staff member or service engineer",
+      "range": "Acceptable: {{min}} to {{max}} °C. The outcome is set from the reading.",
+      "temperatureLabel": "Temperature (°C)",
       "title": "Service Log — {{name}} ({{code}})",
       "typeLabel": "Type"
     },
@@ -10426,12 +10988,14 @@
       "ok": "Up to date",
       "overdue": "Overdue"
     },
+    "temperatureReading": "({{value}} °C)",
     "types": {
       "calibration": "Calibration",
       "function_check": "Function check",
       "maintenance": "Maintenance",
       "malfunction": "Malfunction",
-      "repair": "Repair"
+      "repair": "Repair",
+      "temperature_check": "Temperature check"
     }
   },
   "equipmentSection": {
@@ -10464,7 +11028,8 @@
       "kindRequired": "Choose a kind.",
       "nameRequired": "A name is required.",
       "saveFailed": "The equipment could not be saved. Check the fields and try again.",
-      "stationOtherFacility": "This scan station is in a different lab."
+      "stationOtherFacility": "This scan station is in a different lab.",
+      "temperatureRangeInvalid": "Enter numbers, with the lowest below the highest."
     },
     "headers": {
       "actions": "Actions",
@@ -10497,6 +11062,7 @@
       "intervalHint": "Leave empty if it has no schedule. Due dates count from the last passing entry in the service log.",
       "intervalPlaceholder": "e.g. 30",
       "kindLabel": "Kind",
+      "largeFormatLabel": "Takes large-format slides",
       "maintenanceIntervalLabel": "Maintenance Every (days)",
       "makeLabel": "Make",
       "makePlaceholder": "e.g. Hologic",
@@ -10510,9 +11076,21 @@
       "stationHint": "Where it sits. For an analyser, worklist dispatch checks that it's sent from this station.",
       "stationLabel": "Scan Station",
       "stationNoneOption": "— No station —",
-      "statusLabel": "Status"
+      "statusLabel": "Status",
+      "temperatureHint": "Optional. A temperature check in the Equipment Log outside this range is a Fail.",
+      "temperatureMaxLabel": "Highest temperature (°C)",
+      "temperatureMinLabel": "Lowest temperature (°C)"
     },
     "nextDue": "Next due {{date}}",
+    "racks": {
+      "largeFormat": "Large-format slides",
+      "largeFormatAria": "{{rack}} takes large-format slides",
+      "largeFormatLabel": "Takes large-format slides",
+      "notSaved": "Not saved. You may not have permission to change equipment; ask your administrator.",
+      "rack": "Rack",
+      "subtitle": "Reusable staining racks (engraved RACK- ids). A large-format slide from a megablock goes only into a rack that takes large-format slides.",
+      "title": "Staining racks"
+    },
     "searchPlaceholder": "Search by name, code, make, model or serial...",
     "settingsLink": {
       "grossingHardware": "Grossing hardware: {{name}}",
@@ -10548,6 +11126,19 @@
     "noDocumentationAtAll": "This specimen has no Microscopic Description and no synoptic template — add documentation before finalizing.",
     "requiredForProcedure": "A Microscopic Description narrative is required for this procedure.",
     "unsavedDraft": "This specimen's Microscopic Description is an unsaved draft — save or discard it before finalizing."
+  },
+  "exhaustedBlock": {
+    "awaitingReembed_one": "{{count}} order waits for this block to be re-embedded.",
+    "awaitingReembed_other": "{{count}} orders wait for this block to be re-embedded.",
+    "failed": "Re-embedding could not be recorded. Nothing was changed.",
+    "markReembedded": "Re-embedded: release the orders",
+    "none": "none",
+    "notPermitted": "You don’t have permission to record re-embedding. Ask your administrator.",
+    "piecesTitle": "The pieces chosen on block {{block}} are used up.",
+    "released_one": "Re-embedding recorded. {{count}} order was released to the Microtome.",
+    "released_other": "Re-embedding recorded. {{count}} orders were released to the Microtome.",
+    "remains": "What remains: unstained slides {{unstained}}; other blocks of this part: {{blocks}}.",
+    "title": "Block {{block}} is exhausted."
   },
   "exports": {
     "notice": {
@@ -10992,7 +11583,29 @@
     }
   },
   "facilityOpsDashboard": {
+    "addOnPill": "ADD-ON",
+    "addOnTypes": {
+      "ihc": "IHC",
+      "molecular": "Molecular sections",
+      "other": "Add-on",
+      "recut": "Recut / levels",
+      "sendOut": "Send-out sections",
+      "specialStain": "Special stain"
+    },
     "ageLabel": "{{duration}} ago",
+    "alertKinds": {
+      "coldChainExcursion": "Cold-Chain Excursion",
+      "decalOverdue": "Decal Overdue",
+      "notScanned": "Not scanned",
+      "qcFailed": "QC Failed",
+      "reconciliation": "Reconciliation",
+      "recutRequested": "Recut Requested",
+      "runFailed": "Run Failed",
+      "scanFailed": "Scan Failed",
+      "scanQcFailed": "Scan QC Failed",
+      "stat": "STAT",
+      "statAddOn": "STAT add-on"
+    },
     "bindDisplayDescription": "Select the Display Profile this wall unit should show.",
     "bindDisplayTitle": "Bind This Display",
     "confirmTokenDescription": "Enter the device token recorded for \"{{name}}\" to finish binding this display.",
@@ -11000,21 +11613,96 @@
     "confirmTokenNote": "This confirms you have the token an admin recorded for this display — it does not verify real physical hardware.",
     "confirmTokenPlaceholder": "Enter device token",
     "confirmTokenTitle": "Confirm Device Token",
+    "details": {
+      "awaitingIntake": "{{specimen}}: awaiting intake ({{material}})",
+      "blockStain": "{{block}} · {{stain}}",
+      "instrument": "{{node}} · items: {{count}} · instrument: {{instrument}}",
+      "lastSeenAt": "Last scanned at {{station}}, {{duration}} ago",
+      "node": "{{node}}",
+      "nodeItems": "{{node}} · items: {{count}}",
+      "reconciliation": "Missing: {{missing}} · unexpected: {{unexpected}}",
+      "referral": "{{lab}} · {{test}}",
+      "referralTransit": "{{lab}} · {{test}} · {{transit}}",
+      "slideFailure": "{{position}}: {{reason}}",
+      "stationRow": "Carriers: {{carriers}} · items: {{items}}",
+      "stationRowLoose": "Carriers: {{carriers}} · items: {{items}} · without a carrier: {{loose}}",
+      "temperature": "{{temp}} °C",
+      "temperatureAt": "{{temp}} °C at {{at}}",
+      "wsi": "{{status}} · slides: {{count}}"
+    },
+    "instrumentStatus": {
+      "In Process": "in process",
+      "Loaded to Instrument": "loaded",
+      "Run Completed": "run completed",
+      "Run Failed": "run failed"
+    },
     "lastUpdated": "Updated {{time}}",
     "loadingData": "Loading dashboard data…",
     "loadingProfile": "Loading display profile…",
+    "material": {
+      "block": "block",
+      "slide": "slide"
+    },
     "noProfilesConfigured": "No display profiles are configured yet. Add one under Config → System → Display Profiles.",
     "offlineStaleBadge": "Offline / Stale Data",
     "overdueBy": "Overdue {{duration}}",
+    "pinned": "Pinned",
     "queueEmpty": "Nothing in queue right now.",
     "selectProfile": "— select display profile —",
     "statPill": "STAT",
+    "stats": {
+      "addOnsWaiting": "Add-Ons waiting",
+      "coldChainAlerts": "Cold-Chain Excursions",
+      "coldChainOpen": "Cold-chain excursions",
+      "completed": "Completed",
+      "cytologyStainingActive": "Cytology Staining Batches",
+      "decalActive": "Decal / Special Processing",
+      "delivered": "Delivered",
+      "dispatched": "Dispatched",
+      "embeddingActive": "Embedding Batches",
+      "imageQcFailed": "Image QC Failed",
+      "inStaining": "Slides In Staining",
+      "inTransit": "In Transit",
+      "microtomyActive": "Microtome Batches",
+      "notScanned": "Not scanned recently",
+      "pastLimit": "Past the time limit",
+      "pending": "Pending",
+      "pendingIntake": "Pending Intake",
+      "processingActive": "Processing Batches",
+      "qcFailed": "QC Failed",
+      "readyForReview": "Ready for Review",
+      "reconciliationExceptions": "Missing or unexpected",
+      "recutRequested": "Recut Requested",
+      "resultReceived": "Results Received",
+      "runFailed": "Instrument runs failed",
+      "scanFailed": "Scan Failed",
+      "scanning": "Scanning",
+      "stainingActive": "Active Staining Batches",
+      "statBatches": "STAT Batches",
+      "statPending": "STAT Pending",
+      "statWaiting": "STAT waiting",
+      "totalItems": "Cassettes/Slides In Process"
+    },
+    "transit": {
+      "delivered": "delivered",
+      "dispatched": "dispatched",
+      "in_transit": "in transit",
+      "result_received": "result received"
+    },
     "views": {
       "diagnosticSignout": "Diagnostic Sign-Out / Scanner",
-      "embeddingMicrotomy": "Embedding & Microtomy",
+      "embeddingMicrotomy": "Embedding & Microtome",
       "grossingIntake": "Grossing & Intake",
       "sendoutReference": "Send-Out & Reference Laboratory",
-      "stainingIhc": "Staining & IHC"
+      "stainingIhc": "Staining & IHC",
+      "stationOverview": "Stations"
+    },
+    "wsiStatus": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "loaded": "Loaded",
+      "scanning": "Scanning",
+      "unloaded": "Unloaded"
     }
   },
   "facilityPrintingTab": {
@@ -11606,7 +12294,7 @@
       "grossing": "Grossing",
       "intraop": "Intraoperative consultation",
       "messaging": "Messaging",
-      "microtomy": "Microtomy workstation",
+      "microtomy": "Microtome workstation",
       "molecularBatch": "Molecular plate builder",
       "molecularRack": "Molecular rack loading",
       "report": "Case report",
@@ -12009,7 +12697,7 @@
   "footPedalSection": {
     "actions": {
       "pedal1": "Pedal 1 — Primary Action (Push-to-Talk on Sign-Out · Confirm Piece Count on Embedding)",
-      "pedal2": "Pedal 2 — Advance / Next (Next Field on Sign-Out · Print/Etch Next on Microtomy)",
+      "pedal2": "Pedal 2 — Advance / Next (Next Field on Sign-Out · Print/Etch Next on the Microtome)",
       "pedal3": "Pedal 3 — Pause / Replay Last Segment (Sign-Out dictation only)"
     },
     "buttons": {
@@ -12204,19 +12892,21 @@
   },
   "grossingBench": {
     "addOnOrders": "Add-On Orders",
-    "decal": {
-      "added": "{{block}} added to decal batch {{batch}}.",
-      "already": "{{block}} is already in that decal batch.",
-      "assign": "Send to decal",
-      "block": "Block to send",
-      "label": "Decal batch",
-      "noBatch": "There is no active decalcification batch to add to.",
-      "noBlock": "There is no block to send to decalcification yet.",
-      "none": "No active decal batch",
+    "carrier": {
+      "added": "{{block}} loaded into {{batch}}.",
+      "already": "{{block}} is already in that carrier.",
+      "assign": "Load into carrier",
+      "block": "Block to load",
+      "label": "Carrier",
+      "noBatch": "There is no open decal or processing carrier to load into.",
+      "noBlock": "There is no block to load yet.",
+      "none": "No open carrier",
+      "notAccepting": "{{batch}} is sealed or closed and takes no more blocks.",
       "notFound": "That block could not be found.",
+      "option": "{{barcode}} · {{node}}",
       "otherBatch": "{{block}} is already in another active batch ({{batch}})."
     },
-    "hint": "Hotkeys: Alt+Shift+1 print cassettes, 2 photo, 3 decal bench, 4 add-on orders. Foot pedal 1 takes a photo, pedal 2 prints the cassettes.",
+    "hint": "Hotkeys: Alt+Shift+1 print cassettes, 2 photo, 3 load into a carrier, 4 add-on orders. Foot pedal 1 takes a photo, pedal 2 prints the cassettes.",
     "printCassettes": "Print cassettes",
     "takePhoto": "Take a photo",
     "title": "Bench tools"
@@ -13611,6 +14301,58 @@
       "unavailableSummary": "Surgeon unavailable: {{reason}}"
     }
   },
+  "itemEndState": {
+    "currentDetail": " — {{reason}} · {{name}}, {{when}}",
+    "errors": {
+      "failed": "The end state could not be recorded. Try again.",
+      "invalid": "A reason is required.",
+      "notPermitted": "You don’t have permission to record an end state. Ask your administrator."
+    },
+    "loading": "Loading the end state…",
+    "none": "No end state recorded yet.",
+    "quickReasons": "Quick reasons",
+    "reasonLabel": "Reason",
+    "reasons": {
+      "archived": {
+        "caseSignedOut": "Case signed out",
+        "retentionPolicy": "Filed under the retention policy"
+      },
+      "consumed": {
+        "flowOrOther": "Used for another test",
+        "molecularTest": "Used for a molecular test"
+      },
+      "discarded": {
+        "damagedUnusable": "Damaged and unusable",
+        "retentionEnded": "Retention period ended"
+      },
+      "exhausted": {
+        "facedThrough": "Cut through to the cassette",
+        "noTissueLeft": "No tissue left in the block"
+      },
+      "returned_to_storage": {
+        "awaitingDecision": "Waiting for a decision",
+        "workComplete": "Work complete"
+      },
+      "sent_out": {
+        "consult": "Sent for a consultation",
+        "referral": "Referral to another lab",
+        "research": "Released for research"
+      }
+    },
+    "recordButton": "Record end state",
+    "recorded": "End state recorded.",
+    "save": "Record",
+    "stateLabel": "End state",
+    "states": {
+      "archived": "Archived",
+      "consumed": "Consumed for testing",
+      "discarded": "Discarded",
+      "exhausted": "Exhausted (no tissue remaining)",
+      "returned_to_storage": "Returned to storage",
+      "sent_out": "Sent out"
+    },
+    "title": "End state"
+  },
   "jurisdictionNames": {
     "AU": "Australia",
     "BE": "Belgium",
@@ -13698,6 +14440,116 @@
       "status": "Status"
     },
     "title": "Jurisdiction Payment Mapping"
+  },
+  "labWorkflowReports": {
+    "byDay": "Day",
+    "byWeek": "Week",
+    "caseTypes": {
+      "autopsy": "Autopsy",
+      "cytology": "Cytology",
+      "surgpath": "Surgical pathology"
+    },
+    "columns": {
+      "at": "When",
+      "by": "By",
+      "carrier": "Carrier",
+      "caseAccession": "Case",
+      "cases": "Cases",
+      "cut": "Cut",
+      "finishedAt": "Finished",
+      "group": "Group",
+      "item": "Item",
+      "items": "Items",
+      "kind": "Kind",
+      "late": "Late",
+      "latePct": "Late %",
+      "measure": "Measure",
+      "medianHours": "Median (h)",
+      "medianMinutesToCut": "Median minutes to cut",
+      "minutes": "Minutes",
+      "node": "Step",
+      "ordered": "Ordered",
+      "overTarget": "Over target",
+      "p90Hours": "90th percentile (h)",
+      "period": "Period",
+      "reason": "Reason",
+      "reasonCode": "Reason code",
+      "scans": "Scans",
+      "stage": "Stage",
+      "startedAt": "Started",
+      "stat": "STAT",
+      "stationName": "Station",
+      "step": "Step",
+      "targetHours": "Target (h)",
+      "targetMinutes": "Target (min)",
+      "type": "Type",
+      "value": "Value"
+    },
+    "descriptions": {
+      "addOns": "Add-on orders placed in the dates chosen, by type: how many, how many cut, the median minutes from order to cut, and how many were STAT.",
+      "batchDuration": "How long each Decal and Staining batch spent at that step, against its target (Decal: the batch's own; Staining: the target you set here).",
+      "reconciliation": "Items missing or scanned unexpectedly when carriers were reconciled, and supervisor overrides, with the carrier, the item and who.",
+      "rework": "Slides cut in the dates chosen, recut orders, slide and cassette label reprints, and the rates per slide cut.",
+      "statPerformance": "The turnaround report for STAT cases only.",
+      "stationVolume": "Cassettes, blocks and slides scanned at each station, per day or week. Only scans of the item itself count; items moved without a carrier are included.",
+      "turnaround": "Hours from accessioning to each step, for cases accessioned in the dates chosen. A case reaches a step when its last item does. Median, 90th percentile and the share past your target."
+    },
+    "empty": "Nothing in these dates.",
+    "errors": {
+      "BAD_DATES": "Choose a start date on or before the end date.",
+      "LOAD_FAILED": "The report could not be built. Try again.",
+      "NOT_PERMITTED": "You do not have permission to see this report."
+    },
+    "export": "Export CSV",
+    "exportRefused": "You do not have permission to export this report.",
+    "footnote": "Embed, cut, stain and distribute come from station scans: work done at a station with no station set, or before station tracking (Batch 726), is not counted. Scheduled delivery of these reports is not built yet.",
+    "from": "From",
+    "groupBy": "Group by",
+    "groupings": {
+      "caseType": "Case type",
+      "facility": "Facility",
+      "none": "All cases",
+      "priority": "Priority"
+    },
+    "kinds": {
+      "missing": "Missing",
+      "override": "Supervisor override",
+      "unexpected": "Unexpected"
+    },
+    "loading": "Building the report…",
+    "measures": {
+      "cassetteReprints": "Cassette label reprints",
+      "recutOrders": "Recut orders",
+      "recutRatePct": "Recut rate (% of slides cut)",
+      "reworkRatePct": "Rework rate (% of slides cut)",
+      "slideReprints": "Slide label reprints",
+      "slidesCut": "Slides cut"
+    },
+    "pageSubtitle": "Turnaround, volume and exceptions from the station scans, the cases and the carriers. Totals only; research cases are left out.",
+    "pageTitle": "Lab Workflow Reports",
+    "period": "Per",
+    "reports": {
+      "addOns": "Add-on orders",
+      "batchDuration": "Batch duration",
+      "reconciliation": "Reconciliation exceptions",
+      "rework": "Recut and rework",
+      "statPerformance": "STAT performance",
+      "stationVolume": "Volume per station",
+      "turnaround": "Turnaround by step"
+    },
+    "stainingTarget": "Staining target (minutes)",
+    "steps": {
+      "cut": "Cut",
+      "distribute": "Distribute",
+      "embed": "Embed",
+      "gross": "Gross",
+      "signOut": "Sign-out",
+      "stain": "Stain"
+    },
+    "targets": "Targets (hours from accessioning)",
+    "tile": "Workflow Reports",
+    "tileTitle": "Turnaround, volume and exception reports",
+    "to": "To"
   },
   "labelDesignerPage": {
     "allFieldsPlaced": "All fields placed.",
@@ -14570,6 +15422,8 @@
         "coresNotEvaluated": "{{stain}}: billed once the pathologist confirms which cores were evaluated."
       }
     },
+    "blocksStillWaiting_one": "{{count}} other block of this case is still waiting to be cut: {{blocks}}",
+    "blocksStillWaiting_other": "{{count}} other blocks of this case are still waiting to be cut: {{blocks}}",
     "comments": {
       "add": "Add Comment",
       "empty": "No comments yet.",
@@ -14631,7 +15485,7 @@
       "approved": "The pathologist approved destructive cutting. Cutting can go on.",
       "bannerBody": "Flagged by {{name}}. Cutting is blocked until the ordering pathologist answers.",
       "bannerTitle": "Block exhausted.",
-      "body": "The ordering pathologist is e-mailed. Cutting from this block is blocked until they answer: approve destructive cutting, or cancel or modify the order.",
+      "body": "One flag covers every slide on this block still waiting to be cut, and the ordering pathologists are e-mailed. Cutting is blocked until they answer: use an unstained slide already cut, request re-embedding, order from another block of the same part, approve destructive cutting (only while tissue may remain), or cancel or modify the orders.",
       "button": "Block exhausted",
       "confirm": "Flag as exhausted",
       "cuttingBlocked": "This block is flagged as exhausted. Cutting waits for the ordering pathologist’s answer.",
@@ -14640,6 +15494,7 @@
       "notPermitted": "You don’t have permission to flag a block exception. Ask your administrator.",
       "note": "Note",
       "noteRequired": "A note is required.",
+      "orderHeld": "This block is exhausted. This slide waits for the ordering pathologist: flag it with Block exhausted so they can choose an alternative.",
       "sentToDesk": "No ordering pathologist is recorded for this slide, so the notice was sent to the Supervisor / Accessioning Desk.",
       "title": "Flag block as exhausted"
     },
@@ -14672,7 +15527,7 @@
         "ready": "Ready"
       }
     },
-    "pageTitle": "Microtomy Workstation",
+    "pageTitle": "Microtome Workstation",
     "printStatus": {
       "Canceled": "Canceled",
       "Failed": "Failed",
@@ -14702,12 +15557,15 @@
       "blockNotFound": "Block {{label}} not found.",
       "blockNotOnCase": "Block not found on this case.",
       "caseNotFound": "Case not found.",
+      "cutAtMicrotome": "This is a block: cut it at the Microtome.",
       "decantNotFound": "Decant {{label}} not found.",
       "empty": "Empty scan.",
       "matrixBlockNotFound": "Matrix block not found on the resolved case.",
+      "notHandedOff": "Cell block {{label}} has not been handed off: hand it off at the Cytology Preparation bench first.",
+      "prepareAtCytology": "{{label}} is a fluid or aliquot: prepare it at the Cytology Preparation bench.",
       "specimenNotFound": "Specimen not found on the resolved case.",
       "unresolved": "That scan didn’t resolve to a case, block, or decant — check the barcode and try again.",
-      "unsupported": "A bare specimen scan isn't supported at the Microtomy Workstation. Scan a block, matrix block or decant/fluid container barcode."
+      "unsupported": "A bare specimen scan isn't supported at the Microtome Workstation. Scan a block, matrix block or decant/fluid container barcode."
     },
     "scanPlaceholder": "Scan or type a barcode…",
     "scanPrompt": "Scan a block or decant/fluid container barcode to begin",
@@ -14731,8 +15589,16 @@
       "commentOnLabelTitle": "This slide's comment prints on the physical label",
       "control": "Control",
       "duplicateCount": "×",
+      "forPieces_one": "For {{count}} piece",
+      "forPieces_other": "For {{count}} pieces",
       "levelDepth": "µm",
       "levelShort": "L{{n}}",
+      "levelsOnSlide_one": "{{count}} level on this slide",
+      "levelsOnSlide_other": "{{count}} levels on this slide",
+      "moveDown": "Move this slide down the print order",
+      "moveDownShort": "↓",
+      "moveUp": "Move this slide up the print order",
+      "moveUpShort": "↑",
       "onLabel": "On Label",
       "pairControl": "Pair with control slide",
       "print": "Print",
@@ -14740,6 +15606,7 @@
       "reprintReasonPrompt": "Reason…",
       "reprintedCount": "Reprinted {{count}}×",
       "searchStains": "Search stains…",
+      "selectForBatch": "Include this slide in the batch print",
       "selectStain": "Select a stain…",
       "slideComments": "Slide comments",
       "title": "Slide Grid"
@@ -15847,6 +16714,7 @@
   },
   "newContainerModal": {
     "autoSetFromStation": "↳ Set from {{station}}'s own stage.",
+    "chooseStep": "Choose a step…",
     "containerCreated": "Container Created",
     "containerIdentifierMode": "Container Identifier Mode",
     "containerType": "Container Type",
@@ -15863,6 +16731,7 @@
     "generateAndPrint": "Generate & Print",
     "generating": "Generating…",
     "hours": "hr",
+    "largeFormat": "Takes large-format slides (megablocks)",
     "minutes": "min",
     "noReagentLots": "No active reagent lots in the registry.",
     "noReferenceLabConfigured": "No facility is currently configured with the Reference Lab role — add one in Facility settings first.",
@@ -15871,6 +16740,9 @@
     "printInstructions": "Print this Master Batch Barcode and affix it to the physical carrier.",
     "priority": "Priority",
     "processingNode": "Processing Node",
+    "processor": "Processor",
+    "processorNone": "— Not chosen —",
+    "processorOption": "{{name}} ({{code}})",
     "protocolLabel": "Protocol / Run Parameters",
     "protocolPlaceholder": "e.g. Standard H&E Overnight Run",
     "rackCheckedOutNoPrint": "Rack {{barcode}} is now checked out to this batch — no new label to print.",
@@ -17626,6 +18498,10 @@
       "description": "Track cassettes and slides",
       "title": "Batch Management"
     },
+    "cytologyPrepTile": {
+      "description": "Fluids, slides, cell block hand-off",
+      "title": "Cytology Preparation"
+    },
     "cytologyTile": {
       "description": "Screening, triage and QC",
       "title": "Cytology Workspace"
@@ -17644,13 +18520,13 @@
     },
     "microtomyTile": {
       "description": "Slide labels, stains, prep",
-      "title": "Microtomy Workspace"
+      "title": "Microtome Workspace"
     },
     "molecularTile": {
       "description": "Batches, plates, runs and QC",
       "title": "Molecular Workspace"
     },
-    "pageSubtitle": "Cytology screening, molecular diagnostics, the microtomy, embedding, and slide distribution workstations, and batch management",
+    "pageSubtitle": "Cytology screening, molecular diagnostics, the microtome, embedding, and slide distribution workstations, and batch management",
     "pageTitle": "Pathology Workspace",
     "slideDistributionTile": {
       "description": "Slide checkout and scanning",
@@ -18469,6 +19345,7 @@
       "unsupportedProtocol": "The PathScribe Agent on this workstation needs updating."
     },
     "bridgeNotImplemented": "Printer bridge \"{{bridgeType}}\" has no working print route for this label type yet. Only QZ Tray and the PathScribe Agent are connected here.",
+    "directPrintingOff": "Not printed: direct printing from the browser to {{printer}} is off for this facility. Print through the interface engine, or use the browser print dialog.",
     "popupBlockedAlert": "Please allow pop-ups for this site to print labels.",
     "preparing": "Preparing labels…",
     "preparingTitle": "Preparing labels"
@@ -19920,6 +20797,10 @@
       "label": "Trend period:"
     }
   },
+  "quickReasons": {
+    "label": "Quick reasons",
+    "withNote": "{{reason}}: {{note}}"
+  },
   "reagentLotsSection": {
     "addReagentLotButton": "+ Add Reagent Lot",
     "allLabsLabel": "All Labs",
@@ -20498,37 +21379,6 @@
     "finalizedReadOnly": "Finalized — read only",
     "footerNote": "Sent to LIS on finalization. Protocol-defined fields are in the Tumor, Margins & Biomarkers tabs."
   },
-  "reportImages": {
-    "accessionLine": "Report {{accession}}",
-    "add": "Add",
-    "captionLabel": "Caption (optional)",
-    "captionPlaceholder": "Printed under the image",
-    "close": "Done",
-    "dismiss": "Dismiss",
-    "empty": "No images attached yet.",
-    "intro": "Images print after the report's own pages, one image per page with its caption. A report that is already signed out is not changed; images added now appear in reports made from now on.",
-    "linkLabel": "Link to the image (https)",
-    "linkNote": "PathScribe does not store images. Link an image held in your hospital’s own system; it is fetched and drawn into the PDF when the report is made. If it cannot be reached, the report prints an “Image Unavailable” page in its place.",
-    "linkPlaceholder": "https://imaging.hospital.org/…",
-    "listLabel": "Attached images",
-    "problems": {
-      "duplicate": "That image is already linked to this report.",
-      "failed": "The image could not be attached.",
-      "invalidLink": "Enter an https:// link to a named server (no user name or password in it).",
-      "notPermitted": "You do not have permission to attach images to reports.",
-      "tooMany": "A report can have at most {{max}} images."
-    },
-    "remove": "Remove",
-    "source": "From {{host}}",
-    "title": "Attach images to the report",
-    "typeLabel": "Image type",
-    "types": {
-      "blockFace": "Block face",
-      "grossSpecimen": "Gross specimen",
-      "microphotograph": "Microphotograph",
-      "other": "Other"
-    }
-  },
   "reportPreviewRenderer": {
     "badgeAccepted": "✓ Accepted",
     "badgeAiDraft": "AI Draft",
@@ -20626,6 +21476,46 @@
     "sending": "Sending…",
     "sentToCodeReview": "Case sent to Code Review",
     "title": "Request Colleague Review"
+  },
+  "researchCases": {
+    "accessionPrefixes": "Accession prefixes",
+    "active": "Active",
+    "addPurpose": "Add",
+    "applies": {
+      "charges": "sends no charges to billing, and sends the no-charge financial class",
+      "results": "sends no result to the EHR and no report by fax or file drop",
+      "retention": "lists its blocks and slides for disposal once the days above have passed (holds still apply)",
+      "stats": "leaves it out of the turnaround, volume and quality figures",
+      "worklist": "leaves it off the clinical worklists (find it with Search)"
+    },
+    "appliesHeading": "For a research case, PathScribe:",
+    "builtIn": "Built-in",
+    "casesHeading": "Research cases",
+    "enabled": "Treat matching cases as research cases",
+    "financialClass": "No-charge financial class",
+    "mrnPrefixes": "Research patient MRN prefixes",
+    "newPurpose": "New purpose",
+    "notPermitted": "You do not have permission to change this.",
+    "prefixHint": "Separate prefixes with commas. A case matches when its accession or its patient's MRN starts with one of them (capital letters or not).",
+    "problems": {
+      "financialClassRequired": "Enter the no-charge financial class.",
+      "noMarker": "Enter at least one accession or MRN prefix, or switch research cases off.",
+      "prefixInvalid": "A prefix cannot contain spaces or be longer than 20 characters.",
+      "retentionDaysInvalid": "Enter whole days from 0 to 36500."
+    },
+    "purposeName": "Purpose name",
+    "purposeProblems": {
+      "duplicateName": "Two purposes have the same name.",
+      "nameRequired": "Every purpose needs a name.",
+      "nameTooLong": "A purpose name can be at most 40 characters.",
+      "routineRequired": "Routine must stay active."
+    },
+    "purposesHeading": "Batch purposes",
+    "purposesHint": "Each new carrier is Routine unless another purpose is chosen. A wall display can show only the purposes you pick. Built-in purposes can be switched off but not removed; Routine is always on.",
+    "retentionDays": "Keep material for (days after accessioning)",
+    "saved": "Saved.",
+    "subtitle": "A research specimen is accessioned as a case against a research patient until unaccessioned research items are built. Set here how those cases are recognised and kept, and what each carrier can be for.",
+    "title": "Research cases & batch purposes"
   },
   "researchFeedSection": {
     "actions": {
@@ -21296,17 +22186,59 @@
     "searchPlaceholder": "Search by name or barcode code...",
     "stages": {
       "accessioning": "Accessioning",
+      "checkout": "Checkout",
+      "cytologyImaging": "Cytology Imaging",
+      "cytologyPreparation": "Cytology Preparation",
+      "cytologyProcessing": "Liquid-Based Cytology Processing",
+      "cytologyStaining": "Cytology Staining",
+      "decal": "Decal / Special Processing",
       "embedding": "Embedding",
+      "externalReferral": "External Referral",
       "grossing": "Grossing",
-      "microtomy": "Microtomy / Sectioning",
+      "microtomy": "Microtome / Sectioning",
       "other": "Other",
       "processing": "Processing",
       "slideArchival": "Slide Archival",
+      "slideDistribution": "Slide Distribution",
       "staining": "Staining"
     },
     "statusFilterAll": "All",
-    "subtitle": "The physical benches a terminal can identify itself as (at sign-in and in the top bar), and that a printed station label switches to mid-workflow. Eight are set up to start with; name, barcode code and workflow stage are yours to set.",
+    "subtitle": "The physical benches a terminal can identify itself as (at sign-in and in the top bar), and that a printed station label switches to mid-workflow. A starter set is provided; name, barcode code and workflow stage are yours to set.",
     "title": "Scan Stations"
+  },
+  "scanTrail": {
+    "actions": {
+      "completed": "Completed here",
+      "loaded": "Loaded into carrier",
+      "matched": "Matched",
+      "missing": "Missing",
+      "printed": "Label printed",
+      "received": "Received",
+      "unexpected": "Unexpected",
+      "unloaded": "Taken out of carrier"
+    },
+    "byCarrier": "Recorded when the carrier was scanned",
+    "cameFrom": "from {{parent}}",
+    "cols": {
+      "item": "Item",
+      "what": "What happened",
+      "when": "When",
+      "where": "Where",
+      "who": "Who"
+    },
+    "empty": "No station scans recorded for this case yet.",
+    "hide": "Hide scan history",
+    "inCarrier": "In carrier {{carrier}}",
+    "loading": "Loading scan history…",
+    "refused": "You do not have permission to see the scan history.",
+    "results": {
+      "mismatch": "Mismatch",
+      "not-found": "Not found",
+      "ok": "OK",
+      "wrong-item": "Wrong item"
+    },
+    "show": "Show scan history",
+    "title": "Scan history"
   },
   "scopeReference": {
     "columns": {
@@ -22645,6 +23577,7 @@
       "notConfigured": "This station isn’t set up for slide-label printing.",
       "notInQueue": "That slide is no longer in the queue.",
       "profileMissing": "The configured printer profile no longer exists.",
+      "scannerNotLargeFormat": "{{scanner}} doesn’t take large-format slides. Choose a scanner marked for large-format slides.",
       "stationNotFound": "The scan station wasn’t found."
     },
     "exceptions": {
@@ -22696,7 +23629,7 @@
       "notResolved": "That scan didn’t match a case, block or slide. Check the barcode and try again.",
       "slideNotFound": "Slide {{slide}} wasn’t found.",
       "specimenNotFound": "The specimen wasn’t found on that case.",
-      "unsupportedTarget": "This station takes block and slide barcodes only. Matrix or cell-block cassettes, decants and specimen barcodes aren’t supported yet."
+      "unsupportedTarget": "This station takes block, matrix block and slide barcodes. Cell-block cassettes, decants and specimen barcodes aren’t supported yet."
     },
     "scanPlaceholder": "Scan or type a barcode…",
     "scanPrompt": "Scan a slide or block/cassette barcode — the queue grows continuously",
@@ -23516,6 +24449,59 @@
     "intro": "The stain batch(es) below require resolution before this case can be signed out.",
     "rowTitle": "Batch {{batchBarcode}} — {{specimenList}}"
   },
+  "stationCarrier": {
+    "addToOutput": "Add printed slides to tray ({{count}})",
+    "andMore": "and {{count}} more",
+    "chooseStation": "This computer's station",
+    "close": "Close",
+    "dismiss": "Dismiss",
+    "finish": "Finish unloading",
+    "listLabel": "Open carriers for this station",
+    "noStation": "This computer has no scan station set, so scans here are not recorded and carriers can't be opened here. Choose this computer's station.",
+    "noneHere": "No open carriers for this station.",
+    "notice": {
+      "addedToOutput": "Slides added to {{barcode}}: {{count}}.",
+      "closedAborted": "{{barcode}} is closed: it was aborted on {{at}}.",
+      "closedComplete": "{{barcode}} is closed: it was completed on {{at}}.",
+      "finished": "Unloading of {{barcode}} finished.",
+      "handoff": "{{barcode}} moved here from {{from}}. Items in it: {{count}}.",
+      "movedHere": "{{barcode}} moved to this station and opened here; the move was recorded. Items in it: {{count}}.",
+      "noStation": "Set this computer's station before opening {{barcode}}.",
+      "opened": "{{barcode}} opened here. Items in it: {{count}}.",
+      "openedAdHoc": "{{barcode}} opened here, and this station was recorded as its workstation. Items in it: {{count}}.",
+      "openedMismatch": "{{barcode}} opened here although it belongs to another step. This was recorded.",
+      "outputSet": "{{barcode}} is now the output tray.",
+      "sealed": "{{barcode}} sealed. Items in it: {{count}}.",
+      "unexpectedKept": "{{item}} kept, and recorded as unexpected in {{barcode}}.",
+      "unknown": "No carrier has the barcode {{barcode}}."
+    },
+    "openInBatchManagement": "Open in Batch Management",
+    "outputHint": "Scan an open {{node}} carrier to use it as the output tray for cut slides.",
+    "outputTray": "Output tray",
+    "pending": {
+      "continueAnyway": "Continue anyway",
+      "mismatch": "{{barcode}} is a {{node}} carrier. This workstation works on {{here}}. Open it here anyway?",
+      "openAnyway": "Open here anyway",
+      "wrongItem": "{{item}} is not in carrier {{barcode}}. Continue anyway? It will be recorded as unexpected."
+    },
+    "progress": "{{matched}} of {{total}} scanned off",
+    "routedHere": "Routed here",
+    "scanToUnload": "Scan each item as you take it out of the carrier.",
+    "seal": "Seal manifest",
+    "sealed": "Sealed",
+    "stationLine": "Station: {{station}}",
+    "stillToScan": "Still to scan: {{items}}",
+    "title": "Carriers at this station",
+    "unexpectedCount_one": "{{count}} unexpected item scanned",
+    "unexpectedCount_other": "{{count}} unexpected items scanned",
+    "useStation": "Use this station"
+  },
+  "stationScan": {
+    "backToScanning": "Back to scanning (hide the keyboard)",
+    "backToScanningShort": "⌨ Scan",
+    "typeAnId": "Type an ID with the on-screen keyboard",
+    "typeAnIdShort": "⌨ Type"
+  },
   "stationSwitch": {
     "discardedAndSwitched": "📍 Discarded changes and switched to {{station}}.",
     "notAuthorized": "You are not set up to use {{station}}, so the station was not switched.",
@@ -23812,9 +24798,13 @@
     "clinician": "Clinician",
     "confidential": "CONFIDENTIAL — PATHOLOGY REPORT",
     "dob": "Date of Birth",
+    "documentAttached": "Attached document: {{caption}}. Its pages follow the report.",
+    "documentAttachedNoCaption": "Attached document. Its pages follow the report.",
     "documentReference": "Document {{accession}} · record version {{version}}",
     "documentReferenceNoVersion": "Document {{accession}}",
     "figureNotDrawn": "Map notice: the map could not be drawn as an image. What it shows:",
+    "imageUnavailable": "Image unavailable: the linked image could not be fetched when this report was made.",
+    "imagesTitle": "Images",
     "intraopDiagnosis": "Intraoperative diagnosis",
     "mrn": "MRN",
     "noContent": "No content",
@@ -24735,6 +25725,7 @@
       "assetLocations": "Asset Location Dictionary",
       "assistLisPolling": "Assist LIS Ingestion",
       "batchRegistryFeed": "Registry Batch Files",
+      "benchReasons": "Bench Reasons",
       "biFeed": "Reporting feed (Power BI)",
       "billingDictionary": "Billing Dictionary (Charge Capture)",
       "billingRelease": "Billing Release",
@@ -24804,6 +25795,7 @@
       "qaTrendPolicy": "Discordance Trend Policy",
       "reagentLots": "Reagent & Solution Lots",
       "releaseBuffer": "Post-Sign-Out Release Buffer",
+      "researchCases": "Research Cases & Batch Purposes",
       "researchFeed": "Research Feed",
       "retention": "Data Retention",
       "revisionReasons": "Revision Reasons",
@@ -25788,6 +26780,16 @@
       "testAll": "Test All",
       "testing": "Testing…"
     }
+  },
+  "touchLayout": {
+    "modes": {
+      "auto": "Auto",
+      "off": "Always off",
+      "on": "Always on"
+    },
+    "nowOff": "Station screens use the compact layout.",
+    "nowOn": "Station screens use large touch targets.",
+    "title": "Touch layout on this computer"
   },
   "tumorBoard": {
     "boards": {
@@ -27061,6 +28063,11 @@
     },
     "subtitle": "Which parts the {{protocol}} workup reports on.",
     "title": "Parts covered"
+  },
+  "wrongCaseScan": {
+    "continue": "Continue anyway",
+    "message": "{{item}} belongs to case {{itemCase}}, not to {{openCase}} open here.",
+    "setAside": "Set it aside"
   },
   "wsiScanBatches": {
     "batchesEmpty": "No scan batches yet.",

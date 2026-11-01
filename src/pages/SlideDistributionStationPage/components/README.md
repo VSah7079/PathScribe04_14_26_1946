@@ -1,3 +1,5 @@
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # SlideDistributionStationPage/components
 
 Panels of the slide distribution station (`DestinationControlPanel`, `QueuePanel`, and others).

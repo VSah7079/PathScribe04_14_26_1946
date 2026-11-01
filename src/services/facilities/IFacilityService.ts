@@ -606,6 +606,10 @@ export interface Facility {
    *  record can be either one depending on which case it's read for.
    *  Either field independently optional — see
    *  resolvePrintPresentationOptions.ts's own per-field fallback. */
+  /** Batch 734 (Pete, Oct 30, 2026; spec Decision 6): whether labels may go from the browser straight to a printer
+   *  (QZ Tray, the PathScribe Agent, Zebra Browser Print, BarTender) in a server deployment. Off unless an administrator
+   *  turns it on (setDirectDevicePrinting); the interface engine and the browser print dialog are always allowed. */
+  allowDirectDevicePrinting?: boolean;
   printPresentationPreference?: Partial<{
     paperSource: import('@/types/printing/PrintJob').PaperSourceTray;
     duplexMode: import('@/types/printing/PrintJob').DuplexMode;
@@ -812,6 +816,9 @@ export interface IFacilityService {
    * never change these two fields, so a facility edit can't overwrite them.
    */
   setPrintSettings(id: ID, settings: import('../printing/facilityReportPrinting').FacilityReportPrintSettings): Promise<ServiceResult<Facility>>;
+  /** Batch 734: turns direct browser-to-printer printing on or off for the facility. Needs
+   *  config:direct-device-printing:manage; audited. `add` and `update` never change it. */
+  setDirectDevicePrinting(id: ID, allowed: boolean): Promise<ServiceResult<Facility>>;
   /**
    * Called by order-intake / crosswalk resolution. No exact crosswalk
    * match on the order's facility code → creates an Unverified,

@@ -18,7 +18,7 @@ With the API server, the browser no longer holds the whole data set, so it can't
 
 ## 2. Export kinds
 
-There are 29, one per export capability (`EXPORT_KINDS`). A kind is named after its capability: `qa:deficiencies:export` → `qa.deficiencies`. The guard test `phase2cContracts.guard.test.ts` fails if a capability ending in `:export` is added to the catalog without a kind here.
+There are 36, one per export capability (`EXPORT_KINDS`); Batch 730 added the seven Lab Workflow Reports (`report.*`), and this count was corrected in Batch 742. A kind is named after its capability: `qa:deficiencies:export` → `qa.deficiencies`. The guard test `phase2cContracts.guard.test.ts` fails if a capability ending in `:export` is added to the catalog without a kind here.
 
 How each is scoped (`ExportScope`), as it is checked today:
 - **facility:** the QA reports and the disposal report. The request names one facility or "all" (which needs an assignment covering every facility). Pete, Oct 13, 2026: QA exports can be for a single facility rather than always "all facilities". Since Batch 544 every QA report with rows that belong to a facility has the scope picker: follow-up, FPPE (facilities only, as an FPPE assignment has a facility but no case), inspection evidence, the activity dashboard, deficiencies and billing deficiencies joined the six tabs that had it. Someone assigned to exactly one facility opens on it. Choosing an organisation filters the rows by organisation, but the export is still checked as "all facilities" (`qaScopeContext`, `src/services/qualityAssurance/qaExport.ts`). The rows are chosen by the case's origin hospital (the legacy map in `organisationService.ts`), and the facility tree doesn't agree with it on which facilities belong to an organisation. Checking against the tree could pass rows from facilities the person isn't assigned to. This waits for the Organisation-to-Facility migration (PS-610; tried and taken out in Batch 549). For a facility scope, a row is placed by its own facility, or by its case's ordering facility. A row whose facility can't be told appears only in the "all" export (`src/services/qualityAssurance/qaScopeRows.ts`). Three stay "all", with reasons:
@@ -46,6 +46,7 @@ Since Batch 550 every export button sends its screen's filters. The server re-ru
 | `search.case-report` | `{ criteria: CaseSearchCriteria, timeZone, groupBy: ReportGroupBy, columns: ReportColumn[] }` (`CASE_SEARCH_API.md`, Reports) |
 | `contribution.*` | `{}` (the requester's own cases) |
 | `report.change-history` | `{ caseId }` |
+| `report.workflow-turnaround`, `report.station-volume`, `report.stat-performance`, `report.add-on-volume`, `report.recut-rework`, `report.reconciliation-exceptions`, `report.batch-duration` (Batch 730, Lab Workflow Reports) | `LabWorkflowReportParams`: `{ id, from, to, timeZone, grouping?, targets?, by?, stainingTargetMinutes? }` (`services/labWorkflowReports/labWorkflowReportService.ts`); research cases are left out |
 | `retention.disposal-report` | `{ facilityId, materialType, dateFrom, dateTo }` |
 | `retention.holds-queue` | `{ text }` (the screen's search text; every active retention hold otherwise) |
 

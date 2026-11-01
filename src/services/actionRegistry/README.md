@@ -1,3 +1,5 @@
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 **Batch 662:** `patientBannerCommands.ts` (new): `SHOW_NHS_STATUS` (SYNOPTIC, Ctrl+Alt+Shift+9, five-language phrases; Spanish in `spanishVoiceTriggers.ts`); its Role Dictionary entry is `banner.showNhsStatus` (`constants/patientBannerActionGroup.ts`), granted with the view commands. The NHS number badge listens and takes focus. No letter hotkey is left free. Not added, on purpose: voice commands that set or filter sex at birth.
 
 **Batch 650 (screen handlers):** `actionListeners.guard.test.ts` fails when a registered action has no listener on a screen and is not in `unwiredActions.ts` (29 commands, each with a reason; the list can only shrink). `screenActionWiring.test.ts` pins the small listeners. The registry itself was not changed (the voice engine is Batch 650a's). The list is in `docs/product/KNOWN_GAPS.md`.
@@ -78,7 +80,7 @@ The 60 record-changing commands now have roles-list entries; this registry reads
 
 ## Batch 388
 
-Two buttons in a new category `MICROTOMY` (voice phrases in all five languages; the Microtomy page sets `VOICE_CONTEXT.MICROTOMY` while it is open): `MICROTOMY_ADD_COMMENT` ("add comment", Ctrl+Alt+Shift+A, F26+PS016) and `MICROTOMY_ADD_STAIN` ("add stain", Ctrl+Alt+Shift+B, F26+PS017). The comment drawer and the slide grid's stain picker listen while on screen and act exactly as their Add buttons do, checks included. "add stain" is also a phrase of the case report page's `ADD_ORDERS_STAIN`; the two are in different categories and are never eligible together.
+Two buttons in a new category `MICROTOMY` (voice phrases in all five languages; the Microtome page sets `VOICE_CONTEXT.MICROTOMY` while it is open): `MICROTOMY_ADD_COMMENT` ("add comment", Ctrl+Alt+Shift+A, F26+PS016) and `MICROTOMY_ADD_STAIN` ("add stain", Ctrl+Alt+Shift+B, F26+PS017). The comment drawer and the slide grid's stain picker listen while on screen and act exactly as their Add buttons do, checks included. "add stain" is also a phrase of the case report page's `ADD_ORDERS_STAIN`; the two are in different categories and are never eligible together.
 
 ## Batch 397: five more save commands
 
@@ -86,7 +88,7 @@ Two buttons in a new category `MICROTOMY` (voice phrases in all five languages; 
 
 ## Batch 401
 
-Two buttons in a new category `EMBEDDING` (voice phrases in all five languages; the Embedding station sets `VOICE_CONTEXT.EMBEDDING` while it is open): `EMBEDDING_CONFIRM_PIECE_COUNT` ("confirm count", "confirm embedding", Ctrl+Alt+Shift+C, F28+PS001) and `EMBEDDING_ADD_COMMENT` ("add comment", Ctrl+Alt+Shift+A, F28+PS002). They act exactly as Confirm and Add Comment do, Field Requirements included. "add comment" is also a Microtomy phrase; the two categories are never eligible together.
+Two buttons in a new category `EMBEDDING` (voice phrases in all five languages; the Embedding station sets `VOICE_CONTEXT.EMBEDDING` while it is open): `EMBEDDING_CONFIRM_PIECE_COUNT` ("confirm count", "confirm embedding", Ctrl+Alt+Shift+C, F28+PS001) and `EMBEDDING_ADD_COMMENT` ("add comment", Ctrl+Alt+Shift+A, F28+PS002). They act exactly as Confirm and Add Comment do, Field Requirements included. "add comment" is also a Microtome phrase; the two categories are never eligible together.
 
 ## Batch 402
 

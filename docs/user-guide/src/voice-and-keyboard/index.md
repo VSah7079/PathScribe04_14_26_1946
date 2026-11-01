@@ -130,7 +130,7 @@ While AI polishes your words the overlay says **Refining…**. A phrase PathScri
 ### Workflow recommendations
 
 - Pathologists: dictate with Enter Gross / Enter Micro / Enter Diagnosis, then use Edit Field to correct a single answer by voice.
-- Bench staff: use the station commands (Microtomy, Embedding, Slide Distribution) so you never touch the keyboard with gloves on.
+- Bench staff: use the station commands (Microtome, Embedding, Slide Distribution) so you never touch the keyboard with gloves on.
 
 ## Related Features
 
@@ -504,11 +504,11 @@ Phrases are the English ones; the same commands have phrases in French, German, 
 |---|---|---|
 | Create Container (Batch Management) | Ctrl+Alt+Shift+N | create container; generate container |
 
-### Microtomy station (2 commands)
+### Microtome station (2 commands)
 
 | Command | Key | You can say |
 |---|---|---|
-| Add Comment (Microtomy) | Ctrl+Alt+Shift+A | add comment; save comment |
+| Add Comment (Microtome) | Ctrl+Alt+Shift+A | add comment; save comment |
 | Add Stain to Slide Grid | Ctrl+Alt+Shift+B | add stain; add slide |
 
 ### Embedding station (2 commands)

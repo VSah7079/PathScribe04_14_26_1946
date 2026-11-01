@@ -49,6 +49,9 @@ import type { StainType } from '@/services/stains/IStainService';
 import type { ReagentLot } from '@/services/reagentLots/IReagentLotService';
 import { nextManualTransitStatuses } from '@/services/referral/referralTransitRules';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { BatchCarrierStepPanel } from './BatchCarrierStepPanel';
+import { batchPurposeBadge } from '@/services/batches/batchPurposes';
+import type { BatchProcessingNode } from '@/services/batches/IBatchService';
 
 interface Props {
   batch: Batch;
@@ -64,6 +67,9 @@ interface Props {
    *  BatchManagementPage.tsx's own already-loaded `batches` state
    *  rather than a second, separate fetch here. */
   allBatches: Batch[];
+  /** Batch 726: this computer's station, for the carrier's "works on another step" note. */
+  stationName?: string;
+  stationNodes?: readonly BatchProcessingNode[];
 }
 
 
@@ -74,7 +80,7 @@ const STATUS_COLOR: Record<Batch['status'], string> = {
   active: '#38bdf8', reconciling: '#f59e0b', complete: '#34d399', aborted: '#f87171',
 };
 
-const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userId, userName, allBatches }) => {
+const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userId, userName, stationId, allBatches, stationName, stationNodes = [] }) => {
   const { t, i18n } = useTranslation();
   const requirements = useFieldRequirements('batchManagement');
   const formatTimestamp = (iso: string) => formatDateTime(iso, i18n.language);
@@ -154,23 +160,29 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
     if (!value || value.toUpperCase().startsWith('STATION:') || value.toUpperCase().startsWith('BATCH:')) return;
 
     if (batch.status === 'active') {
-      const result = await batchService.addItemByScan(batch.id, value, userId, userName);
+      const result = await batchService.addItemByScan(batch.id, value, userId, userName, undefined, stationId ?? undefined);
       if (result.outcome === 'added') {
         playScanBeep();
         flashFeedback('success', `✓ ${t('batchDetail.addedFlash', { displayId: result.item.displayId })}`);
+        // Batch 737 (spec §10.6): an exhausted block is added, with a warning that stays until it is dismissed.
+        if (result.warning === 'blockExhausted') toast.warning(phiToastContent(t('batchDetail.exhaustedWarning', { displayId: result.item.displayId })), { autoClose: false });
         onBatchUpdated(result.batch);
       } else {
         playScanErrorTone();
         const text = result.outcome === 'not-found'
           ? t('batchDetail.scanRejected.notFound', { value: result.scanned })
+          : result.outcome === 'not-accepting'
+            ? t(result.sealed ? 'batchDetail.scanRejected.sealed' : 'batchDetail.scanRejected.notAccepting', { barcode: batch.masterBarcode })
           : result.outcome === 'already-in-batch'
             ? t('batchDetail.scanRejected.alreadyInBatch', { displayId: result.displayId })
+          : result.outcome === 'slide-too-large'
+            ? t('batchDetail.scanRejected.slideTooLarge', { displayId: result.displayId, barcode: batch.masterBarcode })
             : t('batchDetail.scanRejected.inOtherActiveBatch', { displayId: result.displayId, barcode: result.otherMasterBarcode });
         flashFeedback('error', text);
         phiError(text);
       }
     } else if (batch.status === 'reconciling') {
-      const res = await batchService.scanItemOut(batch.id, value, userId, userName);
+      const res = await batchService.scanItemOut(batch.id, value, userId, userName, stationId ?? undefined);
       // Real, established workaround for a real TS narrowing quirk this
       // codebase already hit elsewhere (see StaffTab.tsx's own identical
       // 'error' in res pattern) — plain `if (!res.ok)` fails to narrow
@@ -196,7 +208,7 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
       }
       onBatchUpdated(res.data);
     }
-  }, [batch, userId, userName, flashFeedback, onBatchUpdated, t, refusal]);
+  }, [batch, userId, userName, stationId, flashFeedback, onBatchUpdated, t, refusal]);
 
   useEffect(() => {
     const listener = (e: Event) => {
@@ -223,13 +235,16 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
   // a tech actually wants to see/work from next, and it's right there
   // in the list (same real "active" filter every other new batch
   // shows up under).
+  // Batch 726 (Decision 9, §10.2): no longer so. The same batch moves to
+  // Processing and stays open on this screen.
   const handleTransferToProcessing = async () => {
     setBusy(true);
     const res = await batchService.transferToProcessing(batch.id, userId, userName);
     setBusy(false);
     if ('error' in res) { toast.error(refusal(res.error)); return; }
+    // Batch 726 (Decision 9): the same batch moves on to Processing; it stays open here.
     toast.success(t('batchDetail.transferredToast', { count: res.data.toBatch.items.length, barcode: res.data.toBatch.masterBarcode }));
-    onBack();
+    onBatchUpdated(res.data.toBatch);
   };
 
   const handleComplete = async () => {
@@ -247,10 +262,10 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
     }
   };
 
-  const handleOverride = async (overrideReason: string) => {
+  const handleOverride = async (overrideReason: string, reasonCode?: string) => {
     if (batchOverrideMissing(overrideReason, requirements).length > 0) return;
     setBusy(true);
-    const res = await batchService.overrideAndComplete(batch.id, userId, userName, overrideReason);
+    const res = await batchService.overrideAndComplete(batch.id, userId, userName, overrideReason, stationId ?? undefined, reasonCode);
     setBusy(false);
     if ('error' in res) {
       toast.error(refusal(res.error));
@@ -261,10 +276,10 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
     }
   };
 
-  const handleAbort = async (abortReason: string) => {
+  const handleAbort = async (abortReason: string, reasonCode?: string) => {
     if (batchAbortMissing(abortReason, requirements).length > 0) return;
     setBusy(true);
-    const res = await batchService.abort(batch.id, userId, userName, abortReason);
+    const res = await batchService.abort(batch.id, userId, userName, abortReason, reasonCode);
     setBusy(false);
     if ('error' in res) { toast.error(refusal(res.error)); return; }
     toast.success(t('batchDetail.abortedToast', { barcode: batch.masterBarcode }));
@@ -272,10 +287,10 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
     onBatchUpdated(res.data);
   };
 
-  const handleColdChainAck = async (note: string) => {
+  const handleColdChainAck = async (note: string, reasonCode?: string) => {
     if (coldChainAckMissing(note, requirements).length > 0) return;
     setBusy(true);
-    const res = await batchService.acknowledgeColdChainExcursion(batch.id, userId, userName, note);
+    const res = await batchService.acknowledgeColdChainExcursion(batch.id, userId, userName, note, reasonCode);
     setBusy(false);
     if ('error' in res) { toast.error(refusal(res.error)); return; }
     setShowColdChainAck(false);
@@ -322,6 +337,7 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
 
   const missingCount = gate.missingItems.length;
   const canComplete = gate.canComplete;
+  const purposeBadge = batchPurposeBadge(batch);
 
   return (
     <div className="ps-batch-page">
@@ -337,6 +353,7 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
                 {batch.solutionType && <> · {batch.solutionType}</>}
                 {batch.referralTestRequested && <> · {batch.referralTestRequested}</>}
                 {batch.priority === 'STAT' && <span className="ps-batch-row-stat ps-batch-detail-stat-badge">{t('newContainerModal.stat')}</span>}
+                {purposeBadge && <span className="ps-batch-rack-badge ps-batch-detail-rack-badge">{purposeBadge.labelKey ? t(purposeBadge.labelKey) : purposeBadge.name}</span>}
                 {batch.identifierMode === 'semi_permanent' && (
                   <span className="ps-batch-rack-badge ps-batch-detail-rack-badge">
                     {batch.linkedRackId ? <>🔒 {batch.linkedRackId}</> : <>🔓 {t('batchDetail.rackReleased')}</>}
@@ -348,6 +365,8 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
               {t(`batchManagement.status.${batch.status}`)}
             </span>
           </div>
+
+          <BatchCarrierStepPanel batch={batch} onBatchUpdated={onBatchUpdated} userId={userId} userName={userName} stationId={stationId} stationName={stationName} stationNodes={stationNodes} />
 
           {/* Real, per direct request — a real, pre-existing gap fixed
               here: neither cytologyInstrumentStatus nor
@@ -473,7 +492,7 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
           )}
 
           {batch.status === 'active' && (
-            <div className="ps-batch-scan-hint">📷 {t('batchDetail.scanHintActive')}</div>
+            <div className="ps-batch-scan-hint">📷 {t(batch.sealedAt ? 'batchDetail.scanHintSealed' : 'batchDetail.scanHintActive')}</div>
           )}
           {batch.status === 'reconciling' && (
             <div className="ps-batch-scan-hint ps-batch-scan-hint--reconcile">📷 {t('batchDetail.scanHintReconcile')}</div>
@@ -504,16 +523,16 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
                     <span className={`ps-batch-recon-flag ps-batch-recon-flag--${item.reconciliationStatus === 'matched' ? 'matched' : 'missing'}`}>
                       {item.reconciliationStatus === 'matched' ? `✓ ${t('batchDetail.matched')}` : `○ ${t('batchDetail.missing')}`}
                     </span>
-                  ) : batch.status === 'active' ? (
+                  ) : batch.status === 'active' && !batch.sealedAt ? (
                     <div className="ps-batch-manifest-actions">
                       <div className="ps-batch-move-wrap">
                         <button className="ps-batch-move-btn" onClick={() => setMovingItemId(movingItemId === item.id ? null : item.id)} title={t('batchDetail.moveTitle')}>⇄ {t('batchDetail.move')}</button>
                         {movingItemId === item.id && (
                           <div className="ps-batch-move-picker">
-                            {allBatches.filter(b => b.status === 'active' && b.id !== batch.id).length === 0 ? (
+                            {allBatches.filter(b => b.status === 'active' && !b.sealedAt && b.id !== batch.id).length === 0 ? (
                               <div className="ps-batch-move-picker-empty">{t('batchDetail.noOtherBatches')}</div>
                             ) : (
-                              allBatches.filter(b => b.status === 'active' && b.id !== batch.id).map(b => (
+                              allBatches.filter(b => b.status === 'active' && !b.sealedAt && b.id !== batch.id).map(b => (
                                 <button key={b.id} className="ps-batch-move-picker-row" onClick={() => handleMoveItem(item, b.id)}>
                                   <span className="ps-batch-move-picker-barcode">{b.masterBarcode}</span>
                                   <span className="ps-batch-move-picker-protocol">{b.protocol}</span>
@@ -579,9 +598,9 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
                      for this one real node — there's no real ambiguity
                      to reconcile against; this batch's own manifest
                      already is the trusted, complete record. */
-                  <button className="ps-btn-primary" disabled={batch.items.length === 0 || busy} onClick={handleTransferToProcessing}>
+                  <CapabilityButton capability="batch:carrier:advance" className="ps-btn-primary" disabled={batch.items.length === 0 || busy} onClick={handleTransferToProcessing}>
                     ➜ {t('batchDetail.transferToProcessing')}
-                  </button>
+                  </CapabilityButton>
                 ) : (
                   <button className="ps-btn-primary" disabled={batch.items.length === 0 || busy} onClick={handleStartReconciliation}>
                     {t('batchDetail.startReconciliation')}
@@ -609,7 +628,7 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
           title={t('batchDetail.abortModalTitle')} text={t('batchDetail.abortModalText')}
           label={t('batchDetail.reasonLabel')} placeholder={t('batchDetail.abortReasonPlaceholder')} confirmLabel={t('batchDetail.abortBatch')}
           fieldId="abortReason" missing={batchAbortMissing} requirements={requirements} capability="batch:run:abort"
-          busy={busy} onConfirm={reason => { void handleAbort(reason); }} onCancel={() => setShowAbort(false)}
+          busy={busy} onConfirm={(reason, code) => { void handleAbort(reason, code); }} onCancel={() => setShowAbort(false)}
         />
       )}
 
@@ -618,7 +637,7 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
           title={t('batchDetail.overrideModalTitle')} text={t('batchDetail.overrideModalText', { missing: missingCount, unexpected: batch.unexpectedScans.length })}
           label={t('batchDetail.reasonLabel')} placeholder={t('batchDetail.overrideReasonPlaceholder')} confirmLabel={t('batchDetail.overrideAndComplete')}
           fieldId="overrideReason" missing={batchOverrideMissing} requirements={requirements} capability="batch:reconciliation:override"
-          busy={busy} onConfirm={reason => { void handleOverride(reason); }} onCancel={() => setShowOverride(false)}
+          busy={busy} onConfirm={(reason, code) => { void handleOverride(reason, code); }} onCancel={() => setShowOverride(false)}
         />
       )}
 
@@ -627,7 +646,7 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
           title={t('batchDetail.coldChainAckTitle')} text={t('batchDetail.acknowledgeNotePrompt')}
           label={t('batchDetail.noteLabel')} placeholder={t('batchDetail.coldChainAckPlaceholder')} confirmLabel={t('batchDetail.acknowledge')}
           fieldId="coldChainNote" missing={coldChainAckMissing} requirements={requirements} capability="batch:cold-chain-excursion:acknowledge"
-          busy={busy} onConfirm={note => { void handleColdChainAck(note); }} onCancel={() => setShowColdChainAck(false)}
+          busy={busy} onConfirm={(note, code) => { void handleColdChainAck(note, code); }} onCancel={() => setShowColdChainAck(false)}
         />
       )}
     </div>

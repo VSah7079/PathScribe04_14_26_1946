@@ -36,6 +36,23 @@ describe('BatchReasonModal (Batch 404)', () => {
     expect(screen.getByRole('status').textContent).toContain('fieldRequirements.fields.batchManagement.abortReason');
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '  Wrong protocol ' } });
     fireEvent.click(confirm);
-    expect(onConfirm).toHaveBeenCalledWith('Wrong protocol');
+    // Batch 736: typed only, so no reason code.
+    expect(onConfirm).toHaveBeenCalledWith('Wrong protocol', undefined);
+  });
+
+  it('Batch 736: a tapped reason from the Reason Dictionary is enough, and goes with its code; a note is added to it', async () => {
+    localStorage.clear();
+    const onConfirm = vi.fn();
+    render(<BatchReasonModal title="Abort" text="Sure?" label="Reason" placeholder="" confirmLabel="Abort batch" fieldId="abortReason"
+      missing={batchAbortMissing} requirements={resolveFieldRequirements('batchManagement')} capability="batch:run:abort"
+      busy={false} onConfirm={onConfirm} onCancel={() => {}} />);
+    const pick = await screen.findByRole('radio', { name: 'benchReasons.BA_RUN_CANCELLED' });
+    fireEvent.click(pick);
+    expect(pick.getAttribute('aria-checked')).toBe('true');
+    const confirm = screen.getByText('Abort batch').closest('button') as HTMLButtonElement;
+    expect(confirm.disabled).toBe(false);
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'per Dr P' } });
+    fireEvent.click(confirm);
+    expect(onConfirm).toHaveBeenCalledWith('quickReasons.withNote:{"reason":"benchReasons.BA_RUN_CANCELLED","note":"per Dr P"}', 'BA_RUN_CANCELLED');
   });
 });

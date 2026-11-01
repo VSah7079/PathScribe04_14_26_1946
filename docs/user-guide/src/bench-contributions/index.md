@@ -48,7 +48,7 @@ When you accessioned nothing in the window, the tile says "No accessioning activ
 
 | Field | What it means |
 |---|---|
-| Node name (for example Embedding, Microtomy / Sectioning, Staining) | One box for each processing step where you added items. |
+| Node name (for example Embedding, Microtome / Sectioning, Staining) | One box for each processing step where you added items. |
 | Items added | How many items (cassettes or slides) you personally added to batches at that step in the last 30 days. It counts who added the item, not who created the batch. |
 
 Steps with no items from you are left out. When there are none, the tile says "No batch activity in this window."

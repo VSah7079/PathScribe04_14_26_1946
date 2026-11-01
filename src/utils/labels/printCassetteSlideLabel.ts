@@ -36,6 +36,8 @@ import { slideLevelText } from '@/utils/specimenLabeling';
 import type { LabelDesignation } from '@/services/labeling/labelStyle';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
 import type { CassetteLabelLayoutConfig, SlideLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
+import type { BlockType } from '@/types/case/blockPieces';
+import { BLOCK_TYPE_PROFILES } from '@/utils/blockPieceRules';
 
 export interface PrintCassetteSlideLabelResult {
   ok: true;
@@ -71,6 +73,9 @@ export interface PrintCassetteLabelInput {
    *  own doc comment for the real, deliberate underscore-to-hyphen
    *  substitution this app makes vs. the spec's own literal example. */
   cellBlockNumber?: number;
+  /** Batch 737 (spec §11.1, §11.7): the block's type; a megablock's label goes to the megablock cassette template
+   *  (BLOCK_TYPE_PROFILES) through the interface engine. */
+  blockType?: BlockType;
   /** Real, per direct follow-up flagging a real, confirmed gap: this
    *  field existed on HistologyBlock and was editable, but never
    *  actually reached the printed label — see buildCassetteZplTemplate's
@@ -141,6 +146,7 @@ export async function printCassetteLabel(
       caseId: input.fullAccession, fullAccession: input.fullAccession, specimenDesignator: input.specimenLabel,
       blockId: cassetteId, patientName: input.patientName, gtin, printer,
       copies: input.copies ?? 1,
+      cassetteTemplate: BLOCK_TYPE_PROFILES[input.blockType ?? 'standard'].cassetteTemplate,
     });
     // Real, deliberate cast — same tsconfig-driven strictNullChecks
     // narrowing limitation as the qz_tray branch above; see that
@@ -181,6 +187,8 @@ export interface PrintSlideLabelInput {
    *  distinguishing suffix, per the spec's own "Cell block labels
    *  AND cassettes use the same GS1 DataMatrix formats." */
   cellBlockNumber?: number;
+  /** Batch 732 (spec §11.1): a large-format slide's label (template ZPL-SLIDE-LF-V1 through the interface engine; "LF" after the level on a direct ZPL label). */
+  slideSize?: 'standard' | 'large_format';
 }
 
 /** Real, top-level entry point for a printed (not engraved) slide
@@ -204,7 +212,7 @@ export async function printSlideLabel(
     ? buildCellBlockCassetteId(input.blockLabel, input.cellBlockNumber)
     : input.blockLabel;
 
-  const levelText = slideLevelText(input.level, input.slideDesignation);
+  const levelText = slideLevelText(input.level, input.slideDesignation) + (input.slideSize === 'large_format' && printer.bridgeType !== 'direct_interface_engine' ? ' LF' : '');
   const gs1Fields: Gs1LabelFields = { gtin, accessionNumber: input.fullAccession, blockId: slideId };
   const validationErrors = validateGs1Fields(gs1Fields);
   if (validationErrors.length > 0) {
@@ -220,7 +228,7 @@ export async function printSlideLabel(
     const built = buildNetworkPrintPayload({
       caseId: input.fullAccession, fullAccession: input.fullAccession, specimenDesignator: input.specimenLabel,
       blockId: slideId, patientName: '', gtin, printer,
-      copies: input.copies ?? 1, slide: { level: levelText, stainName: input.stainName },
+      copies: input.copies ?? 1, slide: { level: levelText, stainName: input.stainName, ...(input.slideSize ? { slideSize: input.slideSize } : {}) },
     });
     if (built.ok === false) return { ok: false, message: built.errors.join('; ') };
     await networkPrintJobs.send(built.payload);

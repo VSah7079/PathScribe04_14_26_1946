@@ -2,7 +2,7 @@
 module: Facility Operations
 workflow: Laboratory operations
 role: [Histotechnologist, Laboratory Manager, Accessioner, Administrator]
-keywords: [facility operations, wall display, bench display, dashboard, grossing, intake, embedding, microtomy, staining, IHC, send-out, reference laboratory, scanner, carousel, display profile, display token, offline, stale data, STAT, cold chain]
+keywords: [facility operations, wall display, bench display, dashboard, grossing, intake, embedding, microtome, staining, IHC, send-out, reference laboratory, scanner, carousel, display profile, display token, offline, stale data, STAT, cold chain]
 routes: [/facility-ops-dashboard]
 previous: pathology-workspace
 next: or-suite
@@ -14,14 +14,14 @@ status: Draft
 
 ## Overview
 
-**Purpose.** The Facility Operations display is a wall screen for a laboratory bench or room. It shows, in large high-contrast type, what is waiting and what is late in one department: Grossing and Intake, Embedding and Microtomy, Staining and IHC, Send-Out and Reference Laboratory, or Diagnostic Sign-Out and Scanner. A display can rotate through several of these views by itself.
+**Purpose.** The Facility Operations display is a wall screen for a laboratory bench or room. It shows, in large high-contrast type, what is waiting and what is late in one department: Grossing and Intake, Embedding and Microtome, Staining and IHC, Send-Out and Reference Laboratory, or Diagnostic Sign-Out and Scanner. A display can rotate through several of these views by itself.
 
 **Intended users.** Everyone who works in or walks past the area. The screen is read-only for the people watching. It has nothing to click once it is running. An administrator sets it up once.
 
 **Where it fits.** The numbers come from the same batches, cases and scan runs that staff work in [Batch Management](help:batch-management), the Pathology Workspace and the other bench screens. Nothing is entered here. The display does not use anyone's sign-in, so it carries no patient names or MRNs: only batch barcodes, accession numbers and counts.
 
 !!! note "What the display needs"
-    A display is bound to a **Display Profile** (which facility, which views, how fast they rotate) and needs a **Display Token** that an administrator issued for it. Without them it cannot start. Display Profiles and tokens are set up in Configuration, System, Display Profiles (see the Administrator Guide). The administrator's page has an **Open Facility Ops Dashboard** button; a bench screen can also simply be pointed at the page address.
+    A display is bound to a **Display Profile** (which facility, which views, how fast they rotate) and needs a **Display Token** that an administrator issued for it. Without them it cannot start. Display Profiles and tokens are set up in Configuration, System, Display Profiles (see the Administrator Guide). A profile can also show only carriers of chosen purposes (for example Routine only, leaving Research and Teaching carriers off the wall); add-on orders always show. The administrator's page has an **Open Facility Ops Dashboard** button; a bench screen can also simply be pointed at the page address.
 
 !!! note "Demonstration data today"
     In the demonstration build the figures come from the demonstration batches, cases, referrals and scan runs held in the browser. The "Offline / Stale Data" badge reports on the screen's own refresh, not on any real instrument. The check on the Display Token is made in the browser; the server-side check (refusing a revoked token on the server) is planned and not built.
@@ -53,7 +53,7 @@ If the token is wrong, expired or revoked, the display says so ("That Display To
 
 **Queue.** The list of items in the department, oldest first. Each row shows a label and detail, a **STAT** tag for urgent items, and on the right either a countdown or an age ("2h 10m ago"). "Nothing in queue right now." shows when the list is empty. A countdown row is tinted amber when 30 minutes or fewer remain and red once overdue ("Overdue 1h 5m").
 
-### The five views, and how the numbers are worked out
+### The six views, and how the numbers are worked out
 
 All views are filtered to the profile's facility. A batch belongs to a facility through its case's accession number or the workstation it was made on.
 
@@ -68,15 +68,16 @@ All views are filtered to the profile's facility. A batch belongs to a facility 
 | Alerts | One critical **STAT** alert per pending STAT specimen, and a critical **Decal Overdue** alert per overdue decalcification batch. |
 | Queue | Active batches at decal, processing or checkout, oldest first. A decalcification batch with a target time counts down; others show their age. |
 
-**Embedding and Microtomy**
+**Embedding and Microtome**
 
 | Tile | Meaning |
 |---|---|
 | Embedding Batches | Active batches at the Embedding step. |
-| Microtomy Batches | Active batches at the Microtomy / Sectioning step. |
+| Microtome Batches | Active batches at the Microtome / Sectioning step. |
 | STAT Batches | Active batches marked STAT (red when any). |
 | Cassettes/Slides In Process | Total items in those batches. |
-| Alerts and queue | A critical **STAT** alert for each STAT batch; the queue lists the batches by age. |
+| Add-Ons waiting | Add-on orders waiting at the microtome (Batch 726/727): every add-on slide still Pending Cut, whether or not it is in a carrier. Amber when one is close to the profile's time limit X, red when one is past it. |
+| Alerts and queue | A critical **STAT** alert for each STAT batch and each STAT add-on. The queue lists batches and add-ons together by age, oldest first. Each add-on row shows the accession number with an **ADD-ON** tag (next to the STAT tag when it is STAT), the order type beneath it (Recut / levels, Special stain, IHC, Send-out sections, Molecular sections), the block and stain, and a countdown to X. An add-on that is STAT or past X is **Pinned** to the top; the others keep their place by age. |
 
 **Staining and IHC**
 
@@ -107,6 +108,23 @@ All views are filtered to the profile's facility. A batch belongs to a facility 
 | Image QC Failed | Completed slides whose image quality check failed (amber when any). |
 | Alerts | Critical **Scan Failed** and warning **Scan QC Failed**, with the slide position and the reason. |
 | Queue | Scanner runs, by time since loading. |
+
+**Stations** (Batch 727)
+
+The live minimum set: what is waiting at each step, across the lab.
+
+| Tile or list | Meaning |
+|---|---|
+| STAT waiting | Open STAT carriers plus STAT add-ons waiting (red when any). |
+| Past the time limit | Open carriers older than the profile's time limit X, plus add-ons past X (red when any). |
+| Add-Ons waiting | As on Embedding and Microtome. |
+| Missing or unexpected | Items still missing or scanned unexpectedly in carriers being reconciled (amber when any). |
+| Cold-chain excursions | Carriers with a temperature excursion nobody has acknowledged (red when any). |
+| Instrument runs failed | Staining runs the stainer reported as failed (red when any). |
+| Not scanned recently | Cassettes, blocks and slides not scanned at any station for longer than the profile's not-scanned time (240 minutes unless set), leaving out finished items (a block completed at the Microtome, a slide sent on at Slide Distribution). Amber when any. Batch 729. |
+| Alerts | **Reconciliation** (missing and unexpected counts), **Cold-Chain Excursion**, **Run Failed**, **Decal Overdue** and, for up to ten of the longest, **Not scanned** ("Last scanned at …, … ago"). |
+| A step's row | Carriers and items waiting there; from Batch 729 also the items there without a carrier ("without a carrier: …"), so work moved by hand is counted. A step with only such items gets a row too. |
+| Queue | One row per processing step that has open carriers: the number of carriers and items, and the age of the oldest. Red when the oldest is past X. |
 
 ### Toolbar
 

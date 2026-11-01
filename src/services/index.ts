@@ -105,6 +105,10 @@ export { sectioningProtocolService } from './stains/sectioningProtocolServiceIns
 export { stainOrderMacroService } from './stains/stainOrderMacroServiceInstance';
 export { managementReviewService } from './deficiencies/managementReviewServiceInstance';
 export { batchService } from './batches/batchServiceInstance';
+// Batch 726 (Lab Workflow & Batch spec §7): station-level tracking, the scan event log.
+export { stationScanEventService } from './stationScans/stationScanEventServiceInstance';
+export { labelPrintRouteService } from './labelPrintRoutes/labelPrintRouteServiceInstance';
+export { itemEndStateService } from './itemEndStates/itemEndStateServiceInstance'; // Batch 731 (spec §10.5)
 // Batch 610 (#17, #123): cold chain storage units, condition types, readings and the labelled Simulated feed.
 export { storageUnitService } from './coldChain/storageUnitServiceInstance';
 export { storageConditionTypeService } from './coldChain/storageConditionTypeServiceInstance';
@@ -668,7 +672,7 @@ export { updateCaseWithRetry, updateCaseWithRetryOrThrow, overwriteAfterConflict
 export { savePageChange, commitMergeReview, takeUpSavedCase, takeUpNewerCase, takeTheirVersion, selectionAfterTakeUp, orchestrationDiagnosticAfterTakeUp, MergeReviewPendingError, type TheirVersion, type CasePageSelection, type PageSaveOutcome, type PendingChange, type MergeReview } from './cases/caseWrite';
 export { caseWriteDeps, caseOverwriteDeps } from './cases/caseWriteDeps';
 export { saveDraftParts, mergeDraftParts, DRAFT_LIST_KEYS, type DraftSaveResult, type DraftMerge } from './cases/caseWrite';
-// Batch 460: the billing review panel's changes, shared by the report page, the Cytology Workspace and Microtomy.
+// Batch 460: the billing review panel's changes, shared by the report page, the Cytology Workspace and Microtome.
 export { recordCaseCharge, recordCaseCredit, recordCaseCodeCorrection, enforceBillingReview, auditBillingSuggestionDeclined, billingSourceLabel, caseBillingChargeDeps, type CaseBillingChargeDeps, type CaseChargeOutcome } from './billing/caseBillingCharges';
 export { codingWithApproved, codingWithRejected, codingWithOverride, codingWithoutCode, codingWithCorrection, groupApprovalsByUnit, specimensWithBaseCodeAdded, specimensWithBaseCodeRemoved, specimensWithBaseCodeCorrected, specimensWithMatrixCode, matrixSlidesWithEvaluatedCores, type BillingApprovalItem, type UnitCoding } from './billing/caseBillingCoding';
 export { enforceAppliedCodeCorrection } from './billing/correctServiceCharge';
@@ -729,7 +733,18 @@ export {
   applyCaseReportImagesToPdf, applyCaseReportImagesToBlob, CASE_IMAGES_FAILED,
   REPORT_IMAGE_TYPES, MAX_REPORT_IMAGES, MAX_CAPTION_LENGTH,
   type CaseReportImage, type AttachResult, type AttachFailure, type ReportImageRef,
+  insertIntoReport, takeOutOfReport, type ReportEditState, type PlacementProblem,
 } from './imageAssociation/caseReportImages';
+export { reportSectionImagesFor } from './imageAssociation/reportSectionImages';
+export { placementFetchUrl } from './imageAssociation/placementLinks';
+// Batch 742: case attachments (pointers only; the bytes go to the hospital's storage through the storage adapter).
+export { attachmentStorageService } from './caseAttachments/attachmentStorageServiceInstance';
+export {
+  attachExternalFile, addAttachmentLink, unlinkAttachment, listCaseAttachments, subscribeCaseAttachments,
+  type UploadProblem, type LinkProblem, type UnlinkProblem,
+} from './caseAttachments/caseAttachments';
+export * from './caseAttachments/attachmentCatalog';
+export { ATTACHMENT_ACCEPT, DEFAULT_ATTACHMENT_WARN_BYTES, isOverWarningSize, megabytes } from './caseAttachments/attachmentFiles';
 export { lisStagingQueueService } from './lisIngestion/lisStagingQueueServiceInstance';
 export { migrationFieldMappingService } from './migration/migrationFieldMappingServiceInstance';
 export { getMockInterfaceEngineSettings, setMockInterfaceEngineSettings } from './mockInterfaceEngine/mockInterfaceEngineSettings';

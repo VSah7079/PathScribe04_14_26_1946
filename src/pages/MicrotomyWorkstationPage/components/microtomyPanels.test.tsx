@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// Batch 389 (PS-359): the rest of the Microtomy page's text. The label-fit
+// Batch 389 (PS-359): the rest of the Microtome page's text. The label-fit
 // warnings and label size are translated (the util returns the numbers, the
 // screen words them), and the cytology preparation suggestions are joined the
 // way the user's language does.

@@ -1,9 +1,11 @@
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # pages/FacilityOpsDashboard/
 
 Real, per PS-288 (Enterprise Laboratory Operations Dashboard Engine),
 fifth and final of the PS-284→285→286→287→288 workstation-build
 sequence. Five real, high-contrast, wall-display department dashboard
-views (Grossing & Intake, Embedding & Microtomy, Staining & IHC,
+views (Grossing & Intake, Embedding & Microtome, Staining & IHC,
 Send-Out & Reference Laboratory, Diagnostic Sign-Out/Scanner) behind
 one real route (`/facility-ops-dashboard`), bound via a real
 [Display Profile](../../services/facilityOpsDashboard/README.md).
@@ -85,3 +87,15 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 560 (PS-539 phase 2d)
 
 - `FacilityOpsDashboardPage.tsx`: re-reads when the hub says the facility's figures changed (topic `facilityOps`); "out of date" allows two minutes while live; only the latest read is shown; times in the user's language.
+
+## Batch 727
+
+`components/DashboardSummaryView.tsx` (+ new `.css`): labels, alert kinds and details shown in the display's language from the summaries' locale keys (they were English text from the services); the ADD-ON tag beside the STAT tag, the order type beneath, "Pinned"; accession numbers tagged `data-phi`. `viewRegistry.ts`: the sixth view, Stations; `compute` takes the profile's options, and the page passes X.
+
+## Batch 728
+
+- `FacilityOpsDashboardPage.tsx` passes the profile's purpose filter to the view.
+
+## Batch 729
+
+- `FacilityOpsDashboardPage.tsx` passes the profile's not-scanned time.

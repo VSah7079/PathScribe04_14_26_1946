@@ -55,6 +55,8 @@ import i18n from '@/i18n/config';
 const TEMPLATE_VERSION = 'ZPL-CASSETTE-V3'; // Section 5.1's own example value — the real, current template's own identifier.
 /** Batch 347 (PS-54): the slide label's template identifier. */
 const SLIDE_TEMPLATE_VERSION = 'ZPL-SLIDE-V1';
+/** Batch 732: a large-format (megablock) slide's label template. */
+const SLIDE_TEMPLATE_LF_VERSION = 'ZPL-SLIDE-LF-V1';
 /** Batch 615 (PS-360): vial and rack/batch label template identifiers. */
 export const VIAL_TEMPLATE_VERSION = 'ZPL-VIAL-V1';
 export const RACK_TEMPLATE_VERSION = 'ZPL-RACK-V1';
@@ -86,7 +88,10 @@ export interface BuildNetworkPrintPayloadInput {
   callbackUrl?: string;
   /** Batch 347 (PS-54): a slide label's level and stain. Present → a SLIDE
    *  payload; absent → a cassette, as before. */
-  slide?: { level: string; stainName: string };
+  slide?: { level: string; stainName: string; slideSize?: 'standard' | 'large_format' };
+  /** Batch 737 (spec §11.1): a cassette's label template (the block type's, e.g. ZPL-CASSETTE-MEGA-V1 for a
+   *  megablock); none: the standard cassette template. */
+  cassetteTemplate?: string;
 }
 
 export interface BuildNetworkPrintPayloadResult {
@@ -148,7 +153,7 @@ export function buildNetworkPrintPayload(input: BuildNetworkPrintPayloadInput): 
     blockId: input.blockId,
     patientName: input.patientName,
     gs1DataMatrix: gs1.raw,
-    ...(input.slide ? { labelType: 'SLIDE' as const, slide: { level: input.slide.level, stainName: input.slide.stainName } } : { labelType: 'CASSETTE' as const }),
+    ...(input.slide ? { labelType: 'SLIDE' as const, slide: { level: input.slide.level, stainName: input.slide.stainName, ...(input.slide.slideSize === 'large_format' ? { slideSize: 'large_format' as const } : {}) } } : { labelType: 'CASSETTE' as const }),
   };
 
   const eventId = newNetworkPrintJobId(input.caseId);
@@ -158,7 +163,8 @@ export function buildNetworkPrintPayload(input: BuildNetworkPrintPayloadInput): 
     idempotencyKey: eventId,
     action: 'PRINT_NETWORK_LABEL',
     timestamp: new Date().toISOString(),
-    templateVersion: input.slide ? SLIDE_TEMPLATE_VERSION : TEMPLATE_VERSION,
+    // Batch 732 (spec §11.7): a large-format slide asks the printer for the large-format slide template.
+    templateVersion: input.slide ? (input.slide.slideSize === 'large_format' ? SLIDE_TEMPLATE_LF_VERSION : SLIDE_TEMPLATE_VERSION) : (input.cassetteTemplate ?? TEMPLATE_VERSION),
     callbackUrl: input.callbackUrl ?? NETWORK_PRINT_CALLBACK_PATH,
     targetPrinter: {
       printerId: input.printer.printerId,

@@ -801,13 +801,15 @@ Unlocks: [Printerprofielen](#screen-printer_profiles), [Macroscopie-apparatuur](
 |---|---|---|---|---|
 | Code | Tekst, letters, cijfers, "_" en "-" | Verplicht | Het ID dat andere records dragen, bijvoorbeeld PANTHER_02 op een moleculaire batch en de barcode van zijn deck. Moet uniek zijn. Kan na het aanmaken niet worden gewijzigd. | Leeg |
 | Naam | Tekst | Verplicht | | Leeg |
-| Soort | Keuze: Analyser, Kleurautomaat, Weefselprocessor, Coupescanner, Camera, Weegschaal, Etikettenprinter, Graveermachine, Opslageenheid, Overig | Verplicht | Actieve analysers zijn wat moleculaire batches kunnen kiezen. | Analyser |
+| Soort | Keuze: Analyser, Kleurautomaat, Weefselprocessor, Processor voor vloeibare cytologie, Coupescanner, Camera, Weegschaal, Etikettenprinter, Graveermachine, Opslageenheid, Overig | Verplicht | Actieve analysers zijn wat moleculaire batches kunnen kiezen. | Analyser |
 | Merk, Model | Tekst | Optioneel | | Leeg |
 | Serienummer | Tekst | Optioneel | | Leeg |
 | Uitvoerend laboratorium | Keuzelijst | Verplicht | Wijzigen wist het scanstation. | Geselecteerde locatie |
 | Scanstation | Keuzelijst met stations in dat lab | Optioneel | Waar het staat. Bij een analyser controleert de verzending van de werklijst dat deze vanaf dit station wordt verstuurd. Een station in een ander lab wordt geweigerd. | Geen |
 | Kalibratie elke (dagen) | Geheel getal, 1 tot 3650 | Optioneel | Leeg betekent geen schema. Vervaldatums tellen vanaf de laatste geslaagde vermelding in het servicelogboek. | Leeg |
 | Onderhoud elke (dagen) | Geheel getal, 1 tot 3650 | Optioneel | Dezelfde regel. | Leeg |
+| Laagste temperatuur (°C), Hoogste temperatuur (°C) | Getallen, laagste onder hoogste; beide mogen leeg zijn | Optioneel | Batch 730: het bereik voor een temperatuurcontrole in het apparatuurlogboek. Een meting erbuiten is afgekeurd; het bereik wordt bij elke registratie overgenomen. | Leeg |
+| Neemt grootformaatcoupes | Selectievakje, alleen kleurautomaten en coupescanners | Optioneel | Batch 732: het apparaat neemt grootformaatcoupes (megablokken). Coupedistributie stuurt een grootformaatcoupe alleen naar een scanner waarbij dit is aangevinkt. | Niet aangevinkt |
 | Status | Actief / Inactief | Optioneel | | Actief |
 | Deckindeling | Rijen, alleen analysers | Optioneel | De posities op het deck van de analyser. Elke rij: Deck of bay, Positie-ID (letters, cijfers, "_", geen twee gelijke) en Neemt op (Extractieplaat, Reagenscartridge, Monsterbuizenrek; minstens één). Rekken laden biedt alleen posities aan die passen. Het positie-ID wordt op de barcode van de decklocatie afgedrukt. | Geen |
 
@@ -821,6 +823,10 @@ Unlocks: [Printerprofielen](#screen-printer_profiles), [Macroscopie-apparatuur](
 | Uitgevoerd door | Tekst | Verplicht | Medewerker of servicetechnicus. | Uw naam |
 | Resultaat | Keuze: Geslaagd, Afgekeurd, Niet van toepassing | Verplicht | | Geslaagd |
 | Opmerkingen | Tekst | Verplicht bij een mislukking of storing | | Leeg |
+
+#### Kleuringsrekken
+
+Batch 737. Getoond onder het register wanneer het lab herbruikbare kleuringsrekken heeft (gegraveerde RACK-id's). Elke rij is een rek met het vakje **Neemt grootformaatglaasjes**, direct opgeslagen (vereist `config:equipment:manage`). Batchbeheer weigert een grootformaatglaasje (gesneden uit een megablok) dat gescand wordt op een kleuringsdrager die geen grootformaatglaasjes neemt; een wegwerpdrager neemt ze wanneer **Neemt grootformaatglaasjes (megablokken)** is aangevinkt in Nieuwe container. De demo heeft één zo'n rek, RACK-STAIN-LF-01.
 
 **7. Machtigingen.** Openen: `screen:configuration:open`. Toevoegen, bewerken, deactiveren: `config:equipment:manage`. Een vermelding in het servicelogboek vastleggen: `equipment:maintenance:record`. Beide hoog risico. Admin en Lab Director hebben beide. De rollen Histotechnologist, Cytotechnologist en Molecular Technologist hebben ook de machtiging voor het logboek.
 **Bekende beperkingen.** Vervaldatums van service worden berekend in de tijdzone van de faciliteit op de instellingen van het Bijdragedashboard.

@@ -1,3 +1,9 @@
+**Batch 741:** `Protocol.divisionPurposes` (the aliquots Divide specimen suggests); set on the fluid and FNA demo protocols.
+
+**Batch 739:** `IProtocolService.ts`: a decant track's `decantType` and `aliquotPurpose`. `cytologyDemoProtocols.ts`: HPV tracks make aliquots; new ThinPrep and SurePath Pap protocols.
+
+**Batch 738:** `surgicalDemoProtocols.ts` (new): seven surgical grossing protocols for the demo (colon resection for tumor and without, small biopsy, skin biopsy, breast core and excision, prostate cores) and `SURGICAL_DEMO_PROTOCOL_BY_ENTRY` / `applySurgicalDemoProtocols`, which link them to starter dictionary entries; seeded in `mockProtocolService.ts`. Test: `surgicalDemoProtocols.test.ts`.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/protocols/

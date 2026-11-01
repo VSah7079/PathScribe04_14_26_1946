@@ -158,6 +158,7 @@ The request does not reset anything by itself, and nobody is told the new passwo
 2. **Second factor.** If your organisation requires one, enter the six-digit code after the password. The first time, add the secret key to an authenticator app, type the code, and save the recovery codes.
 3. **Station set once.** If an administrator has given you a default station, or this computer already has one, you are not asked. The exception: if the station set on this computer belongs to a facility you do not work for, it is not used for you. The window appears again with a note saying so; choose one of your stations, or skip to continue with no station. The computer keeps its setting for the next person.
 4. **Change your station later.** Use the station icon next to your name at the top.
+5. **Touch layout on this computer** (Batch 735). The same station menu sets how the station screens look on this computer: **Auto** (the default: large touch targets on a tablet, the compact layout with a mouse), **Always on** or **Always off**. Under the choice it says which is in use: "Station screens use large touch targets." or "Station screens use the compact layout." The search box at the top always opens the keyboard (you type into it); its results stay above the keyboard and scroll.
 
 ### Exception handling
 

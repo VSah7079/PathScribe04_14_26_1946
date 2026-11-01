@@ -38,7 +38,7 @@ describe('screen access (Batch 374)', () => {
     expect(await svc.canOpen('embedding')).toBe(true);
     expect(await svc.canOpen('pathologyWorkspace')).toBe(true);
     expect(await svc.canOpen('qualityCompliance')).toBe(false);
-    expect(asked).toEqual(['screen:configuration:open', 'screen:embedding:open', 'screen:grossing:open', 'screen:add-on-orders:open', 'screen:margin-exception-review:open', 'screen:cytology-workspace:open', 'screen:microtomy:open', 'screen:embedding:open', 'screen:audit-log:open', 'screen:quality-assurance:open', 'screen:registry-exceptions:open', 'screen:autopsy-dashboards:open', 'screen:outbound-queue:open']);
+    expect(asked).toEqual(['screen:configuration:open', 'screen:embedding:open', 'screen:grossing:open', 'screen:add-on-orders:open', 'screen:margin-exception-review:open', 'screen:cytology-workspace:open', 'screen:cytology-prep:open', 'screen:microtomy:open', 'screen:embedding:open', 'screen:audit-log:open', 'screen:quality-assurance:open', 'screen:registry-exceptions:open', 'screen:autopsy-dashboards:open', 'screen:outbound-queue:open']);
     expect(await svc.canOpen('batchManagement')).toBe(false);
   });
 

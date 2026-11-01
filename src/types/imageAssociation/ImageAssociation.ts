@@ -52,6 +52,8 @@ export interface ImageAssociation {
   fallbackUrl?: string;
   /** Batch 609 (PS-44): printed under the image in the report. Optional. */
   caption?: string;
+  /** Batch 742: the recorded file type (application/pdf, image/jpeg, image/png), when the link itself has no extension. */
+  mimeType?: string;
   createdAt: string;
   createdBy?: string;
 }

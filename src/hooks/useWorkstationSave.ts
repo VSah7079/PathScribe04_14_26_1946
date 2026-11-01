@@ -9,7 +9,7 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { caseWriteDeps } from '@/services';
-import { runCaseAction, saveSpecimenChange, saveFailedKey, type CaseActionOutcome, type SaveChangeOutcome, type SpecimenSaver } from '@/services/workstationSave/runCaseAction';
+import { runCaseAction, saveSpecimenChange, saveCaseChange, saveFailedKey, type CaseActionOutcome, type SaveChangeOutcome, type SpecimenSaver } from '@/services/workstationSave/runCaseAction';
 import type { Case } from '@/types/case/Case';
 import type { Specimen } from '@/types/case/Specimen';
 
@@ -34,7 +34,14 @@ export function useWorkstationSave() {
     return outcome;
   }, [note]);
 
+  /** Batch 729: a change to other case fields (a matrix block). */
+  const saveCaseFields = useCallback(async (caseId: string, derive: (current: Case) => Partial<Case> | null): Promise<SaveChangeOutcome> => {
+    const outcome = await saveCaseChange(caseId, derive, caseWriteDeps);
+    note(outcome);
+    return outcome;
+  }, [note]);
+
   const clearSaveError = useCallback(() => setSaveError(null), []);
 
-  return { saveError, clearSaveError, runAction, saveChange };
+  return { saveError, clearSaveError, runAction, saveChange, saveCaseFields };
 }

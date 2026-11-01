@@ -58,7 +58,7 @@ export const DEFAULT_CASSETTE_LABEL_LAYOUT: CassetteLabelLayoutConfig = {
   fontHeightMm: 1.4,
 };
 
-/** Real, per PS-284 (Microtomy Workstation) — "a slide-label
+/** Real, per PS-284 (Microtome Workstation) — "a slide-label
  *  equivalent may be worth the same treatment" as
  *  CassetteLabelLayoutConfig above. A slide's own printable face is a
  *  genuinely different real shape from a cassette's angled face (the

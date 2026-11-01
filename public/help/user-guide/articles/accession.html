@@ -10,7 +10,7 @@
 <h2 id="screen-tour">Screen Tour</h2>
 <figure class="ps-ug-figure"><img src="img/accession-overview.png" alt="The Accession screen on the Case &amp; Patient tab"><figcaption>The Accession screen on the Case &amp; Patient tab</figcaption></figure>
 
-<p>The screen is titled <strong>Accession</strong> ("Log a new Orchestration case and assign Grossing Templates per specimen"). It has two tabs, <strong>Case &amp; Patient</strong> and <strong>Specimens</strong>. A third tab, <strong>Outside Patient Data</strong>, appears only for an outside or contract case.</p>
+<p>The screen is titled <strong>Accession</strong> ("Log a new Orchestration case and assign Grossing Templates per specimen"). On a wide window (about 1,480 pixels or more, which includes a full-HD monitor) it shows two columns at once: <strong>Case &amp; Patient</strong> on the left, and <strong>Specimens</strong> on the right, with the Cytology card under the specimens when a cytology specimen is chosen. On a narrower window it has two tabs, <strong>Case &amp; Patient</strong> and <strong>Specimens</strong>, one at a time. A third tab, <strong>Outside Patient Data</strong>, appears only for an outside or contract case; on a wide window it replaces the Specimens column while it is selected.</p>
 <figure class="ps-ug-figure"><img src="img/accession-specimens.png" alt="The Specimens tab with one specimen entered"><figcaption>The Specimens tab with one specimen entered</figcaption></figure>
 
 <figure class="ps-ug-figure"><img src="img/accession-after-submit.png" alt="Ready to accession, the labels card and the assigned grossing templates"><figcaption>Ready to accession, the labels card and the assigned grossing templates</figcaption></figure>
@@ -378,7 +378,7 @@
 <tbody>
 <tr>
 <td>Case &amp; Patient, Specimens</td>
-<td>The tabs. The Specimens tab shows how many specimens have a description, for example "Specimens (2)".</td>
+<td>The tabs on a narrow window, and the two column headings on a wide window. The Specimens heading shows how many specimens have a description, for example "Specimens (2)".</td>
 </tr>
 <tr>
 <td>Search (magnifier)</td>
@@ -386,7 +386,7 @@
 </tr>
 <tr>
 <td>Next: Specimens</td>
-<td>Moves to the Specimens tab. Greyed out until the required case fields are filled.</td>
+<td>Moves to the Specimens tab. Greyed out until the required case fields are filled. Not shown on a wide window, where the specimens are already beside the case.</td>
 </tr>
 <tr>
 <td>+ Add Specimen</td>
@@ -398,7 +398,7 @@
 </tr>
 <tr>
 <td>Back</td>
-<td>Returns to Case &amp; Patient.</td>
+<td>Returns to Case &amp; Patient. Not shown on a wide window.</td>
 </tr>
 <tr>
 <td>Submit Accession</td>
@@ -462,18 +462,18 @@
 </tbody>
 </table>
 <h3 id="hotkeys">Hotkeys</h3>
-<p>On this screen: <strong>Alt+N</strong> adds a specimen, <strong>Alt+I</strong> goes to Import from Order, <strong>Alt+Shift+C</strong> opens the case comment, <strong>Alt+.</strong> and <strong>Alt+,</strong> move between the two tabs, and <strong>Alt+1</strong> to <strong>Alt+6</strong> jump to the clinical history categories (cytology only). <strong>Alt+Enter</strong> ("Submit Case") only takes you to the Specimens tab; you must still select <strong>Submit Accession</strong> yourself. F1 opens this guide.</p>
+<p>On this screen: <strong>Alt+N</strong> adds a specimen, <strong>Alt+I</strong> goes to Import from Order, <strong>Alt+Shift+C</strong> opens the case comment, <strong>Alt+.</strong> and <strong>Alt+,</strong> move between the two tabs (on a wide window both are already on screen, so they change nothing you can see), and <strong>Alt+1</strong> to <strong>Alt+6</strong> jump to the clinical history categories (cytology only). <strong>Alt+Enter</strong> ("Submit Case") only takes you to the Specimens tab (on a wide window it changes nothing you can see); you must still select <strong>Submit Accession</strong> yourself. F1 opens this guide.</p>
 <h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
 <h3 id="standard-workflow">Standard workflow</h3>
 <ol>
-<li>Open Accession from the Home tile. The Case &amp; Patient tab opens.</li>
+<li>Open Accession from the Home tile. The Case &amp; Patient tab opens (on a wide window the specimens are beside it).</li>
 <li>If an order is waiting, type its number, MRN, name or date of birth in <strong>Import from Order</strong>. Select the order in the list. The patient, facility, provider, clinical indication and specimens fill in; read the note under Clinical Indication and edit the text if it needs it. If the form already holds your typing, a window "Replace Unsaved Information" asks you to confirm.</li>
 <li>If there is no order, leave that box and keep going.</li>
 <li>Check <strong>Patient Origin / Intake Type</strong>; leave it on Standard unless one of the exceptions below applies.</li>
 <li>Enter or check the names, Date of Birth, Sex, Patient ID and Priority.</li>
 <li>Choose the <strong>Submitting Facility</strong>. The Patient ID hint now shows the facility's format.</li>
 <li>Enter the <strong>Requesting Provider</strong>, and a Clinical Indication if you have one.</li>
-<li>Select <strong>Next: Specimens</strong>. The Specimens tab opens with Specimen A.</li>
+<li>Select <strong>Next: Specimens</strong>. The Specimens tab opens with Specimen A. (On a wide window skip this step: Specimen A is already on the right.)</li>
 <li>Select the Dictionary Entry button, pick the specimen type, then check the Description, site and laterality against the requisition.</li>
 <li>Choose the Container Type, then enter the times you know: collected, placed in fixative, received.</li>
 <li>For another specimen, select <strong>+ Add Specimen</strong> (or Alt+N) and repeat.</li>

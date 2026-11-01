@@ -1,4 +1,4 @@
-// Batch 610 (#16): "Block exhausted" on the Microtomy workstation. The flag remembers the block's
+// Batch 610 (#16): "Block exhausted" on the Microtome workstation. The flag remembers the block's
 // status, Cancel or Modify puts it back, Approve leaves it Exhausted, and cutting waits until then.
 import { describe, it, expect } from 'vitest';
 import type { Specimen } from '@/types/case/Specimen';
@@ -62,7 +62,7 @@ describe('the pathologist answers', () => {
   });
 });
 
-describe('the Microtomy workstation will not cut a flagged block', () => {
+describe('the Microtome workstation will not cut a flagged block', () => {
   it('refuses to start a slide while the flag is open, and allows it after Approve', () => {
     const s = flagged('Embedded');
     expect(markStainPrinting(s, 'B1', 'S2')).toMatchObject({ ok: false });

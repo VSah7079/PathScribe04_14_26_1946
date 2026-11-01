@@ -904,6 +904,8 @@
       "fragile": "Frágil",
       "levelsCut": "{{count}} corte(s) de nivel ya realizado(s)",
       "lost": "Perdido",
+      "matrixParts": "partes {{parts}}",
+      "matrixTitle": "Bloques compartidos (matriz)",
       "noBlocks": "Esta muestra no tiene bloques.",
       "specimen": "Muestra {{label}} {{description}}",
       "tinyTissue": "Tejido diminuto",
@@ -923,7 +925,9 @@
         "recut": "Recorte / nivel profundo",
         "special_stain": "Tinción especial"
       },
+      "levelCount": "Niveles",
       "levelDepth": "Profundidad del nivel (µm)",
+      "levelsPerSlide": "Niveles por portaobjetos",
       "noStains": "No hay tinciones coincidentes.",
       "panelPicker": "Panel de IHQ",
       "panelStainsMissingAll": "Ninguna de las tinciones de este panel está en el diccionario de tinciones ({{stains}}), así que no se puede añadir nada. Solicite a su administrador que las añada.",
@@ -939,28 +943,72 @@
       "primaryPathologistLine": "Patólogo principal: {{name}}"
     },
     "errors": {
+      "alternativeRefused": {
+        "needsNewSection": "Uno de los portaobjetos en espera necesita un nuevo corte y no puede ir a un portaobjetos sin teñir. Marque «Responder solo para este portaobjetos» y responda uno a uno.",
+        "notEnoughSlides": "No hay suficientes portaobjetos sin teñir para todos los que esperan. Marque «Responder solo para este portaobjetos» y responda uno a uno.",
+        "nothingLeft": "El bloque ya estaba agotado, no es posible el corte destructivo. Elija una alternativa."
+      },
       "blockCancelled": "El bloque {{block}} está cancelado.",
       "blockDamaged": "El bloque {{block}} está marcado como dañado; no se pueden pedir cortes hasta que se vuelva a incluir.",
-      "blockExhausted": "El bloque {{block}} está agotado; no se pueden realizar más peticiones de corte.",
+      "blockExhausted": "El bloque {{block}} está agotado. Elija qué hacer con cada línea en el recuadro situado sobre el generador: un portaobjetos sin teñir ya cortado, una reinclusión u otro bloque de la misma muestra.",
       "blockLost": "El bloque {{block}} está marcado como perdido; no se pueden pedir cortes hasta que se encuentre.",
       "blockNotFound": "No se encontró el bloque {{block}} en este caso.",
       "caseNotFound": "No se encontró ningún caso para «{{query}}».",
       "enterAccession": "Introduzca o escanee un número de registro.",
+      "exhaustedNeedsChoice_many": "El bloque {{block}} está agotado: a {{count}} líneas les falta una alternativa.",
+      "exhaustedNeedsChoice_one": "El bloque {{block}} está agotado: a {{count}} línea le falta una alternativa.",
+      "exhaustedNeedsChoice_other": "El bloque {{block}} está agotado: a {{count}} líneas les falta una alternativa.",
+      "exhaustedReasonRequired": "El bloque {{block}} está agotado: indique el motivo de esta petición.",
       "failed": "No se pudo completar. Es posible que la petición haya cambiado; vuelva a abrir el caso e inténtelo de nuevo.",
       "inHouseNotAvailable": "El laboratorio de este caso no realiza {{tests}} internamente. Elija envío externo.",
+      "matrixExhausted": "Bloque de matriz {{block}}: el tejido elegido está agotado. Pida desde otro bloque de la parte o solicite una reinclusión.",
+      "mixedPieces": "Bloque {{block}}: algunos de los fragmentos elegidos están agotados. Elija solo fragmentos restantes, o solo agotados para ver las alternativas.",
       "noLines": "Añada al menos una línea de petición para el bloque {{block}}.",
-      "notPermitted": "No tiene permiso para esto. Consulte con su administrador."
+      "notPermitted": "No tiene permiso para esto. Consulte con su administrador.",
+      "pieceExhausted": "Bloque {{block}}: los fragmentos elegidos están agotados. Elija qué hacer con cada línea en el recuadro situado sobre el generador."
     },
     "exceptionReasons": {
       "blockExhausted": "Bloque agotado",
       "insufficientTissue": "Tejido insuficiente para el panel",
       "requiresRegrossing": "Requiere nuevo tallado"
     },
+    "exhausted": {
+      "addLines": "Añada las líneas de la petición; aquí se muestra qué ocurre con cada línea en este bloque.",
+      "choose": "Elija una alternativa…",
+      "controlsNote": "No se añade automáticamente un portaobjetos control para una tinción sobre un portaobjetos ya cortado. La petición y el motivo quedan registrados en el registro de auditoría.",
+      "noAlternative": "No queda nada que ofrecer: elimine esta línea.",
+      "otherBlock": "Pedir en su lugar del bloque {{block}}",
+      "otherPiece": "Pedir en su lugar del fragmento {{position}} ({{part}})",
+      "problem": {
+        "blockUnusable": "Ese bloque ya no se puede cortar.",
+        "chooseAlternative": "Elija un portaobjetos sin teñir ya cortado, una reinclusión u otro bloque.",
+        "needsNewSection": "Necesita un nuevo corte de este bloque. Elija una reinclusión u otro bloque.",
+        "pieceUnusable": "Ese fragmento está agotado o ya no está en el bloque.",
+        "slideUnavailable": "Ese portaobjetos ya no está libre o lo usa otra línea."
+      },
+      "reason": "Motivo de la petición sobre un bloque agotado",
+      "reembed": "Solicitar una reinclusión (la petición espera hasta que se haga)",
+      "useSlide": "Usar el portaobjetos sin teñir {{level}} (ya cortado)"
+    },
     "pageTitle": "Generador de peticiones adicionales",
     "panels": {
       "panel-breast": "Panel de mama (RE/RP/HER2/Ki-67)",
       "panel-lynch-mmr": "Panel de Lynch/MMR (MLH1/MSH2/MSH6/PMS2)",
       "panel-renal-if": "Panel de IF renal (IgG/IgA/IgM/C3/C1q/Kappa/Lambda)"
+    },
+    "printAt": {
+      "atMicrotome": "En el micrótomo al cortar el bloque",
+      "hint": "Las etiquetas se imprimen ahora en ese puesto. El micrótomo registra el corte sin volver a imprimirlas.",
+      "label": "Imprimir etiquetas en",
+      "noPrinter": "Las etiquetas no se imprimieron en {{station}}: no tiene una impresora de portaobjetos configurada. Se imprimirán en el micrótomo.",
+      "notPermitted": "Las etiquetas no se imprimieron en {{station}}: no tiene permiso para enviar impresiones a otro puesto. Se imprimirán en el micrótomo.",
+      "printedSomeFailed_many": "{{count}} etiquetas impresas en {{station}}; {{failed}} no se imprimieron y se imprimirán en el micrótomo.",
+      "printedSomeFailed_one": "{{count}} etiqueta impresa en {{station}}; {{failed}} no se imprimieron y se imprimirán en el micrótomo.",
+      "printedSomeFailed_other": "{{count}} etiquetas impresas en {{station}}; {{failed}} no se imprimieron y se imprimirán en el micrótomo.",
+      "printed_many": "{{count}} etiquetas impresas en {{station}}.",
+      "printed_one": "{{count}} etiqueta impresa en {{station}}.",
+      "printed_other": "{{count}} etiquetas impresas en {{station}}.",
+      "withPlaced": "{{placed}} {{printed}}"
     },
     "priority": {
       "Research_Protocol": "Investigación / protocolo",
@@ -990,6 +1038,9 @@
       "inHouseQueue": "Va a la cola de peticiones del centro de trabajo de Molecular.",
       "labsAll": "Todavía no hay laboratorios vinculados a esta prueba, por lo que se muestran todos los laboratorios de referencia.",
       "labsApprovedForTest": "Solo se muestran los laboratorios aprobados para esta prueba.",
+      "levelRange_many": "{{count}} niveles, {{perSlide}} por portaobjetos",
+      "levelRange_one": "{{count}} nivel, {{perSlide}} por portaobjetos",
+      "levelRange_other": "{{count}} niveles, {{perSlide}} por portaobjetos",
       "microns": "Niveles de {{count}} µm",
       "molecularRouting": "Realizada",
       "noPerformingLab": "No se pudo determinar el laboratorio de realización de este caso; las peticiones se crearán igualmente, sin asociación a una estación del laboratorio.",
@@ -1010,11 +1061,24 @@
       "title": "Resumen y enrutamiento de la petición"
     },
     "tracking": {
+      "alternative": "O usar una alternativa",
+      "alternativeNeedsNote": "Escriba primero una nota de respuesta: es el motivo de la alternativa.",
+      "answerAppliesToAll_many": "Esta respuesta se aplica a los {{count}} portaobjetos en espera de {{block}}.",
+      "answerAppliesToAll_one": "Esta respuesta se aplica al {{count}} portaobjetos en espera de {{block}}.",
+      "answerAppliesToAll_other": "Esta respuesta se aplica a los {{count}} portaobjetos en espera de {{block}}.",
+      "answerIndividually": "Responder solo para este portaobjetos",
+      "answerThisOnly": "Esta respuesta se aplica solo a este portaobjetos.",
+      "answeredCount_many": "Respuesta aplicada a {{count}} portaobjetos en espera.",
+      "answeredCount_one": "Respuesta aplicada a {{count}} portaobjetos en espera.",
+      "answeredCount_other": "Respuesta aplicada a {{count}} portaobjetos en espera.",
+      "applyAlternative": "Aplicar",
       "approveDestructive": "Aprobar corte destructivo",
       "cancelFlag": "Cancelar",
       "cancelOrder": "Cancelar petición",
       "confirmFlag": "Marcar excepción",
       "count": "{{count}}",
+      "destructiveNotOffered": "El bloque ya estaba agotado antes de este aviso, no queda nada que cortar: no se ofrece el corte destructivo.",
+      "destructiveWarning": "Cortar hasta el final consume el último tejido de este bloque. Después no será posible ningún recorte, prueba de biomarcadores ni prueba molecular de este bloque, lo que importa sobre todo en una biopsia pequeña. Se requiere una nota de respuesta.",
       "empty": "Aún no se ha realizado ninguna petición adicional en este caso.",
       "exceptionNote": "Nota opcional…",
       "exceptionNoteLabel": "Nota",
@@ -1031,6 +1095,7 @@
       "resubmit": "Reenviar",
       "sendOutTo": "Envío externo: {{lab}}",
       "stage": {
+        "AwaitingRe-embedding": "Pendiente de reinclusión",
         "BlockRetrieved": "Bloque recuperado",
         "Cancelled": "Cancelada",
         "CheckedOutScanned": "Retirado / escaneado",
@@ -2300,6 +2365,18 @@
     "unexpectedError": "Error inesperado al escanear el código de barras",
     "unknownError": "error desconocido"
   },
+  "batchCarrier": {
+    "closedAborted": "Este soporte está cerrado: se anuló el {{at}}.",
+    "closedComplete": "Este soporte está cerrado: se completó el {{at}}.",
+    "historyLabel": "Pasos por los que ha pasado este soporte",
+    "historyStep": "{{from}} → {{to}}, {{name}}, {{at}}",
+    "moveTo": "Pasar a {{node}}",
+    "movedToast": "{{barcode}} ha pasado a {{node}}. Elementos: {{count}}.",
+    "otherStep": "El puesto de este equipo ({{station}}) trabaja en {{stationSteps}}; este soporte está en {{node}}.",
+    "seal": "Sellar el manifiesto",
+    "sealedBy": "Manifiesto sellado por {{name}} el {{at}}.",
+    "sealedToast": "{{barcode}} sellado."
+  },
   "batchDetail": {
     "abortBatch": "Anular lote",
     "abortModalText": "Este lote y su manifiesto se conservarán para auditoría, pero se marcarán como anulados y ya no podrán aceptar escaneos.",
@@ -2322,7 +2399,10 @@
     "completeDisabledTitle": "{{missing}} faltantes, {{unexpected}} inesperados: resuelva o anule la comprobación",
     "emptyManifest": "Aún no se ha escaneado ningún elemento en este lote.",
     "errors": {
+      "alreadySealed": "{{barcode}} ya está sellado.",
       "batchNotFound": "Este lote ya no existe. Vuelva a la lista y ábralo de nuevo.",
+      "batchSealed": "{{barcode}} está sellado: no se puede añadir ni quitar nada.",
+      "cannotAdvance": "{{barcode}} no puede pasar a ese paso.",
       "coldChainUnacknowledged": "Este lote tiene una desviación de la cadena de frío sin confirmar. Confírmela o utilice la anulación de un supervisor.",
       "destinationNotActive": "Los elementos solo se pueden mover a un lote activo.",
       "excursionAlreadyOpen": "El lote {{barcode}} ya tiene una desviación de la cadena de frío sin confirmar. Confírmela antes de registrar otra.",
@@ -2333,7 +2413,7 @@
       "noItemsToTransfer": "Este lote no tiene elementos que transferir.",
       "noRack": "Este lote no tiene ninguna gradilla reutilizable que liberar.",
       "notActive": "El lote {{barcode}} ya no está activo. Puede que ya se haya conciliado, transferido o cerrado.",
-      "notCytologyProcessing": "El estado del instrumento solo se aplica a un lote de procesamiento citológico.",
+      "notCytologyProcessing": "El estado del instrumento solo se aplica a un lote de procesamiento de citología en medio líquido.",
       "notDecal": "La transferencia a procesamiento solo se aplica a un lote de descalcificación / procesamiento especial.",
       "notReconciling": "Primero inicie la conciliación del lote {{barcode}}.",
       "notStaining": "Esto solo se aplica a un lote de tinción.",
@@ -2342,10 +2422,12 @@
       "rackNotRegistered": "La gradilla {{rackId}} no está registrada. Compruebe el identificador o registre primero la gradilla.",
       "sameBatch": "Ese es el lote en el que ya está el elemento. Elija otro lote.",
       "sourceNotActive": "Los elementos solo se pueden sacar de un lote activo.",
+      "stationRequired": "Asigne primero el puesto de este equipo.",
       "unexpectedScans_many": "Se escanearon {{count}} elementos que no pertenecen a este lote. Resuélvalos o utilice la anulación de un supervisor.",
       "unexpectedScans_one": "Se escaneó {{count}} elemento que no pertenece a este lote. Resuélvalo o utilice la anulación de un supervisor.",
       "unexpectedScans_other": "Se escanearon {{count}} elementos que no pertenecen a este lote. Resuélvalos o utilice la anulación de un supervisor."
     },
+    "exhaustedWarning": "{{displayId}} está agotado: no queda tejido en este bloque. Se ha añadido al lote; consulte con el patólogo antes de procesarlo o cortarlo.",
     "forceCompletedToast": "Lote {{barcode}} completado a la fuerza con anulación.",
     "instrumentReports": "Informes del instrumento: {{status}}",
     "manifestSection": "Manifiesto ({{count}})",
@@ -2396,15 +2478,19 @@
     "removedToast": "{{displayId}} quitado del lote.",
     "scanHintActive": "Escanee el código de barras de un casete o portaobjetos para añadirlo a este lote. Manos libres: no es necesario hacer clic antes en un campo.",
     "scanHintReconcile": "Verificación fuera de proceso: escanee cada elemento físico al retirarlo del soporte.",
+    "scanHintSealed": "El manifiesto está sellado. Inicie la verificación para escanear la salida de los elementos.",
     "scanRejected": {
       "alreadyInBatch": "{{displayId}} ya está en este lote.",
       "inOtherActiveBatch": "{{displayId}} ya está en el lote activo {{barcode}}.",
-      "notFound": "«{{value}}» no coincide con ningún casete ni portaobjetos de ningún caso."
+      "notAccepting": "{{barcode}} ya no admite elementos.",
+      "notFound": "«{{value}}» no coincide con ningún casete ni portaobjetos de ningún caso.",
+      "sealed": "{{barcode}} está sellado: no se pueden añadir más elementos.",
+      "slideTooLarge": "{{displayId}} es un portaobjetos de gran formato y {{barcode}} no admite portaobjetos de gran formato. Use una gradilla de tinción de gran formato."
     },
     "startReconciliation": "Iniciar conciliación",
     "supervisorOverrideLink": "Anulación del supervisor…",
     "transferToProcessing": "Transferir a procesamiento",
-    "transferredToast": "{{count}} elemento(s) transferido(s) al nuevo lote de procesamiento {{barcode}}.",
+    "transferredToast": "{{barcode}} ha pasado a Procesamiento como el mismo lote. Elementos: {{count}}.",
     "unexpected": "Inesperado",
     "unexpectedFlash": "Inesperado: no figura en el manifiesto de este lote",
     "unexpectedSection": "Inesperados / adicionales ({{count}})"
@@ -2429,12 +2515,13 @@
     "labelReprintTile": "Reimpresión de etiquetas",
     "labelReprintTitle": "Reimprima etiquetas de varios casos a la vez",
     "loading": "Cargando lotes…",
+    "lookupButton": "Buscar",
     "lookupPlaceholder": "Escanee o introduzca un código de barras de lote maestro…",
     "newContainer": "Nuevo contenedor",
     "nodeTileLabel": {
       "Checkout": "Salida",
       "Cytology Imaging": "Imagen de citología",
-      "Cytology Processing": "Procesamiento de citología",
+      "Cytology Processing": "Citología líquida",
       "Cytology Staining": "Tinción de citología",
       "Decal / Special Processing": "Descalcificación / especial",
       "Embedding": "Inclusión",
@@ -2446,7 +2533,7 @@
     "nodes": {
       "Checkout": "Salida",
       "Cytology Imaging": "Imagen de citología",
-      "Cytology Processing": "Procesamiento de citología",
+      "Cytology Processing": "Procesamiento de citología en medio líquido",
       "Cytology Staining": "Tinción de citología",
       "Decal / Special Processing": "Descalcificación / procesamiento especial",
       "Embedding": "Inclusión",
@@ -2471,6 +2558,17 @@
     },
     "wsiScanTile": "Escaneo de portaobjetos",
     "wsiScanTitle": "Cargue portaobjetos en un escáner, envíe el lote y descárguelo"
+  },
+  "batchPurposes": {
+    "builtIn": {
+      "biobank": "Biobanco",
+      "clinical-trial": "Ensayo clínico",
+      "qa-validation": "Garantía de calidad / validación",
+      "research": "Investigación",
+      "routine": "Rutina",
+      "teaching": "Docencia"
+    },
+    "label": "Finalidad"
   },
   "batchRegistryFeedSection": {
     "addProgram": "Añadir un programa",
@@ -2647,6 +2745,62 @@
     "title": "Contribuciones en el puesto de trabajo",
     "windowLabel": "Últimos {{days}} días"
   },
+  "benchReasons": {
+    "AE_DIAGNOSIS_NEEDED": "Necesario para completar el diagnóstico",
+    "AE_LAST_MATERIAL": "Último material disponible",
+    "AE_PATHOLOGIST_REQUEST": "Solicitado por el patólogo",
+    "BA_CREATED_IN_ERROR": "Creado por error",
+    "BA_EQUIPMENT_FAILURE": "Fallo del equipo",
+    "BA_RUN_CANCELLED": "Serie cancelada por el laboratorio",
+    "BA_WRONG_CONTAINER": "Contenedor o gradilla equivocados",
+    "BE_BLOCK_DAMAGED": "Bloque dañado",
+    "BE_FEW_SECTIONS": "Solo quedan unos pocos cortes",
+    "BE_INCOMPLETE_FACE": "No se consigue una cara completa",
+    "BE_NO_TISSUE": "No queda tejido en el bloque",
+    "BO_ACCOUNTED_ELSEWHERE": "Elementos localizados en otro lugar",
+    "BO_LABEL_DAMAGED": "Etiqueta dañada, identidad comprobada a simple vista",
+    "BO_SCANNED_BY_HAND": "Comprobado a mano: el código de barras no se lee",
+    "BO_SUPERVISOR_APPROVED": "Aprobado por el supervisor",
+    "CC_BACK_IN_RANGE": "Temperatura de nuevo en rango a la llegada",
+    "CC_COURIER_DELAY": "Retraso del mensajero; contenido comprobado",
+    "CC_LOGGER_FAULT": "Embalaje intacto; fallo del registrador"
+  },
+  "benchReasonsSection": {
+    "add": "Añadir motivo",
+    "addAria": "Motivo nuevo para {{category}}",
+    "addPlaceholder": "Un motivo nuevo, con las palabras de su laboratorio",
+    "categories": {
+      "BENCH_ADDON_EXHAUSTED": "Pedidos adicionales: pedido o respuesta sobre un bloque agotado",
+      "BENCH_BATCH_ABORT": "Gestión de lotes: Anular lote",
+      "BENCH_BATCH_COLD_CHAIN": "Gestión de lotes: confirmar una desviación de la cadena de frío",
+      "BENCH_BATCH_OVERRIDE": "Gestión de lotes: completar con excepciones",
+      "BENCH_BLOCK_EXHAUSTED": "Micrótomo: Bloque agotado"
+    },
+    "columns": {
+      "actions": "Acciones",
+      "code": "Código",
+      "wording": "Redacción"
+    },
+    "defaultWording": "Redacción predeterminada, mostrada en el idioma de cada usuario",
+    "errors": {
+      "duplicate": "Esta categoría ya tiene un motivo con esa redacción.",
+      "required": "Escriba la redacción."
+    },
+    "labWording": "Redacción de su laboratorio, mostrada tal como se escribió",
+    "moveDown": "Bajar este motivo",
+    "moveDownShort": "↓",
+    "moveUp": "Subir este motivo",
+    "moveUpShort": "↑",
+    "notSaved": "No se ha guardado. Puede que no tenga permiso para cambiar los motivos del puesto; consulte a su administrador.",
+    "restore": "Restablecer",
+    "retire": "Retirar",
+    "reword": "Reformular",
+    "rewordAria": "Nueva redacción para «{{reason}}»",
+    "saved": "Guardado.",
+    "subtitle": "Los motivos que el personal toca en el puesto. Reformúlelos en el idioma de su laboratorio, añada los suyos, ordénelos o retírelos. Cada uno conserva su código, de modo que los informes lo cuentan igual tras reformularlo. La nota sigue siendo opcional.",
+    "title": "Motivos del puesto de trabajo",
+    "useDefault": "Usar la redacción predeterminada"
+  },
   "biFeed": {
     "approval": {
       "approver": "Aprobado por",
@@ -2687,9 +2841,17 @@
     "copy": "Copiar",
     "copyFailed": "No se ha podido copiar. Seleccione el token y cópielo manualmente.",
     "datasets": {
+      "add_on_orders": {
+        "description": "Pedidos complementarios con tipo, prioridad, horas de pedido y de corte, estado y cola asignada.",
+        "name": "Pedidos complementarios"
+      },
       "audit": {
         "description": "Recuentos diarios de acciones permitidas y denegadas por tipo de evento. Solo recuentos; sin datos de usuarios ni de pacientes.",
         "name": "Resúmenes de auditoría"
+      },
+      "batches": {
+        "description": "Cada soporte con su finalidad, paso actual, historial de pasos, horas, objetivo y recuentos de conciliación. Sin datos de casos.",
+        "name": "Soportes y lotes"
       },
       "billing": {
         "description": "Eventos de captura de cargos y de facturación enviados al sistema de facturación, con código CPT, cantidad, importe y clase financiera.",
@@ -2699,6 +2861,10 @@
         "description": "Casos con horas de registro y de firma, estado, prioridad, patólogo, códigos de diagnóstico y horas de respuesta.",
         "name": "Casos y tiempo de respuesta"
       },
+      "item_end_states": {
+        "description": "Cada estado final registrado para un bloque o portaobjetos (agotado, devuelto al almacén, archivado, enviado fuera, consumido, desechado), con el elemento de origen, quién y cuándo. El motivo en texto libre se elimina al desidentificar.",
+        "name": "Estados finales de los elementos"
+      },
       "qa": {
         "description": "Eventos de calidad como discordancias, deficiencias y modificaciones, con gravedad, resultado y fechas.",
         "name": "Calidad y discordancias"
@@ -2706,6 +2872,10 @@
       "specimens": {
         "description": "Muestras con tipo, horas de recogida y de recepción, y recuentos de bloques, portaobjetos y tinciones.",
         "name": "Muestras"
+      },
+      "station_events": {
+        "description": "Cada escaneo de un casete, bloque o portaobjetos en un puesto: cuándo, dónde, qué paso, qué ocurrió y si procede de un escaneo de soporte.",
+        "name": "Escaneos de puesto"
       },
       "workload": {
         "description": "Casos, muestras, bloques y portaobjetos gestionados por persona y día. Sin datos de pacientes.",
@@ -3452,6 +3622,54 @@
     "entirelySubmittedRange_one": "Incluido por completo en el bloque {{range}}",
     "entirelySubmittedRange_other": "Incluido por completo en los bloques {{range}}"
   },
+  "blockPieces": {
+    "addPiece": "+ Añadir fragmento",
+    "cols": {
+      "description": "Descripción",
+      "ink": "Tinta",
+      "orientation": "Orientación",
+      "part": "Muestra",
+      "position": "Posición",
+      "remove": "Quitar el fragmento"
+    },
+    "edit": "Tipo y fragmentos",
+    "exhausted": "Agotado",
+    "lastPieceUsed": "Era el último fragmento: el bloque está ahora agotado.",
+    "markExhausted": "Fragmento agotado",
+    "notPermitted": "No tiene permiso para registrar esto. Consulte a su administrador.",
+    "notSaved": "No se ha guardado. Revise los fragmentos e inténtelo de nuevo.",
+    "orderFor": "Fragmentos",
+    "pieceCount_many": "{{count}} fragmentos",
+    "pieceCount_one": "{{count}} fragmento",
+    "pieceCount_other": "{{count}} fragmentos",
+    "pieceLabel": "Fragmento {{position}} ({{part}})",
+    "pieceMarked": "Fragmento marcado como agotado.",
+    "problems": {
+      "partMissing": "Cada fragmento necesita su muestra.",
+      "pieceInUse": "No se puede quitar un fragmento agotado o indicado en una petición.",
+      "piecesNeedMultiPiece": "Varios fragmentos requieren el tipo Bloque de varios fragmentos o Megabloque.",
+      "positionInvalid": "Cada posición debe ser un número entero a partir de 1.",
+      "positionRepeated": "Dos fragmentos tienen la misma posición.",
+      "typeUnknown": "Elija un tipo de bloque."
+    },
+    "save": "Guardar",
+    "saved": "Guardado.",
+    "slideSizes": {
+      "large_format": "Portaobjetos de gran formato",
+      "standard": "Portaobjetos estándar"
+    },
+    "slidesAre": "Portaobjetos: {{size}}",
+    "title": "Tipo de bloque y fragmentos",
+    "typeLabel": "Tipo de bloque",
+    "typeNote": "Portaobjetos de este bloque: {{slideSize}}.",
+    "types": {
+      "matrix": "Bloque matricial",
+      "megablock": "Megabloque",
+      "multi_piece": "Bloque de varios fragmentos",
+      "standard": "Bloque estándar"
+    },
+    "wholeBlockHint": "No marque nada para pedir sobre el bloque entero."
+  },
   "blockStainEditorModal": {
     "addPhotoButton": "📷 Añadir foto",
     "blockCommentsLabel": "Comentarios del bloque",
@@ -3586,9 +3804,10 @@
       "label": "Finalizado: datos estructurados completos; el SIL gestiona la firma oficial",
       "title": "Los casos en modo asistido se completan mediante «Finalizar»: la firma oficial de este modo de informe corresponde al SIL, no a PathScribe."
     },
-    "attachImages": {
-      "label": "Adjuntar imágenes",
-      "title": "Adjunte imágenes a este informe; se imprimen después de sus páginas"
+    "attachments": {
+      "add": "Añadir adjuntos",
+      "label": "Adjuntos ({{number}})",
+      "title": "Fotos, archivos y enlaces de este caso, y lo colocado en su informe"
     },
     "common": {
       "synopticPendingTitle": "Desactivado: evaluación de asignación sinóptica de la fase 1 en curso o pendiente de revisión"
@@ -3902,6 +4121,10 @@
         "description": "Registrar el resultado de una prueba de toxicología posmortem solicitada y levantar la retención que inició si sigue abierta.",
         "label": "Registrar un resultado de toxicología"
       },
+      "batchCarrierAdvance": {
+        "description": "Pasar un soporte al siguiente paso de procesamiento, actualizando cada elemento que contiene.",
+        "label": "Pasar un soporte al paso siguiente"
+      },
       "batchColdChainExcursionAcknowledge": {
         "description": "Confirmar la recepción de una desviación de temperatura en un lote, con una nota, para poder completarlo.",
         "label": "Confirmar una desviación de la cadena de frío"
@@ -3909,6 +4132,10 @@
       "batchColdChainReadingSimulate": {
         "description": "Enviar una lectura de temperatura simulada y etiquetada de una unidad de almacenamiento o contenedor, para ver una desviación, una retención de lote y una CAPA sin sensor.",
         "label": "Probar una lectura de temperatura simulada"
+      },
+      "batchManifestSeal": {
+        "description": "Sellar el manifiesto de un soporte para que no se pueda añadir ni quitar nada.",
+        "label": "Sellar el manifiesto de un soporte"
       },
       "batchReconciliationOverride": {
         "description": "Marcar un lote como completo cuando faltan elementos o hay elementos inesperados, con un motivo.",
@@ -3945,6 +4172,18 @@
       "caseAccessionCreate": {
         "description": "Crear un caso nuevo en la pantalla de registro. Requiere la pantalla de registro.",
         "label": "Crear un caso en el registro"
+      },
+      "caseAttachmentLink": {
+        "description": "Adjuntar a un caso un enlace https a un sistema del hospital (imagen o documento). Se audita solo con el host del enlace.",
+        "label": "Vincular archivos a un caso"
+      },
+      "caseAttachmentUnlink": {
+        "description": "Desvincular de un caso un archivo o enlace adjunto. El archivo permanece en el almacenamiento del hospital. Auditado.",
+        "label": "Quitar adjuntos de un caso"
+      },
+      "caseAttachmentUpload": {
+        "description": "Adjuntar un PDF, JPG o PNG a un caso. El archivo se envía al almacenamiento del hospital mediante el adaptador de almacenamiento y solo se guarda un enlace. Auditado.",
+        "label": "Adjuntar archivos a un caso"
       },
       "caseClinicalHistoryRecord": {
         "description": "Añadir o conciliar la historia clínica codificada de un caso tras la recepción (tallado, revisión del informe, firma), hasta que el caso se firme. Por defecto: patólogo, especialista en formación, residente y PA.",
@@ -4122,9 +4361,17 @@
         "description": "Establecer con qué frecuencia y dónde consulta PathScribe el SIL en modo Asistencia. Auditado.",
         "label": "Gestionar la consulta del SIL en modo Asistencia"
       },
+      "configBatchPurposesManage": {
+        "description": "Activar o desactivar las finalidades de lote integradas y añadir las propias del laboratorio.",
+        "label": "Gestionar las finalidades de lote"
+      },
       "configBatchRegistryFeedManage": {
         "description": "Configurar el formato de archivo de cada registro o programa de cribado que admita un archivo por lotes, y activarlo o desactivarlo. Auditado.",
         "label": "Gestionar los archivos por lotes de registros"
+      },
+      "configBenchReasonsManage": {
+        "description": "Reformular, añadir, ordenar y retirar los motivos de un toque del puesto. Los motivos conservan su código, así que los informes siguen siendo coherentes.",
+        "label": "Gestionar los motivos del puesto de trabajo"
       },
       "configBiFeedIdentifiedApprove": {
         "description": "Registrar quién aprobó los tokens del canal con datos identificados (no desidentificados) y por qué, o retirar esa aprobación. Auditado.",
@@ -4306,6 +4553,10 @@
         "description": "Añadir y editar departamentos y sus excepciones de conservación. Auditado.",
         "label": "Gestionar los departamentos"
       },
+      "configDirectDevicePrintingManage": {
+        "description": "Activar o desactivar para un centro la impresión directa del navegador a la impresora (QZ Tray, agente de PathScribe, Zebra Browser Print, BarTender). Desactivada por defecto en un despliegue en servidor; los cambios y cada impresión directa quedan auditados.",
+        "label": "Permitir la impresión directa desde el navegador"
+      },
       "configDisplayProfilesManage": {
         "description": "Elegir qué muestran los paneles de pared. Auditado.",
         "label": "Gestionar los perfiles de pantalla de pared"
@@ -4486,6 +4737,10 @@
         "description": "Poner en uso un diseño o una parte de informe. Auditado.",
         "label": "Publicar plantillas y partes de informe"
       },
+      "configResearchCasesManage": {
+        "description": "Definir cómo se reconocen los casos de investigación, la clase financiera sin cargo que se envía y cuánto tiempo se conserva su material. Estos casos quedan fuera de las listas de trabajo y estadísticas clínicas y nunca se envían como resultados ni cargos.",
+        "label": "Gestionar la configuración de casos de investigación"
+      },
       "configResearchFeedManage": {
         "description": "Cambiar la búsqueda del canal de bibliografía. Auditado.",
         "label": "Gestionar el canal de investigación"
@@ -4622,6 +4877,10 @@
         "description": "Finalizar un caso de citología antes de que se firmen todas sus muestras, con un motivo. Auditado; las muestras sin firmar se nombran y aún pueden firmarse.",
         "label": "Finalizar un caso de citología anticipadamente"
       },
+      "cytologyCellBlockHandOff": {
+        "description": "En el puesto de preparación citológica, tras escanear el origen y el casete; el micrótomo solo acepta bloques celulares entregados.",
+        "label": "Entregar un bloque celular a histología"
+      },
       "cytologyCsmsEligibilityVerify": {
         "description": "Registrar el resultado de la comprobación de elegibilidad CSMS de un caso en la pestaña CSMS QA: verificada, o no elegible con un motivo. Esto elimina la marca de verificación del caso. Se audita quién, cuándo y el resultado.",
         "label": "Registrar una comprobación de elegibilidad CSMS"
@@ -4750,6 +5009,10 @@
         "description": "Escanear el código de barras de un envase y escribir su recibo permanente «Recibido en Lockbox», con la hora del servidor y su nombre. Un código sin pedido pendiente recibe un registro provisional, nunca un número de acceso.",
         "label": "Recibir muestras en el Lockbox"
       },
+      "materialAliquotStatusUpdate": {
+        "description": "Enviada, Recibida, Resultado recibido (con el n.º de registro del servicio receptor).",
+        "label": "Actualizar el estado de una alícuota"
+      },
       "materialBlockDeleteInProcess": {
         "description": "Eliminar un bloque que sigue en proceso. Se cancelan sus cortes y tinciones pendientes, se registra un motivo y se pone en cola un abono para el personal de facturación. El bloque permanece en el caso, marcado como Eliminado. Auditado.",
         "label": "Eliminar un bloque en proceso"
@@ -4761,6 +5024,22 @@
       "materialBlockFlagAmended": {
         "description": "Marcar un bloque como Invalidado o Sustituido en un informe enmendado. Es solo una marca: el bloque no se elimina. Auditado.",
         "label": "Marcar un bloque en un informe enmendado"
+      },
+      "materialEndStateRecord": {
+        "description": "Registrar en el puesto el estado final de un bloque o portaobjetos (agotado, devuelto al almacén, archivado, enviado fuera, consumido en pruebas, desechado), con un motivo.",
+        "label": "Registrar el estado final de un elemento"
+      },
+      "materialReembedComplete": {
+        "description": "En el puesto de inclusión, registrar que el tejido de un bloque agotado se ha reincluido; las peticiones en espera pasan al micrótomo.",
+        "label": "Marcar un bloque como reincluido"
+      },
+      "materialReembedRequest": {
+        "description": "Solicitar que se reincluya el remanente o el tejido húmedo de un bloque agotado, desde el generador de peticiones adicionales o como respuesta a un aviso de «Bloque agotado». La petición espera hasta que se haga.",
+        "label": "Solicitar la reinclusión de un bloque agotado"
+      },
+      "materialSpecimenDivide": {
+        "description": "En macroscopía o en el puesto de preparación citológica, con el volumen inicial y el volumen y destino de cada alícuota.",
+        "label": "Dividir una muestra en alícuotas"
       },
       "messageSecureEmailSend": {
         "description": "Enviar un correo electrónico seguro a una dirección ajena a la organización.",
@@ -4986,9 +5265,25 @@
         "description": "Enviar los casos de prueba sintéticos (solo pacientes ficticios) al sistema de pruebas de un registro, solo en una instancia de validación. Auditado.",
         "label": "Ejecutar el conjunto de pruebas del registro"
       },
+      "reportAddOnVolumeExport": {
+        "description": "Descargar el informe como archivo CSV. Se registra con el número de filas.",
+        "label": "Exportar el informe del flujo: los pedidos complementarios"
+      },
+      "reportAddOnVolumeView": {
+        "description": "Solo totales, a partir de los escaneos de puesto, los casos y los soportes; se excluyen los casos de investigación.",
+        "label": "Ver el informe del flujo: los pedidos complementarios"
+      },
+      "reportBatchDurationExport": {
+        "description": "Descargar el informe como archivo CSV. Se registra con el número de filas.",
+        "label": "Exportar el informe del flujo: la duración de los lotes"
+      },
+      "reportBatchDurationView": {
+        "description": "Solo totales, a partir de los escaneos de puesto, los casos y los soportes; se excluyen los casos de investigación.",
+        "label": "Ver el informe del flujo: la duración de los lotes"
+      },
       "reportCaseImagesAttach": {
-        "description": "Adjuntar imágenes (fotografías macroscópicas, microfotografías) al informe de un caso, o quitarlas. Se imprimen después de las páginas propias del informe. Auditado.",
-        "label": "Adjuntar imágenes a un informe"
+        "description": "Colocar fotos, archivos y enlaces en el informe de un caso (dentro de una sección) o quitarlos. Un informe firmado requiere primero una enmienda o un addendum. Auditado.",
+        "label": "Colocar imágenes en un informe"
       },
       "reportCaseReportPrint": {
         "description": "Imprimir o reimprimir el informe de un caso, o abrir el PDF de una versión almacenada. Cada impresión queda registrada en el registro de auditoría.",
@@ -5002,6 +5297,22 @@
         "description": "Colocar en el informe el mapa anatómico, dibujado a partir de las respuestas sinópticas, o quitarlo, antes de la firma. Auditado.",
         "label": "Insertar el mapa de órganos en un informe"
       },
+      "reportReconciliationExceptionsExport": {
+        "description": "Descargar el informe como archivo CSV. Se registra con el número de filas.",
+        "label": "Exportar el informe del flujo: las excepciones de conciliación"
+      },
+      "reportReconciliationExceptionsView": {
+        "description": "Solo totales, a partir de los escaneos de puesto, los casos y los soportes; se excluyen los casos de investigación.",
+        "label": "Ver el informe del flujo: las excepciones de conciliación"
+      },
+      "reportRecutReworkExport": {
+        "description": "Descargar el informe como archivo CSV. Se registra con el número de filas.",
+        "label": "Exportar el informe del flujo: los recortes y repeticiones"
+      },
+      "reportRecutReworkView": {
+        "description": "Solo totales, a partir de los escaneos de puesto, los casos y los soportes; se excluyen los casos de investigación.",
+        "label": "Ver el informe del flujo: los recortes y repeticiones"
+      },
       "reportRelatedCasesAttach": {
         "description": "Elegir otros casos emitidos de un paciente para enviarlos con el informe que se firma. Quedan fijados cuando se firma el informe. Auditado.",
         "label": "Adjuntar casos relacionados a un informe"
@@ -5013,6 +5324,30 @@
       "reportRestrictedCasePrint": {
         "description": "Imprimir, reimprimir o abrir el PDF de un caso con una marca que restringe la impresión (VIP, consulta confidencial). Requiere también «Imprimir el informe de un caso».",
         "label": "Imprimir un caso restringido"
+      },
+      "reportStatPerformanceExport": {
+        "description": "Descargar el informe como archivo CSV. Se registra con el número de filas.",
+        "label": "Exportar el informe del flujo: el rendimiento STAT"
+      },
+      "reportStatPerformanceView": {
+        "description": "Solo totales, a partir de los escaneos de puesto, los casos y los soportes; se excluyen los casos de investigación.",
+        "label": "Ver el informe del flujo: el rendimiento STAT"
+      },
+      "reportStationVolumeExport": {
+        "description": "Descargar el informe como archivo CSV. Se registra con el número de filas.",
+        "label": "Exportar el informe del flujo: el volumen por puesto"
+      },
+      "reportStationVolumeView": {
+        "description": "Solo totales, a partir de los escaneos de puesto, los casos y los soportes; se excluyen los casos de investigación.",
+        "label": "Ver el informe del flujo: el volumen por puesto"
+      },
+      "reportWorkflowTurnaroundExport": {
+        "description": "Descargar el informe como archivo CSV. Se registra con el número de filas.",
+        "label": "Exportar el informe del flujo: el tiempo de respuesta por paso"
+      },
+      "reportWorkflowTurnaroundView": {
+        "description": "Solo totales, a partir de los escaneos de puesto, los casos y los soportes; se excluyen los casos de investigación.",
+        "label": "Ver el informe del flujo: el tiempo de respuesta por paso"
       },
       "retentionDisposalReportExport": {
         "description": "Descargar el informe de seguimiento de residuos del material eliminado, que enumera los números de acceso de los casos.",
@@ -5053,6 +5388,10 @@
       "screenConfigurationOpen": {
         "description": "Ver la pantalla Configuración y su mosaico en la página de inicio.",
         "label": "Abrir Configuración"
+      },
+      "screenCytologyPrepOpen": {
+        "description": "Ver el puesto de preparación citológica y su mosaico en el espacio de Patología.",
+        "label": "Abrir Preparación citológica"
       },
       "screenCytologyQcQueueOpen": {
         "description": "Ver la cola de revisión por pares del control de calidad de citología en la lista de trabajo.",
@@ -5138,6 +5477,14 @@
         "description": "Crear, cambiar, pausar o eliminar una programación que ejecuta un informe guardado y lo envía en CSV a los usuarios elegidos. Cada cambio queda registrado en el registro de auditoría.",
         "label": "Programar informes de búsqueda de casos"
       },
+      "stationScanHistoryView": {
+        "description": "Ver qué elemento se escaneó, en qué puesto, por quién y cuándo.",
+        "label": "Consultar el historial de escaneos por puesto"
+      },
+      "stationScanMismatchContinue": {
+        "description": "Tras el aviso, abrir un soporte en un puesto de otro paso, o conservar un elemento que no está en el soporte cargado. Queda registrado en la pista de auditoría.",
+        "label": "Continuar tras un aviso de puesto"
+      },
       "surgicalAddendumRelease": {
         "description": "Emitir un addendum a un informe quirúrgico firmado (información añadida).",
         "label": "Emitir un addendum quirúrgico"
@@ -5211,6 +5558,86 @@
     "reviewRequest": "No tiene permiso para enviar solicitudes de revisión.",
     "revisionNone": "No tiene permiso para emitir una enmienda, una corrección ni un addendum.",
     "signOut": "No tiene permiso para firmar informes quirúrgicos."
+  },
+  "caseAttachments": {
+    "accessionLine": "Caso {{accession}}",
+    "addLink": "Añadir enlace",
+    "afterReportPages": "Este informe imprime las imágenes después de sus propias páginas.",
+    "assistNote": "En un caso Assist, su LIS redacta el informe. Aquí los adjuntos son referencias de este caso para consultar mientras trabaja; nada de esto se añade al informe del LIS.",
+    "attachAnyway": "Adjuntar de todos modos",
+    "attachFile": "Adjuntar archivo externo…",
+    "cancel": "Cancelar",
+    "captionLabel": "Pie de imagen (opcional)",
+    "captionPlaceholder": "Se imprime debajo en el informe",
+    "close": "Hecho",
+    "dismiss": "Cerrar",
+    "document": "Documento PDF: se menciona en su sección y sus páginas siguen al informe",
+    "empty": {
+      "external": "Aún no hay archivos ni enlaces adjuntos.",
+      "gross": "No hay fotos macroscópicas ni de la cara del bloque en este caso.",
+      "intraop": "No hay fotos intraoperatorias ni de consulta en este caso.",
+      "slide": "Las regiones guardadas con Añadir al informe en el visor de preparaciones aparecerán aquí. El visor aún no está desarrollado."
+    },
+    "fileHint": "PDF, JPG o PNG. Guarde primero un documento de Word como PDF.",
+    "groupCount": "{{title}} ({{number}})",
+    "groups": {
+      "external": "Archivos y enlaces externos",
+      "gross": "Fotos macroscópicas",
+      "intraop": "Capturas intraoperatorias y de consulta",
+      "slide": "Regiones microscópicas y de preparaciones"
+    },
+    "inReport": "En el informe: {{section}}",
+    "inReportAfter": "En el informe, en su propia página después del informe",
+    "inReportEmpty": "Aún no hay nada colocado en el informe.",
+    "inReportTitle": "En el informe",
+    "insert": "Insertar en el informe ({{number}})",
+    "insertInto": "Insertar en",
+    "kinds": {
+      "blockFacePhoto": "Foto de la cara del bloque",
+      "grossPhoto": "Foto macroscópica",
+      "intraopPhoto": "Foto intraoperatoria",
+      "link": "Enlace",
+      "uploadedFile": "Archivo adjunto"
+    },
+    "large": "Este archivo tiene {{size}} MB, más de {{limit}} MB. Los archivos grandes tardan más en enviarse e imprimirse.",
+    "linkLabel": "Enlace (https)",
+    "linkPlaceholder": "https://imagen.hospital.es/…",
+    "notices": {
+      "inserted": "Colocados en el informe: {{number}}.",
+      "uploaded": "Archivo adjuntado. Se guarda en el almacenamiento de su hospital."
+    },
+    "open": "Abrir",
+    "problems": {
+      "assistCase": "En un caso Assist, el LIS redacta el informe, por lo que aquí no se coloca nada en un informe.",
+      "duplicate": "Ese enlace ya está adjunto a este caso.",
+      "empty": "Este archivo está vacío.",
+      "expired": "La carga tardó demasiado. Inténtelo de nuevo.",
+      "failed": "No se pudo hacer. Inténtelo de nuevo.",
+      "inReport": "Está colocado en el informe. Quítelo primero del informe.",
+      "invalidLink": "Introduzca un enlace https:// a un servidor con nombre (sin nombre de usuario ni contraseña).",
+      "notConfigured": "El almacenamiento de adjuntos no está configurado para este centro. Consulte a su administrador.",
+      "notFound": "Ese elemento ya no está.",
+      "notPermitted": "No tiene permiso para hacerlo.",
+      "nothingChosen": "Marque al menos un elemento.",
+      "refused": "El almacenamiento de su hospital rechazó este archivo.",
+      "signedNeedsAmendment": "Este informe está firmado. Inicie primero una enmienda o un addendum.",
+      "tooLarge": "Este archivo supera el tamaño que acepta el almacenamiento de su hospital.",
+      "tooMany": "Un informe puede contener como máximo {{max}} imágenes y documentos.",
+      "unavailable": "No se puede acceder al archivo en este momento.",
+      "unsupportedType": "Solo se pueden adjuntar archivos PDF, JPG y PNG.",
+      "wordDocument": "Es un documento de Word. Guárdelo como PDF y adjunte el PDF."
+    },
+    "removeFromCase": "Quitar del caso",
+    "reportEnd": "Final del texto del informe",
+    "rowDetail": "{{when}} · {{by}}",
+    "rowTitle": "{{kind}} · {{owner}}",
+    "select": "Seleccionar {{name}}",
+    "signedNote": "Este informe está firmado. Para colocar o quitar imágenes, inicie primero una enmienda o un addendum. Aún puede adjuntar archivos al caso.",
+    "source": "De {{host}}",
+    "storageNote": "PathScribe solo guarda un enlace a cada elemento. El archivo que adjunte se envía al almacenamiento propio de su hospital y en el caso se guarda un enlace a él.",
+    "takeOut": "Quitar del informe",
+    "thisCase": "este caso",
+    "title": "Adjuntos"
   },
   "caseClinicalHistory": {
     "add": "Añadir historia clínica",
@@ -6909,6 +7336,9 @@
       "sys-asset-locations": {
         "description": "La lista de referencia gobernada de ubicaciones físicas y de activos, incluidas las posiciones de almacenamiento del depósito de cadáveres y su ocupación en tiempo real."
       },
+      "sys-bench-reasons": {
+        "description": "Reformular, añadir, ordenar y retirar los motivos que el personal toca en el puesto (bloque agotado, anulación y excepciones de lote, cadena de frío)."
+      },
       "sys-bi-feed": {
         "description": "Permita que Power BI y otras herramientas de informes lean datos de PathScribe: elija conjuntos de datos y centros, emita y revoque tokens de flujo, apruebe datos identificados y explore el catálogo de campos."
       },
@@ -7019,6 +7449,9 @@
       },
       "sys-qa-trend-policy": {
         "description": "Cuándo se señala un patrón de discordancias mayores para un anatomopatólogo o un tipo de muestra: ventana, revisiones mínimas, umbrales y enrutamiento, por sede."
+      },
+      "sys-research-cases": {
+        "description": "Cómo se reconocen y conservan los casos de investigación y se mantienen fuera de las listas de trabajo clínicas, los resultados y la facturación; y las finalidades posibles de un soporte."
       },
       "sys-revision-reasons": {
         "description": "Los motivos para enmendar o corregir un informe liberado y cuáles son clínicamente significativos: liberar una revisión por uno de ellos recomienda una CAPA."
@@ -7980,6 +8413,40 @@
     "startBtn": "Enviar preliminar urgente",
     "title": "Informe preliminar urgente"
   },
+  "cytologyPrep": {
+    "decant": "Decantación:",
+    "handoff": {
+      "cellBlock": "Bloque celular {{label}}",
+      "confirm": "Entregar",
+      "done": {
+        "cellBlockMade": "Bloque celular {{label}} creado. Imprima su etiqueta y entréguelo cuando el sedimento esté en el casete.",
+        "handedOff": "Bloque celular {{label}} entregado a histología."
+      },
+      "handedOffBy": "Entregado por {{name}}, {{when}}",
+      "intro": "Un bloque celular pasa a histología solo tras su entrega: escanee el líquido o la alícuota de origen y después su casete.",
+      "make": "Crear un bloque celular a partir de esta decantación",
+      "next": "Siguiente",
+      "none": "Aún no hay bloques celulares en esta muestra.",
+      "printLabel": "Imprimir etiqueta",
+      "problem": {
+        "alreadyHandedOff": "Este bloque celular ya se entregó.",
+        "cassetteMismatch": "No entregado: el segundo escaneo no es el casete de este bloque celular.",
+        "notCellBlock": "No es un bloque celular.",
+        "notPermitted": "No tiene permiso para entregar un bloque celular. Consulte a su administrador.",
+        "notSaved": "No se ha guardado. Puede que el caso haya cambiado; escanéelo de nuevo y repita.",
+        "sourceMismatch": "No entregado: el primer escaneo no es el líquido o la alícuota de origen de este bloque celular."
+      },
+      "scanCassette": "Escanee el casete del bloque celular",
+      "scanSource": "Escanee el líquido o la alícuota de origen",
+      "start": "Entregar",
+      "title": "Bloques celulares",
+      "waiting": "Pendiente de entrega"
+    },
+    "pageTitle": "Preparación citológica",
+    "patientName": "{{given}} {{family}}",
+    "scanPlaceholder": "Escanee un código de barras de recipiente o decantación",
+    "scanPrompt": "Escanee un líquido, una alícuota o un bloque celular para prepararlo."
+  },
   "cytologyQaTab": {
     "apacPtTable": {
       "challenge": "Reto",
@@ -8509,8 +8976,9 @@
   },
   "cytologyScreening": {
     "assistModeOnly": "Este caso lo gestiona un LIS externo (modo de asistencia). El flujo estructurado de revisión y firma de citología de PathScribe solo está disponible para los casos en modo de orquestación.",
-    "attachImagesBtn": "Adjuntar imágenes",
-    "attachImagesTitle": "Adjuntar imágenes al informe de este caso; se imprimen después de sus páginas",
+    "attachmentsAddBtn": "Añadir adjuntos",
+    "attachmentsBtn": "Adjuntos ({{number}})",
+    "attachmentsTitle": "Fotos, archivos y enlaces de este caso; las imágenes se imprimen después del informe",
     "backToWorklist": "Volver a la lista de trabajo",
     "billingBtn": "Facturación",
     "billingDrawer": {
@@ -8661,8 +9129,18 @@
     "materialDrawer": {
       "addCellBlockBtn": "Añadir bloque celular",
       "addResidualFluidBtn": "Añadir líquido residual",
+      "aliquotPurpose": {
+        "flow_cytometry": "citometría de flujo",
+        "hpv": "prueba de VPH",
+        "microbiology": "microbiología",
+        "molecular": "pruebas moleculares",
+        "other": "otras pruebas"
+      },
+      "aliquotType": "Alícuota para {{purpose}}",
       "decantConflict": "Otra persona ha modificado el material de este caso mientras usted trabajaba, por lo que no se guardó su cambio de decantación. Se ha recargado el caso; vuelva a hacer el cambio.",
+      "decantHeading": "{{label}} — {{type}}",
       "decantType": {
+        "aliquot": "Alícuota",
         "cell_block": "Bloque celular",
         "residual_fluid": "Líquido residual"
       },
@@ -9771,11 +10249,32 @@
     },
     "subtitle": "Utilice estas herramientas para borrar los datos de demostración o de prueba y devolver la aplicación a un estado inicial limpio. Solo afecta al servidor de demostración simulado, nunca a una base de datos real de un cliente.",
     "testingTools": {
+      "displayTokensDescription": "Emite un token nuevo para cada pantalla mural de Desert Valley, la pantalla de reserva y el terminal del quirófano, y revoca el de la antigua pantalla de la sala de descanso para mostrar la pantalla Pantalla no disponible. Emítalos de nuevo tras cada restablecimiento completo.",
+      "displayTokensTitle": "Tokens de pantalla de demostración",
+      "issueTokensBtn": "Emitir tokens",
       "molecularOrderQueueDescription": "Simula la solicitud y la recepción de resultados de VPH sobre un caso de ejemplo fijo. Es una herramienta de prueba y demostración, no un flujo de solicitud de producción.",
       "molecularOrderQueueTitle": "Cola de solicitudes moleculares",
       "openBtn": "Abrir",
       "subtitle": "Otras herramientas para probar y simular escenarios en este entorno de demostración.",
-      "title": "Herramientas de prueba y demostración"
+      "title": "Herramientas de prueba y demostración",
+      "tokens": {
+        "copied": "Copiado",
+        "copy": "Copiar",
+        "display": "Pantalla",
+        "issueFailed": "No se pudieron emitir todos los tokens. Inténtelo de nuevo.",
+        "notPermitted": "No tiene permiso para emitir tokens de pantalla de demostración.",
+        "shownOnce": "Se muestran una sola vez. Copie cada token donde lo necesite: no se podrá volver a leer.",
+        "token": "Token",
+        "use": "Muestra",
+        "uses": {
+          "orSuite": "Panel del quirófano",
+          "revoked": "Revocado: la pantalla Pantalla no disponible",
+          "rotating": "Las cinco vistas, en rotación",
+          "secondSite": "Segundo centro",
+          "singleView": "Un solo departamento",
+          "spare": "Reserva"
+        }
+      }
     },
     "title": "Restablecimiento de datos de demostración y prueba"
   },
@@ -9918,6 +10417,15 @@
     },
     "removeAria": "Quitar «{{word}}»"
   },
+  "directPrinting": {
+    "allow": "Permitir la impresión directa desde el navegador en este centro",
+    "intro": "Las etiquetas y los informes llegan normalmente a las impresoras a través del motor de interfaces, con el cuadro de impresión del navegador como alternativa. Marque esto solo si este centro debe imprimir directamente del navegador a una impresora (QZ Tray, el agente de PathScribe, Zebra Browser Print o BarTender). Cada impresión de este tipo queda registrada en el registro de auditoría.",
+    "notPermitted": "No tiene permiso para cambiar la impresión directa. Consulte a su administrador.",
+    "save": "Guardar la impresión directa",
+    "saveFailed": "No se ha guardado. Inténtelo de nuevo.",
+    "saved": "Guardado. El cambio se ha registrado en el registro de auditoría.",
+    "title": "Impresión directa desde el navegador"
+  },
   "discordanceReconciliationModal": {
     "categoryDiffersNote": "La categoría final difiere de la de congelación: debe registrarse como discordancia antes de poder continuar la firma.",
     "commentLabel": "Comentario (obligatorio)",
@@ -10015,6 +10523,9 @@
   },
   "displayProfiles": {
     "addButton": "+ Añadir perfil de pantalla",
+    "addOnLimitHint": "Los complementarios que esperan más de este tiempo pasan a rojo y suben al principio de la vista Inclusión y microtomía; poco antes pasan a ámbar. La vista Puestos cuenta los soportes y complementarios que lo superan. En blanco: 120 minutos.",
+    "addOnLimitInvalid": "Introduzca minutos enteros entre 15 y 1440.",
+    "addOnLimitLabel": "Plazo X (minutos)",
     "addTitle": "Añadir perfil de pantalla",
     "assignedViewsLabel": "Vistas del panel asignadas",
     "carouselIntervalLabel": "Intervalo del carrusel (segundos)",
@@ -10030,11 +10541,16 @@
     "launchDashboardButton": "🖥️ Abrir el panel de operaciones del centro",
     "nameLabel": "Nombre de la pantalla",
     "namePlaceholder": "p. ej., Banco de histología 3 — Pantalla mural",
+    "purposesHint": "Si no marca ninguna, se muestran todas. Los pedidos complementarios no son soportes y siempre se muestran.",
+    "purposesLabel": "Mostrar soportes de estas finalidades",
     "reactivate": "Reactivar",
     "sectionSubtitle": "Registro real, solo de datos, de las cinco pantallas murales del panel de operaciones del centro: cada perfil vincula una pantalla física a un laboratorio que realiza la prueba y a una o más vistas de departamento. No se verifica ni se exige ninguna vinculación con hardware físico; deviceToken es solo informativo.",
     "sectionTitle": "Perfiles de pantalla (paneles de operaciones del centro)",
     "selectFacility": "— seleccione un centro —",
-    "showInactive": "Mostrar inactivos"
+    "showInactive": "Mostrar inactivos",
+    "staleScanHint": "La vista Puestos muestra los casetes, bloques y portaobjetos que llevan más de este tiempo sin escanearse en ningún puesto. En blanco: 240 minutos.",
+    "staleScanInvalid": "Introduzca minutos enteros entre 30 y 10080.",
+    "staleScanLabel": "Aviso de sin escanear (minutos)"
   },
   "disposalQueue": {
     "computing": "Calculando la cola real y actual…",
@@ -10111,6 +10627,52 @@
       "total": "Total eliminado"
     },
     "unknownLocation": "Desconocida"
+  },
+  "divideSpecimen": {
+    "add": "+ Añadir alícuota",
+    "aliquotLine": "{{volume}} mL → {{destination}}",
+    "destination": "Destino",
+    "destinationKind": "Tipo de destino",
+    "divide": "Dividir",
+    "done": {
+      "divided": "Dividido en {{labels}}; quedan {{remaining}} mL.",
+      "statusSaved": "Estado guardado."
+    },
+    "kind": {
+      "department": "Servicio",
+      "reference_lab": "Laboratorio de referencia"
+    },
+    "markAs": "Marcar como {{status}}",
+    "open": "Dividir la muestra",
+    "problem": {
+      "alreadyDivided": "Esta muestra ya se ha dividido.",
+      "noRows": "Añada al menos una alícuota.",
+      "noStartingVolume": "Indique primero el volumen inicial.",
+      "notAliquot": "No es una alícuota.",
+      "notForward": "El estado de una alícuota solo avanza.",
+      "notFound": "Esa alícuota ya no está en el caso.",
+      "notPermitted": "No tiene permiso para esto. Consulte a su administrador.",
+      "notSaved": "No se ha guardado. Puede que el caso haya cambiado; inténtelo de nuevo.",
+      "overStartingVolume": "Las alícuotas suman más que el volumen inicial.",
+      "receivingAccessionRequired": "Indique el n.º de registro del servicio receptor para registrar Resultado recibido.",
+      "rowDestination": "Cada alícuota necesita un destino.",
+      "rowVolume": "Cada alícuota necesita un volumen superior a 0 mL."
+    },
+    "purpose": "Para",
+    "receivingAccession": "N.º de registro del servicio receptor",
+    "record": "Dividido por {{name}}, {{when}}: {{split}} mL de {{start}} mL en alícuotas, quedan {{remaining}} mL.",
+    "remove": "Quitar",
+    "startingVolume": "Volumen inicial (mL)",
+    "status": {
+      "not_sent": "No enviada",
+      "received": "Recibida",
+      "result_back": "Resultado recibido",
+      "sent": "Enviada"
+    },
+    "statusWithReceiving": "{{status}}, n.º de registro receptor {{accession}}",
+    "title": "Dividir la muestra {{label}}",
+    "totals": "Repartido: {{split}} mL de {{start}} mL; quedan {{remaining}} mL.",
+    "volume": "Volumen (mL)"
   },
   "documentStyleSection": {
     "bold": "Negrita",
@@ -10222,6 +10784,7 @@
         "requiresDecal": "Requiere descalcificación",
         "tinyTissue": "Tejido diminuto"
       },
+      "matrixBlockOf": "Bloque matriz de las muestras {{specimens}}",
       "patient": "Paciente:",
       "scanNext": "Escanear la siguiente cassette →",
       "specimenBlock": "Muestra/bloque:",
@@ -10307,7 +10870,7 @@
       "blockNotFound": "No se ha encontrado el bloque {{block}}.",
       "notResolved": "Ese escaneado no coincide con ningún caso ni bloque. Compruebe el código de barras e inténtelo de nuevo.",
       "specimenNotFound": "No se ha encontrado la muestra en ese caso.",
-      "unsupportedTarget": "La estación de inclusión solo admite cassettes de bloque. Todavía no se admiten las cassettes de matriz o de bloque celular, los decantados ni los códigos de barras de muestra."
+      "unsupportedTarget": "La estación de inclusión admite cassettes de bloque y de bloque matriz. Todavía no se admiten las cassettes de bloque celular, los decantados ni los códigos de barras de muestra."
     },
     "scanPlaceholder": "Escanee o escriba un código de barras…",
     "scanPrompt": "Escanee el código de barras de una cassette para comenzar",
@@ -10481,6 +11044,7 @@
     "camera": "Cámara",
     "engraver": "Grabadora",
     "label_printer": "Impresora de etiquetas",
+    "lbc_processor": "Procesador de citología en medio líquido",
     "other": "Otro",
     "scale": "Balanza",
     "slide_scanner": "Escáner de portaobjetos",
@@ -10493,9 +11057,11 @@
       "dateInFuture": "La fecha no puede ser futura.",
       "dateRequired": "Introduzca la fecha en que se realizó.",
       "notesRequired": "Describa lo ocurrido: es obligatorio en caso de fallo o avería.",
+      "outcomeMismatch": "El resultado debe coincidir con la lectura respecto al intervalo.",
       "outcomeRequired": "Elija un resultado.",
       "performedByRequired": "Introduzca quién lo realizó.",
       "saveFailed": "No se ha podido guardar la entrada.",
+      "temperatureRequired": "Introduzca la temperatura medida.",
       "typeRequired": "Elija un tipo."
     },
     "headers": {
@@ -10515,6 +11081,7 @@
       "historyEmpty": "Aún no hay entradas.",
       "historyTitle": "Historial",
       "lastDone": "Última realización: {{date}}",
+      "noRange": "No hay un intervalo definido para este equipo (Configuración → Sistema → Equipos); elija usted el resultado.",
       "notScheduled": "No programado",
       "notesHint": "Obligatorio en caso de fallo o avería.",
       "notesLabel": "Notas",
@@ -10522,6 +11089,8 @@
       "outcomeLabel": "Resultado",
       "performedByLabel": "Realizado por",
       "performedByPlaceholder": "Miembro del personal o técnico de servicio",
+      "range": "Aceptable: de {{min}} a {{max}} °C. El resultado se fija según la lectura.",
+      "temperatureLabel": "Temperatura (°C)",
       "title": "Registro de servicio — {{name}} ({{code}})",
       "typeLabel": "Tipo"
     },
@@ -10538,12 +11107,14 @@
       "ok": "Al día",
       "overdue": "Vencido"
     },
+    "temperatureReading": "({{value}} °C)",
     "types": {
       "calibration": "Calibración",
       "function_check": "Comprobación de funcionamiento",
       "maintenance": "Mantenimiento",
       "malfunction": "Avería",
-      "repair": "Reparación"
+      "repair": "Reparación",
+      "temperature_check": "Control de temperatura"
     }
   },
   "equipmentSection": {
@@ -10576,7 +11147,8 @@
       "kindRequired": "Elija un tipo.",
       "nameRequired": "El nombre es obligatorio.",
       "saveFailed": "No se ha podido guardar el equipo. Compruebe los campos e inténtelo de nuevo.",
-      "stationOtherFacility": "Esta estación de escaneado pertenece a otro laboratorio."
+      "stationOtherFacility": "Esta estación de escaneado pertenece a otro laboratorio.",
+      "temperatureRangeInvalid": "Introduzca números, con el mínimo por debajo del máximo."
     },
     "headers": {
       "actions": "Acciones",
@@ -10609,6 +11181,7 @@
       "intervalHint": "Déjelo vacío si no tiene programación. Las fechas de vencimiento se cuentan desde la última entrada satisfactoria del registro de servicio.",
       "intervalPlaceholder": "p. ej., 30",
       "kindLabel": "Tipo",
+      "largeFormatLabel": "Admite portaobjetos de gran formato",
       "maintenanceIntervalLabel": "Mantenimiento cada (días)",
       "makeLabel": "Marca",
       "makePlaceholder": "p. ej., Hologic",
@@ -10622,9 +11195,21 @@
       "stationHint": "Dónde se encuentra. En el caso de un analizador, el envío de la lista de trabajo comprueba que se envía desde esta estación.",
       "stationLabel": "Estación de escaneado",
       "stationNoneOption": "— Sin estación —",
-      "statusLabel": "Estado"
+      "statusLabel": "Estado",
+      "temperatureHint": "Opcional. Un control de temperatura del registro de equipos fuera de este intervalo es un fallo.",
+      "temperatureMaxLabel": "Temperatura máxima (°C)",
+      "temperatureMinLabel": "Temperatura mínima (°C)"
     },
     "nextDue": "Próximo vencimiento: {{date}}",
+    "racks": {
+      "largeFormat": "Portaobjetos de gran formato",
+      "largeFormatAria": "{{rack}} admite portaobjetos de gran formato",
+      "largeFormatLabel": "Admite portaobjetos de gran formato",
+      "notSaved": "No se ha guardado. Puede que no tenga permiso para cambiar el equipo; consulte a su administrador.",
+      "rack": "Gradilla",
+      "subtitle": "Gradillas de tinción reutilizables (identificadores RACK- grabados). Un portaobjetos de gran formato de un megabloque solo va en una gradilla que admite portaobjetos de gran formato.",
+      "title": "Gradillas de tinción"
+    },
     "searchPlaceholder": "Buscar por nombre, código, marca, modelo o número de serie...",
     "settingsLink": {
       "grossingHardware": "Equipo de tallado: {{name}}",
@@ -10660,6 +11245,21 @@
     "noDocumentationAtAll": "Esta muestra no tiene descripción microscópica ni plantilla sinóptica: añada documentación antes de finalizar.",
     "requiredForProcedure": "Para este procedimiento es obligatoria una descripción microscópica narrativa.",
     "unsavedDraft": "La descripción microscópica de esta muestra es un borrador sin guardar: guárdelo o descártelo antes de finalizar."
+  },
+  "exhaustedBlock": {
+    "awaitingReembed_many": "{{count}} peticiones esperan a que se reincluya este bloque.",
+    "awaitingReembed_one": "{{count}} petición espera a que se reincluya este bloque.",
+    "awaitingReembed_other": "{{count}} peticiones esperan a que se reincluya este bloque.",
+    "failed": "No se pudo registrar la reinclusión. No se ha cambiado nada.",
+    "markReembedded": "Reincluido: liberar las peticiones",
+    "none": "ninguno",
+    "notPermitted": "No tiene permiso para registrar una reinclusión. Consulte a su administrador.",
+    "piecesTitle": "Los fragmentos elegidos del bloque {{block}} están agotados.",
+    "released_many": "Reinclusión registrada. Se liberaron {{count}} peticiones al micrótomo.",
+    "released_one": "Reinclusión registrada. Se liberó {{count}} petición al micrótomo.",
+    "released_other": "Reinclusión registrada. Se liberaron {{count}} peticiones al micrótomo.",
+    "remains": "Lo que queda: portaobjetos sin teñir {{unstained}}; otros bloques de esta muestra: {{blocks}}.",
+    "title": "El bloque {{block}} está agotado."
   },
   "exports": {
     "notice": {
@@ -11109,7 +11709,29 @@
     }
   },
   "facilityOpsDashboard": {
+    "addOnPill": "COMPLEMENTO",
+    "addOnTypes": {
+      "ihc": "IHQ",
+      "molecular": "Cortes para molecular",
+      "other": "Complementario",
+      "recut": "Recorte / niveles",
+      "sendOut": "Cortes para envío",
+      "specialStain": "Tinción especial"
+    },
     "ageLabel": "hace {{duration}}",
+    "alertKinds": {
+      "coldChainExcursion": "Desviación de la cadena de frío",
+      "decalOverdue": "Descalcificación atrasada",
+      "notScanned": "Sin escanear",
+      "qcFailed": "CC no superado",
+      "reconciliation": "Conciliación",
+      "recutRequested": "Recorte solicitado",
+      "runFailed": "Ejecución fallida",
+      "scanFailed": "Escaneo fallido",
+      "scanQcFailed": "CC de escaneo no superado",
+      "stat": "STAT",
+      "statAddOn": "Complementario STAT"
+    },
     "bindDisplayDescription": "Seleccione el perfil de pantalla que debe mostrar esta pantalla mural.",
     "bindDisplayTitle": "Vincular esta pantalla",
     "confirmTokenDescription": "Introduzca el token de dispositivo registrado para \"{{name}}\" para terminar de vincular esta pantalla.",
@@ -11117,21 +11739,96 @@
     "confirmTokenNote": "Esto confirma que dispone del token que un administrador registró para esta pantalla; no verifica el hardware físico real.",
     "confirmTokenPlaceholder": "Introduzca el token del dispositivo",
     "confirmTokenTitle": "Confirmar token del dispositivo",
+    "details": {
+      "awaitingIntake": "{{specimen}}: pendiente de recepción ({{material}})",
+      "blockStain": "{{block}} · {{stain}}",
+      "instrument": "{{node}} · elementos: {{count}} · equipo: {{instrument}}",
+      "lastSeenAt": "Último escaneo en {{station}}, hace {{duration}}",
+      "node": "{{node}}",
+      "nodeItems": "{{node}} · elementos: {{count}}",
+      "reconciliation": "Faltantes: {{missing}} · inesperados: {{unexpected}}",
+      "referral": "{{lab}} · {{test}}",
+      "referralTransit": "{{lab}} · {{test}} · {{transit}}",
+      "slideFailure": "{{position}}: {{reason}}",
+      "stationRow": "Soportes: {{carriers}} · elementos: {{items}}",
+      "stationRowLoose": "Soportes: {{carriers}} · elementos: {{items}} · sin soporte: {{loose}}",
+      "temperature": "{{temp}} °C",
+      "temperatureAt": "{{temp}} °C el {{at}}",
+      "wsi": "{{status}} · portaobjetos: {{count}}"
+    },
+    "instrumentStatus": {
+      "In Process": "en proceso",
+      "Loaded to Instrument": "cargado",
+      "Run Completed": "ejecución completada",
+      "Run Failed": "ejecución fallida"
+    },
     "lastUpdated": "Actualizado {{time}}",
     "loadingData": "Cargando los datos del panel…",
     "loadingProfile": "Cargando el perfil de pantalla…",
+    "material": {
+      "block": "bloque",
+      "slide": "portaobjetos"
+    },
     "noProfilesConfigured": "Todavía no hay perfiles de pantalla configurados. Añada uno en Configuración → Sistema → Perfiles de pantalla.",
     "offlineStaleBadge": "Sin conexión / datos desactualizados",
     "overdueBy": "Retraso de {{duration}}",
+    "pinned": "Fijado",
     "queueEmpty": "Nada en cola por ahora.",
     "selectProfile": "— seleccione un perfil de pantalla —",
     "statPill": "STAT",
+    "stats": {
+      "addOnsWaiting": "Pedidos complementarios en espera",
+      "coldChainAlerts": "Desviaciones de la cadena de frío",
+      "coldChainOpen": "Desviaciones de la cadena de frío",
+      "completed": "Completados",
+      "cytologyStainingActive": "Lotes de tinción de citología",
+      "decalActive": "Descalcificación / procesamiento especial",
+      "delivered": "Entregados",
+      "dispatched": "Enviados",
+      "embeddingActive": "Lotes en inclusión",
+      "imageQcFailed": "CC de imagen no superado",
+      "inStaining": "Portaobjetos en tinción",
+      "inTransit": "En tránsito",
+      "microtomyActive": "Lotes en microtomía",
+      "notScanned": "Sin escanear recientemente",
+      "pastLimit": "Fuera del plazo",
+      "pending": "Pendientes",
+      "pendingIntake": "Recepción pendiente",
+      "processingActive": "Lotes en procesamiento",
+      "qcFailed": "CC no superado",
+      "readyForReview": "Listos para revisión",
+      "reconciliationExceptions": "Faltantes o inesperados",
+      "recutRequested": "Recorte solicitado",
+      "resultReceived": "Resultados recibidos",
+      "runFailed": "Ejecuciones de equipo fallidas",
+      "scanFailed": "Escaneo fallido",
+      "scanning": "Escaneando",
+      "stainingActive": "Lotes de tinción activos",
+      "statBatches": "Lotes STAT",
+      "statPending": "STAT pendiente",
+      "statWaiting": "STAT en espera",
+      "totalItems": "Casetes/portaobjetos en proceso"
+    },
+    "transit": {
+      "delivered": "entregado",
+      "dispatched": "enviado",
+      "in_transit": "en tránsito",
+      "result_received": "resultado recibido"
+    },
     "views": {
       "diagnosticSignout": "Firma diagnóstica / escáner",
       "embeddingMicrotomy": "Inclusión y microtomía",
       "grossingIntake": "Tallado y recepción",
       "sendoutReference": "Envíos y laboratorio de referencia",
-      "stainingIhc": "Tinción e IHQ"
+      "stainingIhc": "Tinción e IHQ",
+      "stationOverview": "Puestos"
+    },
+    "wsiStatus": {
+      "completed": "Completado",
+      "failed": "Fallido",
+      "loaded": "Cargado",
+      "scanning": "Escaneando",
+      "unloaded": "Descargado"
     }
   },
   "facilityPrintingTab": {
@@ -12331,19 +13028,21 @@
   },
   "grossingBench": {
     "addOnOrders": "Pedidos complementarios",
-    "decal": {
-      "added": "{{block}} añadido al lote de descalcificación {{batch}}.",
-      "already": "{{block}} ya está en ese lote de descalcificación.",
-      "assign": "Enviar a descalcificación",
-      "block": "Bloque a enviar",
-      "label": "Lote de descalcificación",
-      "noBatch": "No hay un lote de descalcificación activo.",
-      "noBlock": "Todavía no hay ningún bloque para descalcificar.",
-      "none": "No hay lote de descalcificación activo",
+    "carrier": {
+      "added": "{{block}} cargado en {{batch}}.",
+      "already": "{{block}} ya está en ese soporte.",
+      "assign": "Cargar en el soporte",
+      "block": "Bloque a cargar",
+      "label": "Soporte",
+      "noBatch": "No hay ningún soporte de descalcificación o procesamiento abierto para cargar.",
+      "noBlock": "Todavía no hay ningún bloque para cargar.",
+      "none": "No hay soporte abierto",
+      "notAccepting": "{{batch}} está sellado o cerrado y ya no admite bloques.",
       "notFound": "No se encontró ese bloque.",
+      "option": "{{barcode}} · {{node}}",
       "otherBatch": "{{block}} ya está en otro lote activo ({{batch}})."
     },
-    "hint": "Atajos: Alt+Mayús+1 imprimir casetes, 2 foto, 3 descalcificación, 4 pedidos complementarios. Pedal 1: foto; pedal 2: imprime los casetes.",
+    "hint": "Atajos: Alt+Mayús+1 imprimir casetes, 2 foto, 3 cargar en un soporte, 4 pedidos complementarios. Pedal 1: foto; pedal 2: imprime los casetes.",
     "printCassettes": "Imprimir casetes",
     "takePhoto": "Tomar una foto",
     "title": "Herramientas de mesa"
@@ -13775,6 +14474,58 @@
       "unavailableSummary": "Cirujano no disponible: {{reason}}"
     }
   },
+  "itemEndState": {
+    "currentDetail": " — {{reason}} · {{name}}, {{when}}",
+    "errors": {
+      "failed": "No se pudo registrar el estado final. Inténtelo de nuevo.",
+      "invalid": "El motivo es obligatorio.",
+      "notPermitted": "No tiene permiso para registrar un estado final. Consulte a su administrador."
+    },
+    "loading": "Cargando el estado final…",
+    "none": "Aún no se ha registrado ningún estado final.",
+    "quickReasons": "Motivos rápidos",
+    "reasonLabel": "Motivo",
+    "reasons": {
+      "archived": {
+        "caseSignedOut": "Caso firmado",
+        "retentionPolicy": "Archivado según la política de conservación"
+      },
+      "consumed": {
+        "flowOrOther": "Usado en otra prueba",
+        "molecularTest": "Usado en una prueba molecular"
+      },
+      "discarded": {
+        "damagedUnusable": "Dañado e inutilizable",
+        "retentionEnded": "Fin del periodo de conservación"
+      },
+      "exhausted": {
+        "facedThrough": "Cortado hasta el casete",
+        "noTissueLeft": "No queda tejido en el bloque"
+      },
+      "returned_to_storage": {
+        "awaitingDecision": "Pendiente de una decisión",
+        "workComplete": "Trabajo terminado"
+      },
+      "sent_out": {
+        "consult": "Enviado para consulta",
+        "referral": "Derivación a otro laboratorio",
+        "research": "Cedido para investigación"
+      }
+    },
+    "recordButton": "Registrar el estado final",
+    "recorded": "Estado final registrado.",
+    "save": "Registrar",
+    "stateLabel": "Estado final",
+    "states": {
+      "archived": "Archivado",
+      "consumed": "Consumido en pruebas",
+      "discarded": "Desechado",
+      "exhausted": "Agotado (sin tejido restante)",
+      "returned_to_storage": "Devuelto al almacén",
+      "sent_out": "Enviado fuera"
+    },
+    "title": "Estado final"
+  },
   "jurisdictionNames": {
     "AU": "Australia",
     "BE": "Bélgica",
@@ -13864,6 +14615,116 @@
       "status": "Estado"
     },
     "title": "Correspondencia de pagos por jurisdicción"
+  },
+  "labWorkflowReports": {
+    "byDay": "Día",
+    "byWeek": "Semana",
+    "caseTypes": {
+      "autopsy": "Autopsia",
+      "cytology": "Citología",
+      "surgpath": "Patología quirúrgica"
+    },
+    "columns": {
+      "at": "Cuándo",
+      "by": "Por",
+      "carrier": "Soporte",
+      "caseAccession": "Caso",
+      "cases": "Casos",
+      "cut": "Cortados",
+      "finishedAt": "Fin",
+      "group": "Grupo",
+      "item": "Elemento",
+      "items": "Elementos",
+      "kind": "Tipo",
+      "late": "Con retraso",
+      "latePct": "% con retraso",
+      "measure": "Medida",
+      "medianHours": "Mediana (h)",
+      "medianMinutesToCut": "Mediana de minutos hasta el corte",
+      "minutes": "Minutos",
+      "node": "Paso",
+      "ordered": "Pedidos",
+      "overTarget": "Por encima del objetivo",
+      "p90Hours": "Percentil 90 (h)",
+      "period": "Período",
+      "reason": "Motivo",
+      "reasonCode": "Código del motivo",
+      "scans": "Escaneos",
+      "stage": "Fase",
+      "startedAt": "Inicio",
+      "stat": "STAT",
+      "stationName": "Puesto",
+      "step": "Paso",
+      "targetHours": "Objetivo (h)",
+      "targetMinutes": "Objetivo (min)",
+      "type": "Tipo",
+      "value": "Valor"
+    },
+    "descriptions": {
+      "addOns": "Pedidos complementarios realizados en las fechas elegidas, por tipo: cuántos, cuántos cortados, la mediana en minutos del pedido al corte y cuántos eran STAT.",
+      "batchDuration": "Cuánto tiempo pasó cada lote de descalcificación y de tinción en ese paso, frente a su objetivo (descalcificación: el del lote; tinción: el objetivo que fije aquí).",
+      "reconciliation": "Elementos que faltaban o se escanearon de forma inesperada al conciliar los soportes, y anulaciones del supervisor, con el soporte, el elemento y quién.",
+      "rework": "Portaobjetos cortados en las fechas elegidas, pedidos de recorte, reimpresiones de etiquetas de portaobjetos y casetes, y las tasas por portaobjetos cortado.",
+      "statPerformance": "El informe de tiempo de respuesta solo para casos STAT.",
+      "stationVolume": "Casetes, bloques y portaobjetos escaneados en cada puesto, por día o por semana. Solo cuentan los escaneos del propio elemento; se incluyen los elementos movidos sin soporte.",
+      "turnaround": "Horas desde el registro hasta cada paso, para los casos registrados en las fechas elegidas. Un caso alcanza un paso cuando lo alcanza su último elemento. Mediana, percentil 90 y proporción por encima de su objetivo."
+    },
+    "empty": "Nada en estas fechas.",
+    "errors": {
+      "BAD_DATES": "Elija una fecha de inicio igual o anterior a la de fin.",
+      "LOAD_FAILED": "No se pudo preparar el informe. Inténtelo de nuevo.",
+      "NOT_PERMITTED": "No tiene permiso para ver este informe."
+    },
+    "export": "Exportar CSV",
+    "exportRefused": "No tiene permiso para exportar este informe.",
+    "footnote": "Inclusión, corte, tinción y distribución proceden de los escaneos de puesto: no se cuenta el trabajo hecho en un puesto sin puesto configurado ni el anterior al seguimiento por puesto (lote 726). El envío programado de estos informes aún no está disponible.",
+    "from": "Desde",
+    "groupBy": "Agrupar por",
+    "groupings": {
+      "caseType": "Tipo de caso",
+      "facility": "Centro",
+      "none": "Todos los casos",
+      "priority": "Prioridad"
+    },
+    "kinds": {
+      "missing": "Faltante",
+      "override": "Anulación del supervisor",
+      "unexpected": "Inesperado"
+    },
+    "loading": "Preparando el informe…",
+    "measures": {
+      "cassetteReprints": "Reimpresiones de etiquetas de casetes",
+      "recutOrders": "Pedidos de recorte",
+      "recutRatePct": "Tasa de recorte (% de portaobjetos cortados)",
+      "reworkRatePct": "Tasa de repetición (% de portaobjetos cortados)",
+      "slideReprints": "Reimpresiones de etiquetas de portaobjetos",
+      "slidesCut": "Portaobjetos cortados"
+    },
+    "pageSubtitle": "Tiempos de respuesta, volumen y excepciones a partir de los escaneos de puesto, los casos y los soportes. Solo totales; se excluyen los casos de investigación.",
+    "pageTitle": "Informes del flujo del laboratorio",
+    "period": "Por",
+    "reports": {
+      "addOns": "Pedidos complementarios",
+      "batchDuration": "Duración de los lotes",
+      "reconciliation": "Excepciones de conciliación",
+      "rework": "Recortes y repeticiones",
+      "statPerformance": "Rendimiento STAT",
+      "stationVolume": "Volumen por puesto",
+      "turnaround": "Tiempo de respuesta por paso"
+    },
+    "stainingTarget": "Objetivo de tinción (minutos)",
+    "steps": {
+      "cut": "Corte",
+      "distribute": "Distribución",
+      "embed": "Inclusión",
+      "gross": "Tallado",
+      "signOut": "Firma",
+      "stain": "Tinción"
+    },
+    "targets": "Objetivos (horas desde el registro)",
+    "tile": "Informes de flujo",
+    "tileTitle": "Informes de tiempo de respuesta, volumen y excepciones",
+    "to": "Hasta"
   },
   "labelDesignerPage": {
     "allFieldsPlaced": "Todos los campos colocados.",
@@ -14756,6 +15617,9 @@
         "coresNotEvaluated": "{{stain}}: se factura cuando el patólogo confirme qué cilindros se evaluaron."
       }
     },
+    "blocksStillWaiting_many": "{{count}} bloques más de este caso siguen esperando el corte: {{blocks}}",
+    "blocksStillWaiting_one": "{{count}} bloque más de este caso sigue esperando el corte: {{blocks}}",
+    "blocksStillWaiting_other": "{{count}} bloques más de este caso siguen esperando el corte: {{blocks}}",
     "comments": {
       "add": "Añadir comentario",
       "empty": "Aún no hay comentarios.",
@@ -14817,7 +15681,7 @@
       "approved": "El patólogo ha aprobado el corte destructivo. El corte puede continuar.",
       "bannerBody": "Marcado por {{name}}. El corte está bloqueado hasta que responda el patólogo solicitante.",
       "bannerTitle": "Bloque agotado.",
-      "body": "Se envía un correo electrónico al patólogo solicitante. El corte de este bloque queda bloqueado hasta que responda: aprobar el corte destructivo o cancelar o modificar el pedido.",
+      "body": "Un solo aviso cubre todos los portaobjetos de este bloque que esperan corte, y se envía un correo electrónico a los patólogos solicitantes. El corte queda bloqueado hasta que respondan: usar un portaobjetos sin teñir ya cortado, solicitar una reinclusión, pedir de otro bloque de la misma muestra, aprobar el corte destructivo (solo mientras pueda quedar tejido) o cancelar o modificar los pedidos.",
       "button": "Bloque agotado",
       "confirm": "Marcar como agotado",
       "cuttingBlocked": "Este bloque está marcado como agotado. El corte espera la respuesta del patólogo solicitante.",
@@ -14826,6 +15690,7 @@
       "notPermitted": "No tiene permiso para marcar una excepción de bloque. Consulte con su administrador.",
       "note": "Nota",
       "noteRequired": "Se requiere una nota.",
+      "orderHeld": "Este bloque está agotado. Este portaobjetos espera al patólogo solicitante: márquelo con Bloque agotado para que elija una alternativa.",
       "sentToDesk": "No consta ningún patólogo solicitante para este portaobjetos, así que el aviso se ha enviado al supervisor / mostrador de recepción.",
       "title": "Marcar bloque como agotado"
     },
@@ -14888,9 +15753,12 @@
       "blockNotFound": "No se ha encontrado el bloque {{label}}.",
       "blockNotOnCase": "No se ha encontrado el bloque en este caso.",
       "caseNotFound": "No se ha encontrado el caso.",
+      "cutAtMicrotome": "Es un bloque: córtelo en el micrótomo.",
       "decantNotFound": "No se ha encontrado el decantado {{label}}.",
       "empty": "Escaneo vacío.",
       "matrixBlockNotFound": "No se ha encontrado el bloque de matriz en el caso identificado.",
+      "notHandedOff": "El bloque celular {{label}} no se ha entregado: entréguelo primero en el puesto de preparación citológica.",
+      "prepareAtCytology": "{{label}} es un líquido o una alícuota: prepárelo en el puesto de preparación citológica.",
       "specimenNotFound": "No se ha encontrado la muestra en el caso identificado.",
       "unresolved": "Ese escaneo no se ha podido asociar a un caso, bloque o decantado: compruebe el código de barras e inténtelo de nuevo.",
       "unsupported": "En la estación de microtomía no se admite escanear solo una muestra. Escanee el código de barras de un bloque, de un bloque de matriz o de un recipiente de decantado/líquido."
@@ -14917,8 +15785,18 @@
       "commentOnLabelTitle": "El comentario de este portaobjetos se imprime en la etiqueta física",
       "control": "Control",
       "duplicateCount": "×",
+      "forPieces_many": "Para {{count}} fragmentos",
+      "forPieces_one": "Para {{count}} fragmento",
+      "forPieces_other": "Para {{count}} fragmentos",
       "levelDepth": "µm",
       "levelShort": "N{{n}}",
+      "levelsOnSlide_many": "{{count}} niveles en este portaobjetos",
+      "levelsOnSlide_one": "{{count}} nivel en este portaobjetos",
+      "levelsOnSlide_other": "{{count}} niveles en este portaobjetos",
+      "moveDown": "Bajar este portaobjetos en el orden de impresión",
+      "moveDownShort": "↓",
+      "moveUp": "Subir este portaobjetos en el orden de impresión",
+      "moveUpShort": "↑",
       "onLabel": "En etiqueta",
       "pairControl": "Emparejar con portaobjetos de control",
       "print": "Imprimir",
@@ -14926,6 +15804,7 @@
       "reprintReasonPrompt": "Motivo…",
       "reprintedCount": "Reimpreso {{count}}×",
       "searchStains": "Buscar tinciones…",
+      "selectForBatch": "Incluir este portaobjetos en la impresión por lotes",
       "selectStain": "Seleccione una tinción…",
       "slideComments": "Comentarios del portaobjetos",
       "title": "Cuadrícula de portaobjetos"
@@ -16047,6 +16926,7 @@
   },
   "newContainerModal": {
     "autoSetFromStation": "↳ Establecido a partir de la fase propia de {{station}}.",
+    "chooseStep": "Elija un paso…",
     "containerCreated": "Contenedor creado",
     "containerIdentifierMode": "Modo de identificador del contenedor",
     "containerType": "Tipo de contenedor",
@@ -16063,6 +16943,7 @@
     "generateAndPrint": "Generar e imprimir",
     "generating": "Generando…",
     "hours": "h",
+    "largeFormat": "Admite portaobjetos de gran formato (megabloques)",
     "minutes": "min",
     "noReagentLots": "No hay lotes de reactivos activos en el registro.",
     "noReferenceLabConfigured": "Ningún centro tiene configurado actualmente el rol de laboratorio de referencia: añada uno primero en los ajustes de Centros.",
@@ -16071,6 +16952,9 @@
     "printInstructions": "Imprima este código de barras de lote maestro y péguelo en el soporte físico.",
     "priority": "Prioridad",
     "processingNode": "Nodo de procesamiento",
+    "processor": "Procesador",
+    "processorNone": "— Sin elegir —",
+    "processorOption": "{{name}} ({{code}})",
     "protocolLabel": "Protocolo / parámetros de ejecución",
     "protocolPlaceholder": "p. ej., Ciclo nocturno estándar de H&E",
     "rackCheckedOutNoPrint": "La gradilla {{barcode}} queda ahora asignada a este lote: no hay ninguna etiqueta nueva que imprimir.",
@@ -17834,6 +18718,10 @@
       "description": "Seguir casetes y láminas",
       "title": "Gestión de lotes"
     },
+    "cytologyPrepTile": {
+      "description": "Líquidos, portaobjetos, entrega de bloques celulares",
+      "title": "Preparación citológica"
+    },
     "cytologyTile": {
       "description": "Cribado, triaje y control",
       "title": "Espacio de trabajo de citología"
@@ -18693,6 +19581,7 @@
       "unsupportedProtocol": "El agente de PathScribe de esta estación de trabajo necesita actualizarse."
     },
     "bridgeNotImplemented": "El puente de impresora «{{bridgeType}}» aún no tiene una ruta de impresión operativa para este tipo de etiqueta. Aquí solo están conectados QZ Tray y el agente de PathScribe.",
+    "directPrintingOff": "No impreso: la impresión directa del navegador a {{printer}} está desactivada en este centro. Imprima a través del motor de interfaces o use el cuadro de impresión del navegador.",
     "popupBlockedAlert": "Permita las ventanas emergentes de este sitio para imprimir etiquetas.",
     "preparing": "Preparando las etiquetas…",
     "preparingTitle": "Preparando las etiquetas"
@@ -20160,6 +21049,10 @@
       "label": "Periodo de la tendencia:"
     }
   },
+  "quickReasons": {
+    "label": "Motivos rápidos",
+    "withNote": "{{reason}}: {{note}}"
+  },
   "reagentLotsSection": {
     "addReagentLotButton": "+ Añadir lote de reactivo",
     "allLabsLabel": "Todos los laboratorios",
@@ -20751,37 +21644,6 @@
     "finalizedReadOnly": "Finalizado: solo lectura",
     "footerNote": "Se envía al LIS al finalizar. Los campos definidos por el protocolo están en las pestañas Tumor, Márgenes y Biomarcadores."
   },
-  "reportImages": {
-    "accessionLine": "Informe {{accession}}",
-    "add": "Añadir",
-    "captionLabel": "Pie de imagen (opcional)",
-    "captionPlaceholder": "Se imprime bajo la imagen",
-    "close": "Hecho",
-    "dismiss": "Descartar",
-    "empty": "Todavía no hay imágenes adjuntas.",
-    "intro": "Las imágenes se imprimen después de las páginas del propio informe, una imagen por página con su pie. Un informe ya validado no se modifica; las imágenes que se añadan ahora aparecerán en los informes que se generen a partir de este momento.",
-    "linkLabel": "Enlace a la imagen (https)",
-    "linkNote": "PathScribe no almacena imágenes. Enlace una imagen guardada en el sistema propio de su hospital; se descarga y se incorpora al PDF cuando se genera el informe. Si no se puede acceder a ella, el informe imprime en su lugar una página «Imagen no disponible».",
-    "linkPlaceholder": "https://imaging.hospital.org/…",
-    "listLabel": "Imágenes adjuntas",
-    "problems": {
-      "duplicate": "Esa imagen ya está enlazada a este informe.",
-      "failed": "No se ha podido adjuntar la imagen.",
-      "invalidLink": "Introduzca un enlace https:// a un servidor con nombre (sin nombre de usuario ni contraseña).",
-      "notPermitted": "No tiene permiso para adjuntar imágenes a los informes.",
-      "tooMany": "Un informe puede tener como máximo {{max}} imágenes."
-    },
-    "remove": "Quitar",
-    "source": "Desde {{host}}",
-    "title": "Adjuntar imágenes al informe",
-    "typeLabel": "Tipo de imagen",
-    "types": {
-      "blockFace": "Cara del bloque",
-      "grossSpecimen": "Pieza macroscópica",
-      "microphotograph": "Microfotografía",
-      "other": "Otra"
-    }
-  },
   "reportPreviewRenderer": {
     "badgeAccepted": "✓ Aceptado",
     "badgeAiDraft": "Borrador de IA",
@@ -20880,6 +21742,46 @@
     "sending": "Enviando…",
     "sentToCodeReview": "Caso enviado a revisión de codificación",
     "title": "Solicitar revisión a un colega"
+  },
+  "researchCases": {
+    "accessionPrefixes": "Prefijos de número de registro",
+    "active": "Activa",
+    "addPurpose": "Añadir",
+    "applies": {
+      "charges": "no envía cargos a facturación y envía la clase financiera sin cargo",
+      "results": "no envía ningún resultado a la historia clínica ni ningún informe por fax o depósito de archivos",
+      "retention": "incluye sus bloques y portaobjetos para eliminación cuando pasan los días indicados (las retenciones siguen aplicándose)",
+      "stats": "lo excluye de las cifras de tiempo de respuesta, volumen y calidad",
+      "worklist": "lo excluye de las listas de trabajo clínicas (búsquelo con la Búsqueda)"
+    },
+    "appliesHeading": "Para un caso de investigación, PathScribe:",
+    "builtIn": "Integrada",
+    "casesHeading": "Casos de investigación",
+    "enabled": "Tratar los casos coincidentes como casos de investigación",
+    "financialClass": "Clase financiera sin cargo",
+    "mrnPrefixes": "Prefijos de NHC del paciente de investigación",
+    "newPurpose": "Nueva finalidad",
+    "notPermitted": "No tiene permiso para cambiar esto.",
+    "prefixHint": "Separe los prefijos con comas. Un caso coincide cuando su número de registro o el NHC de su paciente empieza por uno de ellos (mayúsculas o no).",
+    "problems": {
+      "financialClassRequired": "Introduzca la clase financiera sin cargo.",
+      "noMarker": "Introduzca al menos un prefijo de registro o de NHC, o desactive los casos de investigación.",
+      "prefixInvalid": "Un prefijo no puede contener espacios ni tener más de 20 caracteres.",
+      "retentionDaysInvalid": "Introduzca días enteros entre 0 y 36500."
+    },
+    "purposeName": "Nombre de la finalidad",
+    "purposeProblems": {
+      "duplicateName": "Dos finalidades tienen el mismo nombre.",
+      "nameRequired": "Cada finalidad necesita un nombre.",
+      "nameTooLong": "El nombre de una finalidad puede tener como máximo 40 caracteres.",
+      "routineRequired": "Rutina debe seguir activa."
+    },
+    "purposesHeading": "Finalidades de lote",
+    "purposesHint": "Cada soporte nuevo es Rutina salvo que se elija otra finalidad. Una pantalla de pared puede mostrar solo las finalidades elegidas. Las finalidades integradas pueden desactivarse pero no eliminarse; Rutina siempre está activa.",
+    "retentionDays": "Conservar el material (días tras el registro)",
+    "saved": "Guardado.",
+    "subtitle": "Una muestra de investigación se registra como un caso de un paciente de investigación hasta que existan los elementos de investigación sin registro. Defina aquí cómo se reconocen y conservan esos casos, y para qué puede usarse cada soporte.",
+    "title": "Casos de investigación y finalidades de lote"
   },
   "researchFeedSection": {
     "actions": {
@@ -21558,17 +22460,59 @@
     "searchPlaceholder": "Buscar por nombre o código de barras...",
     "stages": {
       "accessioning": "Recepción y registro",
+      "checkout": "Salida",
+      "cytologyImaging": "Imagen de citología",
+      "cytologyPreparation": "Preparación citológica",
+      "cytologyProcessing": "Procesamiento de citología en medio líquido",
+      "cytologyStaining": "Tinción de citología",
+      "decal": "Descalcificación / procesamiento especial",
       "embedding": "Inclusión",
+      "externalReferral": "Derivación externa",
       "grossing": "Tallado",
       "microtomy": "Microtomía / cortes",
       "other": "Otra",
       "processing": "Procesamiento",
       "slideArchival": "Archivo de portaobjetos",
+      "slideDistribution": "Distribución de portaobjetos",
       "staining": "Tinción"
     },
     "statusFilterAll": "Todos",
-    "subtitle": "Los puestos físicos con los que un terminal puede identificarse (al iniciar sesión y en la barra superior), y a los que cambia una etiqueta de puesto impresa durante el flujo de trabajo. Se configuran ocho de inicio; el nombre, el código de barras y la fase del flujo de trabajo los establece usted.",
+    "subtitle": "Los puestos físicos con los que un terminal puede identificarse (al iniciar sesión y en la barra superior), y a los que cambia una etiqueta de puesto impresa durante el flujo de trabajo. Se incluye un conjunto inicial; el nombre, el código de barras y la fase del flujo de trabajo los establece usted.",
     "title": "Puestos de escaneo"
+  },
+  "scanTrail": {
+    "actions": {
+      "completed": "Completado aquí",
+      "loaded": "Cargado en el soporte",
+      "matched": "Conciliado",
+      "missing": "Faltante",
+      "printed": "Etiqueta impresa",
+      "received": "Recibido",
+      "unexpected": "Inesperado",
+      "unloaded": "Sacado del soporte"
+    },
+    "byCarrier": "Registrado al escanear el soporte",
+    "cameFrom": "de {{parent}}",
+    "cols": {
+      "item": "Elemento",
+      "what": "Qué ocurrió",
+      "when": "Cuándo",
+      "where": "Dónde",
+      "who": "Quién"
+    },
+    "empty": "Aún no hay escaneos de puesto registrados para este caso.",
+    "hide": "Ocultar historial de escaneos",
+    "inCarrier": "En el soporte {{carrier}}",
+    "loading": "Cargando el historial…",
+    "refused": "No tiene permiso para ver el historial de escaneos.",
+    "results": {
+      "mismatch": "Discrepancia",
+      "not-found": "No encontrado",
+      "ok": "Correcto",
+      "wrong-item": "Elemento equivocado"
+    },
+    "show": "Mostrar historial de escaneos",
+    "title": "Historial de escaneos"
   },
   "scopeReference": {
     "columns": {
@@ -22925,6 +23869,7 @@
       "notConfigured": "Esta estación no está configurada para imprimir etiquetas de portaobjetos.",
       "notInQueue": "Ese portaobjetos ya no está en la cola.",
       "profileMissing": "El perfil de impresora configurado ya no existe.",
+      "scannerNotLargeFormat": "{{scanner}} no admite portaobjetos de gran formato. Elija un escáner para portaobjetos de gran formato.",
       "stationNotFound": "No se encontró la estación de escaneo."
     },
     "exceptions": {
@@ -22976,7 +23921,7 @@
       "notResolved": "Ese escaneo no coincidió con ningún caso, bloque ni portaobjetos. Compruebe el código de barras e inténtelo de nuevo.",
       "slideNotFound": "No se encontró el portaobjetos {{slide}}.",
       "specimenNotFound": "No se encontró la muestra en ese caso.",
-      "unsupportedTarget": "Esta estación solo admite códigos de barras de bloques y portaobjetos. Los casetes de matriz o de bloque celular, los trasvases y los códigos de barras de muestras aún no son compatibles."
+      "unsupportedTarget": "Esta estación admite códigos de barras de bloques, bloques matriz y portaobjetos. Los casetes de bloque celular, los trasvases y los códigos de barras de muestras aún no son compatibles."
     },
     "scanPlaceholder": "Escanee o escriba un código de barras…",
     "scanPrompt": "Escanee un código de barras de portaobjetos o de bloque/casete: la cola crece de forma continua",
@@ -23796,6 +24741,60 @@
     "intro": "Los lotes de tinción siguientes requieren resolución antes de poder validar este caso.",
     "rowTitle": "Lote {{batchBarcode}} — {{specimenList}}"
   },
+  "stationCarrier": {
+    "addToOutput": "Añadir los portaobjetos impresos a la bandeja ({{count}})",
+    "andMore": "y {{count}} más",
+    "chooseStation": "Puesto de este equipo",
+    "close": "Cerrar",
+    "dismiss": "Cerrar el mensaje",
+    "finish": "Terminar la descarga",
+    "listLabel": "Soportes abiertos para este puesto",
+    "noStation": "Este equipo no tiene un puesto de escaneo asignado, por lo que los escaneos aquí no se registran y no se pueden abrir soportes. Elija el puesto de este equipo.",
+    "noneHere": "No hay soportes abiertos para este puesto.",
+    "notice": {
+      "addedToOutput": "Portaobjetos añadidos a {{barcode}}: {{count}}.",
+      "closedAborted": "{{barcode}} está cerrado: se anuló el {{at}}.",
+      "closedComplete": "{{barcode}} está cerrado: se completó el {{at}}.",
+      "finished": "Descarga de {{barcode}} terminada.",
+      "handoff": "{{barcode}} ha pasado aquí desde {{from}}. Elementos: {{count}}.",
+      "movedHere": "{{barcode}} se ha trasladado a este puesto y se ha abierto aquí; el traslado se ha registrado. Elementos: {{count}}.",
+      "noStation": "Asigne el puesto de este equipo antes de abrir {{barcode}}.",
+      "opened": "{{barcode}} abierto aquí. Elementos: {{count}}.",
+      "openedAdHoc": "{{barcode}} abierto aquí; este puesto se ha registrado como su puesto de trabajo. Elementos: {{count}}.",
+      "openedMismatch": "{{barcode}} abierto aquí aunque pertenece a otro paso. Ha quedado registrado.",
+      "outputSet": "{{barcode}} es ahora la bandeja de salida.",
+      "sealed": "{{barcode}} sellado. Elementos: {{count}}.",
+      "unexpectedKept": "{{item}} se mantiene y queda registrado como inesperado en {{barcode}}.",
+      "unknown": "Ningún soporte tiene el código de barras {{barcode}}."
+    },
+    "openInBatchManagement": "Abrir en Gestión de lotes",
+    "outputHint": "Escanee un soporte de {{node}} abierto para usarlo como bandeja de salida de los portaobjetos cortados.",
+    "outputTray": "Bandeja de salida",
+    "pending": {
+      "continueAnyway": "Continuar de todos modos",
+      "mismatch": "{{barcode}} es un soporte de {{node}}. Este puesto trabaja en {{here}}. ¿Abrirlo aquí de todos modos?",
+      "openAnyway": "Abrir aquí de todos modos",
+      "wrongItem": "{{item}} no está en el soporte {{barcode}}. ¿Continuar de todos modos? Se registrará como inesperado."
+    },
+    "progress": "{{matched}} de {{total}} escaneados",
+    "routedHere": "Destinado aquí",
+    "scanToUnload": "Escanee cada elemento al sacarlo del soporte.",
+    "seal": "Sellar el manifiesto",
+    "sealed": "Sellado",
+    "stationLine": "Puesto: {{station}}",
+    "stillToScan": "Pendientes de escanear: {{items}}",
+    "title": "Soportes en este puesto",
+    "unexpectedCount_many": "{{count}} elementos inesperados escaneados",
+    "unexpectedCount_one": "{{count}} elemento inesperado escaneado",
+    "unexpectedCount_other": "{{count}} elementos inesperados escaneados",
+    "useStation": "Usar este puesto"
+  },
+  "stationScan": {
+    "backToScanning": "Volver a escanear (ocultar el teclado)",
+    "backToScanningShort": "⌨ Escanear",
+    "typeAnId": "Escribir un identificador con el teclado en pantalla",
+    "typeAnIdShort": "⌨ Escribir"
+  },
   "stationSwitch": {
     "discardedAndSwitched": "📍 Se descartaron los cambios y se cambió a {{station}}.",
     "notAuthorized": "Usted no tiene autorización para usar {{station}}, por lo que no se ha cambiado de estación.",
@@ -24100,9 +25099,13 @@
     "clinician": "Clínico",
     "confidential": "CONFIDENCIAL — INFORME DE ANATOMÍA PATOLÓGICA",
     "dob": "Fecha de nacimiento",
+    "documentAttached": "Documento adjunto: {{caption}}. Sus páginas siguen al informe.",
+    "documentAttachedNoCaption": "Documento adjunto. Sus páginas siguen al informe.",
     "documentReference": "Documento {{accession}} · versión del registro {{version}}",
     "documentReferenceNoVersion": "Documento {{accession}}",
     "figureNotDrawn": "Aviso del mapa: no se pudo dibujar el mapa como imagen. Lo que muestra:",
+    "imageUnavailable": "Imagen no disponible: no se pudo obtener la imagen enlazada al crear este informe.",
+    "imagesTitle": "Imágenes",
     "intraopDiagnosis": "Diagnóstico intraoperatorio",
     "mrn": "NHC",
     "noContent": "Sin contenido",
@@ -25028,6 +26031,7 @@
       "assetLocations": "Diccionario de ubicación de activos",
       "assistLisPolling": "Asistencia a la ingesta del LIS",
       "batchRegistryFeed": "Archivos por lotes para registros",
+      "benchReasons": "Motivos del puesto de trabajo",
       "biFeed": "Canal de informes (Power BI)",
       "billingDictionary": "Diccionario de facturación (captura de cargos)",
       "billingRelease": "Liberación de facturación",
@@ -25097,6 +26101,7 @@
       "qaTrendPolicy": "Política de tendencia de discordancias",
       "reagentLots": "Lotes de reactivos y soluciones",
       "releaseBuffer": "Búfer de liberación tras la validación",
+      "researchCases": "Casos de investigación y finalidades de lote",
       "researchFeed": "Canal de investigación",
       "retention": "Conservación de datos",
       "revisionReasons": "Motivos de revisión",
@@ -26094,6 +27099,16 @@
       "testAll": "Probar todos",
       "testing": "Probando…"
     }
+  },
+  "touchLayout": {
+    "modes": {
+      "auto": "Automático",
+      "off": "Siempre desactivado",
+      "on": "Siempre activado"
+    },
+    "nowOff": "Las pantallas de puesto usan el diseño compacto.",
+    "nowOn": "Las pantallas de puesto usan zonas táctiles grandes.",
+    "title": "Diseño táctil en este ordenador"
   },
   "tumorBoard": {
     "boards": {
@@ -27387,6 +28402,11 @@
     },
     "subtitle": "Qué partes abarca el estudio del protocolo {{protocol}}.",
     "title": "Partes cubiertas"
+  },
+  "wrongCaseScan": {
+    "continue": "Continuar de todos modos",
+    "message": "{{item}} pertenece al caso {{itemCase}}, no al caso {{openCase}} abierto aquí.",
+    "setAside": "Apartarlo"
   },
   "wsiScanBatches": {
     "batchesEmpty": "Aún no hay lotes de escaneo.",

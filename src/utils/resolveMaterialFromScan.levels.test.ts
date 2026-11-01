@@ -1,5 +1,5 @@
 // Batch 460: a scanned slide barcode resolves to the slide that label was
-// printed for, even after Microtomy reordered the slides or removed one.
+// printed for, even after Microtome reordered the slides or removed one.
 import { describe, it, expect, vi } from 'vitest';
 
 const caseData = {

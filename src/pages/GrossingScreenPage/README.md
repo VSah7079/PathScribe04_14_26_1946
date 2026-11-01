@@ -1,3 +1,7 @@
+**Batch 741:** Divide specimen under each specimen (`components/Material/DivideSpecimenPanel.tsx`, `hooks/useSpecimenDivision.ts`).
+
+**Batch 735:** in the station touch layout; its windows are `role="dialog"`/`alertdialog` with `aria-modal`. An accession scanned here with nothing focused opens that case's grossing screen (scanRoutePolicy).
+
 # pages/GrossingScreenPage/
 
 **NEW (Sep 2026)** — Protocol-Driven Workflow Infrastructure story, Part 3. "New workflow surface between accessioning and sign-out. The grossing tech operates here; the pathologist does not." A deliberately separate, dedicated page from `SynopticReportPage.tsx` (the pathologist's own reporting surface) — reuses the exact same real `Specimen`/`HistologyBlock`/`StainOrder` data model, not a parallel schema.
@@ -118,3 +122,15 @@ Batch 659: piece-description column and `GrossingMatrixBlocks` (shared blocks), 
 
 ## Batch 720 — bench tools
 `GrossingBenchTools.tsx` (+ `.css`) puts the Material tab's grossing tools on this screen: print cassettes, gross photo (`CameraCaptureControl`), decal batch assignment (`batchService.addItemByScan`), Add-On Orders button, and the release panel with the triage checklist. It reuses `useSpecimenBlockManagement` so both screens behave alike. `hooks/useGrossingBenchEvents.ts` listens for the four `GROSSING_*` actions (`constants/grossingBenchActionGroup.ts`, `services/actionRegistry/grossingBenchVoiceCommands.ts`) and foot pedals 1 (photo) and 2 (print). The page reaches this screen from the Grossing tile or the report's Material tab.
+
+## Batch 726
+
+The bench tools' decal bench became **Load into carrier**: open, unsealed Decal or Processing carriers (spec 2, row 1), loaded with this computer's station (a 'loaded' station scan event). Locale keys `grossingBench.carrier.*` replace `grossingBench.decal.*`.
+
+## Batch 729
+
+- `GrossingScreenPage.tsx`: the wrong-case warning (`hooks/useWrongCaseScanCheck.ts`) and the scan history.
+
+## Batch 732
+
+- Batch 732 (spec §11.1, §11.2): `components/BlockPieceMapEditor.tsx` (+ `.css`, new): the block's type and piece map under the piece description; `hooks/useGrossingScreen.ts`: `handleSetBlockPieceMap`. `GrossingScreenPage.tsx` 805 lines.

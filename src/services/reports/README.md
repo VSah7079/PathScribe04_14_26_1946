@@ -1,3 +1,7 @@
+**Batch 742:** `surgicalReportLabels.ts` sends four more labels (`imagesTitle`, `imageUnavailable`, `documentAttached`, `documentAttachedNoCaption`) for images placed in report sections.
+
+**Batch 738:** `synopticReviewEntries.ts` (new): what the Review before finalising window shows, with the template's question labels and option labels instead of stored ids (moved out of `useSignOutWorkflow.ts`). Test: `synopticReviewEntries.test.ts`.
+
 **Batch 650:** the report bar's button decision lives here as `bottomBarActions.ts` (`bottomBarVisibility` draws the report bar's Sign Out Case, Finalise, Finalise & Next, Request Amendment, History and Codes buttons; `resolveBottomBarCommand` answers their voice and key commands, ignoring a hidden or greyed button or an open window). Test: `bottomBarActions.test.ts`.
 
 **Batch 649 (Amendment window):** `revisionReleaseCapability.ts` also holds the pure presentation decisions: `revisionReleaseAvailability`, `resolveRevisionKind`, `revisionKindDisabledTitle`, `revisionEntryDisabledTitle` (new string `caseActionPermissions.revisionNone`). Test: `revisionReleaseCapability.ui.test.ts`.
@@ -373,3 +377,7 @@ Batch 616 (part A, PS-483): `httpReportServices.ts` (amendments, informal review
 - Batch 664: `signOutAndNext.ts` (pure): Orchestration "Sign Out and Next" arms on the button, then moves to the next case in the queue only once the case's status shows it signed out (`signOutDone`); a refused check or cancelled signature window disarms it. `bottomBarActions.ts`: new command `signOutAndNext` (shown with Sign Out Case); `SIGNOUT_NEXT` means Finalise & Next in Assist and Sign Out and Next in Orchestration.
 
 - Batch 665: `signOutAndNext.ts` arming no longer depends on the sign-out window (a parked check closes it and resumes later): it ends on completion, a plain button press, a different case, or after ten minutes. It now also serves Assist Finalise & Next.
+
+## Batch 728
+
+- `dispatchPreliminaryCaseInstances.ts` and `mockReportVersionService.ts`: no result message for a research case (the final and amended paths go through `resolveDispatchOrganisation`).

@@ -160,8 +160,8 @@
 <td>Opens the Manage Reprints window for requisition, container, cassette and slide labels.</td>
 </tr>
 <tr>
-<td><strong>Attach images</strong> (bottom bar)</td>
-<td>Opens "Attach images to the report". Hover text: "Attach images to this report; they print after its pages".</td>
+<td><strong>Attachments (n)</strong> or <strong>Add Attachments</strong> (bottom bar)</td>
+<td>Opens the <strong>Attachments</strong> window; the number counts the case's photos, files and links. Hover text: "Photos, files and links for this case, and what is placed in its report".</td>
 </tr>
 <tr>
 <td><strong>History</strong> (bottom bar)</td>
@@ -374,14 +374,18 @@
 <li>To ask the other pathologist a question, select the case, type in "Message to pathologist" and select <strong>Send</strong>. Do not include patient identifiers: the box warns "Do not include patient identifiers".</li>
 <li>Close with Alt+Shift+H (or "close history"). A breadcrumb at the top lets you go back to the Case Report, Case Search or Home.</li>
 </ol>
-<p><strong>Attach images to the report</strong></p>
+<p><strong>Place photos and files in the report (Attachments)</strong></p>
 <ol>
-<li>Select <strong>Attach images</strong>. The window "Attach images to the report" opens, showing the accession.</li>
-<li>Paste the image's link (it must begin with https:// and name a server, with no user name or password in it).</li>
-<li>Choose the <strong>Image type</strong>: Block face, Gross specimen, Microphotograph or Other. Add an optional <strong>Caption (optional)</strong>, which is printed under the image.</li>
-<li>Select <strong>Add</strong>. The image appears under "Attached images" with its source host. Repeat up to 12 images.</li>
-<li>Select <strong>Done</strong>.</li>
+<li>Select <strong>Attachments (n)</strong> (or <strong>Add Attachments</strong> when the case has none). The <strong>Attachments</strong> window opens, showing the case number and four groups: <strong>Gross photos</strong>, <strong>Intraoperative and consultation captures</strong>, <strong>Microscopic and slide regions</strong> (filled from the slide viewer once it exists) and <strong>External files and links</strong>.</li>
+<li>To add a file, select <strong>Attach External File…</strong> and choose a PDF, JPG or PNG from your computer or a network drive. A Word document must be saved as PDF first. A file over 25 MB asks first: select <strong>Attach anyway</strong> or <strong>Cancel</strong>. The file goes to your hospital's own storage; the window says "File attached. It is kept in your hospital’s storage."</li>
+<li>To add a link instead, type it under <strong>Link (https)</strong> (for example https://imaging.hospital.org/…) and select <strong>Add link</strong>.</li>
+<li>Tick each item that belongs in the report. A <strong>Caption (optional)</strong> box appears under it ("Printed under it in the report"); the caption prints under the image. Gross photos also appear with the alternative text "Gross specimen" where a screen shows them.</li>
+<li>Under <strong>Insert into</strong>, choose the report section (the section you are working in is chosen for you, then the last one you used). <strong>End of the report text</strong> prints it after the report's own text.</li>
+<li>Select <strong>Insert into Report (n)</strong>. Each item now says "In the report: …" with its section, and appears under <strong>In the report</strong>. Up to 12 items per report.</li>
+<li>Select <strong>Done</strong>. The badge shows the new count, and the report preview shows the images under their sections.</li>
 </ol>
+<p><strong>On an Assist case</strong> (your LIS writes the report) the window keeps references only: you can attach, link, open and remove files and look at the case's photos, but there are no tick boxes, sections or <strong>Insert into Report</strong>. The window says: "On an Assist case your LIS writes the report. Attachments here are references for this case, to open while you work; nothing here is added to the LIS report."</p>
+<p>An image prints right under its section, no larger than 300 DPI allows and at most the page width. An attached PDF is named in its section ("Attached document: … Its pages follow the report.") and its pages follow the report.</p>
 <p><strong>Add a comment</strong></p>
 <ol>
 <li>Press Ctrl+Alt+C (case comment) or Ctrl+Alt+S (specimen comment), or use the comment icon beside a specimen in the side list ("View / add comment"). The <strong>Case Comment</strong> window says it applies to the entire case and is visible to everyone who opens the case.</li>
@@ -400,7 +404,8 @@
 <li><strong>Could not save.</strong> The toast "Could not save the Microscopic Description, please try again." means the save did not go through. Your text is still in the box; select <strong>Save</strong> again.</li>
 <li><strong>History is blocked.</strong> "Cannot safely retrieve patient history, this patient record is missing (a date of birth / an MRN / an MRN and date of birth). A minimum of two patient identifiers is required before surfacing prior case history." Complete the patient identifiers in the LIS or at accessioning.</li>
 <li><strong>History is empty.</strong> "No prior pathology cases on record." or "No matched cases found for the current context." are normal results.</li>
-<li><strong>Image link rejected.</strong> "Enter an https:// link to a named server (no user name or password in it)." Other messages: "That image is already linked to this report.", "A report can have at most 12 images.", "You do not have permission to attach images to reports.", "The image could not be attached."</li>
+<li><strong>File or link refused.</strong> "This is a Word document. Save it as PDF, then attach the PDF.", "Only PDF, JPG and PNG files can be attached.", "This file is larger than your hospital’s storage accepts.", "Attachment storage is not set up for this site. Ask your administrator.", "Your hospital’s storage refused this file.", "The upload took too long. Try again.", "Enter an https:// link to a named server (no user name or password in it).", "That link is already attached to this case."</li>
+<li><strong>Cannot place or take out.</strong> "This report is signed. Start an amendment or addendum first." (the window also says so at the top and greys out the tick boxes), "A report can hold at most 12 images and documents.", "Tick at least one item.", "You do not have permission to do that.", and, for anything else, "That could not be done. Try again."</li>
 <li><strong>Clinical history cannot be recorded.</strong> Messages: "You don't have permission to record clinical history.", "The case is signed out; a change now needs an amendment.", "The case changed while saving; try again.", "The case could not be found."</li>
 <li><strong>The case is signed out.</strong> Comments become read-only ("Finalized, read only"). Text sections are locked; use an amendment (see <a href="/help/report/sign-out-and-release">Sign Out and Release</a>).</li>
 <li><strong>A label does not print.</strong> Printer messages include "The label printer is out of labels.", "out of ribbon.", "The label printer head is open.", "The label printer is not responding.", and "The PathScribe Agent is not running on this workstation, or its security certificate is not trusted". Fix the printer or ask your administrator to start the agent, then print again. If a pop-up blocker stops a label window: "Please allow pop-ups for this site to print labels."</li>
@@ -410,7 +415,9 @@
 <li><strong>Wrong text saved.</strong> Edit and <strong>Save</strong> again. Every save is recorded in the change history.</li>
 <li><strong>Cleared by mistake.</strong> <strong>Clear</strong> saves a blank description. Retype the text and save, or dictate again. Nothing restores the old text except retyping, so check before you clear.</li>
 <li><strong>Triage confirmed too early.</strong> If the checklist was confirmed in error, tell the grossing staff; an override requires a reason ("Reason for overriding triage...").</li>
-<li><strong>Wrong image.</strong> Open <strong>Attach images</strong>, select <strong>Remove</strong> beside it. A report already signed out is not changed; images added or removed apply to reports made from then on.</li>
+<li><strong>Wrong image in the report.</strong> Open <strong>Attachments</strong> and select <strong>Take out of report</strong> under <strong>In the report</strong>. On a signed report, start an amendment or addendum first.</li>
+<li><strong>Wrong file attached.</strong> Take it out of the report first ("It is placed in the report. Take it out of the report first."), then select <strong>Remove from case</strong>. The file stays in the hospital's storage; only the link is removed.</li>
+<li><strong>"Image unavailable" printed.</strong> The image could not be fetched when the report was made (for a file, its storage could not be reached). Check the link or attach the file again, then make the report again.</li>
 <li><strong>Printed the wrong label.</strong> Print the right one from <strong>Manage Reprints</strong>.</li>
 </ul>
 <h2 id="clinical-history-frozen-section-and-history-windows">Clinical history, frozen section and history windows</h2>
@@ -637,8 +644,8 @@
 <p>When you right-click a misspelled word, the menu offers <strong>Add to my dictionary</strong>, and, if you have permission, <strong>Add to the {{facility}} dictionary</strong>, so every colleague at the laboratory stops seeing it flagged. If that is refused the menu says "Couldn't add the word to the facility dictionary. You may not have permission."</p>
 <h2 id="report-preview">Report preview</h2>
 <p>The report preview shows the report as it will print. Sections that have no text say <strong>Not yet generated</strong> (the AI draft has not run), <strong>No content</strong>, or <strong>⚠ Required — not yet completed</strong> for a required section. A synoptic with no answers says "No synoptic data recorded." With no sections at all the preview says <strong>No report sections yet</strong> and tells you to generate the report in the draft editor. The footer reads <strong>CONFIDENTIAL — PATHOLOGY REPORT</strong>.</p>
-<h2 id="attach-images-messages">Attach images: messages</h2>
-<p>In <strong>Attach images to the report</strong>, type the <strong>Link to the image (https)</strong> (for example an address starting https://imaging.hospital.org/). The list says <strong>No images attached yet.</strong> until you add one. PathScribe does not store the image; it fetches it when the report is made.</p>
+<h2 id="attachments-messages">Attachments: messages</h2>
+<p>The <strong>Attachments</strong> window says at the top: "PathScribe keeps only a link to each item. A file you attach is sent to your hospital’s own storage, and a link to it is kept on the case." Empty groups say "No gross or block-face photos on this case.", "No intraoperative or consultation photos on this case.", "No files or links attached yet." and, for slide regions, "Regions saved with Add to report in the slide viewer appear here. The slide viewer is not built yet." A PDF row says "PDF document: named in its section, its pages follow the report". <strong>In the report</strong> says "Nothing is placed in the report yet." until you insert something. On a report whose images print after its pages (cytology) the window says "This report prints images after its own pages." instead of offering sections.</p>
 <h2 id="internal-notes-history-and-related-cases-in-detail">Internal notes, history and related cases in detail</h2>
 <h3 id="internal-notes-drawer">Internal Notes drawer</h3>
 <ul>
@@ -687,7 +694,7 @@
 <ul>
 <li>Add the clinical history early so the mismatch check at sign-out has something to compare.</li>
 <li>Check the Material tab before signing: a pending recut, QC failed slide or Awaiting Scan cassette means the case may not be ready.</li>
-<li>Attach images before the final report is made, because a signed report is not changed afterwards.</li>
+<li>Place images before signing out: afterwards a change needs an amendment or addendum.</li>
 </ul>
 <h2 id="related-features">Related Features</h2>
 <h3 id="upstream-workflow">Upstream workflow</h3>

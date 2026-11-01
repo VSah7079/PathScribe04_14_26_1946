@@ -1,0 +1,14 @@
+/* src/components/Common/QuickReasonPicks.css — touch spec T3: preset reasons, one tap each. */
+.ps-quick-reasons { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px; }
+.ps-quick-reason {
+  background: transparent;
+  border: 1px dashed var(--ps-border, rgba(148, 163, 184, 0.5));
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ps-quick-reason:focus-visible { outline: 2px solid var(--ps-conf-teal, #14b8a6); outline-offset: 2px; }
+.ps-quick-reason--chosen { border-style: solid; border-color: var(--ps-conf-teal, #14b8a6); background: rgba(20, 184, 166, 0.14); color: #5eead4; }
+.ps-quick-reason:disabled { opacity: 0.5; cursor: default; }

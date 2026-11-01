@@ -80,7 +80,7 @@ The left side of the Report screen shows the **Full Patient Report** (read-only 
 | Control | What it does |
 |---|---|
 | **Manage Reprints** (bottom bar) | Opens the Manage Reprints window for requisition, container, cassette and slide labels. |
-| **Attach images** (bottom bar) | Opens "Attach images to the report". Hover text: "Attach images to this report; they print after its pages". |
+| **Attachments (n)** or **Add Attachments** (bottom bar) | Opens the **Attachments** window; the number counts the case's photos, files and links. Hover text: "Photos, files and links for this case, and what is placed in its report". |
 | **History** (bottom bar) | Opens the History window with prior pathology, similar cases and related patients. |
 | **Codes** (bottom bar) | Opens the Codes window (see [Synoptic Reporting](help:report/synoptic-reporting)). |
 | **Save Draft** | Saves the report draft, including the microscopic text. |
@@ -174,13 +174,19 @@ Some specimens require a triage checklist at grossing before cassettes are relea
 4. To ask the other pathologist a question, select the case, type in "Message to pathologist" and select **Send**. Do not include patient identifiers: the box warns "Do not include patient identifiers".
 5. Close with Alt+Shift+H (or "close history"). A breadcrumb at the top lets you go back to the Case Report, Case Search or Home.
 
-**Attach images to the report**
+**Place photos and files in the report (Attachments)**
 
-1. Select **Attach images**. The window "Attach images to the report" opens, showing the accession.
-2. Paste the image's link (it must begin with https:// and name a server, with no user name or password in it).
-3. Choose the **Image type**: Block face, Gross specimen, Microphotograph or Other. Add an optional **Caption (optional)**, which is printed under the image.
-4. Select **Add**. The image appears under "Attached images" with its source host. Repeat up to 12 images.
-5. Select **Done**.
+1. Select **Attachments (n)** (or **Add Attachments** when the case has none). The **Attachments** window opens, showing the case number and four groups: **Gross photos**, **Intraoperative and consultation captures**, **Microscopic and slide regions** (filled from the slide viewer once it exists) and **External files and links**.
+2. To add a file, select **Attach External File…** and choose a PDF, JPG or PNG from your computer or a network drive. A Word document must be saved as PDF first. A file over 25 MB asks first: select **Attach anyway** or **Cancel**. The file goes to your hospital's own storage; the window says "File attached. It is kept in your hospital’s storage."
+3. To add a link instead, type it under **Link (https)** (for example https://imaging.hospital.org/…) and select **Add link**.
+4. Tick each item that belongs in the report. A **Caption (optional)** box appears under it ("Printed under it in the report"); the caption prints under the image. Gross photos also appear with the alternative text "Gross specimen" where a screen shows them.
+5. Under **Insert into**, choose the report section (the section you are working in is chosen for you, then the last one you used). **End of the report text** prints it after the report's own text.
+6. Select **Insert into Report (n)**. Each item now says "In the report: …" with its section, and appears under **In the report**. Up to 12 items per report.
+7. Select **Done**. The badge shows the new count, and the report preview shows the images under their sections.
+
+**On an Assist case** (your LIS writes the report) the window keeps references only: you can attach, link, open and remove files and look at the case's photos, but there are no tick boxes, sections or **Insert into Report**. The window says: "On an Assist case your LIS writes the report. Attachments here are references for this case, to open while you work; nothing here is added to the LIS report."
+
+An image prints right under its section, no larger than 300 DPI allows and at most the page width. An attached PDF is named in its section ("Attached document: … Its pages follow the report.") and its pages follow the report.
 
 **Add a comment**
 
@@ -200,7 +206,8 @@ Some specimens require a triage checklist at grossing before cassettes are relea
 - **Could not save.** The toast "Could not save the Microscopic Description, please try again." means the save did not go through. Your text is still in the box; select **Save** again.
 - **History is blocked.** "Cannot safely retrieve patient history, this patient record is missing (a date of birth / an MRN / an MRN and date of birth). A minimum of two patient identifiers is required before surfacing prior case history." Complete the patient identifiers in the LIS or at accessioning.
 - **History is empty.** "No prior pathology cases on record." or "No matched cases found for the current context." are normal results.
-- **Image link rejected.** "Enter an https:// link to a named server (no user name or password in it)." Other messages: "That image is already linked to this report.", "A report can have at most 12 images.", "You do not have permission to attach images to reports.", "The image could not be attached."
+- **File or link refused.** "This is a Word document. Save it as PDF, then attach the PDF.", "Only PDF, JPG and PNG files can be attached.", "This file is larger than your hospital’s storage accepts.", "Attachment storage is not set up for this site. Ask your administrator.", "Your hospital’s storage refused this file.", "The upload took too long. Try again.", "Enter an https:// link to a named server (no user name or password in it).", "That link is already attached to this case."
+- **Cannot place or take out.** "This report is signed. Start an amendment or addendum first." (the window also says so at the top and greys out the tick boxes), "A report can hold at most 12 images and documents.", "Tick at least one item.", "You do not have permission to do that.", and, for anything else, "That could not be done. Try again."
 - **Clinical history cannot be recorded.** Messages: "You don't have permission to record clinical history.", "The case is signed out; a change now needs an amendment.", "The case changed while saving; try again.", "The case could not be found."
 - **The case is signed out.** Comments become read-only ("Finalized, read only"). Text sections are locked; use an amendment (see [Sign Out and Release](help:report/sign-out-and-release)).
 - **A label does not print.** Printer messages include "The label printer is out of labels.", "out of ribbon.", "The label printer head is open.", "The label printer is not responding.", and "The PathScribe Agent is not running on this workstation, or its security certificate is not trusted". Fix the printer or ask your administrator to start the agent, then print again. If a pop-up blocker stops a label window: "Please allow pop-ups for this site to print labels."
@@ -210,7 +217,9 @@ Some specimens require a triage checklist at grossing before cassettes are relea
 - **Wrong text saved.** Edit and **Save** again. Every save is recorded in the change history.
 - **Cleared by mistake.** **Clear** saves a blank description. Retype the text and save, or dictate again. Nothing restores the old text except retyping, so check before you clear.
 - **Triage confirmed too early.** If the checklist was confirmed in error, tell the grossing staff; an override requires a reason ("Reason for overriding triage...").
-- **Wrong image.** Open **Attach images**, select **Remove** beside it. A report already signed out is not changed; images added or removed apply to reports made from then on.
+- **Wrong image in the report.** Open **Attachments** and select **Take out of report** under **In the report**. On a signed report, start an amendment or addendum first.
+- **Wrong file attached.** Take it out of the report first ("It is placed in the report. Take it out of the report first."), then select **Remove from case**. The file stays in the hospital's storage; only the link is removed.
+- **"Image unavailable" printed.** The image could not be fetched when the report was made (for a file, its storage could not be reached). Check the link or attach the file again, then make the report again.
 - **Printed the wrong label.** Print the right one from **Manage Reprints**.
 
 ## Clinical history, frozen section and history windows
@@ -364,9 +373,9 @@ When you right-click a misspelled word, the menu offers **Add to my dictionary**
 
 The report preview shows the report as it will print. Sections that have no text say **Not yet generated** (the AI draft has not run), **No content**, or **⚠ Required — not yet completed** for a required section. A synoptic with no answers says "No synoptic data recorded." With no sections at all the preview says **No report sections yet** and tells you to generate the report in the draft editor. The footer reads **CONFIDENTIAL — PATHOLOGY REPORT**.
 
-## Attach images: messages
+## Attachments: messages
 
-In **Attach images to the report**, type the **Link to the image (https)** (for example an address starting https://imaging.hospital.org/). The list says **No images attached yet.** until you add one. PathScribe does not store the image; it fetches it when the report is made.
+The **Attachments** window says at the top: "PathScribe keeps only a link to each item. A file you attach is sent to your hospital’s own storage, and a link to it is kept on the case." Empty groups say "No gross or block-face photos on this case.", "No intraoperative or consultation photos on this case.", "No files or links attached yet." and, for slide regions, "Regions saved with Add to report in the slide viewer appear here. The slide viewer is not built yet." A PDF row says "PDF document: named in its section, its pages follow the report". **In the report** says "Nothing is placed in the report yet." until you insert something. On a report whose images print after its pages (cytology) the window says "This report prints images after its own pages." instead of offering sections.
 
 ## Internal notes, history and related cases in detail
 
@@ -420,7 +429,7 @@ If you are the person deciding, the notice lists **Requests waiting for your dec
 
 - Add the clinical history early so the mismatch check at sign-out has something to compare.
 - Check the Material tab before signing: a pending recut, QC failed slide or Awaiting Scan cassette means the case may not be ready.
-- Attach images before the final report is made, because a signed report is not changed afterwards.
+- Place images before signing out: afterwards a change needs an amendment or addendum.
 
 ## Related Features
 

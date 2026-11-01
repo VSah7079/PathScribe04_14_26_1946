@@ -1,3 +1,5 @@
+**Batch 738:** the seeded profile `printer-zt411-example` uses the PathScribe agent (in the demo a labelled Simulated result) instead of QZ Tray, which failed with PRINT ERROR on any computer without QZ Tray.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/printerProfiles/

@@ -1,3 +1,25 @@
+**Batch 744:** CytologyWorklistPage: patient names on the rows.
+
+**Batch 742:** SynopticReportPage and CytologyScreeningPage: the Attachments badge and window; ReportPreview: images inside their sections.
+
+**Batch 741:** GrossingScreenPage and CytologyPrepStationPage: Divide specimen.
+
+**Batch 740:** CytologyPrepStationPage (new: the Cytology Preparation bench); MicrotomyWorkstationPage (bench rules); PathologyWorkspacePage (its tile).
+
+**Batch 739:** BatchManagement (Processor), MicrotomyWorkstationPage (cytospin for a CSF), CytologyWorklistPage and SynopticReportPage (aliquots named by purpose, decant types translated), MolecularOrderQueuePage (processor code).
+
+**Batch 738:** AccessionPage (local received time), SynopticReportPage (review window answers in words, via `services/reports/synopticReviewEntries.ts`).
+
+**Batch 737:** AddOnOrderPage (matrix blocks and their parts), BatchManagement (exhausted warning, large-format refusal, large-format carriers), EmbeddingStationPage and SynopticReportPage (block type on cassette labels), MicrotomyWorkstationPage (matrix part used up).
+
+**Batch 735:** the station screens (GrossingWorkspacePage, GrossingScreenPage, EmbeddingStationPage, MicrotomyWorkstationPage, SlideDistributionStationPage, AddOnOrderPage, BatchManagement) work by touch: shared scan field, touch layout, one-tap reasons, windows as dialogs. See `docs/product/STATION_TOUCH.md`.
+
+**Batch 725:** the in-app User Guide page scrolls (contents list and article each have their own scroll area). Styles only. See `src/i18n/README.md`.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
+**Batch 721:** `AccessionPage/` in two columns on a wide window; see its README.
+
 **Batch 710 (tile descriptions):** the cards on Home, Pathology Workspace and Quality & Compliance share one fixed-size `.ps-home-card` (text block 100px high at 1280x720; a two-line title leaves room for one description line only). All 23 tile descriptions (`home.*Tile.description`, `pathologyWorkspace.*Tile.description`, `qualityComplianceHub.*Tile.description`) were shortened to one line in all six locales; `src/i18n/tileDescriptionLength.test.ts` enforces a per-locale character budget (30 Latin-script, 15 Korean). Cards whose title alone fills the block (or whose title wraps to two lines next to the registry-exceptions badge) still clip; that is a title/CSS question, not a description one.
 
 **Batch 711:** `LoginPage.tsx`: Forgot password? now opens `components/Auth/PasswordResetRequest` instead of showing a message (password sign-in only).
@@ -29,7 +51,7 @@ Top-level route pages.
 | [CriticalAlertReferencePage/](./CriticalAlertReferencePage/README.md) | **NEW (Sep 2026)** — PS-136 follow-up redesign: the public, unauthenticated, zero-PHI landing page (`/critical-alert/:token`) behind the SMS/secure-email "tap to view" reference link — never renders clinical content, see the folder's own README |
 | [EmbeddingStationPage/](./EmbeddingStationPage/README.md) | **NEW (Sep 2026)** — PS-285, second of the PS-284→285→286→287→288 workstation-build sequence: bench-scoped, scan-driven cassette piece-count verification, discrepancy flagging, mold/orientation selection, and split-block tracking (`/workstations/embedding`), visually matching `MicrotomyWorkstationPage/`/`GrossingScreenPage/` |
 | [ExternalConsultViewPage/](./ExternalConsultViewPage/README.md) | **NEW (Sep 2026)** — PS-290, the outside half of External Consult / Second-Opinion Access: a public, unauthenticated route (`/consult/:token`) an outside consultant opens directly, no PathScribe login of their own. NOT real token security — see the folder's own README |
-| [FacilityOpsDashboard/](./FacilityOpsDashboard/README.md) | **NEW (Sep 2026)** — PS-288, fifth and final of the PS-284→285→286→287→288 workstation-build sequence: five high-contrast, wall-display department dashboard views (Grossing & Intake, Embedding & Microtomy, Staining & IHC, Send-Out & Reference, Diagnostic Sign-Out/Scanner) bound via a Display Profile (`/facility-ops-dashboard`), same public/unauthenticated kiosk-route posture as `OrSuiteDashboardPage.tsx` |
+| [FacilityOpsDashboard/](./FacilityOpsDashboard/README.md) | **NEW (Sep 2026)** — PS-288, fifth and final of the PS-284→285→286→287→288 workstation-build sequence: five high-contrast, wall-display department dashboard views (Grossing & Intake, Embedding & Microtome, Staining & IHC, Send-Out & Reference, Diagnostic Sign-Out/Scanner) bound via a Display Profile (`/facility-ops-dashboard`), same public/unauthenticated kiosk-route posture as `OrSuiteDashboardPage.tsx` |
 | [GrossingWorkspacePage/](./GrossingWorkspacePage/README.md) | **NEW (Oct 2026, Batch 720)** — the Grossing tile's queue of cases waiting to be grossed (`/workstations/grossing`) |
 | [GrossingScreenPage/](./GrossingScreenPage/README.md) | **NEW (Sep 2026)** — Protocol-Driven Workflow Infrastructure story Part 3: the grossing tech's own dedicated workflow surface (`/case/:caseId/grossing`), separate from the pathologist's `SynopticReportPage/` |
 | [LabelDesignerPage/](./LabelDesignerPage/README.md) | Real, drag-and-drop label layout designer, registered as a Config > System tab, not a standalone route |
@@ -39,7 +61,7 @@ Top-level route pages.
 | [MolecularBatchManagement/](./MolecularBatchManagement/README.md) | Real, read-only molecular QC-run/cytology-specimen association view (external, HL7-sourced) — now the Workcenter's own "QC & Specimen Association" tab |
 | [MolecularBatchPage/](./MolecularBatchPage/README.md) | Plate builder + extraction racks + control rules for the Full Molecular Testing Execution Module |
 | [MolecularWorkcenterPage/](./MolecularWorkcenterPage/README.md) | Real, single `/molecular` entry point (tabs: Order Queue / Worklist & Plate Builder / Active Runs & Batches / History & Archive / QC & Specimen Association), replacing two former, separate tiles |
-| [PathologyWorkspacePage/](./PathologyWorkspacePage/README.md) | The Pathology Workspace hub (`/pathology-workspace`): tiles for Cytology, Microtomy, Embedding, Slide Distribution, Molecular, Batch Management and Margin Exception Review |
+| [PathologyWorkspacePage/](./PathologyWorkspacePage/README.md) | The Pathology Workspace hub (`/pathology-workspace`): tiles for Cytology, Microtome, Embedding, Slide Distribution, Molecular, Batch Management and Margin Exception Review |
 | [QualityComplianceHubPage/](./QualityComplianceHubPage/README.md) | The Quality & Compliance hub (`/quality-compliance`): Audit, Quality Assurance and Registry Exceptions |
 | [RegistryExceptionsPage/](./RegistryExceptionsPage/README.md) | Registry submissions needing a person (`/registry-exceptions`) |
 | [ReportPreview/](./ReportPreview/README.md) | Orchestration mode's template-driven report preview renderer, and the detachable preview window (`/report-preview/:caseId`) |
@@ -2015,3 +2037,35 @@ Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): SurgicalQaWorklistPag
 Batch 714 (Pete, Oct 28 2026): the Accession page's Clinical Indication box notes which order field it came from, and whether it was edited (`pages/AccessionPage/ClinicalIndicationField.tsx`).
 
 **Batch 715:** letters or numbers for labels reaches Accession, Grossing and the report page's Add Block / Add Specimen; see `services/labeling/README.md`.
+
+## Batch 726
+
+The Embedding, Microtome and Slide Distribution workstations read batches (carrier card), Batch Management is station-aware and shows a carrier's steps, the Grossing bench loads cassettes into Decal or Processing carriers. See each folder's README.
+
+## Batch 727
+
+FacilityOpsDashboard: add-ons on Embedding & Microtome, the Stations view, every label in the display's language.
+
+## Batch 728
+
+`ContributionDashboardPage.tsx` and `BenchContributionDashboardPage.tsx` leave research cases out of their figures; `BatchManagement/` gains the purpose and the empty step; `FacilityOpsDashboard/` passes the purpose filter.
+
+## Batch 729
+
+Embedding and Slide Distribution accept matrix blocks; the scan history on the Grossing, Embedding, Microtome and Slide Distribution screens; the Microtome's other-blocks note; the Grossing wrong-case warning.
+
+## Batch 730
+
+`BatchManagement/LabWorkflowReportsPage.tsx` (new, route `/batch-management/workflow-reports`); `AddOnOrderPage/`: "Print labels at"; `MicrotomyWorkstationPage/`: skips labels already printed at another station.
+
+## Batch 731
+
+`AddOnOrderPage/`: exhausted-block choices; Embedding, Microtome and Slide Distribution: the exhausted-block warning and end states.
+
+## Batch 732
+
+Batch 732: Grossing piece map; Add-On Orders pieces and level ranges; the piece panel at Embedding, Microtome and Slide Distribution.
+
+## Batch 733
+
+Batch 733: Add-On Orders tracking, group answers; Microtome, one flag per block.

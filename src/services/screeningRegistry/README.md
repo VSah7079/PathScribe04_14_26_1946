@@ -113,3 +113,7 @@ Each service here (the screening registry service) now has an API-server version
 ## Batch 638
 
 `submitScreeningRegistryResult.ts` now holds a CSMS message until the eligibility check is answered: the entry is queued as AWAITING_ELIGIBILITY, nothing is dispatched, and the case's f36 flag is raised then. New outcome `awaitingEligibility`. A later correction or addendum follows the first submission (still waiting, or closed). The clinical report is never held.
+
+## Batch 728
+
+- `submitScreeningRegistryResult.ts`: a research case is never submitted (`noRegistry`).

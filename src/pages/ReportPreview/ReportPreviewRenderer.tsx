@@ -25,6 +25,9 @@ import type {
 import { escapeHtml, sanitizeRichHtml, sanitizeSvgMarkup } from '@/services/security/sanitizeHtml';
 import { ageFromDateOfBirth } from '@/utils/ageFromDateOfBirth';
 import { pressable } from '@/utils/a11y/pressable';
+import { layoutSectionIds, placementsAtReportEnd, placementsInSection } from '@/services/caseAttachments/attachmentCatalog';
+import { useReportPlacements } from '@/hooks/useReportPlacements';
+import { PlacedImages } from '@/components/CaseAttachments/PlacedImages';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Generic node-tree rendering — added alongside the existing AI-section
@@ -290,6 +293,10 @@ const ReportPreviewRenderer: React.FC<Props> = ({
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const sectionsById = useMemo(() => new Map(sections.map(s => [s.id, s] as const)), [sections]);
   const baseScope = useMemo(() => buildRenderScope(caseData), [caseData]);
+  // Batch 742: the images placed in sections print there, and at the end of the text (functions/main.py does the same).
+  const placements = useReportPlacements(caseData?.id, caseAccessionKey || undefined);
+  const endPlacements = useMemo(() => placementsAtReportEnd(placements, layoutSectionIds(bodyAssembly)), [placements, bodyAssembly]);
+  const placedIn = (sectionId: string) => <PlacedImages placements={placementsInSection(placements, sectionId)} />;
 
   // Auto-scroll to follow activeSectionId when it changes from elsewhere
   // (navigator click, or editing in the right-hand section editor)
@@ -346,6 +353,7 @@ const ReportPreviewRenderer: React.FC<Props> = ({
         <div key={node.id} id={`rp-section-${node.id}`} className="rp-section">
           <div className="rp-section-heading">{label}</div>
           <div className="rp-section-empty">{t('reportPreviewRenderer.notYetGenerated')}</div>
+          {placedIn(node.id)}
         </div>
       );
     }
@@ -370,6 +378,7 @@ const ReportPreviewRenderer: React.FC<Props> = ({
             {s.required ? t('reportPreviewRenderer.requiredNotCompleted') : t('reportPreviewRenderer.noContent')}
           </div>
         )}
+        {placedIn(s.id)}
       </div>
     );
   };
@@ -492,6 +501,7 @@ const ReportPreviewRenderer: React.FC<Props> = ({
               <div className="rp-node-section-heading" style={labelStyleVars(node.labelConfig, 'rp-heading')}>{node.printHeading}</div>
             )}
             {node.children.map((c, i) => renderNode(c, scope, `${key}-${i}`))}
+            {placedIn(node.id)}
           </div>
         );
 
@@ -700,6 +710,7 @@ const ReportPreviewRenderer: React.FC<Props> = ({
             </div>
           ))
         )}
+        <PlacedImages placements={endPlacements} heading />
       </div>
 
       {relatedCases.length > 0 && (

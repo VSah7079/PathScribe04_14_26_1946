@@ -40,7 +40,7 @@ The clashes below sit on different screens, so each key works where it is shown.
 
 | # | Key | Meaning 1 | Meaning 2 | Suggested |
 |---|---|---|---|---|
-| 13 | Ctrl+Alt+Shift+A | Save Cytology Review | Add Comment (Microtomy) | Keep. Different screens. |
+| 13 | Ctrl+Alt+Shift+A | Save Cytology Review | Add Comment (Microtome) | Keep. Different screens. |
 | 14 | Ctrl+Alt+Shift+N | Create Plate (Molecular) | Create Container; Add Note | Keep. Different screens. |
 | 15 | Ctrl+Alt+Shift+P | Place Rack (Molecular) | Preview Report; Slide Checkout | Keep. Different screens. |
 | 16 | Alt+F | Open Flag Manager (report) | Open Search (elsewhere) | Keep, same pattern as #9. |

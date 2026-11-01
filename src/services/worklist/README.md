@@ -21,3 +21,7 @@ Tile counts now match the rows their lists show (Pete, Oct 4). A restricted case
 `isCollaboratingCase` (Batch 660): the Worklist "Collaborating Cases" rule, an active team-roster member on an open case.
 
 - `rowCommands.ts` (Batch 663): "go to row N" and "open accession X": parse the number or accession said and pick the row from the list as shown; out of range, no match or more than one match does nothing. Tests: `rowCommands.test.ts`, `rowCommandsVoice.test.ts` (through the real registry).
+
+## Batch 728
+
+- `worklistTileCounts.ts`: research cases are left out of both the counts and the lists (`clinicalWorklistCases`; `WorklistCountDeps.isResearchCase`, defaulting to the lab's settings). Test: `worklistResearchCases.test.ts`.

@@ -48,8 +48,9 @@ Configure Tier 3 in this order. Each setup screen carries a Setup sequence box w
 29. [Contribution Settings](#screen-contribution_settings): the My Contribution page.
 30. [Feedback](#screen-feedback): the QA feedback button.
 31. [Research Feed](#screen-research_feed): the PubMed headline on Home.
+32. [Bench Reasons](#screen-bench_reasons): the tap-to-pick reasons used at the bench, in your lab's words.
 
-Reference pages, not part of setup: [Batch Management](#screen-batch-management), [Embedding Station](#screen-embedding-station), [Microtomy Workstation](#screen-microtomy-workstation), [Slide Distribution Station](#screen-slide-distribution-station), [Home](#screen-home), [Lockbox Drop-Off](#screen-lockbox-drop-off), [Quality Assurance](#screen-quality-assurance), [Margin Exception Review](#screen-margin-exception-review) and [Cytology QC Queue](#screen-cytology-qc-queue).
+Reference pages, not part of setup: [Batch Management](#screen-batch-management), [Embedding Station](#screen-embedding-station), [Microtome Workstation](#screen-microtomy-workstation), [Slide Distribution Station](#screen-slide-distribution-station), [Home](#screen-home), [Lockbox Drop-Off](#screen-lockbox-drop-off), [Quality Assurance](#screen-quality-assurance), [Margin Exception Review](#screen-margin-exception-review) and [Cytology QC Queue](#screen-cytology-qc-queue).
 
 ## Order Entry and Accessioning: routing and action bundles {#ch4-order-entry}
 Breadcrumb: Home > Configuration
@@ -402,7 +403,7 @@ Unlocks: None.
 | Field Name | Data Type / Format | Required/Optional | Description & Business Logic | System Default |
 |---|---|---|---|---|
 | Pedal 1, Primary Action | Bound key or pedal button | Optional | Push-to-talk on sign-out, confirm piece count on embedding. | Not bound |
-| Pedal 2, Advance / Next | Bound key or pedal button | Optional | Next field on sign-out, print or etch next on microtomy. | Not bound |
+| Pedal 2, Advance / Next | Bound key or pedal button | Optional | Next field on sign-out, print or etch next on the microtome. | Not bound |
 | Pedal 3, Pause / Replay Last Segment | Bound key or pedal button | Optional | Sign-out dictation only. Pause works once bound; Replay also needs microphone access, which may be asked for in the first sign-out session. | Not bound |
 | Bind, Rebind, Cancel, Clear | Buttons | Not applicable | **Bind** waits for the next press of the real pedal and stores whatever it sends (a keyboard key or a gamepad-style button). The binding belongs to this computer's browser, not to the person's account. | Not applicable |
 
@@ -489,7 +490,7 @@ Unlocks: None.
 **7. Permissions.** Open the screen: `screen:configuration:open`. Change the mode: `config:inking-validation-mode:manage` (high risk, audited; checked in the service for that facility). Admin and Lab Director hold it by default. Overriding a Severity 3 stop at sign-out: `case:inking-gate:override`, held by Admin and Lab Director.
 **Known limits.** Partial for the reason above: the mode is saved and shown, but Strict Enforce does not add a hard stop at Complete grossing. The setting is held in the browser's site-settings store; no server contract for site settings exists in `docs/architecture/` yet.
 
-## Histology worklists, embedding, microtomy and staining stations {#ch4-histology}
+## Histology worklists, embedding, microtome and staining stations {#ch4-histology}
 Breadcrumb: Home > Batch Management
 
 This part covers the bench screens of the histology workflow. They are day-to-day workbench screens, not maintenance screens, so each uses the reference layout: what it shows, what it needs configured first, and which settings change its behaviour. There is no separate configuration screen for the stations themselves. A station's behaviour is set on screens in other chapters: the [Scan Stations](#screen-scan_stations) and [Printer Profiles](#screen-printer_profiles) screens (which printer a station uses), the [Label Designer](#screen-label_designer) (what the printed label shows), [Field Requirements](#screen-field_requirements) (which fields must be filled, by page: `batchManagement`, `embedding`, `microtomy`, `slideDistribution`), and the [Voice tab](#screen-tab-voice) (foot pedal). A staining station has no screen of its own: staining runs are batches (see Batch Management), and the stain list is the [Diagnostic Catalog](#screen-stains).
@@ -502,7 +503,7 @@ Breadcrumb: Home > Batch Management
 **1. Navigation:** Home > **Batch Management** (not in Configuration). Opens with `screen:batch-management:open`.
 **2. Maintenance item:** Not applicable. This is a workbench hub.
 
-**3. Business purpose and scope.** Batch Management tracks groups of cassettes and slides through the processing nodes (Decal / Special Processing, Processing, Embedding, Microtomy / Sectioning, Staining, Checkout, External Referral, Cytology Processing, Cytology Staining, Cytology Imaging) by container barcode. It gives chain-of-custody scanning, reconciliation, and a set of queue and report pages reached from tiles. A batch is a container (a staining rack, tissue processor basket, archive storage tray, decal vessel or ad-hoc batch) with a master barcode and a manifest of the items scanned into it.
+**3. Business purpose and scope.** Batch Management tracks groups of cassettes and slides through the processing nodes (Decal / Special Processing, Processing, Embedding, Microtome / Sectioning, Staining, Checkout, External Referral, Cytology Processing, Cytology Staining, Cytology Imaging) by container barcode. It gives chain-of-custody scanning, reconciliation, and a set of queue and report pages reached from tiles. A batch is a container (a staining rack, tissue processor basket, archive storage tray, decal vessel or ad-hoc batch) with a master barcode and a manifest of the items scanned into it.
 
 **4. Prerequisites and dependencies.** The screen reads the scan station set for this computer (to pre-fill the target workstation and to scope the Disposal Queue and Pending Load to the station's facility), the reagent lots and stains for staining and cytology batches, and the facilities with the Reference Lab role for referral batches. With none of these the page still opens, but the matching fields of **New Container** stay empty.
 
@@ -557,7 +558,7 @@ Unlocks: None.
 | Supervisor Override (Override & Complete) | Link and window with a required **Reason** | Required reason | Completes with discrepancies. Recorded against the person's name. Needs `batch:reconciliation:override`. | Not applicable |
 | Abort Batch | Button and window with a required **Reason** | Required reason | The batch and manifest are kept for audit, marked Aborted, and take no more scans. Needs `batch:run:abort`. | Not applicable |
 | Acknowledge (cold-chain excursion) | Button and window with a required **Note** | Required note | Shown when a smart container reported an out-of-range temperature. Needs `batch:cold-chain-excursion:acknowledge`. | Not applicable |
-| Transfer to Processing | Button | Not applicable | Moves the items to a new Processing batch. | Not applicable |
+| Transfer to Processing | Button | Not applicable | Moves the same batch, with its items, to Processing (Batch 726; it used to create a new Processing batch). Needs `batch:carrier:advance`. | Not applicable |
 | Release Rack | Button | Not applicable | Returns a reusable rack to Available. | Not applicable |
 | Referral status | Text | Not applicable | For a referral batch: dispatched, in transit, delivered, result received (with a link when the result is a PDF). | Not applicable |
 | Instrument reports; Cold chain panel | Text | Not applicable | Cytology instrument status; temperature readings for a batch in a smart container. | Not applicable |
@@ -677,12 +678,12 @@ Unlocks: None.
 **7. Permissions.** Open the screen: `screen:embedding:open`. Protected steps (reprint, comments) are recorded with the person; no separate configuration capability applies.
 **Known limits.** The reprint-reason, mold-size and discrepancy lists are fixed in the product and are not editable.
 
-### Microtomy Workstation {#screen-microtomy-workstation}
-Breadcrumb: Home > Microtomy Workstation
+### Microtome Workstation {#screen-microtomy-workstation}
+Breadcrumb: Home > Microtome Workstation
 
 **Status:** Built
 
-**1. Navigation:** Home > **Microtomy Workstation**. Opens with `screen:microtomy:open` (Histotechnologist).
+**1. Navigation:** Home > **Microtome Workstation**. Opens with `screen:microtomy:open` (Histotechnologist).
 **2. Maintenance item:** Not applicable. This is a workbench screen.
 
 **3. Business purpose and scope.** The sectioning bench screen. A technologist scans a block (or a decant or fluid container for cytology), adds the slides to cut by stain and level, prints or etches slide labels one at a time or as a batch, reprints with a reason, flags a block as exhausted, and watches billing for the block.
@@ -695,7 +696,7 @@ Unlocks: None.
 
 **5. Screen.**
 
-[SCREENSHOT PLACEHOLDER: screen-microtomy-workstation - Microtomy Workstation with slide grid and print panel]
+[SCREENSHOT PLACEHOLDER: screen-microtomy-workstation - Microtome Workstation with slide grid and print panel]
 
 **6. Field reference.** Reference page: the controls on the screen.
 
@@ -998,6 +999,42 @@ Unlocks: None.
 **7. Permissions.** Open the screen: `screen:configuration:open`. Change: `config:revision-reasons:manage` (high risk; Admin and Lab Director).
 **Known limits.** In the product the starting values are: diagnosis, margin, stage and tissue reclassification on; clerical corrections off (`revisionReasonRules.ts`). The service allows adding, editing, deactivating and reactivating reasons, but this screen has no button for them; that is listed for Pete in `open-questions/ch4.md`. Contract: `docs/architecture/LAB_DICTIONARIES_API.md`.
 
+### Bench Reasons {#screen-bench_reasons}
+Breadcrumb: Home > Configuration > System > Administration & Compliance > Bench Reasons
+
+**Status:** Built (Batch 736)
+
+**1. Navigation:** Configuration tab **System** > group **Administration & Compliance**
+**2. Maintenance item:** Bench Reasons
+
+**3. Business purpose and scope.** The reasons staff tap at the bench instead of typing, in five groups: Microtome: Block exhausted; Add-On Orders: order or answer on an exhausted block (the builder's reason and the pathologist's answer to a flag, including Approve Destructive Cutting); Batch Management: Abort Batch; Batch Management: complete with exceptions; Batch Management: acknowledge a cold-chain excursion. Each lab words them its own way. A reason keeps its **code** when it is reworded, and every record and audit entry stores the code beside the words, so reports (for example the Reconciliation exceptions report's **Reason code** column) count a reason the same way before and after it is reworded. Staff may add a note to a tapped reason; with no reason tapped, a typed note alone is accepted where the lab's Field Requirements allow it.
+
+**4. Prerequisites and dependencies.** None. PathScribe ships default reasons in all six languages.
+
+Setup step: Tier 3, step 32
+Requires: None.
+Unlocks: None.
+
+**5. Screen.**
+
+[SCREENSHOT PLACEHOLDER: system-bench_reasons - Bench Reasons in five groups with Reword, move, Retire and Add reason]
+
+**6. Field reference.**
+
+| Field Name | Data Type / Format | Required/Optional | Description & Business Logic | System Default |
+|---|---|---|---|---|
+| Wording | Text, with **Reword** | Required to reword | The words staff see. A default reason shows "Default wording, shown in each user's language" and appears in each person's language; once reworded it shows "Your lab's wording, shown as entered" and appears exactly as typed, in every language. Must differ from the group's other active reasons. | The defaults below |
+| Code | Text | Not applicable | Read only. A default reason's code (for example `BE_NO_TISSUE`); a reason the lab adds gets a code automatically. Never changes. | Not applicable |
+| ↑ / ↓ | Buttons | Optional | The order on the bench. | Shipped order |
+| Use the default wording | Button | Optional | Puts a reworded default reason back to its shipped, translated wording. | Not applicable |
+| Retire / Restore | Button | Optional | A retired reason is no longer offered; its code stays in old records. | Active |
+| Add reason | Text and button | Optional | A new reason for the group, in your lab's words, placed last. | Not applicable |
+
+Default reasons: Block exhausted: No tissue left in the block (`BE_NO_TISSUE`), Only a few sections left (`BE_FEW_SECTIONS`), Cannot get a full face (`BE_INCOMPLETE_FACE`), Block damaged (`BE_BLOCK_DAMAGED`). Exhausted block on Add-On Orders: Requested by the pathologist (`AE_PATHOLOGIST_REQUEST`), Last material available (`AE_LAST_MATERIAL`), Needed to complete the diagnosis (`AE_DIAGNOSIS_NEEDED`). Abort Batch: Created in error (`BA_CREATED_IN_ERROR`), Wrong container or rack (`BA_WRONG_CONTAINER`), Equipment failure (`BA_EQUIPMENT_FAILURE`), Run cancelled by the lab (`BA_RUN_CANCELLED`). Complete with exceptions: Items accounted for elsewhere (`BO_ACCOUNTED_ELSEWHERE`), Checked by hand: barcode would not scan (`BO_SCANNED_BY_HAND`), Approved by the supervisor (`BO_SUPERVISOR_APPROVED`), Label damaged, identity checked by eye (`BO_LABEL_DAMAGED`). Cold chain: Temperature back in range on arrival (`CC_BACK_IN_RANGE`), Packaging intact; logger fault (`CC_LOGGER_FAULT`), Courier delay; contents checked (`CC_COURIER_DELAY`).
+
+**7. Permissions.** Open the screen: `screen:configuration:open`. Change: `config:bench-reasons:manage` (high risk; Admin and Lab Director).
+**Known limits.** One list for the whole organisation; a facility cannot yet have its own wording. A reworded reason is shown as typed in every language. Contract: `docs/architecture/LAB_DICTIONARIES_API.md` (the Reason Dictionary, categories `BENCH_*`).
+
 ### Tumor Board Rules {#screen-tumor_board_rules}
 Breadcrumb: Home > Configuration > System > Administration & Compliance > Tumor Board Rules
 
@@ -1286,7 +1323,10 @@ Unlocks: None.
 |---|---|---|---|---|
 | Display Name | Text (example "Histology Bench 3 - Wall Display") | Required | | Blank |
 | Performing Lab | Picklist of active performing labs | Required | | None |
-| Assigned Dashboard View(s) | Checkboxes: Grossing & Intake; Embedding & Microtomy; Staining & IHC; Send-Out & Reference Laboratory; Diagnostic Sign-Out / Scanner | Required (at least one) | More than one view makes the profile cycle. | None ticked |
+| Assigned Dashboard View(s) | Checkboxes: Grossing & Intake; Embedding & Microtome; Staining & IHC; Send-Out & Reference Laboratory; Diagnostic Sign-Out / Scanner; Stations (Batch 727) | Required (at least one) | More than one view makes the profile cycle. | None ticked |
+| Time limit X (minutes) | Whole number, 15 to 1440 | Optional; shown when Embedding & Microtome or Stations is ticked | Batch 727 (Lab Workflow & Batch spec, Decision 2): one time per lab. An add-on waiting longer turns red and is pinned to the top of Embedding & Microtome; it turns amber in the last 30 minutes before (half of X when X is an hour or less). The Stations view counts carriers and add-ons past it. Outside 15 to 1440 the profile can't be saved. | Blank (120 minutes) |
+| Not-scanned warning (minutes) | Whole number, 30 to 10080 | Optional; shown when Stations is ticked | Batch 729 (spec 7.5): the Stations view lists cassettes, blocks and slides not scanned at any station for longer than this (finished items left out), as a tile and alerts. Outside 30 to 10080 the profile can't be saved. | Blank (240 minutes) |
+| Show carriers for these purposes | Check boxes, one per active [batch purpose](#screen-research_cases) | Optional; shown when a view with carriers is ticked (all but Diagnostic Sign-Out / Scanner) | Batch 728 (Decision 4a): only carriers of the ticked purposes are shown and counted. None ticked shows every purpose. A carrier made before Batch 728 counts as Routine. Add-on orders are not carriers and always show. | None ticked (all) |
 | Carousel Interval (seconds) | Whole number (example 20) | Optional | Time per view when more than one is assigned. | Blank |
 | Device Token / MAC / IP (optional) | Text | Optional | An asset note only; access is controlled by the Display Token. | Blank |
 
@@ -1740,7 +1780,7 @@ Unlocks: None.
 | Lockbox Drop-Off | Tile | Not applicable | `screen:lockbox-drop-off:open` (Accessioner, Admin). | Not applicable |
 | My Contribution | Tile | Not applicable | `screen:my-contributions:open` (Pathologist, Fellow, Resident, PA, Lab Director). | Not applicable |
 | Bench Contributions | Tile | Not applicable | `screen:bench-contributions:open` (Accessioner and the technologist roles). | Not applicable |
-| Pathology Workspace | Hub tile | Not applicable | Leads to Cytology Workspace, Microtomy, Embedding, Slide Distribution, Molecular, Batch Management and Margin Exception Review. Shows if any is granted. | Not applicable |
+| Pathology Workspace | Hub tile | Not applicable | Leads to Cytology Workspace, Microtome, Embedding, Slide Distribution, Molecular, Batch Management and Margin Exception Review. Shows if any is granted. | Not applicable |
 | Quality & Compliance | Hub tile | Not applicable | Leads to Audit Log, Quality Assurance, Registry Exceptions, Autopsy Dashboards and the Outbound Queue. A badge shows how many registry submissions need a person. | Not applicable |
 | Tumor Board / MDT | Tile | Not applicable | `screen:tumor-board:open` (Pathologist, Fellow, Resident, PA). | Not applicable |
 | Configuration | Tile | Not applicable | `screen:configuration:open` (Admin, Template Author, Template Approver, Lab Director). | Not applicable |

@@ -128,7 +128,7 @@ The **bottom action bar** is the toolbar. It scrolls sideways on a narrow window
 | Tumor Board | Flags the case for tumor board or MDT. See [Tumor Board](help:tumor-board). |
 | # Codes | Opens the Codes window. The button is amber until the case has a code and teal once it has. |
 | Manage Reprints | Reprint requisition, container, cassette and slide labels. |
-| Attach images | Attaches images to the report; they print after its pages. |
+| Attachments (n) / Add Attachments | Opens the Attachments window: the case's photos, files and links, and placing them inside report sections. |
 | Gen. Report / Abort | Orchestration only. Generates the AI report draft from your synoptic answers. While it runs the button becomes **Abort**. |
 | Save Draft, Save & Next | Save your work, or save and move to the next case. The icon is blue when there are unsaved changes. |
 | Finalize, Finalize & Next | Assist mode only. Opens the review window, then finalizes. |

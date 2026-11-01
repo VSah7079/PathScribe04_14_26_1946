@@ -1,3 +1,13 @@
+**Batch 739:** `src/02-tier1-primary-prerequisites.md` (and fr, de, nl, ko, es): Equipment kind Liquid-based cytology processor. Rebuilt.
+
+**Batch 737:** `src/02-tier1-primary-prerequisites.md` (and fr, de, nl, ko, es): Equipment → Staining racks. Rebuilt.
+
+**Batch 736:** `src/04-tier3-workflow-engines.md` (and fr, de, nl, ko, es): System → Bench Reasons (step 32). Rebuilt.
+
+**Batch 734:** `src/02-tier1-primary-prerequisites.md`, Facility editor Printing tab: **Allow direct printing from the browser**. Rebuilt.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 **Batch 668:** the Help button paragraph in chapter 1 describes the window behaviour and the top-bar book button, in all six languages.
 
 **Batch 666:** the English chapters and all five translations now describe Batches 653 to 665: the Release Hold Print Policy and `print:release-hold:override`, `qa:management-review:submit`, facility limits on case actions, locked Sex and required Downtime Reason, Quick Links from External Resources, the new commands and keys, the sex at birth and NHS number variables and the PID-8 mapping, the AI confidence floor and Codes window, and the unbuilt release-sweep job. `parity.py` reports 0 problems in every language.
@@ -33,3 +43,11 @@
 - Batch 669a: User Guide and Administrator Guide screenshots re-captured by script (`scripts/user-guide/capture.cjs`, `scripts/admin-guide/capture.mjs`); one User Guide picture (autopsy authorization) still missing.
 
 - Batch 669d: the top-bar Help buttons now appear on Configuration (the page publishes its open tab and section through `services/help/helpAnchorStore.ts`, `hooks/usePublishHelpAnchor.ts`), the ? shows on every screen, and the Administrator Guide re-scrolls to the section as screenshots load (`scripts/admin-guide/guide.js`).
+
+## Batch 731
+
+- Batch 731: chapter 2, the three `material:` permissions (English).
+
+## Batch 732
+
+- Batch 732: chapter 2 Equipment, "Takes large-format slides" (all six languages). Rebuilt (English).

@@ -35,12 +35,17 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AccessionTabBar } from './AccessionTabBar';
+import { AccessionColumnSlot } from './AccessionColumnSlot';
+import { useAccessionTwoColumn } from '@/hooks/useAccessionTwoColumn';
+import { resolveAccessionPanels, type AccessionTab } from '@/services/accessioning/resolveAccessionPanels';
 import { useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
 import { PhiToastMessage } from '@/components/Common/PhiToastMessage';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { createAccessionedCase } from '@/services/accessioning/createAccessionedCase';
 import { linkLockboxReceiptAtAccession } from '@/services/accessioning/linkLockboxReceipt';
+import { localInputValueFromDate } from '@/services/lockbox/lockboxRules';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { updateCaseWithRetry, type CaseWriteDeps } from '@/services/cases/caseWrite';
 import { ORCH_ID_PREFIX, isOrchCaseId, formatOrchCaseId } from '@/services/cases/reportingModeRouting';
@@ -453,9 +458,8 @@ function emptySpecimen(label: string): SpecimenDraft {
   return {
     label, dictionaryEntryId: '', description: '', comments: [], clinicalHistory: [],
     collectedAt: '', processedAt: '', processedAtIsEstimated: false,
-    // receivedAt defaults to "now" — the one moment the accessioner is
-    // actually present for. Formatted for a datetime-local input.
-    receivedAt: new Date().toISOString().slice(0, 16),
+    // "now", in the browser's local time for a datetime-local input (Batch 738: was UTC, an hour off or more in the US).
+    receivedAt: localInputValueFromDate(new Date()),
     containerType: '', fixativeVolumeMl: '', anatomicSite: '', laterality: '', lateralityInferred: false,
     manualDeficiencies: [],
     externalId: '', externalIdSource: '',
@@ -464,7 +468,6 @@ function emptySpecimen(label: string): SpecimenDraft {
 
 // ── Component ────────────────────────────────────────────────────────────
 
-type TabKey = 'case' | 'specimens' | 'outside_patient';
 
 const AccessionPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -502,7 +505,10 @@ const AccessionPage: React.FC = () => {
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('accessionPage.page.title'), '/accession'); }, [pushCrumb, t]);
 
-  const [tab, setTab] = useState<TabKey>('case');
+  const [tab, setTab] = useState<AccessionTab>('case');
+  const [cytologyHost, setCytologyHost] = useState<HTMLElement | null>(null); // two columns: where the Cytology card is drawn
+  const twoColumn = useAccessionTwoColumn();
+  const panels = resolveAccessionPanels(tab, twoColumn);
   const [submitting, setSubmitting] = useState(false);
 
   // ── Reference data ──────────────────────────────────────────────────────
@@ -2786,7 +2792,7 @@ const AccessionPage: React.FC = () => {
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="ps-accession-shell">
-      <div className="ps-accession-content">
+      <div className={`ps-accession-content${twoColumn ? ' ps-accession-content--two-col' : ''}`}>
 
         <div className="ps-accession-header">
           <h1 className="ps-accession-title">{t('accessionPage.page.title')}</h1>
@@ -2795,21 +2801,11 @@ const AccessionPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="ps-tab-bar ps-accession-tabs">
-          <button className={`ps-tab-btn ${tab === 'case' ? 'active' : ''}`} onClick={() => setTab('case')}>{t('accessionPage.tabs.casePatient')}</button>
-          <button className={`ps-tab-btn ${tab === 'specimens' ? 'active' : ''}`} onClick={() => setTab('specimens')}>
-            {t('accessionPage.tabs.specimens')} {filledSpecimenCount ? `(${filledSpecimenCount})` : ''}
-          </button>
-          {/* Real, per direct guidance: only shown for Outside/Contract
-              Case intake — dynamically activated, not always present. */}
-          {intakeType === 'outside' && (
-            <button className={`ps-tab-btn ps-accession-outside-tab-btn ${tab === 'outside_patient' ? 'active' : ''}`} onClick={() => setTab('outside_patient')}>
-              ℹ {t('accessionPage.tabs.outsidePatientData')}
-            </button>
-          )}
-        </div>
+        <AccessionTabBar tab={tab} twoColumn={twoColumn} showOutsideTab={intakeType === 'outside'}
+          filledSpecimenCount={filledSpecimenCount} onSelect={setTab} />
 
-        {tab === 'case' && (
+        <div className={twoColumn ? 'ps-accession-columns' : undefined}>
+        {panels.showCase && (
           <div className="ps-card-dark ps-accession-card">
             {/* Real fix, per direct report: "This assumes an order
                 exists, but it may not... we should update the onscreen
@@ -3006,7 +3002,7 @@ const AccessionPage: React.FC = () => {
                   <option value="U">{t('accessionPage.demographics.sexOther')}</option>
                 </select>
               </div>
-              {cytologyRelevant && (
+              {cytologyRelevant && (<AccessionColumnSlot host={twoColumn ? cytologyHost : null}>
                 <div className="ps-card-dark ps-accession-conditional-card">
                   <div className="ps-label ps-accession-section-heading">
                     {t('accessionPage.cytology.heading')}
@@ -3121,7 +3117,7 @@ const AccessionPage: React.FC = () => {
                     />
                   )}
                 </div>
-              )}
+              </AccessionColumnSlot>)}
 
               {autopsyRelevant && (
                 <div className="ps-card-dark ps-accession-conditional-card">
@@ -3471,11 +3467,11 @@ const AccessionPage: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div className="ps-accession-actions">
+            {panels.showStepButtons && <div className="ps-accession-actions">
               <button className="ps-btn-primary" onClick={() => setTab('specimens')} disabled={!caseInfoValid}>
                 {t('accessionPage.actions.nextSpecimens')} →
               </button>
-            </div>
+            </div>}
             {missingCaseNames.length > 0 && (
               <p className="ps-accession-missing" role="status">{t('fieldRequirements.stillRequired', { fields: missingCaseLabel })}</p>
             )}
@@ -3485,7 +3481,7 @@ const AccessionPage: React.FC = () => {
           </div>
         )}
 
-        {tab === 'specimens' && (
+        {panels.showSpecimens && (
           <div>
             {lastResult ? null : <>
             {specimens.map((s, idx) => {
@@ -3804,6 +3800,7 @@ const AccessionPage: React.FC = () => {
               />
             )}
 
+            {twoColumn && <div ref={setCytologyHost} />}
             <div className="ps-card-dark ps-accession-card">
               <h3>{t('accessionPage.readyCard.heading')}</h3>
               <p className="ps-accession-summary-meta" data-phi="name">
@@ -3829,7 +3826,7 @@ const AccessionPage: React.FC = () => {
             )}
 
             <div className="ps-accession-actions ps-accession-actions--split">
-              <button className="ps-btn-secondary" onClick={() => setTab('case')}>← {t('accessionPage.actions.back')}</button>
+              {panels.showStepButtons ? <button className="ps-btn-secondary" onClick={() => setTab('case')}>← {t('accessionPage.actions.back')}</button> : <span />}
               <CapabilityButton capability="case:accession:create" className="ps-btn-primary" onClick={() => { void handleSubmit(); }} disabled={!canSubmit}>
                 {submitting ? t('accessionPage.actions.assigningTemplates') : t('accessionPage.actions.submitAccession')}
               </CapabilityButton>
@@ -3893,7 +3890,7 @@ const AccessionPage: React.FC = () => {
           </div>
         )}
 
-        {tab === 'outside_patient' && (
+        {panels.showOutside && (
           <div className="ps-card-dark ps-accession-card">
             <div className="ps-accession-outside-header">
               <h3 className="ps-accession-outside-title">{t('accessionPage.outsidePatient.title')}</h3>
@@ -4061,6 +4058,7 @@ const AccessionPage: React.FC = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {caseCommentModalOpen && (

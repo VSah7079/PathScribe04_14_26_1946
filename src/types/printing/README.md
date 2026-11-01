@@ -35,3 +35,7 @@ PathScribe-owned internal event contract for real network printing — sending a
 ## Batch 615 (part D) — vial and rack labels (PS-360)
 
 `NetworkPrintLabelType` gains `VIAL` and `RACK`. `NetworkPrintLabelData.gs1DataMatrix` is now optional (cassette and slide only), and a new `vialRack` field carries `{ barcode, rackKind?, lines, zpl }`. For these two kinds `accessionNumber` may be empty (a rack belongs to no case). An engine built to the earlier contract still works: cassette and slide payloads are unchanged.
+
+## Batch 732
+
+- Batch 732: `NetworkPrintPayload.slide.slideSize` ('large_format' selects `ZPL-SLIDE-LF-V1`).

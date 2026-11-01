@@ -86,6 +86,8 @@ export interface HardwareContainer {
    *  specific container's own contents must be kept within — only
    *  meaningful when isSmartContainer is true. */
   storageConditionTypeId?: string;
+  /** Batch 737 (spec §11.1): a staining rack that takes large-format slides. */
+  supportsLargeFormat?: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -101,7 +103,8 @@ export interface IHardwareContainerRegistryService {
    *  Laboratory Sensor & Cold-Chain Integration gap — lets an admin
    *  retroactively mark an existing rack as smart-sensored and assign
    *  its real storage condition type, not only at creation time. */
-  update(id: ID, changes: { isSmartContainer?: boolean; storageConditionTypeId?: string }): Promise<ServiceResult<HardwareContainer>>;
+  /** Batch 737: needs config:equipment:manage (a rack is lab hardware). */
+  update(id: ID, changes: { isSmartContainer?: boolean; storageConditionTypeId?: string; supportsLargeFormat?: boolean }): Promise<ServiceResult<HardwareContainer>>;
   /** The spec's own FR-3.2 "disbanding logic" — real, atomic check-out:
    *  fails honestly if the rack is already InUse (a real, existing
    *  conflict — see the spec's own "preventing duplicate batch

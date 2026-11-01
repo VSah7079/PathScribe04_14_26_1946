@@ -35,7 +35,7 @@ import ForeignIdFields from './ForeignIdFields';
 import SendBlockOrderButton from '@/components/MockInterfaceEngine/SendBlockOrderButton';
 import CassetteColorControl from './CassetteColorControl';
 import type { CassetteColorDefinition } from '@/services/cassetteColors/ICassetteColorService';
-import { DECANT_TYPE_LABEL, type Decant } from '@/types/case/Material';
+import type { Decant } from '@/types/case/Material'; import { decantTypeText } from '@/utils/decantTypeText'; // Batch 739
 
 const BLOCK_STATUSES = ['Pending', 'Grossed', 'Embedded', 'Exhausted', 'Lost', 'Damaged'] as const;
 // Real, persisted enum values (block.status) stay as data — only the
@@ -1316,7 +1316,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                     <div className="ps-protocol-track-header">
                       <div className="ps-protocol-track-header-info">
                         <strong className="ps-protocol-track-name">
-                          {specimenLabel}{decant.label} — {DECANT_TYPE_LABEL[decant.decantType]}
+                          {t('cytologyScreening.materialDrawer.decantHeading', { label: `${specimenLabel}${decant.label}`, type: decantTypeText(t, decant) })}
                         </strong>
                         {specimenDescription && (
                           <div className="ps-protocol-track-meta">{specimenDescription}</div>

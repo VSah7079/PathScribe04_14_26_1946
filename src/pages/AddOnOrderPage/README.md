@@ -1,3 +1,11 @@
+**Batch 737:** `components/BlockContextPanel.tsx` lists a case's matrix blocks under **Shared (matrix) blocks** with a tick box per part (`matrixBlocks` prop from `AddOnOrderPage.tsx`); `hooks/useAddOnOrderStation.ts` saves matrix blocks with the specimens and tracks orders on matrix blocks. Rules in `services/addOnOrders/addOnOrderActions.ts`.
+
+**Batch 736:** the builder's exhausted-block reason and the dashboard's answer take the lab's reasons and an optional note; the code goes with the order or answer.
+
+**Batch 735:** the shared `StationScanField` to open a case, and a compact one beside the case details to open the next; an accession scanned with nothing focused opens it (PATHSCRIBE_SCAN). Answering a Block exhausted flag and the builder's exhausted reason use `QuickReasonPicks` (`addOnExhausted`). In the station touch layout.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # pages/AddOnOrderPage/
 
 **NEW (Sep 2026)** — PS-287, fourth of the PS-284→285→286→287→288 workstation-build sequence, and the first one genuinely different in shape from the other three: this is **case-scoped** (search or scan an accession to open the whole case), not block/slide-scoped, and it's **pathologist-initiated**, not tech-scan-to-open. A pathologist reviewing a case places one or more add-on orders (recuts/deep levels, special stains, IHC — single-stain or panel — and molecular/send-out) against any of that case's own real blocks, with real routing, priority, slide media, auto-control pairing, a real-time order tracking dashboard, and a real block-exhaustion exception + pathologist notification loop.
@@ -8,7 +16,7 @@
 
 ## Scope confirmed before building
 
-The ticket's own text covers five sub-areas (§1–§5) plus an Epic-level dashboard piece (PS-288). Before starting, the ambiguity between "narrow PS-287's own scope" and "build PS-288 in the same pass" (referenced in this session's own prior context) was resolved directly with the user via a scoping question. Answer: **PS-287 built in full** — order builder + routing (§1–§3), block-exhaustion exception + pathologist notification loop (§5), and the real-time order tracking dashboard (§4) — and **PS-288 deferred entirely to its own, later pass**, not bundled in here. Nothing in this folder attempts PS-288's own Embedding & Microtomy dashboard or Diagnostic Sign-Out/Scanner View.
+The ticket's own text covers five sub-areas (§1–§5) plus an Epic-level dashboard piece (PS-288). Before starting, the ambiguity between "narrow PS-287's own scope" and "build PS-288 in the same pass" (referenced in this session's own prior context) was resolved directly with the user via a scoping question. Answer: **PS-287 built in full** — order builder + routing (§1–§3), block-exhaustion exception + pathologist notification loop (§5), and the real-time order tracking dashboard (§4) — and **PS-288 deferred entirely to its own, later pass**, not bundled in here. Nothing in this folder attempts PS-288's own Embedding & Microtome dashboard or Diagnostic Sign-Out/Scanner View.
 
 ## Investigation done before building (confirmed, not assumed)
 
@@ -98,9 +106,25 @@ Placing an order, marking a block retrieved, flagging an exception and answering
 
 ## Batch 669 (ws-3, ws-19, ws-20)
 
-- **Permissions (ws-19, Pete: strict).** **Mark Block Retrieved** needs `add-on:block:mark-retrieved` and **Flag Exception** needs `add-on:exception:flag` (greyed without them: `CapabilityButton`; the service checks again). Seeded to Pathologist, Fellow, Resident and Histotechnologist (the roles with the Add-On Orders or Microtomy screen) and to a hospital's own roles with case access, so nobody who could do it loses it.
+- **Permissions (ws-19, Pete: strict).** **Mark Block Retrieved** needs `add-on:block:mark-retrieved` and **Flag Exception** needs `add-on:exception:flag` (greyed without them: `CapabilityButton`; the service checks again). Seeded to Pathologist, Fellow, Resident and Histotechnologist (the roles with the Add-On Orders or Microtome screen) and to a hospital's own roles with case access, so nobody who could do it loses it.
 - **Notice routing (ws-3, Pete, Oct 24, 2026).** Flagging an exception on a slide with no ordering pathologist (an original H&E) used to e-mail nobody. The notice now goes to the Supervisor / Accessioning Desk (`services/addOnOrders/blockExceptionRouting.ts`) and the page says so, or says nobody could be told. A slide with an open exception is listed in Order Tracking even if it was not ordered here, so the notice can be answered.
 - **Primary pathologist (ws-20).** The context bar shows the name (`primaryPathologistName` in the hook), not the stored user id.
 - **IHC panels (ws-20).** A panel stain missing from the (active) stain dictionary is named in a warning under the builder (`missingPanelStainNames`); the other stains of the panel can still be added. If none exist, nothing can be added and the warning says so. The panel presets themselves are still a fixed list.
 - **Still open (ws-19/20 rows):** a refused block still aborts the whole submit; priority is recorded and shown in tracking only; the presets are not editable.
 - **Tests:** `hooks/useAddOnOrderStation.test.tsx`, `components/addOnOrderRequirements.test.tsx`.
+
+## Batch 730
+
+- `components/OrderSummaryRoutingPanel.tsx`: **Print labels at** (only with `print:job:redirect`, chosen by the page). `hooks/useAddOnOrderStation.ts`: `submitOrder(…, printAtStationId)` prints the new slides' labels there (`services/labelPrintRoutes/printAddOnLabelsAt.ts`); `printStations`.
+
+## Batch 731
+
+- Spec §10.6: an exhausted block can be ticked; `components/ExhaustedBlockChoices.tsx` (+ `.css`, new) shows what remains, each line's alternative and the reason. `OrderTrackingDashboard.tsx`: a "Block exhausted" flag can be answered with an alternative ("Or use an alternative", Apply); the stage "Awaiting Re-embedding". `useAddOnOrderStation.ts`: `submitOrder(…, exhaustedChoices)`, `handleResolveException(…, alternative)`, audit and end-state deps.
+
+## Batch 732
+
+- Batch 732: `BlockContextPanel.tsx` lists a ticked block's pieces to order for (none: whole block) and its type; `OrderBuilderPanel.tsx`: **Levels** and **Levels per slide** for a recut; `ExhaustedBlockChoices.tsx` also opens for used-up pieces, with "Order from piece … instead".
+
+## Batch 733
+
+- Batch 733: the tracking dashboard says how many waiting slides an answer covers, with "Answer this slide only"; Approve Destructive Cutting is hidden when nothing is left, needs a note and warns.

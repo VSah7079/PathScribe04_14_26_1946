@@ -1,6 +1,8 @@
-/* Batch 657: the in-app User Guide (contents, search, articles). */
-.ps-ug { display: grid; grid-template-columns: 280px 1fr; gap: 24px; min-block-size: 100%; padding: 24px; color: var(--ps-text, #e2e8f0); }
-.ps-ug-side { display: flex; flex-direction: column; gap: 12px; padding-inline-end: 16px; border-inline-end: 1px solid var(--ps-border, #1e293b); }
+/* Batch 657: the in-app User Guide (contents, search, articles).
+   Batch 725: the page fills the space under the top bar and scrolls in two places: the contents list on the left and the article on the right.
+   The app never scrolls the whole document (index.css), and the outlet clips what a page does not scroll itself, so without this a long article was cut off. */
+.ps-ug { display: grid; grid-template-columns: 280px 1fr; grid-template-rows: minmax(0, 1fr); gap: 24px; block-size: 100%; min-block-size: 0; overflow: hidden; padding: 24px; color: var(--ps-text, #e2e8f0); }
+.ps-ug-side { display: flex; flex-direction: column; gap: 12px; min-block-size: 0; overflow-y: auto; padding-inline-end: 16px; border-inline-end: 1px solid var(--ps-border, #1e293b); }
 .ps-ug-side-title { font-size: 18px; font-weight: 700; color: var(--ps-teal-light, #38bdf8); text-decoration: none; }
 .ps-ug-search { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--ps-border, #1e293b); background: var(--ps-surface, #0d1829); color: inherit; font-size: 13px; }
 .ps-ug-group-name { font-weight: 600; color: inherit; text-decoration: none; }
@@ -8,7 +10,7 @@
 .ps-ug-list a, .ps-ug-contents a, .ps-ug-related a, .ps-ug-trail a, .ps-ug-body a { color: var(--ps-teal-light, #38bdf8); }
 .ps-ug-list a[aria-current='page'] { font-weight: 700; text-decoration: none; }
 .ps-ug-muted { color: var(--ps-muted, #94a3b8); font-size: 13px; }
-.ps-ug-main { max-inline-size: 860px; line-height: 1.6; }
+.ps-ug-main { max-inline-size: 860px; min-block-size: 0; overflow-y: auto; padding-inline-end: 12px; line-height: 1.6; }
 .ps-ug-note { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--ps-border, #1e293b); background: var(--ps-surface, #0d1829); font-size: 13px; }
 .ps-ug-trail { font-size: 13px; margin-block-end: 6px; }
 .ps-ug-trail-label { color: var(--ps-muted, #94a3b8); margin-inline-end: 6px; }
@@ -29,4 +31,4 @@
 .ps-ug-steps { display: flex; justify-content: space-between; gap: 16px; margin-block: 28px 8px; }
 .ps-ug-steps a { padding: 8px 14px; border: 1px solid var(--ps-border, #1e293b); border-radius: 8px; text-decoration: none; color: var(--ps-teal-light, #38bdf8); }
 .ps-ug-related ul, .ps-ug-contents ul { padding-inline-start: 20px; }
-@media (max-width: 800px) { .ps-ug { grid-template-columns: 1fr; } .ps-ug-side { border-inline-end: 0; padding-inline-end: 0; } }
+@media (max-width: 800px) { .ps-ug { grid-template-columns: 1fr; grid-template-rows: auto; overflow-y: auto; } .ps-ug-side { border-inline-end: 0; padding-inline-end: 0; overflow-y: visible; } .ps-ug-main { overflow-y: visible; padding-inline-end: 0; } }

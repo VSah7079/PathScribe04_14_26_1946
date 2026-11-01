@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// Batch 388 (PS-359): the Microtomy workstation's comment drawer and slide grid
+// Batch 388 (PS-359): the Microtome workstation's comment drawer and slide grid
 // take what they need from the organisation's Field Requirements (page
 // "microtomy"). Each shows "Still required: …", stars required labels, keeps
 // its button off until they are filled, and its voice command does exactly what

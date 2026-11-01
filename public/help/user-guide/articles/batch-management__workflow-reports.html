@@ -1,0 +1,180 @@
+<h1 id="top">Lab Workflow Reports</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Lab Workflow Reports answers the questions a wall display cannot, such as "how long did cases take last month". Seven built-in reports are built from the station scans, the cases and the carriers: <strong>Turnaround by step</strong>, <strong>Volume per station</strong>, <strong>STAT performance</strong>, <strong>Add-on orders</strong>, <strong>Recut and rework</strong>, <strong>Reconciliation exceptions</strong> and <strong>Batch duration</strong>. Each can be exported as CSV. They show totals only; research cases are left out.</p>
+<p><strong>Intended users.</strong> Laboratory managers and supervisors, and the bench roles that have Batch Management. Each report has its own permission to view it and another to export it; a report you are not allowed to see is greyed out. The turnaround, volume and STAT reports read the station scan log, so they also need permission to see scan history.</p>
+<p><strong>Where it fits.</strong> Open it from the <strong>Workflow Reports</strong> tile on <a href="/help/batch-management">Batch Management</a>. The live picture stays on the <a href="/help/facility-operations">Facility Operations</a> wall displays. Labs with Power BI can use the reporting feed for the same figures and more.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<p>The page is titled <strong>Lab Workflow Reports</strong>. <strong>← Back to batches</strong> returns to Batch Management. Under the title, a row of report buttons picks the report; a line below says what it shows. The filters come next, then the table, then a note on what is counted.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Filters</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>From, To</td>
+<td>The calendar days covered, in the laboratory's time zone. They start on the last 30 days. If the start is after the end the page says "Choose a start date on or before the end date."</td>
+</tr>
+<tr>
+<td>Group by</td>
+<td>Turnaround and STAT: <strong>All cases</strong>, <strong>Case type</strong> (Surgical pathology, Cytology, Autopsy), <strong>Priority</strong> or <strong>Facility</strong>.</td>
+</tr>
+<tr>
+<td>Per</td>
+<td>Volume: <strong>Day</strong> or <strong>Week</strong> (ISO weeks, for example 2026-W41).</td>
+</tr>
+<tr>
+<td>Staining target (minutes)</td>
+<td>Batch duration: the target a Staining batch is measured against. Starts at 120. Decal batches use the target set on the batch.</td>
+</tr>
+<tr>
+<td>Targets (hours from accessioning)</td>
+<td>Turnaround and STAT: a target for each step (Gross, Embed, Cut, Stain, Distribute, Sign-out). They start at 24, 36, 48, 54, 60 and 72. A case past the target counts as late.</td>
+</tr>
+</tbody>
+</table>
+<p>The report rebuilds as soon as you change anything; there is no Run button. While it builds, "Building the report…" shows. With nothing in the dates it says "Nothing in these dates."</p>
+<p><strong>The reports</strong></p>
+<table>
+<thead>
+<tr>
+<th>Report</th>
+<th>Columns</th>
+<th>How it is counted</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Turnaround by step</td>
+<td>Group, Step, Cases, Median (h), 90th percentile (h), Target (h), Late, Late %</td>
+<td>Cases accessioned in the dates. Hours from accessioning to grossing complete, to embedding, cutting, staining and distribution, and to sign-out. A case reaches a step when its last item does.</td>
+</tr>
+<tr>
+<td>Volume per station</td>
+<td>Period, Station, Stage, Items, Scans</td>
+<td>Cassettes, blocks and slides scanned at each station. Only scans of the item itself count, not a carrier scanned for all its items; items moved without a carrier are counted.</td>
+</tr>
+<tr>
+<td>STAT performance</td>
+<td>As Turnaround</td>
+<td>STAT cases only.</td>
+</tr>
+<tr>
+<td>Add-on orders</td>
+<td>Type, Ordered, Cut, Median minutes to cut, STAT</td>
+<td>Add-on orders placed in the dates, by type (recut or levels, special stain, IHC, send-out, molecular, other).</td>
+</tr>
+<tr>
+<td>Recut and rework</td>
+<td>Measure, Value</td>
+<td>Slides cut, Recut orders, Recut rate (% of slides cut), Slide label reprints, Cassette label reprints, Rework rate (% of slides cut).</td>
+</tr>
+<tr>
+<td>Reconciliation exceptions</td>
+<td>Kind, Carrier, Item, Case, When, By, Reason</td>
+<td>Items <strong>Missing</strong> or <strong>Unexpected</strong> when a carrier was reconciled, and each <strong>Supervisor override</strong> with its reason.</td>
+</tr>
+<tr>
+<td>Batch duration</td>
+<td>Step, Carrier, Started, Finished, Minutes, Target (min), Over target</td>
+<td>How long each Decal and Staining batch spent at that step. A batch that moved on keeps its barcode, so its time at each step is measured from its step history.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Report buttons</td>
+<td>Pick the report. Greyed out without that report's permission.</td>
+</tr>
+<tr>
+<td>Export CSV</td>
+<td>Downloads the report as shown, with the column names in your language. Needs that report's export permission; without it the button is greyed out, and a refusal says "You do not have permission to export this report." The download is recorded in the audit log with the number of rows.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<p>The selected report button is highlighted; a greyed report button is one you cannot open. There are no other icons.</p>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None on this page.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open <strong>Batch Management</strong> and select the <strong>Workflow Reports</strong> tile.</li>
+<li>Pick a report.</li>
+<li>Set <strong>From</strong> and <strong>To</strong>, and the options for that report.</li>
+<li>Read the table. Select <strong>Export CSV</strong> to keep it.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<p>To compare groups, set <strong>Group by</strong> to Case type, Priority or Facility on the turnaround report. For STAT work only, pick <strong>STAT performance</strong>.</p>
+<h3 id="exception-handling">Exception handling</h3>
+<p>To follow up an exception, take the carrier barcode or case from <strong>Reconciliation exceptions</strong> and open it in Batch Management or Case Search.</p>
+<h3 id="error-recovery">Error recovery</h3>
+<p>If the report says it could not be built, change a filter or reopen the page; it rebuilds each time.</p>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Embed, cut, stain and distribute come from station scans. Work done at a computer with no station set, or before station tracking (Batch 726), is not counted. Set a station on every bench computer.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Set your laboratory's own targets once per session; the late percentage follows them.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Grossing and sign-out come from the case itself, so they are counted for every case. Use the CSV for monthly reviews.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/batch-management">Batch Management</a>: the carriers these reports read; the bench screens record the station scans.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/facility-operations">Facility Operations</a>: the live picture on the wall.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>What you see</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A report button is grey</td>
+<td>You do not have permission to view that report.</td>
+</tr>
+<tr>
+<td>"You do not have permission to see this report."</td>
+<td>The same, or the report reads the scan log and you cannot see scan history.</td>
+</tr>
+<tr>
+<td>Embed or Cut shows no cases</td>
+<td>No station scans were recorded for those cases.</td>
+</tr>
+<tr>
+<td>"The report could not be built. Try again."</td>
+<td>Something went wrong while reading the data.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Check the dates. 2. Check that your bench computers have a station set. 3. Ask an administrator for the report's permission if it is greyed out.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>If a report stays empty although stations are set and work was scanned, contact support with the report name and the dates. Scheduled delivery of these reports by e-mail is not built yet.</p>

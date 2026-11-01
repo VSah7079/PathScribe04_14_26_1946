@@ -254,7 +254,7 @@ Each of the 60 now has an entry in the Role Dictionary (seven new groups: Report
 
 | Command | Path | Fellow | Resident | PA | Accessioner | Histotech | Cytotech | Molecular | Admin | Lab Dir |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Add Comment (Microtomy) |  |  |  |  |  | ✓ |  |  |  |  |
+| Add Comment (Microtome) |  |  |  |  |  | ✓ |  |  |  |  |
 | Add Stain to Slide Grid |  |  |  |  |  | ✓ |  |  |  |  |
 | Confirm Embedding (Piece Count) |  |  |  |  |  | ✓ |  |  |  |  |
 | Add Comment (Embedding) |  |  |  |  |  | ✓ |  |  |  |  |

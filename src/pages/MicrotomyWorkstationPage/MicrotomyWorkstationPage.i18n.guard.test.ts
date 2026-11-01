@@ -1,4 +1,4 @@
-// Batch 388 (PS-359): the Microtomy workstation's comment drawer, slide grid and
+// Batch 388 (PS-359): the Microtome workstation's comment drawer, slide grid and
 // scan errors go through t(); reasons are stored as English values but shown
 // through microtomyWorkstation.reasons.*. Source-level guard.
 import { describe, it, expect } from 'vitest';
@@ -8,7 +8,7 @@ import path from 'path';
 const read = (rel: string) => fs.readFileSync(path.join(__dirname, rel), 'utf8')
   .split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*') && !l.trim().startsWith('/*')).join('\n');
 
-describe('Microtomy workstation text (Batch 388)', () => {
+describe('Microtome workstation text (Batch 388)', () => {
   const grid = read('components/SlideGridPanel.tsx');
   const drawer = read('components/CommentDrawer.tsx');
   const page = read('MicrotomyWorkstationPage.tsx');

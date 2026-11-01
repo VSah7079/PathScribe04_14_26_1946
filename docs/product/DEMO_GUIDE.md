@@ -35,11 +35,68 @@ All are at Desert Valley (Metro General Hospital) unless noted.
 | Helen Schollars | helen.schollars@demo.pathscribe.ai | Admin and Pathologist | Technical writer: opens every screen to capture it for the Admin and User Guides (not read-only; passwords reset from Staff) |
 | Shelly Krill | shelly.krill@demo.pathscribe.ai | Admin and Pathologist | Technical writer: same as Helen Schollars |
 | Maria Lopez | maria.lopez@demo.pathscribe.ai | Accessioner | Accessioning |
-| Kevin Brooks | kevin.brooks@demo.pathscribe.ai | Histotechnologist | Embedding, microtomy, slide distribution, Batch Management |
+| Kevin Brooks | kevin.brooks@demo.pathscribe.ai | Histotechnologist | Embedding, microtome, slide distribution, Batch Management (home bench Microtome — Bench 1, Batch 738) |
 | Daniel Kim | daniel.kim@demo.pathscribe.ai | Molecular Technologist | Molecular Workspace and Extraction Racks (HPV runs on the baseline Paps) |
-| Connor Whitlock | connor.whitlock@pathscribe.ai | Pathologists' Assistant | Grossing; PA on autopsy A26-4661 (open it through Search: it's on Pete's worklist, not his) |
+| Connor Whitlock | connor.whitlock@pathscribe.ai | Pathologists' Assistant | Grossing (home bench Grossing Station 1, Batch 738); PA on autopsy A26-4661 (open it through Search: it's on Pete's worklist, not his) |
+| Jordan Ellis | jordan.ellis@demo.pathscribe.ai | Admin (no clinical role) | Batch 738: the administrator in the demo videos (Configuration only) |
 | Michelle Nimmo | michelle.nimmo@ai.com | Pathologist and Admin | Configuration, Demo Reset |
 | Paul Carter / Dr. Oliver Pemberton | (UK, Manchester) | Attending / resident | UK countersign (MFT26-8802) |
+
+## Demo videos: seed data (Batch 738)
+
+The seed rows for Pete's demo videos, their status and every id they use are in [`DEMO_SEED_DATA.md`](DEMO_SEED_DATA.md). In short:
+- **S26-4680** (Dr. Sarah Johnson): a sigmoid colectomy ready to sign out; every sign-out check passes. Full Reset brings it back unsigned.
+- **ord-038**: Video 1's colon resection order; importing it makes the colon protocol's twelve blocks, so Complete grossing can be reached. **ord-039**: outside slides for consultation (choose Intake Type "Outside").
+- Labels print on every histology bench: the result says "Simulated … Nothing was printed." The demo uses GS1 internal-use GTIN 0299990000101.
+- Accession's received time is the computer's local time.
+- **Batch 744 (S14), fluids:** S26-5101 to S26-5108 (pleural, peritoneal, CSF, urine, bronchial washing, an EBUS lymph node FNA, a ThinPrep and a SurePath Pap), open cytology batches CONT-CYP-DEMO-TP, CONT-CYP-DEMO-SP, CONT-CYS-DEMO and CONT-CYI-DEMO, and two instrument orders. Sign in as Priya Desai (cytotechnologist): her Non-GYN / FNA Queue shows S26-5005, S26-5101, S26-5103 and S26-5106, and the ROSE tile both ROSE evaluations.
+
+## Video 6 (wall monitors): the displays (Batch 747)
+
+After a Full Reset, sign in as **Jordan Ellis** (administrator) and open **Configuration → Demo Reset**. Under Testing & Demo Tools, **Demo display tokens → Issue tokens** shows a token for each display once; copy the ones you need onto the recording sheet (never into a document) and issue new ones after the next reset.
+
+- **Steps 1 to 3:** Configuration → System → Display Profiles lists **Desert Valley Lab — Main Wall (rotating)** (all five views, 20 seconds each), one profile per department view, a spare, **Desert Valley — Old Break Room Display**, and **Midwest Pathology — Histology Wall** at the second facility.
+- **Steps 4 and 5:** on Bind This Display choose **Desert Valley Lab — Main Wall (rotating)** and type its token.
+- **Steps 6 to 9:** each view has 8 to 17 rows. Grossing and Intake: decalcification vessels overdue, due within 30 minutes and on time, processor baskets, a STAT. Embedding and Microtome: baskets, microtome racks and the open add-on orders with their countdowns. Staining and IHC: racks on the stainers, one **Run Failed**. Send-Out and Reference Laboratory: referral batches, one with a cold-chain excursion. Diagnostic Sign-Out / Scanner: scanner runs, one slide that failed to scan, image QC failures.
+- **Showing a refusal:** bind **Desert Valley — Old Break Room Display** with its token: its token was revoked as it was issued, so the screen says the token has been revoked.
+- **Step 12:** on the OR Suite board choose **OR-Suite-Theatre2**, type its token, then select **Start demo**: four frozen sections appear (DEMO-1 to DEMO-4), at Grossing, Pathologist Review and with a flashing **PRELIMINARY** answer. **Stop demo** removes them.
+- The wall shows add-on orders (Embedding and Microtome view) since Batch 727; the script's "do not say" line about them is out of date.
+
+## Video 5 (molecular): the data (Batch 746)
+
+Sign in as **Daniel Kim** (Molecular Technologist) for steps 3 to 17; steps 1 and 2 are the pathologist's (Dr. Sarah Johnson). After a Full Reset:
+
+- **Step 1:** any case from S26-5201 to S26-5207 (lung) or S26-5211 to S26-5215 (colorectal) has a block with an H&E; S26-4680 (Video 1's case) works too.
+- **Step 4:** the workspace opens on **Active Runs & Batches** while a run is on Panther 2; select **Order Queue** to show the thirteen in-house orders waiting (EGFR mutation PCR and KRAS mutation PCR, at Desert Valley), the two send-out orders (HER2 FISH to Summit, MSI by PCR) and the three resulted ones.
+- **Steps 5 to 7:** the assays with a control rule are HPV High-Risk Screening (Panther 2, deck slot **SLOT_A4** for the plate), EGFR mutation PCR and KRAS mutation PCR (Real-time PCR 1, no deck layout). Both PCR rules want the no-template control in A01 and the positive control in A02.
+- **Step 8:** a valid lot is **EGFR-MM-26104** (Master Mix, QC Signed Off, any future expiry). To show the red message, add **EGFR-MM-26041** with an expiry in the past, or **KRAS-MM-26087** with QC status **Failed** (the builder takes what is typed; the registry, Configuration → System → Reagent Lots, lists the first with its past expiry date and the second as Failed).
+- **Step 16:** **History & Archive** has three completed runs: HPV (S26-5001 Negative, S26-5002 Positive), EGFR (S26-5208 Positive, S26-5209 Negative) and the KRAS repeat (S26-5216 Positive). The superseded KRAS run (BATCH-…-0748) shows the red **Blocked from auto-verification** banner: its no-template control in A01 came up positive. The superseded note names the reason and links the repeat.
+- **Step 17:** **Trace** on S26-5208's row (EGFR run, A03) shows the plate, the instrument, Daniel Kim, both reagent lots and the tube's moves.
+- **The report:** open **S26-5208** as Dr. Sarah Johnson: the Lung Adenocarcinoma synoptic reads **EGFR Mutation Status: Detected**, filled from the in-house test, and the ancillary studies line names the result.
+
+## Video 4 (autopsy): the cases (Batch 745)
+
+Sign in as **Dr. Sarah Johnson**. The autopsy entry for step 2 is **Autopsy, Complete (Body)**. Steps 6 to 9 use **A26-4665** (temporary accession; the Medical Examiner's order was given verbally by Deputy Medical Examiner L. Moreno, the written order is pending, so the banner reads "Autopsy: temporary accession, written authorization pending"). In step 6 the case is on the Worklist under **Orchestration Cases**, then the **Autopsy** tab (autopsies are Orchestration cases; the LIS Cases view shows none). Steps 10 and 11 use **A26-4666** (PAD signed, body in Mortuary Cooler 1, Tray B; the family excluded the brain and refused retention). A26-4667 is a closed case with both reports signed; A26-4662 has an ancillary hold; A26-4663 is a Medical Examiner case with its written order on file.
+
+## Video 8 (fluid workup): what to change in the script (Batch 744)
+
+The Video 8 script in "PathScribe Demo Video Production Requirements" was written before the Cytology Preparation bench (Batch 740), Divide specimen (Batch 741) and the S14 seed (Batch 744). Walked against the demo build; change it as follows. Sign in as **Priya Desai** for steps 1 to 10 and as **Kevin Brooks** (histotechnologist) for step 11.
+
+| Step | Change |
+|---|---|
+| Before you press record | The pleural fluid order is **ord-036** (MGH-ORD-71036). The barcodes: peritoneal fluid container **S26-5102-CYT-001-AD3** (1,200 mL, bloody, high yield already recorded), CSF container **S26-5103-CYT-001-AD3**, handed-off cell block **S26-5106-CYT-001-AD1** (EBUS FNA, H&E and TTF-1 to cut). |
+| 3 | Go to **Pathology Workspace**, then **Cytology Preparation** (not Microtome Workspace). Scan **S26-5102-CYT-001-AD3**. Say: "Fluids are prepared at the cytology preparation bench." The decant panel and the suggestion show. |
+| 4 | The volume, appearance and yield are already recorded. To show the rule, change **Total Volume (mL)** to 35: the suggestion stays the same (over 20 mL with a high yield). |
+| 5 | The suggestion reads "2× ThinPrep (Liquid-Based), 2× Cell Block, and 1× Direct Smear (Air-Dried)". Then **Accept suggestion**. |
+| 7 | Scan **S26-5103-CYT-001-AD3** (3 mL of CSF). The suggestion is two cytospins; they are already made (one coverslipped, one on the stainer). Say: "A small fluid, and spinal fluid always, is spun onto slides." |
+| 8 | The step is now named **Liquid-Based Cytology Processing**, and the batch asks for the **Processor** (from Equipment). Two open batches already exist: **CONT-CYP-DEMO-TP** (ThinPrep processor) and **CONT-CYP-DEMO-SP** (SurePath processor). |
+| 9 | The Molecular Order Queue already shows the two instrument orders (one Sent, one Queued), each naming its processor; a new batch adds another. |
+| 10 | An open **Cytology Staining** batch exists: **CONT-CYS-DEMO** (Diff-Quik, the CSF cytospin). |
+| 11 | A cell block reaches the Microtome only after its **hand-off** at the Cytology Preparation bench (two scans: its source, then its cassette). Use the handed-off **S26-5106-CYT-001-AD1**: the Microtome shows its H&E and the TTF-1 add-on, both pending. Scanning a cell block that hasn't been handed off is refused with a message to hand it off first. |
+| Do not say | Remove "that flow cytometry or culture aliquots are tracked (they are not built)" and "that fluids are decanted … on the microtome screen": both are built now (Divide specimen, the Cytology Preparation bench). Keep "that PathScribe sends the specimen to a Hologic or BD system" and "cytospin has its own batch step". |
+| Leaves out | Aliquots (Divide specimen, seen on **S26-5101-CYT-001-AD3**), SurePath processing and ROSE can now be shown, if Pete wants them in this video. |
+
+**Known gap (not changed):** the bench records volume, appearance and yield on a scanned decant, but a freshly accessioned fluid has only the two cell block cassettes its protocol planned; there is no step that adds the fluid container itself as a decant. That is why the video uses the seeded peritoneal container rather than the pleural fluid accessioned in step 1.
 
 ## Two-person workflows
 
@@ -77,7 +134,7 @@ All are at Desert Valley (Metro General Hospital) unless noted.
 | Registry Exceptions (Quality & Compliance) | S26-4405 rejected (laterality missing), S26-4490 acknowledgement overdue, S26-4633 revised by the registry after acceptance. Accepted submissions for S26-4412 (with a correction) and S26-4630 appear only in Download transmission audit (the screen lists exceptions, not history). See the limits below. |
 | Critical-finding alert | Sign in as Pete: Audit Log → Critical Alerts shows the outstanding secure-email alert to Dr. Jennifer Davis for S26-4621 (tumour at the deep margin). The physician's page is `/critical-alert/cat_demo4621margin`, with Acknowledge Reviewed. Full Reset makes it outstanding again. |
 | Decants (Cytology Workspace, material view) | S26-4650 and S26-4652: residual fluid decants (S26-4652 with a repeat ThinPrep). S26-4651: a decant with a p16/Ki-67 slide, on the Cell Block / Ancillary Pending tile. |
-| Cell block from a decant (Kevin Brooks, Microtomy) | S26-5005 (thyroid FNA): scan `S26-5005-CYT-001-AD2`, the cell block, H&E pending cut. |
+| Cell block from a decant (Kevin Brooks, Microtome) | S26-5005 (thyroid FNA): scan `S26-5005-CYT-001-AD2`, the cell block, H&E pending cut. |
 | Matrix block | S26-4404 (prostate biopsies): block M1 holds cores D, E and F. Report page → Material tab → Biopsy Arrays. |
 | Consult link | Sign in as Sarah: S26-4602 → Consult shows an active link to Dr. Miguel Ortega (Sonoran Dermatopathology Associates, fictional). The seeded link itself can't be opened (the address is shown only when a link is made); issue a new one to show the consultant's view. |
 | Supervision (FPPE) | Configuration → Staff → Credentialing Review → FPPE Assignments: Pete supervises all three: Oliver Pemberton (active, GI), Paul Carter (completed by case count) and Michelle Nimmo (graduated early). |
@@ -86,7 +143,7 @@ All are at Desert Valley (Metro General Hospital) unless noted.
 
 - **Registry Resend (Batch 457):** Metro General now reports to the US (NAACCR) cancer registry, and S26-4405 and S26-4490 carry their ICD-O code, diagnosis and date. Resend rebuilds the submission and then stops with "Not sent: this is a validation instance…": the demo runs as a validation instance, which by design never sends a real case to a registry (only the synthetic test suite, to the registry's test system). To show a successful send, use the registry's go-live steps: record the data-sharing agreement, then send the synthetic test suite.
 - **Molecular:** the in-house instruments run HPV and (Batch 467) EGFR mutation PCR on Real-time PCR 1, so there are no breast or colon molecular runs. (Before Batch 467 this said only HPV ran in-house.) The workcenter has no "review results" step: a run passes automatically or is blocked.
-- **Microtomy and matrix blocks:** *superseded (Batch 460):* the Microtomy workstation opens a matrix block (scan `S26-4404-M1`).
+- **Microtome and matrix blocks:** *superseded (Batch 460):* the Microtome workstation opens a matrix block (scan `S26-4404-M1`).
 - **Call-backs:** no call-back is seeded; a call is logged during sign-out when the detector flags a finding.
 
 ## Demo: two people in the same case (PS-71, Batch 458)
@@ -118,12 +175,12 @@ The pool-claim race (two people accepting the same pool case at once) needs two 
 3. Open Quality & Compliance → Audit → Audit Log. It shows "Billing code charged", then "Billing code credited".
 4. Take "Review a case's billing codes" off a test role in the Role Dictionary and sign in as that role. Approving is refused with a message, and nothing changes.
 
-**Billing at Microtomy (read-only, with full review)**
-1. At the Microtomy workstation, scan a block with special stains or IHC.
+**Billing at the Microtome (read-only, with full review)**
+1. At the Microtome workstation, scan a block with special stains or IHC.
 2. The Billing box lists each slide's codes: applied, pending review or no billing code, plus any "waiting for billing approval".
 3. **$ Full billing review** opens the full panel. It's greyed out for a role without the permission.
 
-**A matrix block at Microtomy**
+**A matrix block at the Microtome**
 1. Scan `S26-4404-M1`. The left panel lists cores D, E and F with their positions.
 2. Add a Ki-67. Billing warns that the pathologist hasn't confirmed which cores were evaluated yet.
 3. On the report page, tick the evaluated cores in the Array Mapper. Each specimen then gets its own code.

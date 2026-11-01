@@ -52,3 +52,7 @@ Phase 2d, browser side. With an API server configured, every export goes through
 ## Batch 551 (PS-539 phase 2d: the Server jobs view)
 
 - `exportTrackerInstance.ts` takes the API address from `apiServer/apiServerUrl.ts` (shared with the server jobs).
+
+## Batch 730
+
+- `asyncExportContract.ts`: seven `report.*` kinds for the lab workflow reports.

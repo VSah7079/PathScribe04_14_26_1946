@@ -184,7 +184,7 @@ What each choice does:
 | Blocks | A, B, C... (joined to the specimen: A**A**, 1**A**) | 1, 2, 3... (A**1**, A**2**) |
 | Slides | The printed level reads La, Lb, Lc | The printed level reads L1, L2, L3 (as before) |
 
-- **Slides change the printed text only.** The code inside a slide's barcode and its slide ID stays L1, L2, L3 whichever you choose, so scanning, reprints and every existing slide keep working. Screens that list a slide's level (for example the Microtomy Workstation) still show L1, L2.
+- **Slides change the printed text only.** The code inside a slide's barcode and its slide ID stays L1, L2, L3 whichever you choose, so scanning, reprints and every existing slide keep working. Screens that list a slide's level (for example the Microtome Workstation) still show L1, L2.
 - **New cases only.** The choice in force when a case is accessioned is saved on the case. Specimens, blocks and slides added to that case later (Add Block at Grossing, Add Block on the report page, a specimen leaving a Biopsy Array) follow it, even if the facility changes afterwards. Nothing already printed, scanned or signed out is relabelled. There is no "Relabel existing" action: **Not built**. Relabelling would change cassette and slide barcodes that are already on tissue.
 - **Same kind for Specimens and Blocks.** You may choose letters for both or numbers for both. A label such as AA or 11 can then mean two things (specimen A block A, or a specimen past Z; specimen 1 block 1, or specimen 11). The screen says so; it does not stop you.
 - **Existing facilities keep their labels.** A facility that had the old single choice keeps it: it opens as the matching Specimens and Blocks choices, with Slides following the enterprise (numbers unless set).

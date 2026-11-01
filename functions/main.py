@@ -57,6 +57,15 @@
 #                       # the report (snapshots in print colours, drawn from the synoptic
 #                       # answers). Each is drawn after the report body at its proportions,
 #                       # at most the text width; one without a PNG is skipped.
+#     "sectionImages": [ {"id","sectionId","sectionLabel","caption","kind": "image"|"document"|"unavailable",
+#                         "imageBase64","format": "png"|"jpeg","widthPx","heightPx"} ],
+#                       # Batch 742, optional (Pete: images print inside their report section): each
+#                       # image is drawn right under the section node whose id is its sectionId, at
+#                       # 300 DPI or better and at most the text width, with its caption. "unavailable"
+#                       # prints the Image Unavailable notice there; "document" names an attached PDF
+#                       # (its pages are added after the report by the browser). An item whose section
+#                       # is not in the layout (or "report-end") is drawn at the end of the report text,
+#                       # under the "Images" heading. Absent: nothing changes.
 #     "workups": [ {...the workup block above..., "synopticAnswers": [...]} ],
 #                       # Batch 427, optional: every workup of a case in ONE PDF (a site whose
 #                       # LIS takes one PDF per accession). Each is drawn as above, one after
@@ -512,12 +521,12 @@ def render_node(node: dict, scope: dict, sections_by_id: dict) -> list:
     if node_type == 'section':
         ai = node.get('ai') or {}
         if ai.get('enabled'):
-            return render_ai_section(node, sections_by_id)
+            return render_ai_section(node, sections_by_id) + section_image_flows(take_section_images(node.get('id')))
         flows = []
         if node.get('printHeading'):
             flows.append(Paragraph(node['printHeading'], _styles['RPHeading']))
         flows += render_children(node.get('children', []), scope, sections_by_id)
-        return flows
+        return flows + section_image_flows(take_section_images(node.get('id')))
 
     if node_type == 'repeat-group':
         items = get_path(scope, node.get('iterateOver')) or []
@@ -687,12 +696,12 @@ def render_node_as_text(node: dict, scope: dict, sections_by_id: dict) -> list[s
     if node_type == 'section':
         ai = node.get('ai') or {}
         if ai.get('enabled'):
-            return render_ai_section_as_text(node, sections_by_id)
+            return render_ai_section_as_text(node, sections_by_id) + section_image_lines(take_section_images(node.get('id')))
         lines = []
         if node.get('printHeading'):
             lines.append(node['printHeading'])
         lines += render_children_as_text(node.get('children', []), scope, sections_by_id)
-        return lines
+        return lines + section_image_lines(take_section_images(node.get('id')))
 
     if node_type == 'repeat-group':
         items = get_path(scope, node.get('iterateOver')) or []
@@ -853,8 +862,15 @@ DEFAULT_LABELS = {
     'relatedCaseOrdering': 'Ordering physician',
     'relatedCaseCopyTo': 'Copy to',
     'relatedCaseClient': 'Client',
+    # Batch 742: images and documents placed in report sections.
+    'imagesTitle': 'Images',
+    'imageUnavailable': 'Image unavailable: the linked image could not be fetched when this report was made.',
+    'documentAttached': 'Attached document: {{caption}}. Its pages follow the report.',
+    'documentAttachedNoCaption': 'Attached document. Its pages follow the report.',
 }
 _current_labels = contextvars.ContextVar('report_labels', default=DEFAULT_LABELS)
+# Batch 742: the request's sectionImages, and the ids already drawn under a section (so each prints once).
+_current_section_images = contextvars.ContextVar('section_images', default=None)
 
 
 def _label(key: str) -> str:
@@ -1129,9 +1145,11 @@ def build_report_pdf(payload: dict) -> bytes:
     geometry_token = _current_geometry.set(geometry)
     style_token = _current_style.set({c: report_layout.style_for(payload, c) for c in report_layout.CATEGORIES})
     units_token = _current_font_units.set(payload.get('fontUnits') if payload.get('fontUnits') in report_layout.FONT_UNITS else None)
+    images_token = _current_section_images.set(_section_images_state(payload))
     try:
         return _build_report_pdf(payload)
     finally:
+        _current_section_images.reset(images_token)
         _current_font_units.reset(units_token)
         _current_style.reset(style_token)
         _current_geometry.reset(geometry_token)
@@ -1201,6 +1219,109 @@ def _header_footer_scope(payload: dict, scope: dict) -> dict:
     }}
 
 
+
+
+# ── Batch 742: images placed in report sections ──────────────────────────────
+
+SECTION_IMAGE_DPI = 300           # PS-276 §1.1.3: never printed below 300 DPI
+SECTION_IMAGE_MAX_HEIGHT_MM = 120  # a tall photo is shrunk so it never takes a whole page
+
+
+def _section_images_state(payload: dict) -> dict:
+    items = [i for i in (payload.get('sectionImages') or []) if isinstance(i, dict) and i.get('id')]
+    return {'items': items, 'taken': set()}
+
+
+def take_section_images(section_id) -> list:
+    """The images placed under this section that haven't been drawn yet (each prints once)."""
+    state = _current_section_images.get()
+    if not state or not section_id:
+        return []
+    out = [i for i in state['items'] if i.get('sectionId') == section_id and i['id'] not in state['taken']]
+    state['taken'].update(i['id'] for i in out)
+    return out
+
+
+def take_remaining_section_images() -> list:
+    """Every placed image not drawn under a section: placed at the end, or under a section not in the layout."""
+    state = _current_section_images.get()
+    if not state:
+        return []
+    out = [i for i in state['items'] if i['id'] not in state['taken']]
+    state['taken'].update(i['id'] for i in out)
+    return out
+
+
+def section_image_size(width_px: float, height_px: float) -> tuple[float, float]:
+    """Printed size in points: at least 300 DPI (never enlarged past it), at most the text width and the height cap."""
+    scale = min(72.0 / SECTION_IMAGE_DPI, _text_width() / width_px, SECTION_IMAGE_MAX_HEIGHT_MM * mm / height_px)
+    return width_px * scale, height_px * scale
+
+
+def _caption_paragraph(text: str):
+    from xml.sax.saxutils import escape
+    return Paragraph(escape(text), _styles['RPCaption'])
+
+
+def _unavailable_box(caption: str) -> list:
+    from xml.sax.saxutils import escape
+    style = ParagraphStyle('rp-image-unavailable', parent=_styles['RPLabel'], textColor=colors.black, leading=11)
+    rows = [[Paragraph('<b>%s</b>' % escape(_label('imageUnavailable')), style)]]
+    if caption:
+        rows.append([Paragraph(escape(caption), style)])
+    box = Table(rows, colWidths=[_text_width()])
+    box.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#b45309')),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#fef3c7')),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6), ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 3), ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]))
+    return [KeepTogether([box, Spacer(1, 8)])]
+
+
+def section_image_flows(items: list) -> list:
+    """Batch 742: the images and documents placed under one section. An image that can't be read prints the
+    Image Unavailable notice in its place, never a silent gap; a document is named (its pages follow the report)."""
+    import base64
+    flows: list = []
+    for item in items:
+        caption = str(item.get('caption') or '').strip()
+        kind = item.get('kind')
+        if kind == 'document':
+            text = fill_placeholders(_label('documentAttached'), {'caption': caption}) if caption else _label('documentAttachedNoCaption')
+            flows += [Spacer(1, 4), _caption_paragraph(text), Spacer(1, 6)]
+            continue
+        drawn = None
+        if kind == 'image' and item.get('imageBase64'):
+            try:
+                data = base64.b64decode(item['imageBase64'], validate=True)
+                img = Image(BytesIO(data))
+                w = float(item.get('widthPx') or img.imageWidth)
+                h = float(item.get('heightPx') or img.imageHeight)
+                img.drawWidth, img.drawHeight = section_image_size(w, h)
+                parts = [Spacer(1, 4), img]
+                if caption:
+                    parts += [Spacer(1, 2), _caption_paragraph(caption)]
+                drawn = [KeepTogether(parts + [Spacer(1, 8)])]
+            except Exception:  # noqa: BLE001 — a bad image never stops the report
+                drawn = None
+        flows += drawn if drawn else _unavailable_box(caption)
+    return flows
+
+
+def section_image_lines(items: list) -> list:
+    """The text output's lines for the same items."""
+    lines = []
+    for item in items:
+        caption = str(item.get('caption') or '').strip()
+        kind = item.get('kind')
+        if kind == 'document':
+            lines.append(fill_placeholders(_label('documentAttached'), {'caption': caption}) if caption else _label('documentAttachedNoCaption'))
+        elif kind == 'image' and item.get('imageBase64'):
+            lines.append(f"[{_label('imagesTitle')}] {caption}".rstrip())
+        else:
+            lines.append(_label('imageUnavailable') + (f' {caption}' if caption else ''))
+    return lines
 
 
 def figure_notice(fig: dict) -> list:
@@ -1378,6 +1499,12 @@ def _build_report_pdf(payload: dict) -> bytes:
             flows += render_node(node, scope, sections_by_id)
         flows.append(Spacer(1, 10))
 
+    # Batch 742: images placed at the end of the report text, or under a section the layout doesn't have.
+    leftover = take_remaining_section_images()
+    if leftover:
+        flows.append(Paragraph(labels['imagesTitle'], _styles['RPHeading']))
+        flows += section_image_flows(leftover)
+
     flows += figure_flows(payload)
     flows += _intraop_related_flows(payload, labels, 'related')
 
@@ -1401,9 +1528,11 @@ def build_report_text(payload: dict) -> str:
     than reusing build_report_pdf()'s own already-built ReportLab
     flowables."""
     labels_token = _current_labels.set(report_labels(payload))
+    images_token = _current_section_images.set(_section_images_state(payload))
     try:
         return _build_report_text(payload)
     finally:
+        _current_section_images.reset(images_token)
         _current_labels.reset(labels_token)
 
 
@@ -1482,6 +1611,10 @@ def _build_report_text(payload: dict) -> str:
         for node in part.get('nodes', []):
             lines += render_node_as_text(node, scope, sections_by_id)
         lines.append('')
+
+    leftover = take_remaining_section_images()  # Batch 742
+    if leftover:
+        lines += [labels['imagesTitle']] + section_image_lines(leftover) + ['']
 
     lines += _intraop_related_text(payload, labels, 'related')
     lines.append('')

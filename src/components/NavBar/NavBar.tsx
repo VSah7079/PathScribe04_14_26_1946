@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import ReactDOM from 'react-dom';
 import { useGuardedNavigate } from '@/hooks/useGuardedNavigate';
 import '../../pathscribe.css';
+import '../Touch/touchChrome.css';
+import { useVisibleHeightVar } from '@/hooks/useVisibleHeightVar';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMessaging } from '../../contexts/MessagingContext';
 import { EnhancementRequestButton } from '../EnhancementRequest/EnhancementRequestButton';
@@ -249,6 +251,8 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick }
   const registryExceptionCount = useRegistryExceptionCount();
   const myExports = useReadyExportCount();
   const [linksOpen, setLinksOpen]                 = useState(false);
+  // Batch 736: --ps-visible-height follows the on-screen keyboard (the header search's results stay above it).
+  useVisibleHeightVar();
   // Reference material, not patient context: closeOnUnmount is false so
   // navigating to another page doesn't shut a protocol page the user is
   // still reading — same reasoning and same hook as PubMedTicker.tsx's

@@ -44,8 +44,8 @@ The **Bench tools** card sits above the Complete grossing bar. It has the tools 
 | Print cassettes | Prints the cassette labels for the case. Greyed out if your laboratory's print settings do not allow batch printing. Also Alt+Shift+1, the words "print cassettes", or foot pedal 2. |
 | Take a photo | Opens the camera for a gross photo of the first specimen and saves it on that specimen. Also Alt+Shift+2, the words "take a photo", or foot pedal 1. |
 | Add-On Orders | Opens the Add-On Order Builder for this case. Also Alt+Shift+4 or the words "add-on order". |
-| Decal batch, Block to send, Send to decal | Adds the chosen block to the chosen active decalcification batch. It tells you if the block is already in that batch or in another active one. Also Alt+Shift+3 or the words "send to decal". |
-| Messages | With no active decalcification batch the list reads "No active decal batch". If the block cannot be found you see "That block could not be found." |
+| Carrier, Block to load, Load into carrier | Loads the chosen block into the chosen open carrier: a decalcification vessel or a processor basket (Batch 726; it used to offer decal batches only). A sealed carrier is not offered. It tells you "(block) is already in that carrier." or that it is in another active batch. Also Alt+Shift+3 or the words "send to decal". With this computer's station set, the load is recorded at the station. |
+| Messages | With no open carrier the list reads "No open carrier". With no block yet: "There is no block to load yet." If the block cannot be found you see "That block could not be found." |
 | Release panel (one per specimen with cassettes waiting) | Shows each waiting cassette with its colour. You can change the colour, remove a cassette, and confirm the triage checklist (or override it with a reason). **Release** is greyed out until the checklist is done. Releasing is always a click, never voice. |
 
 Foot pedals use the bindings set up under your workstation's foot pedal settings. Hotkeys and phrases work only while this screen is open, and only if your role has been given them.
@@ -65,11 +65,20 @@ Foot pedals use the bindings set up under your workstation's foot pedal settings
 | Fixative-to-tissue ratio | Your confirmation that the ratio was adequate. Shows "Confirm adequate ratio" until confirmed, then who confirmed it and when. |
 | Block ID | The specimen and block labels together, for example A1 (specimen letter A, block 1) or 1A (specimen 1, block A). Your laboratory chooses letters or numbers for each. |
 | Piece Count | The number of tissue pieces in the block. Starts from the protocol's default. |
+| Type & pieces | Batch 732. Under the piece description: the block's type (Standard block, Megablock or Multi-piece block) and its piece count. **Type & pieces** opens the form: **Block type**, a note on the slides it produces ("Slides from this block: Large-format slide." for a megablock), and the piece map: **+ Add piece**, then for each piece its **Position**, **Part** (the specimen it came from), **Description**, **Orientation** and **Ink**, and × to remove it (Remove piece). **Save** stores it and sets the piece count; a megablock also gets the mega mold if none was chosen. Problems are listed above the buttons: "Choose a block type.", "Each position must be a whole number from 1.", "Two pieces have the same position.", "Each piece needs its part.", "Several pieces need the type Multi-piece block or Megablock." "Saved." or "Not saved. Check the pieces and try again." confirms. The block keeps one barcode; the pieces are details of it. |
 | Stains | The stains ordered on the block. Each is tagged Auto-generated (from the protocol) or User-added. |
 | Status | Where the block is. Only a block that is still Pending can be removed. |
 | Slide ID, Stain, Imager Batch, FOV Count | For cytology preparations only. Imager Batch shows "Not yet imaged" until the slide has been imaged. |
 | Margins & Ink Applications | The margins recorded on the specimen or on a block: name, orientation, laterality, Examined or Pending, and each ink applied with who applied it and when. They are grouped under "On specimen" and "On block …" (for example "On block A1"). Until one is recorded the section says "No margins recorded yet." |
 | Audit Trail (n overrides) | A collapsible list of changes you made to what the protocol produced: piece counts changed, stains added, protocol stains removed. When there are none it says "No overrides recorded." |
+
+### Divide specimen
+
+Batch 741. Under each specimen, **Divide specimen** splits it into aliquots, one per destination (for example flow cytometry, microbiology, molecular). Enter **Starting volume (mL)**; each row has **For** (the purpose), **Volume (mL)**, **Destination type** (Department or Reference laboratory) and **Destination**. A fluid or FNA specimen's protocol pre-fills its usual rows; **+ Add aliquot** and **Remove** change them. The line under the rows accounts for the volume: "Split 8 mL of 30 mL; 22 mL remaining." **Divide** saves it once: "Divided into D2, D3; 22 mL remaining." A specimen can be divided once; the record then reads "Divided by (name), (time): 8 mL of 30 mL into aliquots, 22 mL remaining."
+
+Each aliquot shows its volume and destination ("5 mL → Flow Cytometry") and its status: **Not sent**, **Sent**, **Received**, **Result back**. **Mark Sent** (and so on) moves it forward one step; the status never goes back. For **Result back**, type the **Receiving accession number** (the receiving department's own number for it) first. Results stay in that department's system.
+
+Messages: "Enter the starting volume first.", "Add at least one aliquot.", "Every aliquot needs a volume above 0 mL.", "Every aliquot needs a destination.", "The aliquots add up to more than the starting volume.", "This specimen has already been divided.", "An aliquot's status only moves forward.", "Enter the receiving department's accession number to record Result back."
 
 ### Toolbar
 
@@ -108,6 +117,22 @@ These work on the Grossing screen. Each does what its button does, with the same
 | Alt+Shift+F9 | Complete grossing. You can also say "complete grossing", "finish grossing" or "grossing done". |
 | Alt+Shift+F10 | Confirm completing without a protocol, while that window is open. |
 | Alt+Shift+F11 | Cancel that window. |
+
+### A cassette from another case, and the scan history
+
+**Wrong case.** If you scan a cassette, block or slide that belongs to a different case from the one open, an orange warning says so, for example "S26-2-A1 belongs to case S26-2, not to S26-1 open here." **Set it aside** (the usual answer) closes the warning; **Continue anyway** closes it and is recorded in the audit log. Either way the scan is recorded at this station as a wrong item, with which case was open.
+
+**Scan history.** **Show scan history** opens the case's station scan trail: every station scan of its cassettes, blocks and slides, newest first, with **When**, **Item**, **Where**, **Who** and **What happened**. It is shown only to people allowed to see scan history. **Hide scan history** closes it.
+
+### Using a tablet at the bench
+
+Since Batch 735 the station screens work with a finger, including a gloved one.
+
+- **Touch layout.** On a tablet, buttons, chips and tick boxes are at least 44 px, main actions such as Confirm or Print are larger, and text in fields is 16 px. On a desktop the screen keeps its compact layout. Change this per computer with **Touch layout on this computer** in the station menu at the top (**Auto**, **Always on**, **Always off**).
+- **Scanning.** The scan field accepts a barcode scanner without opening the on-screen keyboard and stays ready for the next scan. To type an ID by hand, select **⌨ Type**; **⌨ Scan** hides the keyboard again.
+- **Keyboard up.** When you type in a field, the field stays in view. If the form's Save button would be hidden by the keyboard, a copy of it appears just above the keyboard.
+- **Tooltips.** Tap a label that has extra information to read it.
+- **Next case.** Scanning another case's accession number while nothing is selected opens that case's grossing screen, not its report.
 
 ## Step-by-Step Procedures
 

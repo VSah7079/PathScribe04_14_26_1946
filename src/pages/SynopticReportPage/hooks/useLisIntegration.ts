@@ -383,7 +383,7 @@ export function useLisIntegration({ caseData, setCaseData, signingUser, showToas
     ];
     const BLOCK_STEPS: Step[] = [
       { location: 'Embedding Station 2', workflowStage: 'Embedding', action: 'Embedded', performedByName: 'Tech: J. Smith', sourceSystem: 'LIS Middleware (simulated)' },
-      { location: 'Microtomy Bench 1', workflowStage: 'Microtomy/Sectioning', action: 'Sectioned', performedByName: 'Tech: J. Smith', sourceSystem: 'LIS Middleware (simulated)' },
+      { location: 'Microtome Bench 1', workflowStage: 'Microtomy/Sectioning', action: 'Sectioned', performedByName: 'Tech: J. Smith', sourceSystem: 'LIS Middleware (simulated)' },
     ];
     const SLIDE_STEPS: Step[] = [
       { location: 'Auto-Stainer 1', workflowStage: 'Staining', action: 'Stained & Coverslipped', performedByName: 'Tech: R. Patel', sourceSystem: 'LIS Middleware (simulated)' },

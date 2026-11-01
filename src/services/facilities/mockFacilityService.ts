@@ -8,6 +8,8 @@ import { linkFacilitiesToOrganisations } from './facilityHierarchy';
 import { REFERENCE_LAB_SEEDS } from './referenceLabSeeds';
 import { withMissingSeedRecords } from '../mockSeedMerge';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { mockAuditService } from '../auditlog/mockAuditService';
+import { readSessionProfile } from '../auth/sessionProfile';
 import { facilityPrintProblem } from '../printing/facilityReportPrinting';
 import { linkFieldProblem } from '../links/externalLink';
 
@@ -685,7 +687,7 @@ void (async () => {
  * someone with only config:facilities:manage from changing printing.
  */
 function withoutPrintSettings<T extends Partial<Facility>>(input: T): T {
-  const { printDeliveryConfig: _d, printPresentationPreference: _p, ...rest } = input;
+  const { printDeliveryConfig: _d, printPresentationPreference: _p, allowDirectDevicePrinting: _x, ...rest } = input;
   return rest as T;
 }
 
@@ -746,6 +748,18 @@ const facilityServiceUnchecked: IFacilityService = {
     return ok({ ...next });
   },
 
+  async setDirectDevicePrinting(id, allowed) {
+    await delay();
+    const idx = MOCK_FACILITIES.findIndex(f => f.id === id);
+    if (idx === -1) return err(`Facility ${id} not found`);
+    const next: Facility = { ...MOCK_FACILITIES[idx], allowDirectDevicePrinting: allowed || undefined, updatedAt: new Date().toISOString() };
+    MOCK_FACILITIES = MOCK_FACILITIES.map((f, i) => (i === idx ? next : f));
+    persist(MOCK_FACILITIES);
+    const who = readSessionProfile();
+    void mockAuditService.logEvent({ type: 'user', event: 'Direct Device Printing Changed', detail: `Direct browser-to-printer printing turned ${allowed ? 'on' : 'off'} for facility ${next.name} (${id}).`, user: who?.name ?? who?.id ?? 'unknown', caseId: null, confidence: null }).catch(() => undefined);
+    return ok({ ...next });
+  },
+
   async deactivate(id) { return facilityServiceUnchecked.update(id, { status: 'Inactive' }); },
   async reactivate(id) { return facilityServiceUnchecked.update(id, { status: 'Active' }); },
   async verify(id) { return facilityServiceUnchecked.update(id, { status: 'Active' }); },
@@ -788,4 +802,6 @@ export const mockFacilityService: IFacilityService = guardConfigWrites(facilityS
   ['config:facilities:manage', ['add', 'update', 'deactivate', 'reactivate', 'verify']],
   // Batch 517 (PS-337): report printing has its own permission.
   ['config:print-settings:manage', ['setPrintSettings']],
+  // Batch 734 (Pete, Decision 6): direct browser-to-printer printing has its own permission.
+  ['config:direct-device-printing:manage', ['setDirectDevicePrinting']],
 ]);

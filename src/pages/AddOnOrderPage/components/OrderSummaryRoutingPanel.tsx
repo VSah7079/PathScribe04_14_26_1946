@@ -58,12 +58,16 @@ export interface OrderSummaryRoutingPanelProps {
   onSubmit: (submission: AddOnOrderSubmissionInput) => void;
   requirements: readonly ResolvedFieldRequirement[];
   caseId: string;
+  /** Batch 730: stations whose slide printer can take this order's labels (empty without print:job:redirect), the choice ('' = at the microtome), and its setter. */
+  printStations?: ScanStation[];
+  printAt?: string;
+  onPrintAtChange?: (stationId: string) => void;
 }
 
 const OrderSummaryRoutingPanel: React.FC<OrderSummaryRoutingPanelProps> = ({
   cart, onRemoveLine, selectedBlockIds, priority, onPriorityChange, slideMediaType, onSlideMediaTypeChange,
   cuttingInstructions, onCuttingInstructionsChange, referenceLabs, onLineLabChange, onLineRoutingChange, performingLabFacilityId,
-  stationsForLine, performingLabResolved, onSubmit, requirements, caseId,
+  stationsForLine, performingLabResolved, onSubmit, requirements, caseId, printStations = [], printAt = '', onPrintAtChange,
 }) => {
   const { t, i18n } = useTranslation();
   const missing = addOnSubmitMissing({ blockIds: selectedBlockIds, lines: cart, cuttingInstructions }, requirements);
@@ -95,6 +99,7 @@ const OrderSummaryRoutingPanel: React.FC<OrderSummaryRoutingPanelProps> = ({
                 <strong>{line.stainType.name}</strong>
                 {line.panelId && <span className="ps-addon-cart-panel-badge">{t('addOnOrder.summary.panelBadge', { panel: t(`addOnOrder.panels.${line.panelId}`) })}</span>}
                 {line.levelDepthMicrons !== undefined && <div className="ps-addon-cart-row-meta">{t('addOnOrder.summary.microns', { count: line.levelDepthMicrons })}</div>}
+                {line.levelCount !== undefined && <div className="ps-addon-cart-row-meta">{t('addOnOrder.summary.levelRange', { count: line.levelCount, perSlide: line.levelsPerSlide ?? 1 })}</div>}
                 {line.controlMode && line.controlMode !== 'none' && <div className="ps-addon-cart-row-meta">{t(`addOnOrder.builder.controlMode.${line.controlMode}`)}</div>}
                 {line.orderKind !== 'molecular' && (
                   <div className="ps-addon-cart-row-meta">
@@ -168,6 +173,18 @@ const OrderSummaryRoutingPanel: React.FC<OrderSummaryRoutingPanelProps> = ({
 
       <label className="ps-addon-field-label" htmlFor="addon-cutting-instructions">{t('addOnOrder.summary.cuttingInstructions')}{star('cuttingInstructions')}</label>
       <textarea id="addon-cutting-instructions" className="ps-addon-field-textarea" rows={3} value={cuttingInstructions} onChange={e => onCuttingInstructionsChange(e.target.value)} />
+
+      {/* Batch 730 (spec §5, §8): print the labels at another station now, instead of at the microtome when the block is cut. */}
+      {printStations.length > 0 && onPrintAtChange && (
+        <>
+          <label className="ps-addon-field-label" htmlFor="addon-print-at">{t('addOnOrder.printAt.label')}</label>
+          <select id="addon-print-at" className="ps-addon-field-input" value={printAt} onChange={e => onPrintAtChange(e.target.value)}>
+            <option value="">{t('addOnOrder.printAt.atMicrotome')}</option>
+            {printStations.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+          </select>
+          {printAt && <div className="ps-addon-cart-row-meta">{t('addOnOrder.printAt.hint')}</div>}
+        </>
+      )}
 
       {missing.length > 0 && (
         <p className="ps-field-still-required" role="status">

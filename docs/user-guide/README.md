@@ -1,3 +1,9 @@
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
+**Batch 723:** `img/home-overview.png` replaced with a current capture (1,600 px wide); `home-pubmed.png` stays as the close-up.
+
+**Batch 722:** the Home article now covers the PubMed article line and its paste box, with the new capture `home-pubmed` (cropped from a capture of the running app, 760 x 128 px, native size). The `capture:` convention asks for 1,600 px wide full screens; this one is a close-up figure. See `docs/product/GUIDE_UPDATES.md`.
+
 # PathScribe User Guide (source)
 
 **Batch 668:** the Help button text in `help/index.md` and `home/index.md` describes the top-bar buttons.
@@ -18,3 +24,51 @@
 - Build: `python3 scripts/user-guide/build.py` writes `public/help/user-guide/` (manifest, search index, article pages, images) and `src/services/help/userGuideRoutes.generated.ts`. `--check` only validates. The build fails on a missing section, a broken link, a route claimed twice, or developer and database wording.
 - In the app: `/help` (contents and search) and `/help/<module>/<screen>` (an article, with its "You are here" trail, previous and next step and related actions). The Help button on each screen, and F1 (View Help) where the screen does not use that key (the report page uses it for Full View), open the article for the screen being shown. Code: `src/pages/Help/`, `src/components/Help/`, `src/services/help/userGuide*.ts`.
 - The articles are written from the code and the English screen text, not from a running installation; the clinical reviewer checks them against the real screens. English only for now. All articles start as `status: Draft` until a clinical reviewer checks them against the screen.
+
+## Batch 731
+
+- Batch 731: `add-on-orders/index.md` (exhausted blocks: what remains, alternatives, reason; answering a flag with an alternative), `workstations/embedding.md`, `microtomy.md`, `slide-distribution.md` (the exhausted-block line; End state). Rebuilt.
+
+## Batch 732
+
+- Batch 732: `grossing/index.md` (Type & pieces), `add-on-orders/index.md` (pieces, level range), `workstations/microtomy.md`, `embedding.md`, `slide-distribution.md` (block type, slide size, pieces). Rebuilt.
+
+## Batch 743
+
+- Batch 743: `report/microscopic-and-material.md`: the Attachments window on an Assist case. Rebuilt.
+
+## Batch 742
+
+- Batch 742: the Attachments window replaces Attach images (`report/microscopic-and-material.md`, `report/index.md`, `cytology/screening-case.md`). Rebuilt.
+
+## Batch 741
+
+- Batch 741: Divide specimen (grossing, cytology preparation). Rebuilt.
+
+## Batch 740
+
+- Batch 740: `workstations/cytology-prep.md` (new); microtomy note (fluids go to Cytology Preparation). Rebuilt.
+
+## Batch 739
+
+- Batch 739: batch management (Processor, Liquid-Based Cytology Processing), microtomy (cytospin suggestion), cytology screening case (aliquots). Rebuilt.
+
+## Batch 737
+
+- Batch 737: matrix blocks on Add-On Orders, matrix parts used up (microtomy), exhausted-block warning and large-format refusal (batch management). Rebuilt.
+
+## Batch 736
+
+- Batch 736: reasons worded by your lab (microtomy, batch management, add-on orders), header search note (sign-in). Rebuilt.
+
+## Batch 735
+
+- Batch 735: "Using a tablet at the bench" in `grossing`, `workstations/embedding`, `workstations/microtomy`, `workstations/slide-distribution`, `add-on-orders`, `batch-management`; touch layout setting in `sign-in`. Rebuilt.
+
+## Batch 734
+
+- Batch 734: `batch-management/index.md` (ad-hoc carriers move with you). Rebuilt.
+
+## Batch 733
+
+- Batch 733: `add-on-orders/index.md` and `workstations/microtomy.md` (one flag, one answer, destructive cutting). Rebuilt.

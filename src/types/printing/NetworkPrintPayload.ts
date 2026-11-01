@@ -55,7 +55,8 @@ export interface NetworkPrintLabelData {
    *  labels `accessionNumber` and `patientName` can be empty. */
   vialRack?: { barcode: string; rackKind?: 'staining_rack' | 'molecular_plate' | 'molecular_rack' | 'wsi_batch'; lines: string[]; zpl: string };
   /** Slide labels only (Batch 347): the level and stain printed on the slide. */
-  slide?: { level: string; stainName: string };
+  /** Batch 732 (spec §11.1, §11.7): slideSize 'large_format' selects the large-format slide template (ZPL-SLIDE-LF-V1). */
+  slide?: { level: string; stainName: string; slideSize?: 'standard' | 'large_format' };
 }
 
 /** Real, complete shape — Section 5.1's own JSON, field for field. */

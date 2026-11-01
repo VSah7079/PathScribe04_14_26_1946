@@ -1,3 +1,7 @@
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
+**Batch 721:** `accessioning/resolveAccessionPanels.ts` (Accession panel layout rule); see its README.
+
 **Batch 711:** `staffPasswords/` gains `passwordResetRequestService.ts` (interface and logic), `mockPasswordResetRequestService.ts`, `passwordResetRequestRules.ts` and `passwordSignInAvailable.ts`; `@/services/signIn` exports `passwordResetRequestService`. Setting a password in Staff closes the person's open request.
 
 **Batch 675:** MFA policy service for the API server (`services/auth/mfa/`); browser side only, server routes not built. See `docs/architecture/ACCESS_SESSION_API.md` §5.
@@ -1102,7 +1106,7 @@ Not yet wired, and disclosed: `deriveEligibleFinalizerIds()`. The repo-root `fir
 
 `fieldRequirements/` gains the `cytology` page and `cytologyChecks.ts` (exported from `services/index.ts`); `cytology/` gains `cisoeADraft.ts`; `actionRegistry/` gains four voice/keyboard actions. See those READMEs.
 
-## Batch 388: Microtomy workstation Field Requirements
+## Batch 388: Microtome workstation Field Requirements
 
 `fieldRequirements/` gains the `microtomy` page and `microtomyChecks.ts` (exported from `services/index.ts`); `actionRegistry/` gains two actions. `deploymentReadiness/deploymentBaseline.ts` loses `useMicrotomyWorkstation.ts` (its scan-station read now goes through `@/services`).
 
@@ -1457,7 +1461,7 @@ New:
 
 - `cytology/`: backfill of correlation windows; Cytology Workspace decants through the atomic save.
 - `quality/`: a configurable biopsy-to-resection window.
-- `material/`: `decantOnlyUpdates` for the Microtomy workstation.
+- `material/`: `decantOnlyUpdates` for the Microtome workstation.
 - `authorization/`: `config:biopsy-resection-correlation:manage`.
 - `index.ts` exports `biopsyResectionCorrelationSettingsService` and `facilityBiopsyResectionCorrelationOverrideService`.
 
@@ -1499,7 +1503,7 @@ New `cases/caseWrite.ts` (versioned saves) and a guard that every case save carr
 - A signed-out surgical case can be marked "follow-up expected" from the report page's action bar, not only in the sign-out modal.
 - Stale README notes corrected (cytology correction and addendum, autopsy authorization form).
 
-## Batch 460 — Billing review in the Workspace and at Microtomy, matrix blocks at Microtomy, slide levels, Label Designer resize
+## Batch 460 — Billing review in the Workspace and at the Microtome, matrix blocks at the Microtome, slide levels, Label Designer resize
 
 - **`billing/`:** `caseBillingCoding.ts`, `caseBillingCharges.ts` (moved from the report page and shared), `materialChargePreview.ts`, and the new permission `billing:applied-code:review`.
 - **`material/`:** `slideLevels.ts` (a slide's level is the printed one) and `materialBillingWrites.ts`.
@@ -2141,3 +2145,91 @@ Batch 714: `orderIntake/clinicalIndicationFromOrder.ts` (the order-to-indication
 `feedback/` and `enhancementRequestService.ts`: feedback destination and validation routing (Oct 28, 2026): Enhancement Requests can be delivered to a website address set in Configuration > System > Feedback or pre-seeded in config.json (`VITE_ENHANCEMENT_REQUEST_URL`); QA feedback has an AI / Template validation category that links a validation study and template and goes to its own recipients (`FEEDBACK_ROUTED_TO_VALIDATION`). See `docs/architecture/FEEDBACK_DESTINATION.md`.
 
 **Batch 715:** new `labeling/` (letters or numbers for specimens, blocks and slides: one resolver, enterprise default with performing-lab override). See [labeling/README.md](./labeling/README.md).
+
+## Batch 726
+
+New `stationScans/` (station scan event log, spec 7). `batches/`: carriers at the workstations (`stationCarrierRules.ts`), sealing, moving a carrier on as the same batch (the Decal transfer included), carrier scans at a station. `scanStations/`: more workflow stages. `authorization/`: four capabilities in `batchCarrierCapabilities.ts`.
+
+## Batch 727
+
+`facilityOpsDashboard/`: add-on orders on the wall (`openAddOnOrders.ts`), the Stations view, locale keys on every view, time X on the Display Profile.
+
+## Batch 728
+
+`researchCases/` (new): the research-case rule and settings, applied in `worklist/`, `interfaceDispatch/`, `reports/`, `delivery/`, `billing/`, `cancerRegistry/`, `screeningRegistry/` and `retentionPolicy/` (`resolveCaseDisposalDate.ts`). `batches/batchPurposes.ts` (new): the purpose dictionary; `Batch.purposeId`; the wall views filter by purpose.
+
+## Batch 729
+
+`stationScans/`: `stationTrailRules.ts` (trail, stale and loose items), `wrongCaseScan.ts`, `recordStationScan.ts`, `activitySummary` on the service. `material/incompleteSectioning.ts`. `workstationSave/`: `saveCaseChange`. `facilityOpsDashboard/`: the Stations view's not-scanned tile and loose counts; the profile's not-scanned time.
+
+## Batch 730
+
+`labWorkflowReports/` (new): the seven report builders, the service with one capability per report and per export, CSV and the export kinds. `labelPrintRoutes/` (new): add-on labels printed at another station. `biFeed/`: + station_events, batches, add_on_orders. `equipment/`: temperature checks and ranges. `authorization/labWorkflowReportCapabilities.ts` (new).
+
+## Batch 731
+
+`itemEndStates/` (new): item end states. `material/materialLineage.ts` (new). `addOnOrders/`: the exhausted-block rule (spec §10.6). `authorization/materialLifecycleCapabilities.ts` (new). `biFeed/`: + item_end_states.
+
+## Batch 732
+
+Batch 732: `material/pieceExhaustion.ts` (new); `addOnOrders/` orders for pieces; `equipment/` large-format flag; `biFeed/` add-on block and slide fields.
+
+## Batch 745
+
+Batch 745: `cases/demoBaselineCases.ts` (A26-4665..4667), `specimenDictionary/mockSpecimenDictionaryService.ts` (`sp-autopsy-complete`), `patients/demoSurgicalPatients.ts`.
+
+## Batch 744
+
+Batch 744: `cases/demoFluidCases.ts`, `batches/batchDemoSeeds.ts`, `molecularOrders/molecularOrderDemoSeed.ts`, `patients/demoCytologyPatients.ts`, `stains/mockStainTypeService.ts` (S14).
+
+## Batch 743
+
+Batch 743: `caseAttachments/reportEditState.ts` (Assist cases), `imageAssociation/caseReportImages.ts` (`assistCase`).
+
+## Batch 742
+
+Batch 742: `caseAttachments/` (new: attachments as pointers, the storage adapter contract with mock and HTTP versions, the window's catalog); `imageAssociation/` placements in report sections and the renderer payload; `authorization/caseAttachmentCapabilities.ts`; `reports/surgicalReportLabels.ts` (four labels); `cases/demoSignOutReadyCase.ts` (demo photos).
+
+## Batch 741
+
+Batch 741: `material/specimenDivision.ts`; protocols' `divisionPurposes`; two capabilities.
+
+## Batch 740
+
+Batch 740: `cytology/cellBlockHandoff.ts`, `authorization/cytologyPrepCapabilities.ts`, the Cytology Preparation stage and station, screen `cytologyPrep`.
+
+## Batch 739
+
+Batch 739: `protocols/` (decant track types, Pap protocols), `equipment/` (`lbc_processor`), `batches/` (processor), `cytology/computeCytologyPrepSuggestions.ts` (cytospin), `stains/`, `billing/`, `material/` (aliquot migration at seeding).
+
+## Batch 738
+
+Batch 738: `protocols/surgicalDemoProtocols.ts`, `cases/demoSignOutReadyCase.ts`, `reports/synopticReviewEntries.ts` (new); demo seeds in `orderIntake/`, `printSettings/`, `printerProfiles/`, `scanStations/`, `users/`, `auth/demo/`, `specimenDictionary/`.
+
+## Batch 737
+
+Batch 737: `addOnOrders/` (matrix blocks and parts), `batches/` (exhausted warning, `slide-too-large`, `largeFormat`), `hardwareContainers/` (`supportsLargeFormat`, update checks `config:equipment:manage`), `material/pieceExhaustion.ts` (matrix parts), `workstationSave/runCaseAction.ts` (matrix blocks saved with specimens).
+
+## Batch 736
+
+Batch 736: `reasons/benchReasons.ts`, `reasons/benchReasonAdmin.ts`, category-checked reason dictionary writes; `batches/` and `addOnOrders/` store reason codes; `labWorkflowReports/` reason code column; `authorization/benchReasonCapabilities.ts`.
+
+## Batch 735
+
+Batch 735: `scanner/scanRoutePolicy.ts`, `reasons/quickReasonSets.ts`, `styleRules/touchLayout.guard.test.ts`.
+
+## Batch 734
+
+Batch 734: `batches/` ad-hoc carrier moves (`carrierMovesHere`); `printing/directDevicePrinting.ts` and `directDevicePrintingDeps.ts` (the per-facility direct-printing policy, audited); `facilities/` `setDirectDevicePrinting`; `authorization/printingPolicyCapabilities.ts`.
+
+## Batch 733
+
+Batch 733: `addOnOrders/` one flag per exhausted block, one answer, destructive cutting only while tissue may remain.
+
+## Batch 746
+
+Batch 746: S7 molecular seed: `cases/demoMolecularCases.ts`, `molecular/molecularRunHistoryDemoSeed.ts`, the KRAS control rule, molecular reagent lots (`reagentLots/`), `patients/demoSurgicalPatients.ts`, `molecularOrders/mockMolecularOrderStore.ts`.
+
+## Batch 747
+
+Batch 747: S8 wall displays: `facilityOpsDashboard/caseFacility.ts` (the facility fix), `cases/demoWallVolumeCases.ts`, `batches/wallDisplayDemoBatches.ts`, display profiles, `demoReset/demoDisplayTokens.ts`, scanner runs, patients.

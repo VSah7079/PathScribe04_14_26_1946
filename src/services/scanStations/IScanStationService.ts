@@ -24,9 +24,13 @@ import { ServiceResult, ID } from '../types';
  *  naming/staging genuinely varies (confirmed directly — no shared
  *  standard found), same reasoning as MaterialLocation.workflowStage. */
 export const SCAN_STATION_WORKFLOW_STAGES = [
-  'Accessioning', 'Grossing', 'Processing', 'Embedding',
-  'Microtomy / Sectioning', 'Staining', 'Slide Archival', 'Other',
+  'Accessioning', 'Grossing', 'Decal / Special Processing', 'Processing', 'Embedding',
+  'Microtomy / Sectioning', 'Staining', 'Slide Distribution', 'Checkout', 'External Referral',
+  'Cytology Preparation', 'Cytology Processing', 'Cytology Staining', 'Cytology Imaging', 'Slide Archival', 'Other',
 ] as const;
+// Batch 726 (Lab Workflow & Batch spec §7.2): Decal, Slide Distribution, Checkout, External Referral and the three
+// cytology steps added, so every processing step can have a station. Which batches a stage works on:
+// services/batches/stationCarrierRules.ts (STATION_STAGE_NODES).
 
 export interface ScanStation {
   id: ID;

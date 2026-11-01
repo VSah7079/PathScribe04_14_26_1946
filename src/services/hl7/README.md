@@ -1,3 +1,5 @@
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # services/hl7/
 
 Standard-conformant HL7 v2.5.1 ORM^O01 message builder, with a vendor-adapter seam for receiving-system-specific quirks. **Phase 3 addition**: a real DFT^P03 (financial transaction) builder — the outbound side of the specimen/block-level CPT association work in `types/case/Specimen.ts` and `services/billing/`. **Phase 1 addition (Patient/Encounter subsystem): the first real INBOUND direction** — everything above this is outbound (PathScribe data → HL7 text); `hl7Parser.ts`/`adtParser.ts`/`processAdtMessage.ts` go the other way (real HL7 text received from an external system → structured data, wired into the real MPI and Encounter services). **Real fix, Phase 2 of the facility-timezone effort**: every real HL7 TS (Timestamp) field this folder produces now carries the real, signed FACILITY UTC offset (e.g. `-0700` for Tucson), not the sending browser/device's own offset — per direct HL7 v2.x guidance (a TS field's offset must reflect the real, originating facility; sending a browser-local offset breaks message parsing at the receiving LIS). See `utils/facilityTime.ts`. **New addition — a second, deliberately different inbound shape**: `processBlockExceptionEvent.ts` ingests PathScribe's own canonical event contract (`types/events/BlockExceptionEventPayload.ts`) directly, rather than parsing raw HL7 text like everything else in this folder — see that file's own writeup below for the real reasoning (no field-verified Cerebro/Vantage integration guide exists yet, so PathScribe ingests its own, fully-owned specification and leaves the vendor-format translation to a real interface engine, once one exists).
@@ -90,7 +92,7 @@ The block-exception, HPV result, molecular batch and material-location handlers 
 
 ## Batch 460
 
-`materialLocationMutation.ts` finds a scanned slide by its printed level (`material/slideLevels.ts`), not its position, so a slide moved after Microtomy reordered the list updates the right slide.
+`materialLocationMutation.ts` finds a scanned slide by its printed level (`material/slideLevels.ts`), not its position, so a slide moved after Microtome reordered the list updates the right slide.
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

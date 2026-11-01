@@ -10,6 +10,7 @@
 // reload.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { DEFAULT_BATCH_PURPOSE_ID } from './batchPurposes';
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
@@ -21,9 +22,10 @@ import { mockScanStationService } from '../scanStations/mockScanStationService';
 import { shouldAutoAppendControl } from './shouldAutoAppendControl';
 import { batchHasControlForLot, createControlSlideCase } from './ensureControlSlideAppended';
 import { mockHardwareContainerRegistryService } from '../hardwareContainers/mockHardwareContainerRegistryService';
-import { CONTAINER_TYPE_CODE } from '../hardwareContainers/IHardwareContainerRegistryService';
-import type { ContainerType } from '../hardwareContainers/IHardwareContainerRegistryService';
-import { DEFAULT_PRINT_SETTINGS_CONFIG } from '../printSettings/IPrintSettingsService';
+import { generateDisposableBarcode } from './disposableBarcode';
+import { mockStationScanEventService } from '../stationScans/mockStationScanEventService';
+import type { NewStationScanEvent } from '../stationScans/IStationScanEventService';
+import { acceptsItems, advanceBatch, advanceProblem, carrierItemEvents, carrierMovesHere, sealBatch, sealProblem } from './stationCarrierRules';
 import { buildReferralManifestPayload } from '../referral/buildReferralManifestPayload';
 import { mockReferralOutboundQueueService } from '../referral/mockReferralOutboundQueueService';
 import { mockReferralTrackingService } from '../referral/mockReferralTrackingService';
@@ -33,15 +35,26 @@ import { authorizationService } from '../authorization/defaultAuthorizationServi
 import { BATCH_NOT_PERMITTED, BATCH_REASON_REQUIRED, BATCH_ERRORS as E } from './IBatchService';
 import { reconciliationGate } from './batchListView';
 import { batchDemoSeeds } from './batchDemoSeeds';
+import { wallDisplayDemoBatches } from './wallDisplayDemoBatches';
 import { withMissingSeedRecords } from '../mockSeedMerge';
 export { BATCH_NOT_PERMITTED, BATCH_REASON_REQUIRED };
 import { mockDpVendorService } from '../digitalPathology/mockDpVendorService';
 import { mockAiScreeningResultService } from '../digitalPathology/mockAiScreeningResultService';
 import { mockMolecularOrderOutboundQueueService } from '../molecularOrders/mockMolecularOrderOutboundQueueService';
-import type { PrintSettingsConfig } from '../printSettings/IPrintSettingsService';
 import type {
-  IBatchService, Batch, BatchItem, AddItemOutcome,
+  IBatchService, Batch, BatchItem, AddItemOutcome, BatchProcessingNode, CarrierScanResult,
 } from './IBatchService';
+import { withReasonCode } from '../reasons/benchReasons';
+import { exhaustedOnScan } from '@/utils/blockExceptionStates';
+import { slideFitsCarrier, slideSizeOnScan } from '@/utils/blockPieceRules';
+import { mockEquipmentService } from '../equipment/mockEquipmentService';
+
+/** Batch 739 (fluid decision 4): an active liquid-based cytology processor from the Equipment register, or null. */
+async function processorFor(equipmentId: string): Promise<{ code: string; make?: string; model?: string } | null> {
+  const r = await mockEquipmentService.getActive('lbc_processor');
+  const eq = r.ok ? r.data.find(e => e.id === equipmentId) : undefined;
+  return eq ? { code: eq.code, make: eq.make, model: eq.model } : null;
+}
 
 const STORAGE_KEY = 'batches';
 
@@ -52,7 +65,7 @@ function loadBatches(): Batch[] {
   const stored = storageGet<Batch[]>(STORAGE_KEY, []);
   if (demoSeedsChecked) return stored;
   demoSeedsChecked = true;
-  const { records, added } = withMissingSeedRecords(stored, batchDemoSeeds());
+  const { records, added } = withMissingSeedRecords(stored, [...batchDemoSeeds(), ...wallDisplayDemoBatches()]); // Batch 747: S8 wall volume
   if (added > 0) storageSet(STORAGE_KEY, records);
   return records;
 }
@@ -66,67 +79,16 @@ function genId(prefix: string): ID {
   return `${prefix}-${Date.now()}-${counter}`;
 }
 
-/**
- * Real, printable Master Batch Barcode — the spec's own FR-1.2 worked
- * example: "CONT-STAIN-YYYYMMDD-XXXX" for a disposable (Mode A) label.
- *
- * Real fix, per direct follow-up: "I assumed we are using a Guid to
- * safely identify the container." Confirmed directly, honestly: the
- * earlier version here used Math.random() over only a 4-digit range
- * (1000-9999) scoped per (containerType, day) — with no check against
- * already-issued barcodes at all. For a busy lab printing many labels
- * of the same container type in one day, that's a real, meaningful
- * collision risk (birthday-paradox math: ~13% chance of a collision
- * at just 50 same-day, same-type labels), not a safely-unique
- * identifier — exactly the kind of silent gap this whole chain-of-
- * custody system exists to prevent.
- *
- * A real, full GUID (36 chars) is impractical on a small, physical
- * container label and painful to hand-key if a scanner fails, and
- * doesn't match the spec's own worked example format at all — so this
- * keeps the short, human-readable, printable shape, but now
- * GUARANTEES uniqueness rather than merely hoping the random space is
- * big enough: crypto.getRandomValues (a real CSPRNG, not Math.random's
- * weaker PRNG) over a 6-digit space (900,000 values — a real,
- * substantial improvement over 9,000), AND an explicit, real
- * check-and-retry against every already-issued barcode (existingBarcodes)
- * before accepting one. Throws (a real, loud failure) rather than
- * silently returning a colliding code in the astronomically unlikely
- * case all real retries are exhausted — a caller must never silently
- * issue a duplicate physical label.
- */
-/** Real, direct storage read — this service function isn't a React
- *  component, so it can't call the printSettingsService's own
- *  get()/React-context path; same real, shared mockStorage.ts key
- *  ('printSettings') mockPrintSettingsService.ts itself reads from,
- *  read directly here rather than duplicated or guessed at. */
-function getCurrentPrintSettings(): PrintSettingsConfig {
-  return storageGet<PrintSettingsConfig>('printSettings', DEFAULT_PRINT_SETTINGS_CONFIG);
-}
-
-function generateDisposableBarcode(containerType: ContainerType | undefined, existingBarcodes: Set<string>): string {
-  const settings = getCurrentPrintSettings();
-  const code = settings.containerTypeCodes[containerType ?? 'Ad-Hoc Batch'] ?? CONTAINER_TYPE_CODE[containerType ?? 'Ad-Hoc Batch'];
-  const prefix = settings.disposableBarcodePrefix || 'CONT';
-  const now = new Date();
-  // eslint-disable-next-line no-restricted-properties -- the date in a new container barcode is the bench's own date (an identifier, not a stored event's date)
-  const yyyymmdd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-
-  const MAX_ATTEMPTS = 50;
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const randomArray = new Uint32Array(1);
-    crypto.getRandomValues(randomArray);
-    const suffix = 100000 + (randomArray[0] % 900000); // real, 6-digit space — 100000-999999
-    const candidate = `${prefix}-${code}-${yyyymmdd}-${suffix}`;
-    if (!existingBarcodes.has(candidate.toUpperCase())) return candidate;
-  }
-  // Real, loud failure — see this function's own header for why a
-  // silent duplicate is never acceptable here.
-  throw new Error(`Could not generate a unique container barcode after ${MAX_ATTEMPTS} attempts — this should be astronomically unlikely; check the random source.`);
-}
+// Batch 726: the disposable barcode generator moved to disposableBarcode.ts (file-size rule).
 
 function findBatch(batches: Batch[], id: ID): Batch | undefined {
   return batches.find(b => b.id === id);
+}
+
+/** Batch 726 (spec §7.1): writes station scan events; a refusal (no or unknown station) records nothing and never fails the batch call. */
+async function recordStationEvents(events: NewStationScanEvent[]): Promise<void> {
+  if (events.length === 0) return;
+  await mockStationScanEventService.recordMany(events).catch(() => undefined);
 }
 
 // Real, additive — per 'Cytology Staining' (stainer rack batch),
@@ -265,6 +227,12 @@ function dispatchReferralIfApplicable(batch: Batch): void {
   try {
     const base = buildReferralManifestPayload(batch);
     const labId = batch.referralDestinationFacilityId;
+    // Batch 731 (spec §10.5): every item in the referral is "sent out" (completing the batch already checked its own permission).
+    void import('../itemEndStates/recordEndStateFromAction').then(({ recordEndStateFromAction }) => recordEndStateFromAction(batch.items.map(i => ({
+      itemId: i.displayId, materialType: i.materialType === 'specimen' ? 'wet_tissue' as const : i.materialType,
+      caseAccession: i.caseAccession, state: 'sent_out' as const, reason: `Referral batch ${batch.masterBarcode} completed${batch.referralTestRequested ? ` (${batch.referralTestRequested})` : ''}`,
+      userId: batch.reconciliationStartedByUserId ?? batch.createdByUserId, userName: batch.reconciliationStartedByUserName ?? batch.createdByUserName, source: 'referral' as const,
+    })))).catch(() => undefined);
     // The tracking record exists from the moment the batch is complete, so a result is never "tracking not found".
     mockReferralTrackingService.createOnDispatch(batch.id).catch(() => {});
     // Batch 467b: the send-out molecular orders this batch carries (its lab, its requested test, its specimens) go to
@@ -346,6 +314,9 @@ export const mockBatchService: IBatchService = {
       items: [],
       unexpectedScans: [],
       stationId: draft.stationId,
+      purposeId: draft.purposeId || DEFAULT_BATCH_PURPOSE_ID,
+      ...(draft.largeFormat && draft.processingNode === 'Staining' ? { largeFormat: true } : {}),
+      ...(draft.processorEquipmentId && draft.processingNode === 'Cytology Processing' ? { processorEquipmentId: draft.processorEquipmentId } : {}),
       createdAt: new Date().toISOString(),
       createdByUserId: draft.createdByUserId,
       createdByUserName: draft.createdByUserName,
@@ -358,6 +329,8 @@ export const mockBatchService: IBatchService = {
       // BatchDetailView.tsx — see that file's own comment for the full
       // reasoning.
       if ('error' in checkOutResult) return { ok: false, error: checkOutResult.error };
+      // Batch 737: a rack registered as large-format makes the staining carrier large-format.
+      if (checkOutResult.data.supportsLargeFormat && batch.processingNode === 'Staining') batch.largeFormat = true;
     }
 
     // Real, per PS-289/PS-292's own "batch-manifest scanning with
@@ -415,18 +388,22 @@ export const mockBatchService: IBatchService = {
     // in this app: a real queueing failure here must never block the
     // batch's own, already-successful creation.
     if (batch.processingNode === 'Cytology Processing') {
+      // Batch 739 (fluid decision 4): the chosen processor from the Equipment register, not a fixed vendor.
+      const processor = draft.processorEquipmentId ? await processorFor(draft.processorEquipmentId) : null;
       mockMolecularOrderOutboundQueueService.enqueue({
         eventType: 'order.instrument',
-        payload: { masterBarcode: batch.masterBarcode, instrumentVendor: 'Hologic' },
+        payload: { masterBarcode: batch.masterBarcode, ...(processor ? { processorCode: processor.code, processorMake: processor.make, processorModel: processor.model } : {}) },
       }).catch(console.error);
     }
     return { ok: true, data: batch };
   },
 
-  async addItemByScan(batchId: ID, scannedValue: string, byUserId: string, byUserName: string, fovCount?: number): Promise<AddItemOutcome> {
+  async addItemByScan(batchId: ID, scannedValue: string, byUserId: string, byUserName: string, fovCount?: number, stationId?: string): Promise<AddItemOutcome> {
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
     if (!batch) return { outcome: 'not-found', reason: `No batch found with id "${batchId}".`, scanned: scannedValue };
+    // Batch 726: a sealed or closed manifest takes nothing (spec §2 row 1).
+    if (!acceptsItems(batch)) return { outcome: 'not-accepting', reason: `Batch ${batch.masterBarcode} is not taking items (${batch.sealedAt ? 'sealed' : batch.status}).`, sealed: !!batch.sealedAt, status: batch.status };
 
     const resolved = await resolveMaterialFromScan(scannedValue);
     if (!resolved) {
@@ -436,6 +413,10 @@ export const mockBatchService: IBatchService = {
 
     if (batch.items.some(i => i.displayId === displayId)) {
       return { outcome: 'already-in-batch', reason: `${displayId} is already in this batch.`, displayId };
+    }
+    // Batch 737 (spec §11.1): a large-format slide needs a staining carrier that takes large-format slides.
+    if (!slideFitsCarrier(slideSizeOnScan(resolved.caseData, resolved.target, displayId), batch)) {
+      return { outcome: 'slide-too-large', reason: `${displayId} is a large-format slide; batch ${batch.masterBarcode} does not take large-format slides.`, displayId };
     }
 
     // Real protocol-validation starting point, per the spec's own
@@ -483,6 +464,14 @@ export const mockBatchService: IBatchService = {
       detail: `${displayId} added to batch ${batch.masterBarcode} (${batch.processingNode}).`,
       user: byUserName, caseId: fullAccession, confidence: null,
     }).catch(() => {});
+    if (stationId) {
+      await recordStationEvents([{ itemId: displayId, materialType: item.materialType, caseAccession: fullAccession, carrierId: batch.masterBarcode, batchId: batch.id, stationId, node: batch.processingNode, userId: byUserId, userName: byUserName, action: 'loaded', result: 'ok' }]);
+    }
+    // Batch 737 (spec §10.6): an exhausted block is still added (it is physically in the carrier), with a warning.
+    if (exhaustedOnScan(resolved.caseData, resolved.target, specimenLetter)) {
+      mockAuditService.logEvent({ type: 'system', event: 'Exhausted Block Scanned Into Batch', detail: `${displayId} is exhausted (no tissue remains) and was scanned into batch ${batch.masterBarcode} (${batch.processingNode}).`, user: byUserName, caseId: fullAccession, confidence: null }).catch(() => {});
+      return { outcome: 'added', batch: updatedBatch, item, warning: 'blockExhausted' };
+    }
     return { outcome: 'added', batch: updatedBatch, item };
   },
 
@@ -490,6 +479,7 @@ export const mockBatchService: IBatchService = {
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
     if (!batch) return { ok: false, error: E.notFound };
+    if (batch.sealedAt) return { ok: false, error: E.batchSealed };
     const removedItem = batch.items.find(i => i.id === itemId);
     const updatedBatch: Batch = { ...batch, items: batch.items.filter(i => i.id !== itemId) };
     saveBatches(batches.map(b => b.id === batchId ? updatedBatch : b));
@@ -515,6 +505,7 @@ export const mockBatchService: IBatchService = {
     // (IBatchService.ts) for why both sides must be 'active'.
     if (fromBatch.status !== 'active') return { ok: false, error: E.sourceNotActive };
     if (toBatch.status !== 'active') return { ok: false, error: E.destinationNotActive };
+    if (fromBatch.sealedAt || toBatch.sealedAt) return { ok: false, error: E.batchSealed };
 
     const item = fromBatch.items.find(i => i.id === itemId);
     if (!item) return { ok: false, error: E.itemNotFound };
@@ -578,7 +569,7 @@ export const mockBatchService: IBatchService = {
     return { ok: true, data: updatedBatch };
   },
 
-  async scanItemOut(batchId: ID, scannedValue: string, byUserId: string, byUserName: string): Promise<ServiceResult<Batch>> {
+  async scanItemOut(batchId: ID, scannedValue: string, byUserId: string, byUserName: string, stationId?: string): Promise<ServiceResult<Batch>> {
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
     if (!batch) return { ok: false, error: E.notFound };
@@ -613,6 +604,14 @@ export const mockBatchService: IBatchService = {
         detail: `${displayId} scanned out of batch ${batch.masterBarcode} but is NOT on the batch's own manifest — flagged as unexpected/extra.`,
         user: byUserName, caseId: resolved?.fullAccession ?? null, confidence: null,
       }).catch(() => {});
+    }
+    // Batch 726 (spec §7.1): the scan, matched or unexpected, on the station log.
+    if (stationId) {
+      await recordStationEvents([{
+        itemId: displayId, materialType: matchedItem?.materialType ?? resolved?.target.level ?? 'unknown', caseAccession: matchedItem?.caseAccession ?? resolved?.fullAccession,
+        carrierId: batch.masterBarcode, batchId: batch.id, stationId, node: batch.processingNode, userId: byUserId, userName: byUserName,
+        action: matchedItem ? 'matched' : 'unexpected', result: matchedItem ? 'ok' : (resolved ? 'wrong-item' : 'not-found'),
+      }]);
     }
     return { ok: true, data: updatedBatch };
   },
@@ -654,7 +653,7 @@ export const mockBatchService: IBatchService = {
     return { ok: true, data: updatedBatch };
   },
 
-  async overrideAndComplete(batchId: ID, byUserId: string, byUserName: string, reason: string): Promise<ServiceResult<Batch>> {
+  async overrideAndComplete(batchId: ID, byUserId: string, byUserName: string, reason: string, stationId?: string, reasonCode?: string): Promise<ServiceResult<Batch>> {
     if (!reason.trim()) return { ok: false, error: BATCH_REASON_REQUIRED };
     if (!(await authorizationService.enforce('batch:reconciliation:override')).allowed) return { ok: false, error: BATCH_NOT_PERMITTED };
     const batches = loadBatches();
@@ -666,7 +665,7 @@ export const mockBatchService: IBatchService = {
       ...batch,
       status: 'complete',
       completedAt: new Date().toISOString(),
-      override: { byUserId, byUserName, reason: reason.trim(), at: new Date().toISOString() },
+      override: { byUserId, byUserName, reason: reason.trim(), ...(reasonCode ? { reasonCode } : {}), at: new Date().toISOString() },
     };
     saveBatches(batches.map(b => b.id === batchId ? updatedBatch : b));
     dispatchReferralIfApplicable(updatedBatch);
@@ -678,9 +677,13 @@ export const mockBatchService: IBatchService = {
     const missingCount = batch.items.filter(i => i.reconciliationStatus !== 'matched').length;
     mockAuditService.logEvent({
       type: 'system', event: 'Batch Reconciliation Overridden',
-      detail: `Batch ${batch.masterBarcode} force-completed by supervisor override — ${missingCount} missing item(s), ${batch.unexpectedScans.length} unexpected scan(s). Reason: ${reason.trim()}`,
+      detail: withReasonCode(`Batch ${batch.masterBarcode} force-completed by supervisor override — ${missingCount} missing item(s), ${batch.unexpectedScans.length} unexpected scan(s). Reason: ${reason.trim()}`, reasonCode),
       user: byUserName, caseId: null, confidence: null,
     }).catch(() => {});
+    // Batch 726 (spec §7.1): each item still missing when the override closed the batch.
+    if (stationId) {
+      await recordStationEvents(carrierItemEvents({ ...batch, items: batch.items.filter(i => i.reconciliationStatus !== 'matched') }, { stationId, userId: byUserId, userName: byUserName, action: 'missing', note: 'Missing when the reconciliation was completed by override.' }).map(e => ({ ...e, inferredFromCarrier: false })));
+    }
     return { ok: true, data: updatedBatch };
   },
 
@@ -701,7 +704,7 @@ export const mockBatchService: IBatchService = {
     return { ok: true, data: updatedBatch };
   },
 
-  async acknowledgeColdChainExcursion(batchId: ID, byUserId: string, byUserName: string, note: string): Promise<ServiceResult<Batch>> {
+  async acknowledgeColdChainExcursion(batchId: ID, byUserId: string, byUserName: string, note: string, reasonCode?: string): Promise<ServiceResult<Batch>> {
     if (!note.trim()) return { ok: false, error: BATCH_REASON_REQUIRED };
     if (!(await authorizationService.enforce('batch:cold-chain-excursion:acknowledge')).allowed) return { ok: false, error: BATCH_NOT_PERMITTED };
     const batches = loadBatches();
@@ -712,13 +715,13 @@ export const mockBatchService: IBatchService = {
       ...batch,
       coldChainExcursion: {
         ...batch.coldChainExcursion,
-        acknowledgedAt: new Date().toISOString(), acknowledgedByUserId: byUserId, acknowledgedByUserName: byUserName, acknowledgedNote: note.trim(),
+        acknowledgedAt: new Date().toISOString(), acknowledgedByUserId: byUserId, acknowledgedByUserName: byUserName, acknowledgedNote: note.trim(), ...(reasonCode ? { acknowledgedReasonCode: reasonCode } : {}),
       },
     };
     saveBatches(batches.map(b => b.id === batchId ? updatedBatch : b));
     mockAuditService.logEvent({
       type: 'user', event: 'Cold-Chain Excursion Acknowledged',
-      detail: `Batch ${batch.masterBarcode}: cold-chain excursion acknowledged. Note: ${note.trim()}`,
+      detail: withReasonCode(`Batch ${batch.masterBarcode}: cold-chain excursion acknowledged. Note: ${note.trim()}`, reasonCode),
       user: byUserName, caseId: null, confidence: null,
     }).catch(() => {});
     return { ok: true, data: updatedBatch };
@@ -808,21 +811,21 @@ export const mockBatchService: IBatchService = {
     return { ok: true, data: updatedBatch };
   },
 
-  async abort(batchId: ID, _byUserId: string, byUserName: string, reason: string): Promise<ServiceResult<Batch>> {
+  async abort(batchId: ID, _byUserId: string, byUserName: string, reason: string, reasonCode?: string): Promise<ServiceResult<Batch>> {
     // Batch 404 (Pete): a reason is always required, and aborting needs its permission.
     if (!reason.trim()) return { ok: false, error: BATCH_REASON_REQUIRED };
     if (!(await authorizationService.enforce('batch:run:abort')).allowed) return { ok: false, error: BATCH_NOT_PERMITTED };
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
     if (!batch) return { ok: false, error: E.notFound };
-    const updatedBatch: Batch = { ...batch, status: 'aborted', abortedAt: new Date().toISOString(), abortReason: reason.trim() };
+    const updatedBatch: Batch = { ...batch, status: 'aborted', abortedAt: new Date().toISOString(), abortReason: reason.trim(), ...(reasonCode ? { abortReasonCode: reasonCode } : {}) };
     saveBatches(batches.map(b => b.id === batchId ? updatedBatch : b));
     if (updatedBatch.identifierMode === 'semi_permanent' && updatedBatch.linkedRackId) {
       mockHardwareContainerRegistryService.checkIn(updatedBatch.linkedRackId).catch(() => {});
     }
     mockAuditService.logEvent({
       type: 'system', event: 'Batch Aborted',
-      detail: `Batch ${batch.masterBarcode} (${batch.processingNode}, ${batch.items.length} item(s)) aborted. Reason: ${reason.trim()}`,
+      detail: withReasonCode(`Batch ${batch.masterBarcode} (${batch.processingNode}, ${batch.items.length} item(s)) aborted. Reason: ${reason.trim()}`, reasonCode),
       user: byUserName, caseId: null, confidence: null,
     }).catch(() => {});
     return { ok: true, data: updatedBatch };
@@ -848,66 +851,65 @@ export const mockBatchService: IBatchService = {
     return { ok: true, data: updatedBatch };
   },
 
+  // Batch 726 (Lab Workflow & Batch spec, Decision 9, §10.2): the carrier keeps its batch as it moves from Decal to
+  // Processing. This used to create a new Processing batch with a new barcode and empty the Decal one; now it is the
+  // same move as advanceToNode (one batch, a step history, the manifest sealed). Both halves of the answer are the
+  // same batch, so callers written for the old shape keep working.
   async transferToProcessing(batchId: ID, byUserId: string, byUserName: string): Promise<ServiceResult<{ fromBatch: Batch; toBatch: Batch }>> {
+    const batch = findBatch(loadBatches(), batchId);
+    if (!batch) return { ok: false, error: E.notFound };
+    if (batch.processingNode !== 'Decal / Special Processing') return { ok: false, error: E.notDecal };
+    // No station is passed: the move is made on Batch Management, and an event is never recorded against a station the
+    // person is not at (spec §7.6).
+    const moved = await mockBatchService.advanceToNode(batchId, 'Processing', byUserId, byUserName);
+    if (moved.ok !== true) return moved;
+    return { ok: true, data: { fromBatch: moved.data, toBatch: moved.data } };
+  },
+
+  // Batch 726: the carrier at the workstations (stationCarrierRules.ts has the rules).
+  async sealManifest(batchId: ID, byUserId: string, byUserName: string): Promise<ServiceResult<Batch>> {
+    if (!(await authorizationService.enforce('batch:manifest:seal')).allowed) return { ok: false, error: BATCH_NOT_PERMITTED };
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
     if (!batch) return { ok: false, error: E.notFound };
-    if (batch.processingNode !== 'Decal / Special Processing') {
-      return { ok: false, error: E.notDecal };
+    const problem = sealProblem(batch);
+    if (problem) return { ok: false, error: problem };
+    const updated = sealBatch(batch, { id: byUserId, name: byUserName }, new Date().toISOString());
+    saveBatches(batches.map(b => b.id === batchId ? updated : b));
+    mockAuditService.logEvent({ type: 'system', event: 'Batch Manifest Sealed', detail: `Batch ${batch.masterBarcode} manifest sealed with ${batch.items.length} item(s).`, user: byUserName, caseId: null, confidence: null }).catch(() => {});
+    return { ok: true, data: updated };
+  },
+
+  async advanceToNode(batchId: ID, toNode: BatchProcessingNode, byUserId: string, byUserName: string, stationId?: string): Promise<ServiceResult<Batch>> {
+    if (!(await authorizationService.enforce('batch:carrier:advance')).allowed) return { ok: false, error: BATCH_NOT_PERMITTED };
+    const batches = loadBatches();
+    const batch = findBatch(batches, batchId);
+    if (!batch) return { ok: false, error: E.notFound };
+    const problem = advanceProblem(batch, toNode);
+    if (problem) return { ok: false, error: problem };
+    const updated = advanceBatch(batch, toNode, { id: byUserId, name: byUserName }, new Date().toISOString(), stationId);
+    saveBatches(batches.map(b => b.id === batchId ? updated : b));
+    mockAuditService.logEvent({ type: 'system', event: 'Batch Carrier Moved', detail: `Carrier ${batch.masterBarcode} moved from ${batch.processingNode} to ${toNode} with ${batch.items.length} item(s).`, user: byUserName, caseId: null, confidence: null }).catch(() => {});
+    if (stationId) await recordStationEvents(carrierItemEvents(updated, { stationId, userId: byUserId, userName: byUserName, action: 'loaded' }));
+    return { ok: true, data: updated };
+  },
+
+  async recordCarrierScan(batchId: ID, stationId: string, byUserId: string, byUserName: string, result: CarrierScanResult): Promise<ServiceResult<Batch>> {
+    if (!stationId) return { ok: false, error: E.stationRequired };
+    if (result === 'mismatch' && !(await authorizationService.enforce('station:scan-mismatch:continue')).allowed) return { ok: false, error: BATCH_NOT_PERMITTED };
+    const batches = loadBatches();
+    const batch = findBatch(batches, batchId);
+    if (!batch) return { ok: false, error: E.notFound };
+    // Batch 734 (Pete): an ad-hoc carrier follows the station it is opened at; the move is recorded, nothing is asked.
+    const moved = carrierMovesHere(batch, stationId);
+    const updated: Batch = moved
+      ? { ...batch, stationId, stationMoves: [...(batch.stationMoves ?? []), { fromStationId: batch.stationId, toStationId: stationId, at: new Date().toISOString(), byUserId, byUserName }] }
+      : batch.stationId ? batch : { ...batch, stationId };
+    if (updated !== batch) saveBatches(batches.map(b => b.id === batchId ? updated : b));
+    if (result === 'mismatch') {
+      mockAuditService.logEvent({ type: 'system', event: 'Carrier Opened At Another Step', detail: `Carrier ${batch.masterBarcode} (${batch.processingNode}) opened at station ${stationId} after a mismatch warning.`, user: byUserName, caseId: null, confidence: null }).catch(() => {});
     }
-    if (batch.status !== 'active') {
-      return { ok: false, error: E.notActive };
-    }
-    if (batch.items.length === 0) {
-      return { ok: false, error: E.noItemsToTransfer };
-    }
-
-    const nowIso = new Date().toISOString();
-    const newBarcode = generateDisposableBarcode('Tissue Processor Basket', new Set(batches.map(b => b.masterBarcode.toUpperCase())));
-    const newBatchId = genId('batch');
-
-    const transferredItems: BatchItem[] = batch.items.map(item => ({
-      ...item,
-      addedAt: nowIso, addedByUserId: byUserId, addedByUserName: byUserName,
-      reconciliationStatus: undefined,
-      transferHistory: [
-        ...(item.transferHistory ?? []),
-        { fromBatchId: batch.id, fromMasterBarcode: batch.masterBarcode, toBatchId: newBatchId, toMasterBarcode: newBarcode, at: nowIso, byUserId, byUserName },
-      ],
-    }));
-
-    const newBatch: Batch = {
-      id: newBatchId,
-      masterBarcode: newBarcode,
-      containerType: 'Tissue Processor Basket',
-      identifierMode: 'disposable',
-      processingNode: 'Processing',
-      protocol: `${batch.protocol} (transferred from Decal ${batch.masterBarcode})`,
-      priority: batch.priority,
-      status: 'active',
-      items: transferredItems,
-      unexpectedScans: [],
-      stationId: batch.stationId,
-      createdAt: nowIso,
-      createdByUserId: byUserId,
-      createdByUserName: byUserName,
-    };
-
-    const updatedSourceBatch: Batch = {
-      ...batch, status: 'complete', completedAt: nowIso, transferredToBatchId: newBatch.id, items: [],
-    };
-
-    if (updatedSourceBatch.identifierMode === 'semi_permanent' && updatedSourceBatch.linkedRackId) {
-      mockHardwareContainerRegistryService.checkIn(updatedSourceBatch.linkedRackId).catch(() => {});
-    }
-
-    saveBatches([...batches.map(b => b.id === batchId ? updatedSourceBatch : b), newBatch]);
-    mockAuditService.logEvent({
-      type: 'system', event: 'Batch Transferred to Processing',
-      detail: `${batch.items.length} item(s) bulk-transferred from Decal batch ${batch.masterBarcode} to new Processing batch ${newBatch.masterBarcode}.`,
-      user: byUserName, caseId: null, confidence: null,
-    }).catch(() => {});
-
-    return { ok: true, data: { fromBatch: updatedSourceBatch, toBatch: newBatch } };
+    await recordStationEvents(carrierItemEvents(updated, { stationId, userId: byUserId, userName: byUserName, action: 'received', result, note: result === 'mismatch' ? 'Opened at a station for another step after a warning.' : moved ? `Ad-hoc carrier moved here from station ${batch.stationId}.` : undefined }));
+    return { ok: true, data: updated };
   },
 };

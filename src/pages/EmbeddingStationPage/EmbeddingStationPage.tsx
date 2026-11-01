@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Real, per PS-285 — "Embedding Station: a dedicated, bench-scoped
 // workstation for cassette scan/verify, mold selection, and
-// discrepancy flagging." Sibling workstation to PS-284's Microtomy
+// discrepancy flagging." Sibling workstation to PS-284's Microtome
 // Workstation — reached by scanning a cassette barcode at a real
 // 'Embedding' ScanStation, deliberately NOT a case-scoped route like
 // GrossingScreenPage/SynopticReportPage, for the identical reason
@@ -66,6 +66,13 @@ import EmbeddingCenterPanel from './components/EmbeddingCenterPanel';
 import CassettePrintPanel from './components/CassettePrintPanel';
 import CommentDrawer from './components/CommentDrawer';
 import CassetteReprintModal from './components/CassetteReprintModal';
+// Batch 726 (Lab Workflow & Batch spec, Decision 1): carriers at this workstation.
+import { useStationCarrier } from '@/hooks/useStationCarrier';
+import StationCarrierPanel from '@/components/Workstation/StationCarrierPanel';
+import { StationScanField } from '@/components/Workstation/StationScanField';
+import ScanTrailPanel from '@/components/Workstation/ScanTrailPanel';
+import ExhaustedBlockBanner from '@/components/Workstation/ExhaustedBlockBanner';
+import BlockPieceMapPanel from '@/components/Workstation/BlockPieceMapPanel';
 import '../../pathscribe.css';
 
 const EmbeddingStationPage: React.FC = () => {
@@ -75,6 +82,7 @@ const EmbeddingStationPage: React.FC = () => {
   useEffect(() => { pushCrumb(t('embeddingStation.pageTitle'), '/workstations/embedding'); }, [pushCrumb, t]);
 
   const w = useEmbeddingStation();
+  const carrier = useStationCarrier('embedding');
 
   // Batch 401: this page has its own voice/keyboard context ("confirm count", "add comment").
   useEffect(() => {
@@ -108,7 +116,6 @@ const EmbeddingStationPage: React.FC = () => {
     },
   });
 
-  const [scanInput, setScanInput] = useState('');
   const [labelLayout, setLabelLayout] = useState<CassetteLabelLayoutConfig>(DEFAULT_CASSETTE_LABEL_LAYOUT);
   const [printer, setPrinter] = useState<PrinterProfile | null>(null);
   const [printerError, setPrinterError] = useState<string | null>(null);
@@ -143,18 +150,14 @@ const EmbeddingStationPage: React.FC = () => {
     const listener = (e: Event) => {
       const scanEvent = (e as CustomEvent<{ raw: string }>).detail;
       if (!scanEvent?.raw || scanEvent.raw.trim().toUpperCase().startsWith('STATION:')) return;
-      w.resolveScan(scanEvent.raw);
+      void carrier.route(scanEvent.raw, w.resolveScan);
     };
     window.addEventListener('PATHSCRIBE_SCAN', listener);
     return () => window.removeEventListener('PATHSCRIBE_SCAN', listener);
-  }, [w]);
+  }, [w, carrier]);
 
-  const handleScanSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!scanInput.trim()) return;
-    await w.resolveScan(scanInput.trim());
-    setScanInput('');
-  }, [scanInput, w]);
+  // Touch spec T1 (Batch 735): the shared scan field (no on-screen keyboard, focus kept) hands the scan in here.
+  const handleScan = useCallback(async (raw: string) => { await carrier.route(raw, w.resolveScan); }, [w, carrier]);
 
   const handleToggleAlertFlag = useCallback((flag: 'tinyTissue' | 'fragile' | 'requiresDecal') => {
     if (!w.workItem) return;
@@ -183,17 +186,14 @@ const EmbeddingStationPage: React.FC = () => {
         <h1 className="ps-embedding-title">🧊 {t('embeddingStation.pageTitle')}</h1>
       </div>
 
+      <StationCarrierPanel carrier={carrier} />
+      {/* Batch 729 (spec §7.4): the case's station scan trail. */}
+      {w.workItem && <ScanTrailPanel caseAccession={w.workItem.caseData.accession?.fullAccession ?? w.workItem.caseData.id} />}
+
       {!w.workItem ? (
         <div className="ps-embedding-panel">
           <p className="ps-embedding-panel-title">{t('embeddingStation.scanPrompt')}</p>
-          <form className="ps-embedding-scan-row" onSubmit={handleScanSubmit}>
-            <input
-              type="text" className="ps-embedding-scan-input" autoFocus
-              value={scanInput} onChange={e => setScanInput(e.target.value)}
-              placeholder={t('embeddingStation.scanPlaceholder') ?? ''}
-            />
-            <button type="submit" className="ps-btn-primary">{t('embeddingStation.scanSubmit')}</button>
-          </form>
+          <StationScanField onScan={handleScan} placeholder={t('embeddingStation.scanPlaceholder') ?? ''} submitLabel={t('embeddingStation.scanSubmit')} />
           {w.scanError && <div className="ps-embedding-scan-error">{t(w.scanError.key, w.scanError.values)}</div>}
         </div>
       ) : (
@@ -206,13 +206,20 @@ const EmbeddingStationPage: React.FC = () => {
               {t('embeddingStation.context.specimenBlock')}{' '}
               <strong>{w.workItem.specimen.label}{w.workItem.block.label}</strong>
             </span>
-            <span>{t('embeddingStation.context.specimenType')} <strong>{w.workItem.specimen.description ?? '—'}</strong></span>
-            <button type="button" className="ps-embedding-row-btn ps-ml-auto" onClick={() => { setScanInput(''); w.clearWorkItem(); }}>
+            {w.matrixSpecimens !== null
+              ? <span>{t('embeddingStation.context.matrixBlockOf', { specimens: w.matrixSpecimens || '—' })}</span>
+              : <span>{t('embeddingStation.context.specimenType')} <strong>{w.workItem.specimen.description ?? '—'}</strong></span>}
+            <span className="ps-ml-auto"><StationScanField compact onScan={handleScan} placeholder={t('embeddingStation.scanPlaceholder') ?? ''} submitLabel={t('embeddingStation.scanSubmit')} /></span>
+            <button type="button" className="ps-embedding-row-btn" onClick={() => w.clearWorkItem()}>
               {t('embeddingStation.context.scanNext')}
             </button>
           </div>
 
           {w.saveError && <div className="ps-workstation-save-error" role="alert">{w.saveError}</div>}
+          {/* Batch 731 (spec §10.6): an exhausted block's warning; mark it re-embedded to release the orders waiting for it. */}
+          <ExhaustedBlockBanner specimen={w.workItem.specimen} block={w.workItem.block} onReembedded={w.workItem.matrixBlock ? undefined : w.handleReembedded} />
+          {/* Batch 732 (spec §11): block type, slide size and piece map. */}
+          {w.pieceView && <BlockPieceMapPanel blockType={w.pieceView.blockType} slideSize={w.pieceView.slideSize} pieces={w.pieceView.pieces} />}
           {w.discrepancyNotice && (w.discrepancyNotice.kind === 'failed'
             ? <div className="ps-workstation-save-error" role="alert">{t(w.discrepancyNotice.key, w.discrepancyNotice.values)}</div>
             : <div className="ps-embedding-split-banner ps-embedding-split-banner--complete" role="status">{t(w.discrepancyNotice.key, w.discrepancyNotice.values)}</div>)}

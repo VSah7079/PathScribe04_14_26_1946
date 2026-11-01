@@ -1,4 +1,4 @@
-// Batch 460: the read-only charges at the Microtomy bench.
+// Batch 460: the read-only charges at the Microtome bench.
 import { describe, it, expect } from 'vitest';
 import { materialChargePreview } from './materialChargePreview';
 import type { StainType } from '../stains/IStainService';

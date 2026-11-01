@@ -1,3 +1,5 @@
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # services/fieldRequirements — which fields a page requires (PS-359, Batch 376)
 
 Pete: "The User may need to have control over what fields on a page are required before saving. Field Configuration that is grouped by Pages … Some fields should always be required, and should be uneditable."
@@ -43,7 +45,7 @@ The Accession page greys out Next and Submit until the required fields are fille
 | `messagingChecks.ts` | Batch 384: what the message drawer, reply box and Secure email window need before sending (+ `messagingChecks.test.ts`). |
 | `cytologyChecks.ts`, `microtomyChecks.ts`, `intraopChecks.ts`, `embeddingChecks.ts`, `slideDistributionChecks.ts`, `addOnOrderChecks.ts`, `batchChecks.ts`, `molecularBatchChecks.ts`, `molecularRackChecks.ts` | Batches 386 to 406: one per later page (each with its test); see the batch entries below. |
 
-The catalog now has thirteen pages: Accession, Grossing, Case report, Messaging, Cytology, Microtomy, Intraop, Embedding, Slide distribution, Add-On Orders, Batch Management, Molecular plate builder and Molecular rack loading.
+The catalog now has thirteen pages: Accession, Grossing, Case report, Messaging, Cytology, Microtome, Intraop, Embedding, Slide distribution, Add-On Orders, Batch Management, Molecular plate builder and Molecular rack loading.
 
 *Corrected in the Batch 496 README audit (Oct 9, 2026): the Files table stopped at Batch 384; added the nine later check files and the current page count.*
 
@@ -171,7 +173,7 @@ Page `cytology`, four groups, 20 fields (`cytologyChecks.ts`):
 
 `cytologyReviewMissing`, `cisoeaMissing`, `retrospectiveMissing`, `histologyCorrelationMissing` and `cytologyFieldRequired` (drives the "*"). Used by the four components in `pages/CytologyWorklistPage/components/`.
 
-## Batch 388: Microtomy workstation (sixth page)
+## Batch 388: Microtome workstation (sixth page)
 
 Page `microtomy`, two groups, five fields (`microtomyChecks.ts`):
 
@@ -183,7 +185,7 @@ Page `microtomy`, two groups, five fields (`microtomyChecks.ts`):
 | | Reprint reason | locked |
 | | Cancel reason (printed slide) | locked |
 
-`microtomyCommentMissing`, `microtomyAddStainMissing`, `microtomyReprintMissing`, `microtomyCancelMissing` and `microtomyFieldRequired` (drives the "*"). Used by `CommentDrawer`, `SlideGridPanel` and the cancel-reason prompt on the Microtomy page. The two reason fields are locked because `utils/microtomyOperations.ts` already requires them; the workstation's lists give no way to act without choosing one.
+`microtomyCommentMissing`, `microtomyAddStainMissing`, `microtomyReprintMissing`, `microtomyCancelMissing` and `microtomyFieldRequired` (drives the "*"). Used by `CommentDrawer`, `SlideGridPanel` and the cancel-reason prompt on the Microtome page. The two reason fields are locked because `utils/microtomyOperations.ts` already requires them; the workstation's lists give no way to act without choosing one.
 
 ## Batch 390: Cytology correction and addendum
 

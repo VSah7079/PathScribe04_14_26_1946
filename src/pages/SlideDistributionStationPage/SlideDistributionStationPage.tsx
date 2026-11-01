@@ -45,6 +45,14 @@ import SlideLabelReprintModal from './components/SlideLabelReprintModal';
 import type { DestinationMode } from './components/DestinationControlPanel';
 import type { SlideExceptionReason, SlideLabelReprintReason } from '@/utils/slideDistributionOperations';
 import type { SlideDistributionActionResult } from './hooks/useSlideDistributionStation';
+// Batch 726 (Lab Workflow & Batch spec, Decision 1): carriers at this workstation.
+import { useStationCarrier } from '@/hooks/useStationCarrier';
+import StationCarrierPanel from '@/components/Workstation/StationCarrierPanel';
+import { StationScanField } from '@/components/Workstation/StationScanField';
+import ScanTrailPanel from '@/components/Workstation/ScanTrailPanel';
+import ExhaustedBlockBanner from '@/components/Workstation/ExhaustedBlockBanner';
+import ItemEndStatePanel from '@/components/Workstation/ItemEndStatePanel';
+import BlockPieceMapPanel from '@/components/Workstation/BlockPieceMapPanel';
 import '../../pathscribe.css';
 
 const SlideDistributionStationPage: React.FC = () => {
@@ -54,7 +62,7 @@ const SlideDistributionStationPage: React.FC = () => {
   useEffect(() => { pushCrumb(t('slideDistribution.pageTitle'), '/workstations/slide-distribution'); }, [pushCrumb, t]);
 
   const w = useSlideDistributionStation();
-  const [scanInput, setScanInput] = useState('');
+  const carrier = useStationCarrier('slideDistribution');
   const [mode, setMode] = useState<DestinationMode>('physical');
   const [assignFeedback, setAssignFeedback] = useState<string | null>(null);
   const [reprintFeedback, setReprintFeedback] = useState<string | null>(null);
@@ -87,20 +95,18 @@ const SlideDistributionStationPage: React.FC = () => {
     const listener = (e: Event) => {
       const scanEvent = (e as CustomEvent<{ raw: string }>).detail;
       if (!scanEvent?.raw || scanEvent.raw.trim().toUpperCase().startsWith('STATION:')) return;
-      w.resolveScan(scanEvent.raw);
+      void carrier.route(scanEvent.raw, w.resolveScan);
     };
     window.addEventListener('PATHSCRIBE_SCAN', listener);
     return () => window.removeEventListener('PATHSCRIBE_SCAN', listener);
-  }, [w]);
+  }, [w, carrier]);
 
-  const handleScanSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!scanInput.trim()) return;
-    await w.resolveScan(scanInput.trim());
-    setScanInput('');
-  }, [scanInput, w]);
+  // Touch spec T1 (Batch 735): the shared scan field (no on-screen keyboard, focus kept) hands the scan in here.
+  const handleScan = useCallback(async (raw: string) => { await carrier.route(raw, w.resolveScan); }, [w, carrier]);
 
   const activeItem = w.queue.find(q => q.queueId === w.activeQueueId);
+  const endStateItem = w.endStateItemFor(w.activeQueueId);
+  const pieceView = w.pieceViewFor(w.activeQueueId);
   const splitWarning = w.activeQueueId ? w.splitDestinationWarningFor(w.activeQueueId) : null;
   const defaultRouting = activeItem ? w.resolveDefaultRouting(activeItem.caseData) : {};
 
@@ -149,6 +155,15 @@ const SlideDistributionStationPage: React.FC = () => {
         <h1 className="ps-slidedist-title">📬 {t('slideDistribution.pageTitle')}</h1>
       </div>
 
+      <StationCarrierPanel carrier={carrier} />
+      {/* Batch 729 (spec §7.4): the active slide's case scan trail. */}
+      {activeItem && <ScanTrailPanel caseAccession={activeItem.caseData.accession?.fullAccession ?? activeItem.caseData.id} />}
+      {/* Batch 731 (spec §10.6, §10.5): the slide's block when it is exhausted, and the slide's end state. */}
+      {activeItem && <ExhaustedBlockBanner specimen={activeItem.specimen} block={activeItem.block} />}
+      {endStateItem && <ItemEndStatePanel {...endStateItem} stationId={w.effectiveStationId} />}
+      {/* Batch 732 (spec §11): the slide's size and its block's pieces. */}
+      {pieceView && <BlockPieceMapPanel blockType={pieceView.blockType} slideSize={pieceView.slideSize} pieces={pieceView.pieces} />}
+
       <div className="ps-slidedist-context-bar">
         <span>{t('slideDistribution.context.queueCount')} <strong>{w.queue.length}</strong></span>
         <span>{t('slideDistribution.context.mode')} <strong>{t(`slideDistribution.destination.${mode}`)}</strong></span>
@@ -158,14 +173,7 @@ const SlideDistributionStationPage: React.FC = () => {
 
       <div className="ps-slidedist-panel ps-mb-16">
         <p className="ps-slidedist-panel-title">{t('slideDistribution.scanPrompt')}</p>
-        <form className="ps-slidedist-scan-row" onSubmit={handleScanSubmit}>
-          <input
-            type="text" className="ps-slidedist-scan-input" autoFocus
-            value={scanInput} onChange={e => setScanInput(e.target.value)}
-            placeholder={t('slideDistribution.scanPlaceholder') ?? ''}
-          />
-          <button type="submit" className="ps-btn-primary">{t('slideDistribution.scanSubmit')}</button>
-        </form>
+        <StationScanField onScan={handleScan} placeholder={t('slideDistribution.scanPlaceholder') ?? ''} submitLabel={t('slideDistribution.scanSubmit')} />
         {w.scanError && <div className="ps-slidedist-scan-error">{t(w.scanError.key, w.scanError.values)}</div>}
       </div>
 

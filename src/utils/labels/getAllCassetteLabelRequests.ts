@@ -35,6 +35,7 @@ export function getAllCassetteLabelRequests(caseData: Case): AllCassetteLabelReq
         specimenLabel: specimen.label,
         blockLabel: block.label,
         cassetteId: cassetteIdentifier(fullAccession, specimen.label, block.label),
+        ...(block.blockType && block.blockType !== 'standard' ? { blockType: block.blockType } : {}),
       });
     }
   }

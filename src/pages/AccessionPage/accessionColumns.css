@@ -1,0 +1,27 @@
+/* src/pages/AccessionPage/accessionColumns.css
+   Batch 721 (Pete, Oct 29, 2026): the Accession screen in two columns on a wide window.
+   In its own file because pathscribe.css is over 1,000 lines and may not grow (CLAUDE.md rule 10).
+   AccessionPage only adds these classes when the window is at least
+   ACCESSION_TWO_COLUMN_MIN_WIDTH_PX wide (services/accessioning/resolveAccessionPanels.ts), so no
+   media query is needed here. Left: Case & Patient. Right: Specimens, or Outside Patient Data. */
+
+.ps-accession-content--two-col {
+  max-width: 2200px;
+}
+
+.ps-accession-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0 20px;
+  align-items: start;
+}
+
+/* The panels: Case & Patient fills the left column down the page; whatever is on the right stacks in column 2. */
+.ps-accession-columns:not(.ps-accession-columns--heads) > :first-child {
+  grid-column: 1;
+  grid-row: 1 / span 6;
+}
+
+.ps-accession-columns:not(.ps-accession-columns--heads) > :not(:first-child) {
+  grid-column: 2;
+}

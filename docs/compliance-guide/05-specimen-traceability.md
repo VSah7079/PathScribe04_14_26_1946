@@ -4,7 +4,7 @@ Sources: `FEATURE_OVERVIEW.md` (Batch Management & Chain of Custody), the Admini
 
 | Control | What it does | Status |
 |---|---|---|
-| Chain of custody | Cassettes and slides are tracked by scanning container barcodes through Decal/Special Processing, Processing, Embedding, Microtomy/Sectioning, Staining and Checkout. Each step records the person, station and time. | Live |
+| Chain of custody | Cassettes and slides are tracked by scanning container barcodes through Decal/Special Processing, Processing, Embedding, Microtome/Sectioning, Staining and Checkout. Each step records the person, station and time. | Live |
 | Scan verification | Scanning is required at each node; mismatches are refused with a reason in the person's language. Reconciliation overrides need their own permission and are audited. | Live |
 | Workstation tracking | The scan station, bench workstation and site agent are recorded with each scan; a computer's scan station is a workstation setting, not user data. | Live (browser); site agent and server Partial (phase 2e) |
 | Batch tracking | Batches of cassettes and slides are loaded, processed and reconciled as a unit; Pending Batch Load queues work; Frozen-to-Permanent reconciliation links frozen and permanent sections. | Live |

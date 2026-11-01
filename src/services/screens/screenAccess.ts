@@ -24,7 +24,7 @@ import type { IAuthorizationService } from '../authorization/authorizationServic
 export type ScreenId =
   | 'accession' | 'worklist' | 'search' | 'addOnOrders' | 'intraopQueue' | 'cytologyQcQueue' | 'surgicalQaWorklist'
   | 'myContributions' | 'benchContributions' | 'batchManagement' | 'configuration'
-  | 'cytologyWorkspace' | 'microtomy' | 'grossing' | 'embedding' | 'slideDistribution' | 'molecular'
+  | 'cytologyWorkspace' | 'cytologyPrep' | 'microtomy' | 'grossing' | 'embedding' | 'slideDistribution' | 'molecular'
   | 'auditLog' | 'qualityAssurance' | 'registryExceptions' | 'tumorBoard' | 'marginExceptionReview' | 'autopsyDashboards' | 'outboundQueue' | 'lockboxDropOff';
 
 export const SCREEN_CAPABILITY: Readonly<Record<ScreenId, CapabilityKey>> = {
@@ -45,6 +45,8 @@ export const SCREEN_CAPABILITY: Readonly<Record<ScreenId, CapabilityKey>> = {
   configuration: 'screen:configuration:open',
   cytologyWorkspace: 'screen:cytology-workspace:open',
   microtomy: 'screen:microtomy:open',
+  // Batch 740 (fluid decision 1): the Cytology Preparation bench.
+  cytologyPrep: 'screen:cytology-prep:open',
   // Batch 720 (Pete): Grossing is its own tile under Pathology Workspace, for the PA and the
   // grossing pathologist; the report's Material tab still opens it for a case in hand.
   grossing: 'screen:grossing:open',
@@ -125,7 +127,7 @@ export const TILE_SCREENS: Readonly<Record<HomeTileId, readonly ScreenId[]>> = {
   tumorBoard: ['tumorBoard'],
   lockboxDropOff: ['lockboxDropOff'],
   configuration: ['configuration'],
-  pathologyWorkspace: ['grossing', 'addOnOrders', 'marginExceptionReview', 'cytologyWorkspace', 'microtomy', 'embedding', 'slideDistribution', 'molecular', 'batchManagement'],
+  pathologyWorkspace: ['grossing', 'addOnOrders', 'marginExceptionReview', 'cytologyWorkspace', 'cytologyPrep', 'microtomy', 'embedding', 'slideDistribution', 'molecular', 'batchManagement'],
   qualityCompliance: ['auditLog', 'qualityAssurance', 'registryExceptions', 'autopsyDashboards', 'outboundQueue'],
 };
 
@@ -192,6 +194,7 @@ export function createScreenAccessService(deps: { authorization: Pick<IAuthoriza
     configuration: () => a.enforce('screen:configuration:open'),
     cytologyWorkspace: () => a.enforce('screen:cytology-workspace:open'),
     microtomy: () => a.enforce('screen:microtomy:open'),
+    cytologyPrep: () => a.enforce('screen:cytology-prep:open'),
     grossing: () => a.enforce('screen:grossing:open'),
     embedding: () => a.enforce('screen:embedding:open'),
     slideDistribution: () => a.enforce('screen:slide-distribution:open'),

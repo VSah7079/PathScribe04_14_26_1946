@@ -5,6 +5,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { IProtocolService, Protocol } from './IProtocolService';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
 import { CYTOLOGY_DEMO_PROTOCOLS } from './cytologyDemoProtocols';
+import { SURGICAL_DEMO_PROTOCOLS } from './surgicalDemoProtocols';
 
 const load = () => storageGet<Protocol[]>('pathscribe_protocols', [
   {
@@ -90,6 +91,8 @@ const load = () => storageGet<Protocol[]>('pathscribe_protocols', [
   },
   // Batch 716: the cytology protocols (cell block / smear tracks, HPV co-test order) for the Cytology Part 2 demo.
   ...CYTOLOGY_DEMO_PROTOCOLS,
+  // Batch 738 (Demo Seed Data S1): colon, breast, skin, small biopsy and prostate core protocols.
+  ...SURGICAL_DEMO_PROTOCOLS,
 ]);
 const persist = (data: Protocol[]) => storageSet('pathscribe_protocols', data);
 let PROTOCOLS: Protocol[] = load();

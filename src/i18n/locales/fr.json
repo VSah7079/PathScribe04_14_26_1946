@@ -890,6 +890,8 @@
       "fragile": "Fragile",
       "levelsCut": "{{count}} niveau(x) déjà coupé(s)",
       "lost": "Perdu",
+      "matrixParts": "parties {{parts}}",
+      "matrixTitle": "Blocs partagés (matrice)",
       "noBlocks": "Aucun bloc pour ce prélèvement.",
       "specimen": "Prélèvement {{label}} {{description}}",
       "tinyTissue": "Tissu minuscule",
@@ -909,7 +911,9 @@
         "recut": "Recoupe / niveau profond",
         "special_stain": "Coloration spéciale"
       },
+      "levelCount": "Niveaux",
       "levelDepth": "Profondeur du niveau (µm)",
+      "levelsPerSlide": "Niveaux par lame",
       "noStains": "Aucune coloration correspondante.",
       "panelPicker": "Panel IHC",
       "panelStainsMissingAll": "Aucune des colorations de ce panel ne figure dans le dictionnaire des colorations ({{stains}}) ; rien ne peut être ajouté. Demandez à votre administrateur de les ajouter.",
@@ -924,28 +928,69 @@
       "primaryPathologistLine": "Pathologiste principal : {{name}}"
     },
     "errors": {
+      "alternativeRefused": {
+        "needsNewSection": "L’une des lames en attente nécessite une nouvelle coupe et ne peut pas aller sur une lame non colorée. Cochez « Répondre pour cette lame seulement » et répondez lame par lame.",
+        "notEnoughSlides": "Il n’y a pas assez de lames non colorées pour toutes les lames en attente. Cochez « Répondre pour cette lame seulement » et répondez lame par lame.",
+        "nothingLeft": "Le bloc était déjà épuisé : la coupe destructive est impossible. Choisissez une alternative."
+      },
       "blockCancelled": "Le bloc {{block}} est annulé.",
       "blockDamaged": "Le bloc {{block}} est marqué endommagé ; il ne peut pas être commandé avant réinclusion.",
-      "blockExhausted": "Le bloc {{block}} est épuisé ; aucune autre commande de coupe n’est possible.",
+      "blockExhausted": "Le bloc {{block}} est épuisé. Choisissez quoi faire pour chaque ligne dans l’encadré au-dessus du générateur : une lame non colorée déjà coupée, une réinclusion, ou un autre bloc du même prélèvement.",
       "blockLost": "Le bloc {{block}} est marqué perdu ; il ne peut pas être commandé tant qu’il n’est pas retrouvé.",
       "blockNotFound": "Le bloc {{block}} est introuvable dans ce cas.",
       "caseNotFound": "Aucun cas trouvé pour « {{query}} ».",
       "enterAccession": "Saisissez ou scannez un numéro d’accession.",
+      "exhaustedNeedsChoice_one": "Le bloc {{block}} est épuisé : {{count}} ligne attend encore une alternative.",
+      "exhaustedNeedsChoice_other": "Le bloc {{block}} est épuisé : {{count}} lignes attendent encore une alternative.",
+      "exhaustedReasonRequired": "Le bloc {{block}} est épuisé : indiquez le motif de cette commande.",
       "failed": "L’action n’a pas abouti. La commande a peut-être changé ; rouvrez le cas et réessayez.",
       "inHouseNotAvailable": "Le laboratoire de ce cas ne réalise pas {{tests}} en interne. Choisissez l’envoi externe.",
+      "matrixExhausted": "Bloc matriciel {{block}} : le tissu choisi est épuisé. Commandez sur un autre bloc de la partie, ou demandez une réinclusion.",
+      "mixedPieces": "Bloc {{block}} : certains fragments choisis sont épuisés. Choisissez seulement des fragments restants, ou seulement des fragments épuisés pour voir les alternatives.",
       "noLines": "Ajoutez au moins une ligne de commande pour le bloc {{block}}.",
-      "notPermitted": "Vous n’avez pas l’autorisation pour cette action. Demandez à votre administrateur."
+      "notPermitted": "Vous n’avez pas l’autorisation pour cette action. Demandez à votre administrateur.",
+      "pieceExhausted": "Bloc {{block}} : les fragments choisis sont épuisés. Choisissez quoi faire pour chaque ligne dans l’encadré au-dessus du générateur."
     },
     "exceptionReasons": {
       "blockExhausted": "Bloc épuisé",
       "insufficientTissue": "Tissu insuffisant pour le panel",
       "requiresRegrossing": "Nécessite une nouvelle macroscopie"
     },
+    "exhausted": {
+      "addLines": "Ajoutez les lignes de commande ; le sort de chaque ligne sur ce bloc s’affiche ici.",
+      "choose": "Choisir une alternative…",
+      "controlsNote": "Aucune lame témoin n’est ajoutée automatiquement pour une coloration sur une lame déjà coupée. La commande et le motif sont enregistrés dans le journal d’audit.",
+      "noAlternative": "Il ne reste rien à proposer : retirez cette ligne.",
+      "otherBlock": "Commander plutôt sur le bloc {{block}}",
+      "otherPiece": "Commander plutôt sur le fragment {{position}} ({{part}})",
+      "problem": {
+        "blockUnusable": "Ce bloc ne peut plus être coupé.",
+        "chooseAlternative": "Choisissez une lame non colorée déjà coupée, une réinclusion ou un autre bloc.",
+        "needsNewSection": "Nécessite une nouvelle coupe de ce bloc. Choisissez une réinclusion ou un autre bloc.",
+        "pieceUnusable": "Ce fragment est épuisé ou n’est plus sur le bloc.",
+        "slideUnavailable": "Cette lame n’est plus disponible, ou une autre ligne l’utilise déjà."
+      },
+      "reason": "Motif de la commande sur un bloc épuisé",
+      "reembed": "Demander une réinclusion (la commande attend qu’elle soit faite)",
+      "useSlide": "Utiliser la lame non colorée {{level}} (déjà coupée)"
+    },
     "pageTitle": "Constructeur de commandes complémentaires",
     "panels": {
       "panel-breast": "Panel sein (RE/RP/HER2/Ki-67)",
       "panel-lynch-mmr": "Panel Lynch/MMR (MLH1/MSH2/MSH6/PMS2)",
       "panel-renal-if": "Panel IF rénal (IgG/IgA/IgM/C3/C1q/Kappa/Lambda)"
+    },
+    "printAt": {
+      "atMicrotome": "Au microtome lors de la coupe du bloc",
+      "hint": "Les étiquettes s'impriment maintenant à ce poste. Le microtome enregistre la coupe sans les réimprimer.",
+      "label": "Imprimer les étiquettes à",
+      "noPrinter": "Les étiquettes n'ont pas été imprimées à {{station}} : aucune imprimante de lames n'y est configurée. Elles s'imprimeront au microtome.",
+      "notPermitted": "Les étiquettes n'ont pas été imprimées à {{station}} : vous n'avez pas l'autorisation d'envoyer des impressions à un autre poste. Elles s'imprimeront au microtome.",
+      "printedSomeFailed_one": "{{count}} étiquette imprimée à {{station}} ; {{failed}} ne se sont pas imprimées et le seront au microtome.",
+      "printedSomeFailed_other": "{{count}} étiquettes imprimées à {{station}} ; {{failed}} ne se sont pas imprimées et le seront au microtome.",
+      "printed_one": "{{count}} étiquette imprimée à {{station}}.",
+      "printed_other": "{{count}} étiquettes imprimées à {{station}}.",
+      "withPlaced": "{{placed}} {{printed}}"
     },
     "priority": {
       "Research_Protocol": "Recherche / protocole",
@@ -975,6 +1020,8 @@
       "inHouseQueue": "Va dans la file des demandes du poste moléculaire.",
       "labsAll": "Aucun laboratoire n’est encore lié à ce test ; tous les laboratoires de référence sont proposés.",
       "labsApprovedForTest": "Seuls les laboratoires approuvés pour ce test sont proposés.",
+      "levelRange_one": "{{count}} niveau, {{perSlide}} par lame",
+      "levelRange_other": "{{count}} niveaux, {{perSlide}} par lame",
       "microns": "Niveaux de {{count}} µm",
       "molecularRouting": "Réalisation",
       "noPerformingLab": "Le laboratoire exécutant de ce dossier n'a pas pu être déterminé — les commandes seront tout de même créées, sans correspondance de station propre à un laboratoire.",
@@ -994,11 +1041,22 @@
       "title": "Récapitulatif et routage de la commande"
     },
     "tracking": {
+      "alternative": "Ou utiliser une alternative",
+      "alternativeNeedsNote": "Saisissez d’abord une note de réponse : c’est le motif de l’alternative.",
+      "answerAppliesToAll_one": "Cette réponse s’applique à la {{count}} lame en attente du bloc {{block}}.",
+      "answerAppliesToAll_other": "Cette réponse s’applique aux {{count}} lames en attente du bloc {{block}}.",
+      "answerIndividually": "Répondre pour cette lame seulement",
+      "answerThisOnly": "Cette réponse ne s’applique qu’à cette lame.",
+      "answeredCount_one": "Réponse appliquée à {{count}} lame en attente.",
+      "answeredCount_other": "Réponse appliquée à {{count}} lames en attente.",
+      "applyAlternative": "Appliquer",
       "approveDestructive": "Approuver la coupe destructive",
       "cancelFlag": "Annuler",
       "cancelOrder": "Annuler la commande",
       "confirmFlag": "Signaler l'exception",
       "count": "{{count}}",
+      "destructiveNotOffered": "Le bloc était déjà épuisé avant ce signalement ; il ne reste rien à couper : la coupe destructive n’est pas proposée.",
+      "destructiveWarning": "Couper jusqu’au bout utilise le dernier tissu de ce bloc. Aucune recoupe, aucun test de biomarqueur ni test moléculaire ne sera ensuite possible à partir de ce bloc, ce qui compte surtout pour une petite biopsie. Une note de réponse est obligatoire.",
       "empty": "Aucune commande complémentaire n'a encore été passée pour ce dossier.",
       "exceptionNote": "Remarque facultative…",
       "exceptionNoteLabel": "Note",
@@ -1015,6 +1073,7 @@
       "resubmit": "Resoumettre",
       "sendOutTo": "Envoi externe : {{lab}}",
       "stage": {
+        "AwaitingRe-embedding": "En attente de réinclusion",
         "BlockRetrieved": "Bloc récupéré",
         "Cancelled": "Annulée",
         "CheckedOutScanned": "Sortie / numérisée",
@@ -2268,6 +2327,18 @@
     "unexpectedError": "Erreur inattendue de lecture du code-barres",
     "unknownError": "erreur inconnue"
   },
+  "batchCarrier": {
+    "closedAborted": "Ce porteur est clos : il a été annulé le {{at}}.",
+    "closedComplete": "Ce porteur est clos : il a été terminé le {{at}}.",
+    "historyLabel": "Étapes parcourues par ce porteur",
+    "historyStep": "{{from}} → {{to}}, {{name}}, {{at}}",
+    "moveTo": "Passer à l'étape {{node}}",
+    "movedToast": "{{barcode}} est passé à l'étape {{node}}. Éléments : {{count}}.",
+    "otherStep": "Le poste de cet ordinateur ({{station}}) traite l'étape {{stationSteps}} ; ce porteur est à l'étape {{node}}.",
+    "seal": "Sceller le manifeste",
+    "sealedBy": "Manifeste scellé par {{name}} le {{at}}.",
+    "sealedToast": "{{barcode}} scellé."
+  },
   "batchDetail": {
     "abortBatch": "Interrompre le lot",
     "abortModalText": "Ce lot et son manifeste seront conservés pour audit, mais marqués Interrompu et ne pourront plus accepter de scans.",
@@ -2290,7 +2361,10 @@
     "completeDisabledTitle": "{{missing}} manquant(s), {{unexpected}} inattendu(s) — résoudre ou forcer",
     "emptyManifest": "Aucun élément n'a encore été scanné dans ce lot.",
     "errors": {
+      "alreadySealed": "{{barcode}} est déjà scellé.",
       "batchNotFound": "Ce lot n'existe plus. Revenez à la liste et rouvrez-le.",
+      "batchSealed": "{{barcode}} est scellé : rien ne peut y être ajouté ni retiré.",
+      "cannotAdvance": "{{barcode}} ne peut pas passer à cette étape.",
       "coldChainUnacknowledged": "Ce lot présente un écart de chaîne du froid non acquitté. Acquittez-le ou utilisez une dérogation superviseur.",
       "destinationNotActive": "Les éléments ne peuvent être déplacés que vers un lot actif.",
       "excursionAlreadyOpen": "Le lot {{barcode}} a déjà un écart de chaîne du froid non acquitté. Acquittez-le avant d'en enregistrer un autre.",
@@ -2301,7 +2375,7 @@
       "noItemsToTransfer": "Ce lot n'a aucun élément à transférer.",
       "noRack": "Ce lot n'a pas de portoir réutilisable à libérer.",
       "notActive": "Le lot {{barcode}} n'est plus actif. Il a peut-être déjà été rapproché, transféré ou clôturé.",
-      "notCytologyProcessing": "L'état de l'automate ne s'applique qu'à un lot de traitement cytologique.",
+      "notCytologyProcessing": "L'état de l'automate ne s'applique qu'à un lot de traitement de cytologie en milieu liquide.",
       "notDecal": "Le transfert vers le traitement ne s'applique qu'à un lot de décalcification / traitement spécial.",
       "notReconciling": "Lancez d'abord le rapprochement du lot {{barcode}}.",
       "notStaining": "Ceci ne s'applique qu'à un lot de coloration.",
@@ -2310,9 +2384,11 @@
       "rackNotRegistered": "Le portoir {{rackId}} n'est pas enregistré. Vérifiez l'identifiant ou enregistrez d'abord le portoir.",
       "sameBatch": "L'élément est déjà dans ce lot. Choisissez-en un autre.",
       "sourceNotActive": "Les éléments ne peuvent être retirés que d'un lot actif.",
+      "stationRequired": "Définissez d'abord le poste de cet ordinateur.",
       "unexpectedScans_one": "{{count}} élément n'appartenant pas à ce lot a été scanné. Traitez-le ou utilisez une dérogation superviseur.",
       "unexpectedScans_other": "{{count}} éléments n'appartenant pas à ce lot ont été scannés. Traitez-les ou utilisez une dérogation superviseur."
     },
+    "exhaustedWarning": "{{displayId}} est épuisé : il ne reste plus de tissu dans ce bloc. Il a été ajouté au lot ; vérifiez avec le pathologiste avant traitement ou coupe.",
     "forceCompletedToast": "Lot {{barcode}} terminé de force avec forçage.",
     "instrumentReports": "L'instrument signale : {{status}}",
     "manifestSection": "Manifeste ({{count}})",
@@ -2363,15 +2439,19 @@
     "removedToast": "{{displayId}} retiré du lot.",
     "scanHintActive": "Scannez le code-barres d'une cassette ou d'une lame pour l'ajouter à ce lot. Mains libres — pas besoin de cliquer d'abord dans un champ.",
     "scanHintReconcile": "Vérification hors processus : scannez chaque élément physique au moment où vous le retirez du porteur.",
+    "scanHintSealed": "Le manifeste est scellé. Lancez la vérification pour scanner les éléments en sortie.",
     "scanRejected": {
       "alreadyInBatch": "{{displayId}} est déjà dans ce lot.",
       "inOtherActiveBatch": "{{displayId}} est déjà dans le lot actif {{barcode}}.",
-      "notFound": "« {{value}} » ne correspond à aucune cassette ni lame d'aucun cas."
+      "notAccepting": "{{barcode}} n'accepte plus d'éléments.",
+      "notFound": "« {{value}} » ne correspond à aucune cassette ni lame d'aucun cas.",
+      "sealed": "{{barcode}} est scellé : plus aucun élément ne peut être ajouté.",
+      "slideTooLarge": "{{displayId}} est une lame grand format et {{barcode}} ne prend pas les lames grand format. Utilisez un portoir de coloration grand format."
     },
     "startReconciliation": "Démarrer la réconciliation",
     "supervisorOverrideLink": "Forçage superviseur…",
     "transferToProcessing": "Transférer vers le traitement",
-    "transferredToast": "{{count}} élément(s) transféré(s) vers le nouveau lot de traitement {{barcode}}.",
+    "transferredToast": "{{barcode}} est passé à l'étape Traitement en conservant le même lot. Éléments : {{count}}.",
     "unexpected": "Inattendu",
     "unexpectedFlash": "Inattendu — absent du manifeste de ce lot",
     "unexpectedSection": "Inattendu / supplémentaire ({{count}})"
@@ -2395,12 +2475,13 @@
     "labelReprintTile": "Réimpression d’étiquettes",
     "labelReprintTitle": "Réimprimer les étiquettes de plusieurs dossiers à la fois",
     "loading": "Chargement des lots…",
+    "lookupButton": "Rechercher",
     "lookupPlaceholder": "Scanner ou saisir un code-barres de lot principal…",
     "newContainer": "Nouveau contenant",
     "nodeTileLabel": {
       "Checkout": "Vérification",
       "Cytology Imaging": "Cyto Imagerie",
-      "Cytology Processing": "Cyto Traitement",
+      "Cytology Processing": "Cyto liquide",
       "Cytology Staining": "Cyto Coloration",
       "Decal / Special Processing": "Décal / Spécial",
       "Embedding": "Inclusion",
@@ -2412,7 +2493,7 @@
     "nodes": {
       "Checkout": "Vérification finale",
       "Cytology Imaging": "Imagerie cytologique",
-      "Cytology Processing": "Traitement cytologique",
+      "Cytology Processing": "Traitement de cytologie en milieu liquide",
       "Cytology Staining": "Coloration cytologique",
       "Decal / Special Processing": "Décalcification / Traitement spécial",
       "Embedding": "Inclusion",
@@ -2437,6 +2518,17 @@
     },
     "wsiScanTile": "Numérisation des lames",
     "wsiScanTitle": "Charger des lames sur un scanner, envoyer le lot, le décharger"
+  },
+  "batchPurposes": {
+    "builtIn": {
+      "biobank": "Biobanque",
+      "clinical-trial": "Essai clinique",
+      "qa-validation": "AQ / Validation",
+      "research": "Recherche",
+      "routine": "Routine",
+      "teaching": "Enseignement"
+    },
+    "label": "Objet"
   },
   "batchRegistryFeedSection": {
     "addProgram": "Ajouter un programme",
@@ -2607,6 +2699,62 @@
     "title": "Contributions au poste de travail",
     "windowLabel": "Derniers {{days}} jours"
   },
+  "benchReasons": {
+    "AE_DIAGNOSIS_NEEDED": "Nécessaire pour compléter le diagnostic",
+    "AE_LAST_MATERIAL": "Dernier matériel disponible",
+    "AE_PATHOLOGIST_REQUEST": "Demandé par le pathologiste",
+    "BA_CREATED_IN_ERROR": "Créé par erreur",
+    "BA_EQUIPMENT_FAILURE": "Panne d’équipement",
+    "BA_RUN_CANCELLED": "Série annulée par le laboratoire",
+    "BA_WRONG_CONTAINER": "Mauvais contenant ou portoir",
+    "BE_BLOCK_DAMAGED": "Bloc endommagé",
+    "BE_FEW_SECTIONS": "Il ne reste que quelques coupes",
+    "BE_INCOMPLETE_FACE": "Impossible d’obtenir une face complète",
+    "BE_NO_TISSUE": "Plus de tissu dans le bloc",
+    "BO_ACCOUNTED_ELSEWHERE": "Éléments retrouvés ailleurs",
+    "BO_LABEL_DAMAGED": "Étiquette abîmée, identité vérifiée visuellement",
+    "BO_SCANNED_BY_HAND": "Vérifié à la main : le code-barres ne se lit pas",
+    "BO_SUPERVISOR_APPROVED": "Approuvé par le superviseur",
+    "CC_BACK_IN_RANGE": "Température revenue dans la plage à l’arrivée",
+    "CC_COURIER_DELAY": "Retard du coursier ; contenu vérifié",
+    "CC_LOGGER_FAULT": "Emballage intact ; défaut de l’enregistreur"
+  },
+  "benchReasonsSection": {
+    "add": "Ajouter un motif",
+    "addAria": "Nouveau motif pour {{category}}",
+    "addPlaceholder": "Un nouveau motif, avec les mots de votre laboratoire",
+    "categories": {
+      "BENCH_ADDON_EXHAUSTED": "Commandes complémentaires : commande ou réponse sur un bloc épuisé",
+      "BENCH_BATCH_ABORT": "Gestion des lots : Abandonner le lot",
+      "BENCH_BATCH_COLD_CHAIN": "Gestion des lots : accuser une rupture de la chaîne du froid",
+      "BENCH_BATCH_OVERRIDE": "Gestion des lots : terminer avec écarts",
+      "BENCH_BLOCK_EXHAUSTED": "Microtome : Bloc épuisé"
+    },
+    "columns": {
+      "actions": "Actions",
+      "code": "Code",
+      "wording": "Formulation"
+    },
+    "defaultWording": "Formulation par défaut, affichée dans la langue de chaque utilisateur",
+    "errors": {
+      "duplicate": "Cette catégorie a déjà un motif avec cette formulation.",
+      "required": "Saisissez la formulation."
+    },
+    "labWording": "Formulation de votre laboratoire, affichée telle que saisie",
+    "moveDown": "Descendre ce motif",
+    "moveDownShort": "↓",
+    "moveUp": "Monter ce motif",
+    "moveUpShort": "↑",
+    "notSaved": "Non enregistré. Vous n’avez peut-être pas l’autorisation de modifier les motifs du poste ; contactez votre administrateur.",
+    "restore": "Rétablir",
+    "retire": "Retirer",
+    "reword": "Reformuler",
+    "rewordAria": "Nouvelle formulation pour « {{reason}} »",
+    "saved": "Enregistré.",
+    "subtitle": "Les motifs que le personnel touche au poste. Reformulez-les dans la langue de votre laboratoire, ajoutez les vôtres, ordonnez-les ou retirez-les. Chacun garde son code : les rapports le comptent de la même façon après reformulation. Une note reste facultative.",
+    "title": "Motifs du poste de travail",
+    "useDefault": "Reprendre la formulation par défaut"
+  },
   "biFeed": {
     "approval": {
       "approver": "Approuvé par",
@@ -2646,9 +2794,17 @@
     "copy": "Copier",
     "copyFailed": "Copie impossible. Sélectionnez le jeton et copiez-le manuellement.",
     "datasets": {
+      "add_on_orders": {
+        "description": "Commandes complémentaires avec type, priorité, heures de commande et de coupe, statut et file d'attente.",
+        "name": "Commandes complémentaires"
+      },
       "audit": {
         "description": "Nombres quotidiens d’actions autorisées et refusées par type d’événement. Uniquement des totaux, sans détail utilisateur ni patient.",
         "name": "Synthèses d’audit"
+      },
+      "batches": {
+        "description": "Chaque porteur avec son objet, son étape actuelle, son historique, ses heures, son objectif et les comptes de rapprochement. Aucune donnée de cas.",
+        "name": "Porteurs et lots"
       },
       "billing": {
         "description": "Saisie des actes et événements de facturation envoyés au système de facturation, avec code CPT, quantité, montant et classe financière.",
@@ -2658,6 +2814,10 @@
         "description": "Dossiers avec heures d’enregistrement et de validation, statut, priorité, pathologiste, codes de diagnostic et délai en heures.",
         "name": "Dossiers et délais"
       },
+      "item_end_states": {
+        "description": "Chaque état final enregistré pour un bloc ou une lame (épuisé, remis en stockage, archivé, envoyé à l’extérieur, consommé, éliminé), avec l’élément d’origine, la personne et la date. Le motif en texte libre est retiré en mode désidentifié.",
+        "name": "États finaux des éléments"
+      },
       "qa": {
         "description": "Événements qualité tels que discordances, déficiences et modifications, avec gravité, issue et délais.",
         "name": "Qualité et discordance"
@@ -2665,6 +2825,10 @@
       "specimens": {
         "description": "Prélèvements avec type, heures de prélèvement et de réception, et nombres de blocs, lames et colorations.",
         "name": "Prélèvements"
+      },
+      "station_events": {
+        "description": "Chaque scan de cassette, de bloc ou de lame à un poste : quand, où, quelle étape, ce qui s'est passé, et s'il provient d'un scan de porteur.",
+        "name": "Scans de poste"
       },
       "workload": {
         "description": "Dossiers, prélèvements, blocs et lames traités par personne et par jour. Aucune donnée patient.",
@@ -3407,6 +3571,53 @@
     "entirelySubmittedRange_one": "Entièrement soumis dans le bloc {{range}}",
     "entirelySubmittedRange_other": "Entièrement soumis dans les blocs {{range}}"
   },
+  "blockPieces": {
+    "addPiece": "+ Ajouter un fragment",
+    "cols": {
+      "description": "Description",
+      "ink": "Encre",
+      "orientation": "Orientation",
+      "part": "Prélèvement",
+      "position": "Position",
+      "remove": "Retirer le fragment"
+    },
+    "edit": "Type et fragments",
+    "exhausted": "Épuisé",
+    "lastPieceUsed": "C’était le dernier fragment : le bloc est maintenant épuisé.",
+    "markExhausted": "Fragment épuisé",
+    "notPermitted": "Vous n’avez pas l’autorisation de l’enregistrer. Contactez votre administrateur.",
+    "notSaved": "Non enregistré. Vérifiez les fragments et réessayez.",
+    "orderFor": "Fragments",
+    "pieceCount_one": "{{count}} fragment",
+    "pieceCount_other": "{{count}} fragments",
+    "pieceLabel": "Fragment {{position}} ({{part}})",
+    "pieceMarked": "Fragment marqué comme épuisé.",
+    "problems": {
+      "partMissing": "Chaque fragment doit avoir son prélèvement.",
+      "pieceInUse": "Un fragment épuisé ou cité dans une commande ne peut pas être retiré.",
+      "piecesNeedMultiPiece": "Plusieurs fragments nécessitent le type Bloc à plusieurs fragments ou Mégabloc.",
+      "positionInvalid": "Chaque position doit être un nombre entier à partir de 1.",
+      "positionRepeated": "Deux fragments ont la même position.",
+      "typeUnknown": "Choisissez un type de bloc."
+    },
+    "save": "Enregistrer",
+    "saved": "Enregistré.",
+    "slideSizes": {
+      "large_format": "Lame grand format",
+      "standard": "Lame standard"
+    },
+    "slidesAre": "Lames : {{size}}",
+    "title": "Type de bloc et fragments",
+    "typeLabel": "Type de bloc",
+    "typeNote": "Lames de ce bloc : {{slideSize}}.",
+    "types": {
+      "matrix": "Bloc matriciel",
+      "megablock": "Mégabloc",
+      "multi_piece": "Bloc à plusieurs fragments",
+      "standard": "Bloc standard"
+    },
+    "wholeBlockHint": "Ne cochez rien pour commander sur le bloc entier."
+  },
   "blockStainEditorModal": {
     "addPhotoButton": "📷 Ajouter une photo",
     "blockCommentsLabel": "Commentaires sur le bloc",
@@ -3539,9 +3750,10 @@
       "label": "Finalisé — données structurées complètes, le LIS gère la signature officielle",
       "title": "Les dossiers en mode Assist sont terminés via Finaliser — le LIS gère la signature officielle pour ce mode de rapport, pas PathScribe."
     },
-    "attachImages": {
-      "label": "Joindre des images",
-      "title": "Joindre des images à ce compte rendu ; elles s'impriment après ses pages"
+    "attachments": {
+      "add": "Ajouter des pièces jointes",
+      "label": "Pièces jointes ({{number}})",
+      "title": "Photos, fichiers et liens de ce dossier, et ce qui est placé dans son compte rendu"
     },
     "common": {
       "synopticPendingTitle": "Désactivé — évaluation de l'affectation synoptique de l'étape 1 en cours ou en attente de révision"
@@ -3853,6 +4065,10 @@
         "description": "Enregistrer le résultat d’un test toxicologique post-mortem commandé, et lever le blocage qu’il avait déclenché s’il est encore ouvert.",
         "label": "Enregistrer un résultat de toxicologie"
       },
+      "batchCarrierAdvance": {
+        "description": "Faire passer un porteur à l'étape de traitement suivante, en mettant à jour chaque élément qu'il contient.",
+        "label": "Faire passer un porteur à l'étape suivante"
+      },
       "batchColdChainExcursionAcknowledge": {
         "description": "Acquitter un écart de température sur un lot, avec une note, pour pouvoir le terminer.",
         "label": "Acquitter un écart de chaîne du froid"
@@ -3860,6 +4076,10 @@
       "batchColdChainReadingSimulate": {
         "description": "Envoyer une lecture de température simulée et étiquetée pour une unité de stockage ou un conteneur, afin de voir une dérive, une mise en attente du lot et une CAPA sans capteur.",
         "label": "Essayer une lecture de température simulée"
+      },
+      "batchManifestSeal": {
+        "description": "Sceller le manifeste d'un porteur pour que rien ne puisse y être ajouté ni retiré.",
+        "label": "Sceller le manifeste d'un porteur"
       },
       "batchReconciliationOverride": {
         "description": "Marquer un lot comme terminé malgré des éléments manquants ou inattendus, avec un motif.",
@@ -3896,6 +4116,18 @@
       "caseAccessionCreate": {
         "description": "Créer un nouveau cas sur l'écran d'enregistrement. Nécessite l'écran d'enregistrement.",
         "label": "Créer un cas à l'enregistrement"
+      },
+      "caseAttachmentLink": {
+        "description": "Joindre à un dossier un lien https vers un système de l’hôpital (image ou document). Audité avec l’hôte du lien uniquement.",
+        "label": "Lier des fichiers à un dossier"
+      },
+      "caseAttachmentUnlink": {
+        "description": "Délier un fichier ou un lien joint d’un dossier. Le fichier reste dans le stockage de l’hôpital. Audité.",
+        "label": "Retirer des pièces jointes d’un dossier"
+      },
+      "caseAttachmentUpload": {
+        "description": "Joindre un PDF, JPG ou PNG à un dossier. Le fichier est envoyé au stockage de l’hôpital par l’adaptateur de stockage et seul un lien est conservé. Audité.",
+        "label": "Joindre des fichiers à un dossier"
       },
       "caseClinicalHistoryRecord": {
         "description": "Ajouter ou rapprocher les antécédents cliniques codés d’un cas après l’accueil (macroscopie, revue du compte rendu, validation), jusqu’à la validation. Pathologiste, Fellow, Interne et Assistant pathologiste par défaut.",
@@ -4073,9 +4305,17 @@
         "description": "Définir la fréquence et la cible des interrogations du SIL en mode Assist. Audité.",
         "label": "Gérer l'interrogation du SIL en mode Assist"
       },
+      "configBatchPurposesManage": {
+        "description": "Activer ou désactiver les objets de lot intégrés et ajouter ceux du laboratoire.",
+        "label": "Gérer les objets des lots"
+      },
       "configBatchRegistryFeedManage": {
         "description": "Définir la structure du fichier de chaque registre ou programme de dépistage qui reçoit un fichier de lot, et l'activer ou le désactiver. Audité.",
         "label": "Gérer les fichiers de lot des registres"
+      },
+      "configBenchReasonsManage": {
+        "description": "Reformuler, ajouter, ordonner et retirer les motifs à toucher utilisés au poste. Les motifs gardent leur code, les rapports restent cohérents.",
+        "label": "Gérer les motifs du poste de travail"
       },
       "configBiFeedIdentifiedApprove": {
         "description": "Enregistrer qui a approuvé les jetons de flux identifiés (non désidentifiés) et pourquoi, ou retirer cette approbation. Audité.",
@@ -4257,6 +4497,10 @@
         "description": "Ajouter et modifier les services et leurs dérogations de conservation. Audité.",
         "label": "Gérer les services"
       },
+      "configDirectDevicePrintingManage": {
+        "description": "Activer ou désactiver pour un établissement l’impression directe du navigateur vers l’imprimante (QZ Tray, agent PathScribe, Zebra Browser Print, BarTender). Désactivée par défaut sur un déploiement serveur ; les modifications et chaque impression directe sont consignées.",
+        "label": "Autoriser l’impression directe depuis le navigateur"
+      },
       "configDisplayProfilesManage": {
         "description": "Choisir ce qu'affichent les tableaux muraux. Audité.",
         "label": "Gérer les profils d'affichage mural"
@@ -4437,6 +4681,10 @@
         "description": "Mettre en service une mise en page ou une partie de compte rendu. Audité.",
         "label": "Publier des modèles et parties de compte rendu"
       },
+      "configResearchCasesManage": {
+        "description": "Définir comment les cas de recherche sont reconnus, la classe financière sans facturation transmise et la durée de conservation de leur matériel. Ces cas sont exclus des listes de travail et statistiques cliniques et ne sont jamais transmis comme résultats ni comme actes.",
+        "label": "Gérer les paramètres des cas de recherche"
+      },
       "configResearchFeedManage": {
         "description": "Modifier la recherche du fil de publications. Audité.",
         "label": "Gérer le fil de publications"
@@ -4573,6 +4821,10 @@
         "description": "Finaliser un dossier de cytologie avant que tous ses prélèvements soient validés, avec un motif. Tracé ; les prélèvements non validés sont indiqués et peuvent encore être validés.",
         "label": "Finaliser un dossier de cytologie par anticipation"
       },
+      "cytologyCellBlockHandOff": {
+        "description": "Au poste de préparation cytologique, après le scan de l’origine et de la cassette ; le microtome n’accepte qu’un cytobloc remis.",
+        "label": "Remettre un cytobloc à l’histologie"
+      },
       "cytologyCsmsEligibilityVerify": {
         "description": "Enregistrer le résultat de la vérification d'éligibilité CSMS d'un dossier dans l'onglet CSMS QA : vérifiée, ou non éligible avec un motif. Cela efface le signalement de vérification du dossier. Journalisé avec l'auteur, la date et le résultat.",
         "label": "Enregistrer une vérification d'éligibilité CSMS"
@@ -4701,6 +4953,10 @@
         "description": "Scanner le code-barres d'un contenant et enregistrer son reçu permanent « Reçu dans la lockbox », avec l'heure du serveur et votre nom. Un code-barres sans commande en attente reçoit un enregistrement provisoire, jamais un numéro d'accession.",
         "label": "Réceptionner des prélèvements dans la lockbox"
       },
+      "materialAliquotStatusUpdate": {
+        "description": "Envoyée, Reçue, Résultat reçu (avec le n° de dossier du service destinataire).",
+        "label": "Mettre à jour le statut d’une aliquote"
+      },
       "materialBlockDeleteInProcess": {
         "description": "Supprimer un bloc encore en cours de traitement. Ses coupes et colorations en attente sont annulées, un motif est enregistré et un élément de crédit est mis en file pour le personnel de facturation. Le bloc reste dans le dossier, marqué Supprimé. Audité.",
         "label": "Supprimer un bloc en cours de traitement"
@@ -4712,6 +4968,22 @@
       "materialBlockFlagAmended": {
         "description": "Marquer un bloc Invalidé ou Remplacé sur un rapport modifié. Simple indicateur : le bloc n’est pas supprimé. Audité.",
         "label": "Signaler un bloc sur un rapport modifié"
+      },
+      "materialEndStateRecord": {
+        "description": "Enregistrer au poste l’état final d’un bloc ou d’une lame (épuisé, remis en stockage, archivé, envoyé à l’extérieur, consommé pour des analyses, éliminé), avec un motif.",
+        "label": "Enregistrer l’état final d’un élément"
+      },
+      "materialReembedComplete": {
+        "description": "Au poste d’inclusion, enregistrer que le tissu d’un bloc épuisé a été réinclus ; les commandes en attente passent au microtome.",
+        "label": "Marquer un bloc comme réinclus"
+      },
+      "materialReembedRequest": {
+        "description": "Demander la réinclusion du reliquat ou du tissu frais d’un bloc épuisé, depuis le générateur de commandes complémentaires ou en réponse à un signalement « Bloc épuisé ». La commande attend qu’elle soit faite.",
+        "label": "Demander la réinclusion d’un bloc épuisé"
+      },
+      "materialSpecimenDivide": {
+        "description": "À la macroscopie ou au poste de préparation cytologique, avec le volume initial, le volume et la destination de chaque aliquote.",
+        "label": "Diviser un prélèvement en aliquotes"
       },
       "messageSecureEmailSend": {
         "description": "Envoyer un e-mail sécurisé à une adresse extérieure à l'organisation.",
@@ -4937,9 +5209,25 @@
         "description": "Envoyer les cas de test synthétiques (patients fictifs uniquement) au système de test d'un registre, uniquement sur une instance de validation. Audité.",
         "label": "Lancer la suite de tests du registre"
       },
+      "reportAddOnVolumeExport": {
+        "description": "Télécharger le rapport en fichier CSV. Journalisé avec le nombre de lignes.",
+        "label": "Exporter le rapport de flux : les commandes complémentaires"
+      },
+      "reportAddOnVolumeView": {
+        "description": "Totaux uniquement, à partir des scans de poste, des cas et des porteurs ; les cas de recherche sont exclus.",
+        "label": "Voir le rapport de flux : les commandes complémentaires"
+      },
+      "reportBatchDurationExport": {
+        "description": "Télécharger le rapport en fichier CSV. Journalisé avec le nombre de lignes.",
+        "label": "Exporter le rapport de flux : la durée des lots"
+      },
+      "reportBatchDurationView": {
+        "description": "Totaux uniquement, à partir des scans de poste, des cas et des porteurs ; les cas de recherche sont exclus.",
+        "label": "Voir le rapport de flux : la durée des lots"
+      },
       "reportCaseImagesAttach": {
-        "description": "Joindre des images (photographies macroscopiques, microphotographies) au compte rendu d'un dossier, ou les retirer. Elles s'impriment après les pages du compte rendu. Audité.",
-        "label": "Joindre des images à un compte rendu"
+        "description": "Placer des photos, fichiers et liens dans le compte rendu d’un dossier (dans une section), ou les retirer. Un compte rendu signé nécessite d’abord une rectification ou un addendum. Audité.",
+        "label": "Placer des images dans un compte rendu"
       },
       "reportCaseReportPrint": {
         "description": "Imprimer ou réimprimer un rapport de cas, ou ouvrir le PDF d’une version enregistrée. Chaque impression est consignée dans le journal d’audit.",
@@ -4953,6 +5241,22 @@
         "description": "Placer dans le compte rendu la carte anatomique établie à partir des réponses synoptiques, ou la retirer, avant la signature. Tracé.",
         "label": "Insérer la carte d’organe dans un compte rendu"
       },
+      "reportReconciliationExceptionsExport": {
+        "description": "Télécharger le rapport en fichier CSV. Journalisé avec le nombre de lignes.",
+        "label": "Exporter le rapport de flux : les exceptions de rapprochement"
+      },
+      "reportReconciliationExceptionsView": {
+        "description": "Totaux uniquement, à partir des scans de poste, des cas et des porteurs ; les cas de recherche sont exclus.",
+        "label": "Voir le rapport de flux : les exceptions de rapprochement"
+      },
+      "reportRecutReworkExport": {
+        "description": "Télécharger le rapport en fichier CSV. Journalisé avec le nombre de lignes.",
+        "label": "Exporter le rapport de flux : les recoupes et reprises"
+      },
+      "reportRecutReworkView": {
+        "description": "Totaux uniquement, à partir des scans de poste, des cas et des porteurs ; les cas de recherche sont exclus.",
+        "label": "Voir le rapport de flux : les recoupes et reprises"
+      },
       "reportRelatedCasesAttach": {
         "description": "Choisir d’autres cas diffusés du patient à envoyer avec le compte rendu en cours de signature. Ils sont figés à la signature. Audité.",
         "label": "Joindre des cas liés à un compte rendu"
@@ -4964,6 +5268,30 @@
       "reportRestrictedCasePrint": {
         "description": "Imprimer, réimprimer ou ouvrir le PDF d'un dossier portant un indicateur qui restreint l'impression (VIP, consultation confidentielle). Nécessite aussi « Imprimer un compte rendu ».",
         "label": "Imprimer un dossier restreint"
+      },
+      "reportStatPerformanceExport": {
+        "description": "Télécharger le rapport en fichier CSV. Journalisé avec le nombre de lignes.",
+        "label": "Exporter le rapport de flux : la performance STAT"
+      },
+      "reportStatPerformanceView": {
+        "description": "Totaux uniquement, à partir des scans de poste, des cas et des porteurs ; les cas de recherche sont exclus.",
+        "label": "Voir le rapport de flux : la performance STAT"
+      },
+      "reportStationVolumeExport": {
+        "description": "Télécharger le rapport en fichier CSV. Journalisé avec le nombre de lignes.",
+        "label": "Exporter le rapport de flux : le volume par poste"
+      },
+      "reportStationVolumeView": {
+        "description": "Totaux uniquement, à partir des scans de poste, des cas et des porteurs ; les cas de recherche sont exclus.",
+        "label": "Voir le rapport de flux : le volume par poste"
+      },
+      "reportWorkflowTurnaroundExport": {
+        "description": "Télécharger le rapport en fichier CSV. Journalisé avec le nombre de lignes.",
+        "label": "Exporter le rapport de flux : le délai par étape"
+      },
+      "reportWorkflowTurnaroundView": {
+        "description": "Totaux uniquement, à partir des scans de poste, des cas et des porteurs ; les cas de recherche sont exclus.",
+        "label": "Voir le rapport de flux : le délai par étape"
       },
       "retentionDisposalReportExport": {
         "description": "Télécharger le rapport de suivi des éliminations, qui liste les numéros d'accession des cas.",
@@ -5004,6 +5332,10 @@
       "screenConfigurationOpen": {
         "description": "Voir l'écran « Configuration » et sa tuile sur la page d'accueil.",
         "label": "Ouvrir « Configuration »"
+      },
+      "screenCytologyPrepOpen": {
+        "description": "Voir le poste de préparation cytologique et sa tuile dans l’espace Pathologie.",
+        "label": "Ouvrir Préparation cytologique"
       },
       "screenCytologyQcQueueOpen": {
         "description": "Voir « File de relecture par les pairs QC cytologie » dans « Liste de travail ».",
@@ -5089,6 +5421,14 @@
         "description": "Créer, modifier, suspendre ou supprimer une planification qui exécute un rapport enregistré et l’envoie en CSV aux utilisateurs choisis. Chaque modification est enregistrée dans le journal d’audit.",
         "label": "Planifier les rapports de recherche de cas"
       },
+      "stationScanHistoryView": {
+        "description": "Voir quel élément a été scanné, à quel poste, par qui et quand.",
+        "label": "Consulter l'historique des scans par poste"
+      },
+      "stationScanMismatchContinue": {
+        "description": "Ouvrir un porteur à un poste d'une autre étape, ou garder un élément absent du porteur chargé, après l'avertissement. Enregistré dans la piste d'audit.",
+        "label": "Continuer après un avertissement de poste"
+      },
       "surgicalAddendumRelease": {
         "description": "Diffuser un addendum à un compte rendu chirurgical signé (informations ajoutées).",
         "label": "Diffuser un addendum chirurgical"
@@ -5162,6 +5502,86 @@
     "reviewRequest": "Vous n'avez pas l'autorisation d'envoyer des demandes de relecture.",
     "revisionNone": "Vous n'avez pas l'autorisation de diffuser un amendement, une correction ou un addendum.",
     "signOut": "Vous n'avez pas l'autorisation de signer des comptes rendus chirurgicaux."
+  },
+  "caseAttachments": {
+    "accessionLine": "Dossier {{accession}}",
+    "addLink": "Ajouter le lien",
+    "afterReportPages": "Ce compte rendu imprime les images après ses propres pages.",
+    "assistNote": "Pour un dossier en mode Assist, le compte rendu est rédigé dans votre SIL. Les pièces jointes sont ici des références pour ce dossier, à consulter pendant votre travail ; rien n’est ajouté au compte rendu du SIL.",
+    "attachAnyway": "Joindre quand même",
+    "attachFile": "Joindre un fichier externe…",
+    "cancel": "Annuler",
+    "captionLabel": "Légende (facultative)",
+    "captionPlaceholder": "Imprimée en dessous dans le compte rendu",
+    "close": "Terminé",
+    "dismiss": "Fermer",
+    "document": "Document PDF : cité dans sa section, ses pages suivent le compte rendu",
+    "empty": {
+      "external": "Aucun fichier ni lien joint pour l’instant.",
+      "gross": "Aucune photo macroscopique ni de face de bloc dans ce dossier.",
+      "intraop": "Aucune photo peropératoire ou de consultation dans ce dossier.",
+      "slide": "Les régions enregistrées avec Ajouter au compte rendu dans la visionneuse de lames apparaîtront ici. La visionneuse n’est pas encore développée."
+    },
+    "fileHint": "PDF, JPG ou PNG. Enregistrez d’abord un document Word en PDF.",
+    "groupCount": "{{title}} ({{number}})",
+    "groups": {
+      "external": "Fichiers et liens externes",
+      "gross": "Photos macroscopiques",
+      "intraop": "Captures peropératoires et de consultation",
+      "slide": "Régions microscopiques et de lames"
+    },
+    "inReport": "Dans le compte rendu : {{section}}",
+    "inReportAfter": "Dans le compte rendu, sur sa propre page après le compte rendu",
+    "inReportEmpty": "Rien n’est encore placé dans le compte rendu.",
+    "inReportTitle": "Dans le compte rendu",
+    "insert": "Insérer dans le compte rendu ({{number}})",
+    "insertInto": "Insérer dans",
+    "kinds": {
+      "blockFacePhoto": "Photo de face de bloc",
+      "grossPhoto": "Photo macroscopique",
+      "intraopPhoto": "Photo peropératoire",
+      "link": "Lien",
+      "uploadedFile": "Fichier joint"
+    },
+    "large": "Ce fichier fait {{size}} Mo, plus de {{limit}} Mo. Les fichiers volumineux sont plus longs à envoyer et à imprimer.",
+    "linkLabel": "Lien (https)",
+    "linkPlaceholder": "https://imagerie.hopital.org/…",
+    "notices": {
+      "inserted": "Placés dans le compte rendu : {{number}}.",
+      "uploaded": "Fichier joint. Il est conservé dans le stockage de votre hôpital."
+    },
+    "open": "Ouvrir",
+    "problems": {
+      "assistCase": "Pour un dossier en mode Assist, le compte rendu est rédigé dans le SIL ; rien n’est donc placé dans un compte rendu ici.",
+      "duplicate": "Ce lien est déjà joint à ce dossier.",
+      "empty": "Ce fichier est vide.",
+      "expired": "L’envoi a pris trop de temps. Réessayez.",
+      "failed": "Action impossible. Réessayez.",
+      "inReport": "Il est placé dans le compte rendu. Retirez-le d’abord du compte rendu.",
+      "invalidLink": "Saisissez un lien https:// vers un serveur nommé (sans nom d’utilisateur ni mot de passe).",
+      "notConfigured": "Le stockage des pièces jointes n’est pas configuré pour ce site. Contactez votre administrateur.",
+      "notFound": "Cet élément n’existe plus.",
+      "notPermitted": "Vous n’avez pas l’autorisation de faire cela.",
+      "nothingChosen": "Cochez au moins un élément.",
+      "refused": "Le stockage de votre hôpital a refusé ce fichier.",
+      "signedNeedsAmendment": "Ce compte rendu est signé. Commencez d’abord une rectification ou un addendum.",
+      "tooLarge": "Ce fichier dépasse la taille acceptée par le stockage de votre hôpital.",
+      "tooMany": "Un compte rendu peut contenir au plus {{max}} images et documents.",
+      "unavailable": "Le fichier est inaccessible pour le moment.",
+      "unsupportedType": "Seuls les fichiers PDF, JPG et PNG peuvent être joints.",
+      "wordDocument": "Il s’agit d’un document Word. Enregistrez-le en PDF, puis joignez le PDF."
+    },
+    "removeFromCase": "Retirer du dossier",
+    "reportEnd": "Fin du texte du compte rendu",
+    "rowDetail": "{{when}} · {{by}}",
+    "rowTitle": "{{kind}} · {{owner}}",
+    "select": "Sélectionner {{name}}",
+    "signedNote": "Ce compte rendu est signé. Pour placer ou retirer des images, commencez d’abord une rectification ou un addendum. Des fichiers peuvent toujours être joints au dossier.",
+    "source": "Provenance : {{host}}",
+    "storageNote": "PathScribe ne conserve qu’un lien vers chaque élément. Un fichier joint est envoyé au stockage de votre hôpital, et un lien vers celui-ci est conservé dans le dossier.",
+    "takeOut": "Retirer du compte rendu",
+    "thisCase": "ce dossier",
+    "title": "Pièces jointes"
   },
   "caseClinicalHistory": {
     "add": "Ajouter les antécédents cliniques",
@@ -6837,6 +7257,9 @@
       "sys-asset-locations": {
         "description": "La liste de référence gérée des emplacements physiques/actifs, y compris les emplacements de stockage de la morgue et leur taux d’occupation en temps réel."
       },
+      "sys-bench-reasons": {
+        "description": "Reformuler, ajouter, ordonner et retirer les motifs que le personnel touche au poste (bloc épuisé, abandon et écarts de lot, chaîne du froid)."
+      },
       "sys-bi-feed": {
         "description": "Permettre à Power BI et à d’autres outils de rapports de lire les données de PathScribe : choisir jeux de données et établissements, émettre et révoquer des jetons, approuver les données identifiantes, consulter le catalogue des champs."
       },
@@ -6947,6 +7370,9 @@
       },
       "sys-qa-trend-policy": {
         "description": "Quand une tendance de discordances majeures est signalée pour un pathologiste ou un type de prélèvement : période, relectures minimales, seuils et acheminement, par site."
+      },
+      "sys-research-cases": {
+        "description": "Comment les cas de recherche sont reconnus, conservés et tenus hors des listes de travail cliniques, des résultats et de la facturation ; et les objets possibles d'un porteur."
       },
       "sys-revision-reasons": {
         "description": "Les motifs de modification ou de correction d’un compte rendu diffusé, et ceux qui sont cliniquement significatifs : la diffusion d’une révision pour l’un d’eux recommande une CAPA."
@@ -7890,6 +8316,40 @@
     "startBtn": "Envoyer un préliminaire urgent",
     "title": "Rapport préliminaire urgent"
   },
+  "cytologyPrep": {
+    "decant": "Décantation :",
+    "handoff": {
+      "cellBlock": "Cytobloc {{label}}",
+      "confirm": "Remettre",
+      "done": {
+        "cellBlockMade": "Cytobloc {{label}} créé. Imprimez son étiquette, puis remettez-le quand le culot est dans la cassette.",
+        "handedOff": "Cytobloc {{label}} remis à l’histologie."
+      },
+      "handedOffBy": "Remis par {{name}}, {{when}}",
+      "intro": "Un cytobloc ne part en histologie qu’après sa remise : scannez le liquide ou l’aliquote d’origine, puis sa cassette.",
+      "make": "Créer un cytobloc à partir de cette décantation",
+      "next": "Suivant",
+      "none": "Aucun cytobloc pour ce prélèvement.",
+      "printLabel": "Imprimer l’étiquette",
+      "problem": {
+        "alreadyHandedOff": "Ce cytobloc a déjà été remis.",
+        "cassetteMismatch": "Non remis : le second scan n’est pas la cassette de ce cytobloc.",
+        "notCellBlock": "Ce n’est pas un cytobloc.",
+        "notPermitted": "Vous n’avez pas l’autorisation de remettre un cytobloc. Contactez votre administrateur.",
+        "notSaved": "Non enregistré. Le dossier a peut-être changé ; scannez-le à nouveau et recommencez.",
+        "sourceMismatch": "Non remis : le premier scan n’est pas le liquide ou l’aliquote d’origine de ce cytobloc."
+      },
+      "scanCassette": "Scannez la cassette du cytobloc",
+      "scanSource": "Scannez le liquide ou l’aliquote d’origine",
+      "start": "Remettre",
+      "title": "Cytoblocs",
+      "waiting": "En attente de remise"
+    },
+    "pageTitle": "Préparation cytologique",
+    "patientName": "{{given}} {{family}}",
+    "scanPlaceholder": "Scannez un code-barres de récipient ou de décantation",
+    "scanPrompt": "Scannez un liquide, une aliquote ou un cytobloc pour le préparer."
+  },
   "cytologyQaTab": {
     "apacPtTable": {
       "challenge": "Épreuve",
@@ -8418,8 +8878,9 @@
   },
   "cytologyScreening": {
     "assistModeOnly": "Ce cas est géré par un SIL externe (mode assistance). La revue cytologique structurée et la validation dans PathScribe ne sont disponibles que pour les cas en mode Orchestration.",
-    "attachImagesBtn": "Joindre des images",
-    "attachImagesTitle": "Joindre des images au compte rendu de ce dossier ; elles s'impriment après ses pages",
+    "attachmentsAddBtn": "Ajouter des pièces jointes",
+    "attachmentsBtn": "Pièces jointes ({{number}})",
+    "attachmentsTitle": "Photos, fichiers et liens de ce dossier ; les images s’impriment après le compte rendu",
     "backToWorklist": "Retour à la liste de travail",
     "billingBtn": "Facturation",
     "billingDrawer": {
@@ -8569,8 +9030,18 @@
     "materialDrawer": {
       "addCellBlockBtn": "Ajouter un bloc cellulaire",
       "addResidualFluidBtn": "Ajouter un liquide résiduel",
+      "aliquotPurpose": {
+        "flow_cytometry": "cytométrie en flux",
+        "hpv": "test HPV",
+        "microbiology": "microbiologie",
+        "molecular": "biologie moléculaire",
+        "other": "autres analyses"
+      },
+      "aliquotType": "Aliquote pour {{purpose}}",
       "decantConflict": "Quelqu’un d’autre a modifié le matériel de ce dossier pendant que vous travailliez ; votre modification du décanteur n’a donc pas été enregistrée. Le dossier a été rechargé ; refaites la modification.",
+      "decantHeading": "{{label}} — {{type}}",
       "decantType": {
+        "aliquot": "Aliquote",
         "cell_block": "Bloc cellulaire",
         "residual_fluid": "Liquide résiduel"
       },
@@ -9665,11 +10136,32 @@
     },
     "subtitle": "Utilisez ces outils pour effacer les données de démonstration ou de test et ramener l'application à un état de départ propre. Cela n'affecte que le backend de démonstration simulé — jamais une base de données client réelle et active.",
     "testingTools": {
+      "displayTokensDescription": "Émet un nouveau jeton pour chaque écran mural de Desert Valley, l'écran de réserve et le terminal du bloc opératoire, et révoque celui de l'ancien écran de la salle de pause pour montrer l'écran Écran indisponible. À refaire après chaque réinitialisation complète.",
+      "displayTokensTitle": "Jetons d'affichage de démonstration",
+      "issueTokensBtn": "Émettre les jetons",
       "molecularOrderQueueDescription": "Simule la commande et la réception de résultats HPV pour un cas de référence fixe. Une surface de test/démonstration, pas un flux de commande de production.",
       "molecularOrderQueueTitle": "File d'attente des commandes moléculaires",
       "openBtn": "Ouvrir",
       "subtitle": "Autres outils pour tester et simuler des scénarios dans cet environnement de démonstration.",
-      "title": "Outils de test et de démonstration"
+      "title": "Outils de test et de démonstration",
+      "tokens": {
+        "copied": "Copié",
+        "copy": "Copier",
+        "display": "Affichage",
+        "issueFailed": "Les jetons n'ont pas tous pu être émis. Réessayez.",
+        "notPermitted": "Vous n'êtes pas autorisé à émettre des jetons d'affichage de démonstration.",
+        "shownOnce": "Affichés une seule fois. Copiez chaque jeton là où vous en avez besoin : il ne pourra pas être relu.",
+        "token": "Jeton",
+        "use": "Montre",
+        "uses": {
+          "orSuite": "Tableau du bloc opératoire",
+          "revoked": "Révoqué : l'écran Écran indisponible",
+          "rotating": "Les cinq vues, en rotation",
+          "secondSite": "Deuxième établissement",
+          "singleView": "Un seul service",
+          "spare": "Réserve"
+        }
+      }
     },
     "title": "Réinitialisation des données de démonstration et de test"
   },
@@ -9810,6 +10302,15 @@
     },
     "removeAria": "Retirer « {{word}} »"
   },
+  "directPrinting": {
+    "allow": "Autoriser l’impression directe depuis le navigateur dans cet établissement",
+    "intro": "Les étiquettes et les comptes rendus passent normalement par le moteur d’interface, avec la boîte de dialogue d’impression du navigateur en secours. Cochez cette case seulement si cet établissement doit imprimer directement du navigateur vers une imprimante (QZ Tray, l’agent PathScribe, Zebra Browser Print ou BarTender). Chaque impression de ce type est consignée dans le journal d’audit.",
+    "notPermitted": "Vous n’avez pas l’autorisation de modifier l’impression directe. Contactez votre administrateur.",
+    "save": "Enregistrer l’impression directe",
+    "saveFailed": "Non enregistré. Réessayez.",
+    "saved": "Enregistré. La modification est consignée dans le journal d’audit.",
+    "title": "Impression directe depuis le navigateur"
+  },
   "discordanceReconciliationModal": {
     "categoryDiffersNote": "La catégorie finale diffère de la catégorie congelée — cela doit être enregistré comme une discordance avant de poursuivre la signature.",
     "commentLabel": "Commentaire — obligatoire",
@@ -9907,6 +10408,9 @@
   },
   "displayProfiles": {
     "addButton": "+ Ajouter un profil d’affichage",
+    "addOnLimitHint": "Les compléments en attente au-delà de ce délai passent en rouge et remontent en tête de la vue Inclusion et microtomie ; ils passent en orange peu avant. La vue Postes compte les porteurs et compléments au-delà. Vide : 120 minutes.",
+    "addOnLimitInvalid": "Saisissez un nombre entier de minutes entre 15 et 1440.",
+    "addOnLimitLabel": "Délai X (minutes)",
     "addTitle": "Ajouter un profil d’affichage",
     "assignedViewsLabel": "Vue(s) de tableau de bord assignée(s)",
     "carouselIntervalLabel": "Intervalle du carrousel (secondes)",
@@ -9922,11 +10426,16 @@
     "launchDashboardButton": "🖥️ Ouvrir le tableau de bord des opérations",
     "nameLabel": "Nom de l’affichage",
     "namePlaceholder": "ex. Paillasse d’histologie 3 — Écran mural",
+    "purposesHint": "Si aucun n'est coché, tous les objets s'affichent. Les commandes complémentaires ne sont pas des porteurs et s'affichent toujours.",
+    "purposesLabel": "Afficher les porteurs pour ces objets",
     "reactivate": "Réactiver",
     "sectionSubtitle": "Registre réel, données uniquement, pour les cinq écrans muraux des tableaux de bord des opérations — chaque profil associe un écran physique à un laboratoire exécutant et à une ou plusieurs vues de service. Aucune liaison matérielle physique n’est vérifiée ni appliquée ; le jeton d’appareil est purement informatif.",
     "sectionTitle": "Profils d’affichage (tableaux de bord des opérations)",
     "selectFacility": "— sélectionner un établissement —",
-    "showInactive": "Afficher les inactifs"
+    "showInactive": "Afficher les inactifs",
+    "staleScanHint": "La vue Postes liste les cassettes, blocs et lames non scannés à un poste depuis plus longtemps. Vide : 240 minutes.",
+    "staleScanInvalid": "Saisissez un nombre entier de minutes entre 30 et 10080.",
+    "staleScanLabel": "Alerte de non-scan (minutes)"
   },
   "disposalQueue": {
     "computing": "Calcul de la file actuelle en cours…",
@@ -10003,6 +10512,52 @@
       "total": "Total éliminé"
     },
     "unknownLocation": "Inconnu"
+  },
+  "divideSpecimen": {
+    "add": "+ Ajouter une aliquote",
+    "aliquotLine": "{{volume}} mL → {{destination}}",
+    "destination": "Destination",
+    "destinationKind": "Type de destination",
+    "divide": "Diviser",
+    "done": {
+      "divided": "Divisé en {{labels}} ; {{remaining}} mL restants.",
+      "statusSaved": "Statut enregistré."
+    },
+    "kind": {
+      "department": "Service",
+      "reference_lab": "Laboratoire de référence"
+    },
+    "markAs": "Marquer « {{status}} »",
+    "open": "Diviser le prélèvement",
+    "problem": {
+      "alreadyDivided": "Ce prélèvement a déjà été divisé.",
+      "noRows": "Ajoutez au moins une aliquote.",
+      "noStartingVolume": "Saisissez d’abord le volume initial.",
+      "notAliquot": "Ce n’est pas une aliquote.",
+      "notForward": "Le statut d’une aliquote ne fait qu’avancer.",
+      "notFound": "Cette aliquote n’est plus sur le dossier.",
+      "notPermitted": "Vous n’avez pas l’autorisation. Contactez votre administrateur.",
+      "notSaved": "Non enregistré. Le dossier a peut-être changé ; réessayez.",
+      "overStartingVolume": "Les aliquotes dépassent le volume initial.",
+      "receivingAccessionRequired": "Saisissez le n° de dossier du service destinataire pour enregistrer « Résultat reçu ».",
+      "rowDestination": "Chaque aliquote doit avoir une destination.",
+      "rowVolume": "Chaque aliquote doit avoir un volume supérieur à 0 mL."
+    },
+    "purpose": "Pour",
+    "receivingAccession": "N° de dossier du service destinataire",
+    "record": "Divisé par {{name}}, {{when}} : {{split}} mL sur {{start}} mL en aliquotes, {{remaining}} mL restants.",
+    "remove": "Retirer",
+    "startingVolume": "Volume initial (mL)",
+    "status": {
+      "not_sent": "Non envoyée",
+      "received": "Reçue",
+      "result_back": "Résultat reçu",
+      "sent": "Envoyée"
+    },
+    "statusWithReceiving": "{{status}}, n° de dossier destinataire {{accession}}",
+    "title": "Diviser le prélèvement {{label}}",
+    "totals": "Réparti : {{split}} mL sur {{start}} mL ; {{remaining}} mL restants.",
+    "volume": "Volume (mL)"
   },
   "documentStyleSection": {
     "bold": "Gras",
@@ -10114,6 +10669,7 @@
         "requiresDecal": "Décalcification requise",
         "tinyTissue": "Tissu minuscule"
       },
+      "matrixBlockOf": "Bloc matriciel des prélèvements {{specimens}}",
       "patient": "Patient :",
       "scanNext": "Scanner la cassette suivante →",
       "specimenBlock": "Prélèvement/Bloc :",
@@ -10199,7 +10755,7 @@
       "blockNotFound": "Le bloc {{block}} est introuvable.",
       "notResolved": "Ce scan ne correspond à aucun cas ni bloc. Vérifiez le code-barres et réessayez.",
       "specimenNotFound": "Le prélèvement est introuvable dans ce cas.",
-      "unsupportedTarget": "Le poste d’inclusion n’accepte que les cassettes de bloc. Les cassettes matricielles ou de cytobloc, les décantations et les codes-barres de prélèvement ne sont pas encore pris en charge."
+      "unsupportedTarget": "Le poste d’inclusion accepte les cassettes de bloc et de bloc matriciel. Les cassettes de cytobloc, les décantations et les codes-barres de prélèvement ne sont pas encore pris en charge."
     },
     "scanPlaceholder": "Scannez ou saisissez un code-barres…",
     "scanPrompt": "Scannez un code-barres de cassette pour commencer",
@@ -10369,6 +10925,7 @@
     "camera": "Caméra",
     "engraver": "Graveur",
     "label_printer": "Imprimante d'étiquettes",
+    "lbc_processor": "Automate de cytologie en milieu liquide",
     "other": "Autre",
     "scale": "Balance",
     "slide_scanner": "Scanner de lames",
@@ -10381,9 +10938,11 @@
       "dateInFuture": "La date ne peut pas être dans le futur.",
       "dateRequired": "Saisissez la date de réalisation.",
       "notesRequired": "Décrivez ce qui s'est passé : obligatoire pour un échec ou une panne.",
+      "outcomeMismatch": "Le résultat doit correspondre à la mesure par rapport à la plage.",
       "outcomeRequired": "Choisissez un résultat.",
       "performedByRequired": "Indiquez qui l’a réalisé.",
       "saveFailed": "L'entrée n'a pas pu être enregistrée.",
+      "temperatureRequired": "Saisissez la température mesurée.",
       "typeRequired": "Choisissez un type."
     },
     "headers": {
@@ -10403,6 +10962,7 @@
       "historyEmpty": "Aucune entrée pour le moment.",
       "historyTitle": "Historique",
       "lastDone": "Dernière fois le {{date}}",
+      "noRange": "Aucune plage n'est définie pour cet équipement (Configuration → Système → Équipements) ; choisissez vous-même le résultat.",
       "notScheduled": "Non planifié",
       "notesHint": "Obligatoire pour un échec ou une panne.",
       "notesLabel": "Remarques",
@@ -10410,6 +10970,8 @@
       "outcomeLabel": "Résultat",
       "performedByLabel": "Réalisé par",
       "performedByPlaceholder": "Membre du personnel ou technicien de maintenance",
+      "range": "Plage acceptable : {{min}} à {{max}} °C. Le résultat est déduit de la mesure.",
+      "temperatureLabel": "Température (°C)",
       "title": "Journal d’entretien — {{name}} ({{code}})",
       "typeLabel": "Type"
     },
@@ -10426,12 +10988,14 @@
       "ok": "À jour",
       "overdue": "En retard"
     },
+    "temperatureReading": "({{value}} °C)",
     "types": {
       "calibration": "Étalonnage",
       "function_check": "Vérification de fonctionnement",
       "maintenance": "Maintenance",
       "malfunction": "Panne",
-      "repair": "Réparation"
+      "repair": "Réparation",
+      "temperature_check": "Contrôle de température"
     }
   },
   "equipmentSection": {
@@ -10464,7 +11028,8 @@
       "kindRequired": "Choisissez un type.",
       "nameRequired": "Un nom est obligatoire.",
       "saveFailed": "L'équipement n'a pas pu être enregistré. Vérifiez les champs et réessayez.",
-      "stationOtherFacility": "Ce poste de numérisation se trouve dans un autre laboratoire."
+      "stationOtherFacility": "Ce poste de numérisation se trouve dans un autre laboratoire.",
+      "temperatureRangeInvalid": "Saisissez des nombres, la valeur minimale inférieure à la maximale."
     },
     "headers": {
       "actions": "Actions",
@@ -10497,6 +11062,7 @@
       "intervalHint": "Laissez vide s'il n'y a pas de planification. Les échéances partent de la dernière entrée réussie du journal.",
       "intervalPlaceholder": "ex. 30",
       "kindLabel": "Type",
+      "largeFormatLabel": "Accepte les lames grand format",
       "maintenanceIntervalLabel": "Maintenance tous les (jours)",
       "makeLabel": "Marque",
       "makePlaceholder": "ex. Hologic",
@@ -10510,9 +11076,21 @@
       "stationHint": "Emplacement de l'appareil. Pour un analyseur, l'envoi de la liste de travail vérifie qu'il part de ce poste.",
       "stationLabel": "Poste de numérisation",
       "stationNoneOption": "— Aucun poste —",
-      "statusLabel": "Statut"
+      "statusLabel": "Statut",
+      "temperatureHint": "Facultatif. Un contrôle de température du journal des équipements hors de cette plage est un échec.",
+      "temperatureMaxLabel": "Température maximale (°C)",
+      "temperatureMinLabel": "Température minimale (°C)"
     },
     "nextDue": "Prochaine échéance {{date}}",
+    "racks": {
+      "largeFormat": "Lames grand format",
+      "largeFormatAria": "{{rack}} prend les lames grand format",
+      "largeFormatLabel": "Prend les lames grand format",
+      "notSaved": "Non enregistré. Vous n’avez peut-être pas l’autorisation de modifier l’équipement ; contactez votre administrateur.",
+      "rack": "Portoir",
+      "subtitle": "Portoirs de coloration réutilisables (identifiants RACK- gravés). Une lame grand format issue d’un mégabloc ne va que dans un portoir qui prend les lames grand format.",
+      "title": "Portoirs de coloration"
+    },
     "searchPlaceholder": "Rechercher par nom, code, marque, modèle ou numéro de série...",
     "settingsLink": {
       "grossingHardware": "Matériel de macroscopie : {{name}}",
@@ -10548,6 +11126,19 @@
     "noDocumentationAtAll": "Ce prélèvement n’a ni description microscopique ni modèle synoptique — ajoutez une documentation avant de finaliser.",
     "requiredForProcedure": "Une description microscopique est requise pour cette procédure.",
     "unsavedDraft": "La description microscopique de ce prélèvement est un brouillon non enregistré — enregistrez-le ou annulez-le avant de finaliser."
+  },
+  "exhaustedBlock": {
+    "awaitingReembed_one": "{{count}} commande attend la réinclusion de ce bloc.",
+    "awaitingReembed_other": "{{count}} commandes attendent la réinclusion de ce bloc.",
+    "failed": "La réinclusion n’a pas pu être enregistrée. Rien n’a été modifié.",
+    "markReembedded": "Réinclus : libérer les commandes",
+    "none": "aucun",
+    "notPermitted": "Vous n’avez pas l’autorisation d’enregistrer une réinclusion. Contactez votre administrateur.",
+    "piecesTitle": "Les fragments choisis du bloc {{block}} sont épuisés.",
+    "released_one": "Réinclusion enregistrée. {{count}} commande a été transmise au microtome.",
+    "released_other": "Réinclusion enregistrée. {{count}} commandes ont été transmises au microtome.",
+    "remains": "Ce qui reste : lames non colorées {{unstained}} ; autres blocs de ce prélèvement : {{blocks}}.",
+    "title": "Le bloc {{block}} est épuisé."
   },
   "exports": {
     "notice": {
@@ -10992,7 +11583,29 @@
     }
   },
   "facilityOpsDashboard": {
+    "addOnPill": "COMPLÉMENT",
+    "addOnTypes": {
+      "ihc": "IHC",
+      "molecular": "Coupes pour biologie moléculaire",
+      "other": "Complément",
+      "recut": "Recoupe / niveaux",
+      "sendOut": "Coupes à envoyer",
+      "specialStain": "Coloration spéciale"
+    },
     "ageLabel": "il y a {{duration}}",
+    "alertKinds": {
+      "coldChainExcursion": "Rupture de chaîne du froid",
+      "decalOverdue": "Décalcification en retard",
+      "notScanned": "Non scanné",
+      "qcFailed": "CQ non conforme",
+      "reconciliation": "Réconciliation",
+      "recutRequested": "Recoupe demandée",
+      "runFailed": "Cycle en échec",
+      "scanFailed": "Échec de numérisation",
+      "scanQcFailed": "CQ de numérisation non conforme",
+      "stat": "STAT",
+      "statAddOn": "Complément STAT"
+    },
     "bindDisplayDescription": "Sélectionnez le profil d’affichage que cet écran mural doit afficher.",
     "bindDisplayTitle": "Associer cet écran",
     "confirmTokenDescription": "Saisissez le jeton d'appareil enregistré pour « {{name}} » pour terminer l'association de cet affichage.",
@@ -11000,21 +11613,96 @@
     "confirmTokenNote": "Cela confirme que vous disposez du jeton enregistré par un administrateur pour cet affichage — cela ne vérifie pas le matériel physique réel.",
     "confirmTokenPlaceholder": "Saisir le jeton d'appareil",
     "confirmTokenTitle": "Confirmer le jeton de l'appareil",
+    "details": {
+      "awaitingIntake": "{{specimen}} : en attente de réception ({{material}})",
+      "blockStain": "{{block}} · {{stain}}",
+      "instrument": "{{node}} · éléments : {{count}} · instrument : {{instrument}}",
+      "lastSeenAt": "Dernier scan à {{station}}, il y a {{duration}}",
+      "node": "{{node}}",
+      "nodeItems": "{{node}} · éléments : {{count}}",
+      "reconciliation": "Manquants : {{missing}} · inattendus : {{unexpected}}",
+      "referral": "{{lab}} · {{test}}",
+      "referralTransit": "{{lab}} · {{test}} · {{transit}}",
+      "slideFailure": "{{position}} : {{reason}}",
+      "stationRow": "Porteurs : {{carriers}} · éléments : {{items}}",
+      "stationRowLoose": "Porteurs : {{carriers}} · éléments : {{items}} · sans porteur : {{loose}}",
+      "temperature": "{{temp}} °C",
+      "temperatureAt": "{{temp}} °C le {{at}}",
+      "wsi": "{{status}} · lames : {{count}}"
+    },
+    "instrumentStatus": {
+      "In Process": "en cours",
+      "Loaded to Instrument": "chargé",
+      "Run Completed": "cycle terminé",
+      "Run Failed": "cycle en échec"
+    },
     "lastUpdated": "Mis à jour {{time}}",
     "loadingData": "Chargement des données du tableau de bord…",
     "loadingProfile": "Chargement du profil d’affichage…",
+    "material": {
+      "block": "bloc",
+      "slide": "lame"
+    },
     "noProfilesConfigured": "Aucun profil d’affichage n’est encore configuré. Ajoutez-en un dans Configuration → Système → Profils d’affichage.",
     "offlineStaleBadge": "Hors ligne / Données obsolètes",
     "overdueBy": "En retard de {{duration}}",
+    "pinned": "Épinglé",
     "queueEmpty": "Rien dans la file d’attente pour le moment.",
     "selectProfile": "— sélectionner un profil d’affichage —",
     "statPill": "STAT",
+    "stats": {
+      "addOnsWaiting": "Commandes complémentaires en attente",
+      "coldChainAlerts": "Ruptures de chaîne du froid",
+      "coldChainOpen": "Ruptures de chaîne du froid",
+      "completed": "Terminées",
+      "cytologyStainingActive": "Lots de coloration cytologique",
+      "decalActive": "Décalcification / Traitement spécial",
+      "delivered": "Livrés",
+      "dispatched": "Expédiés",
+      "embeddingActive": "Lots en inclusion",
+      "imageQcFailed": "CQ image non conforme",
+      "inStaining": "Lames en coloration",
+      "inTransit": "En transit",
+      "microtomyActive": "Lots en microtomie",
+      "notScanned": "Non scannés récemment",
+      "pastLimit": "Au-delà du délai",
+      "pending": "En attente",
+      "pendingIntake": "Réception en attente",
+      "processingActive": "Lots en traitement",
+      "qcFailed": "CQ non conforme",
+      "readyForReview": "Prêtes pour lecture",
+      "reconciliationExceptions": "Manquants ou inattendus",
+      "recutRequested": "Recoupe demandée",
+      "resultReceived": "Résultats reçus",
+      "runFailed": "Cycles d'instrument en échec",
+      "scanFailed": "Échec de numérisation",
+      "scanning": "Numérisation",
+      "stainingActive": "Lots de coloration actifs",
+      "statBatches": "Lots STAT",
+      "statPending": "STAT en attente",
+      "statWaiting": "STAT en attente",
+      "totalItems": "Cassettes/lames en cours"
+    },
+    "transit": {
+      "delivered": "livré",
+      "dispatched": "expédié",
+      "in_transit": "en transit",
+      "result_received": "résultat reçu"
+    },
     "views": {
       "diagnosticSignout": "Validation diagnostique / Numériseur",
       "embeddingMicrotomy": "Inclusion et microtomie",
       "grossingIntake": "Réception et découpe",
       "sendoutReference": "Envoi et laboratoire de référence",
-      "stainingIhc": "Coloration et IHC"
+      "stainingIhc": "Coloration et IHC",
+      "stationOverview": "Postes"
+    },
+    "wsiStatus": {
+      "completed": "Terminé",
+      "failed": "En échec",
+      "loaded": "Chargé",
+      "scanning": "Numérisation",
+      "unloaded": "Déchargé"
     }
   },
   "facilityPrintingTab": {
@@ -12204,19 +12892,21 @@
   },
   "grossingBench": {
     "addOnOrders": "Commandes complémentaires",
-    "decal": {
-      "added": "{{block}} ajouté au lot de décalcification {{batch}}.",
-      "already": "{{block}} est déjà dans ce lot de décalcification.",
-      "assign": "Envoyer en décalcification",
-      "block": "Bloc à envoyer",
-      "label": "Lot de décalcification",
-      "noBatch": "Aucun lot de décalcification actif disponible.",
-      "noBlock": "Aucun bloc à envoyer en décalcification pour le moment.",
-      "none": "Aucun lot de décalcification actif",
+    "carrier": {
+      "added": "{{block}} chargé dans {{batch}}.",
+      "already": "{{block}} est déjà dans ce porteur.",
+      "assign": "Charger dans le porteur",
+      "block": "Bloc à charger",
+      "label": "Porteur",
+      "noBatch": "Aucun porteur de décalcification ou de circulation ouvert n'est disponible.",
+      "noBlock": "Aucun bloc à charger pour le moment.",
+      "none": "Aucun porteur ouvert",
+      "notAccepting": "{{batch}} est scellé ou clos et n'accepte plus de blocs.",
       "notFound": "Ce bloc est introuvable.",
+      "option": "{{barcode}} · {{node}}",
       "otherBatch": "{{block}} est déjà dans un autre lot actif ({{batch}})."
     },
-    "hint": "Raccourcis : Alt+Maj+1 imprimer les cassettes, 2 photo, 3 décalcification, 4 commandes complémentaires. Pédale 1 : photo, pédale 2 : impression des cassettes.",
+    "hint": "Raccourcis : Alt+Maj+1 imprimer les cassettes, 2 photo, 3 charger dans un porteur, 4 commandes complémentaires. Pédale 1 : photo, pédale 2 : impression des cassettes.",
     "printCassettes": "Imprimer les cassettes",
     "takePhoto": "Prendre une photo",
     "title": "Outils de paillasse"
@@ -13611,6 +14301,58 @@
       "unavailableSummary": "Chirurgien indisponible : {{reason}}"
     }
   },
+  "itemEndState": {
+    "currentDetail": " — {{reason}} · {{name}}, {{when}}",
+    "errors": {
+      "failed": "L’état final n’a pas pu être enregistré. Réessayez.",
+      "invalid": "Un motif est obligatoire.",
+      "notPermitted": "Vous n’avez pas l’autorisation d’enregistrer un état final. Contactez votre administrateur."
+    },
+    "loading": "Chargement de l’état final…",
+    "none": "Aucun état final enregistré.",
+    "quickReasons": "Motifs rapides",
+    "reasonLabel": "Motif",
+    "reasons": {
+      "archived": {
+        "caseSignedOut": "Cas validé",
+        "retentionPolicy": "Classé selon la politique de conservation"
+      },
+      "consumed": {
+        "flowOrOther": "Utilisé pour un autre test",
+        "molecularTest": "Utilisé pour un test moléculaire"
+      },
+      "discarded": {
+        "damagedUnusable": "Endommagé et inutilisable",
+        "retentionEnded": "Fin de la durée de conservation"
+      },
+      "exhausted": {
+        "facedThrough": "Coupé jusqu’à la cassette",
+        "noTissueLeft": "Plus de tissu dans le bloc"
+      },
+      "returned_to_storage": {
+        "awaitingDecision": "En attente d’une décision",
+        "workComplete": "Travail terminé"
+      },
+      "sent_out": {
+        "consult": "Envoyé pour avis",
+        "referral": "Envoi à un autre laboratoire",
+        "research": "Cédé pour la recherche"
+      }
+    },
+    "recordButton": "Enregistrer l’état final",
+    "recorded": "État final enregistré.",
+    "save": "Enregistrer",
+    "stateLabel": "État final",
+    "states": {
+      "archived": "Archivé",
+      "consumed": "Consommé pour des analyses",
+      "discarded": "Éliminé",
+      "exhausted": "Épuisé (plus de tissu)",
+      "returned_to_storage": "Remis en stockage",
+      "sent_out": "Envoyé à l’extérieur"
+    },
+    "title": "État final"
+  },
   "jurisdictionNames": {
     "AU": "Australie",
     "BE": "Belgique",
@@ -13698,6 +14440,116 @@
       "status": "Statut"
     },
     "title": "Mappage des paiements par juridiction"
+  },
+  "labWorkflowReports": {
+    "byDay": "Jour",
+    "byWeek": "Semaine",
+    "caseTypes": {
+      "autopsy": "Autopsie",
+      "cytology": "Cytologie",
+      "surgpath": "Anatomopathologie chirurgicale"
+    },
+    "columns": {
+      "at": "Quand",
+      "by": "Par",
+      "carrier": "Porteur",
+      "caseAccession": "Cas",
+      "cases": "Cas",
+      "cut": "Coupées",
+      "finishedAt": "Fin",
+      "group": "Groupe",
+      "item": "Élément",
+      "items": "Éléments",
+      "kind": "Nature",
+      "late": "En retard",
+      "latePct": "% en retard",
+      "measure": "Mesure",
+      "medianHours": "Médiane (h)",
+      "medianMinutesToCut": "Médiane en minutes jusqu'à la coupe",
+      "minutes": "Minutes",
+      "node": "Étape",
+      "ordered": "Commandées",
+      "overTarget": "Au-delà de l'objectif",
+      "p90Hours": "90e centile (h)",
+      "period": "Période",
+      "reason": "Motif",
+      "reasonCode": "Code du motif",
+      "scans": "Scans",
+      "stage": "Étape du poste",
+      "startedAt": "Début",
+      "stat": "STAT",
+      "stationName": "Poste",
+      "step": "Étape",
+      "targetHours": "Objectif (h)",
+      "targetMinutes": "Objectif (min)",
+      "type": "Type",
+      "value": "Valeur"
+    },
+    "descriptions": {
+      "addOns": "Commandes complémentaires passées aux dates choisies, par type : combien, combien coupées, la médiane en minutes de la commande à la coupe, et combien étaient STAT.",
+      "batchDuration": "Durée passée par chaque lot de décalcification et de coloration à cette étape, par rapport à son objectif (décalcification : celui du lot ; coloration : l'objectif saisi ici).",
+      "reconciliation": "Éléments manquants ou scannés de façon inattendue lors du rapprochement des porteurs, et dérogations du superviseur, avec le porteur, l'élément et la personne.",
+      "rework": "Lames coupées aux dates choisies, commandes de recoupe, réimpressions d'étiquettes de lame et de cassette, et les taux par lame coupée.",
+      "statPerformance": "Le rapport de délai pour les cas STAT uniquement.",
+      "stationVolume": "Cassettes, blocs et lames scannés à chaque poste, par jour ou par semaine. Seuls les scans de l'élément lui-même comptent ; les éléments déplacés sans porteur sont inclus.",
+      "turnaround": "Heures entre l'enregistrement et chaque étape, pour les cas enregistrés aux dates choisies. Un cas atteint une étape quand son dernier élément l'atteint. Médiane, 90e centile et part au-delà de votre objectif."
+    },
+    "empty": "Rien pour ces dates.",
+    "errors": {
+      "BAD_DATES": "Choisissez une date de début antérieure ou égale à la date de fin.",
+      "LOAD_FAILED": "Le rapport n'a pas pu être préparé. Réessayez.",
+      "NOT_PERMITTED": "Vous n'avez pas l'autorisation de voir ce rapport."
+    },
+    "export": "Exporter en CSV",
+    "exportRefused": "Vous n'avez pas l'autorisation d'exporter ce rapport.",
+    "footnote": "Inclusion, coupe, coloration et distribution proviennent des scans de poste : le travail fait sur un poste sans poste défini, ou avant le suivi par poste (lot 726), n'est pas compté. L'envoi programmé de ces rapports n'est pas encore disponible.",
+    "from": "Du",
+    "groupBy": "Regrouper par",
+    "groupings": {
+      "caseType": "Type de cas",
+      "facility": "Établissement",
+      "none": "Tous les cas",
+      "priority": "Priorité"
+    },
+    "kinds": {
+      "missing": "Manquant",
+      "override": "Dérogation du superviseur",
+      "unexpected": "Inattendu"
+    },
+    "loading": "Préparation du rapport…",
+    "measures": {
+      "cassetteReprints": "Réimpressions d'étiquettes de cassette",
+      "recutOrders": "Commandes de recoupe",
+      "recutRatePct": "Taux de recoupe (% des lames coupées)",
+      "reworkRatePct": "Taux de reprise (% des lames coupées)",
+      "slideReprints": "Réimpressions d'étiquettes de lame",
+      "slidesCut": "Lames coupées"
+    },
+    "pageSubtitle": "Délais, volumes et exceptions à partir des scans de poste, des cas et des porteurs. Totaux uniquement ; les cas de recherche sont exclus.",
+    "pageTitle": "Rapports de flux du laboratoire",
+    "period": "Par",
+    "reports": {
+      "addOns": "Commandes complémentaires",
+      "batchDuration": "Durée des lots",
+      "reconciliation": "Exceptions de rapprochement",
+      "rework": "Recoupes et reprises",
+      "statPerformance": "Performance STAT",
+      "stationVolume": "Volume par poste",
+      "turnaround": "Délai par étape"
+    },
+    "stainingTarget": "Objectif de coloration (minutes)",
+    "steps": {
+      "cut": "Coupe",
+      "distribute": "Distribution",
+      "embed": "Inclusion",
+      "gross": "Macroscopie",
+      "signOut": "Validation",
+      "stain": "Coloration"
+    },
+    "targets": "Objectifs (heures depuis l'enregistrement)",
+    "tile": "Rapports de flux",
+    "tileTitle": "Rapports de délais, volumes et exceptions",
+    "to": "Au"
   },
   "labelDesignerPage": {
     "allFieldsPlaced": "Tous les champs sont placés.",
@@ -14570,6 +15422,8 @@
         "coresNotEvaluated": "{{stain}} : facturé lorsque le pathologiste aura confirmé les carottes évaluées."
       }
     },
+    "blocksStillWaiting_one": "{{count}} autre bloc de ce cas attend encore d'être coupé : {{blocks}}",
+    "blocksStillWaiting_other": "{{count}} autres blocs de ce cas attendent encore d'être coupés : {{blocks}}",
     "comments": {
       "add": "Ajouter le commentaire",
       "empty": "Aucun commentaire pour le moment.",
@@ -14631,7 +15485,7 @@
       "approved": "Le pathologiste a approuvé la coupe destructive. La coupe peut continuer.",
       "bannerBody": "Signalé par {{name}}. La coupe est bloquée jusqu’à la réponse du pathologiste prescripteur.",
       "bannerTitle": "Bloc épuisé.",
-      "body": "Le pathologiste prescripteur reçoit un e-mail. La coupe de ce bloc est bloquée jusqu’à sa réponse : approuver la coupe destructive, ou annuler ou modifier la demande.",
+      "body": "Un seul signalement couvre toutes les lames de ce bloc encore à couper, et les pathologistes prescripteurs reçoivent un e-mail. La coupe est bloquée jusqu’à leur réponse : utiliser une lame non colorée déjà coupée, demander une réinclusion, commander sur un autre bloc du même prélèvement, approuver la coupe destructive (seulement s’il peut rester du tissu), ou annuler ou modifier les demandes.",
       "button": "Bloc épuisé",
       "confirm": "Signaler comme épuisé",
       "cuttingBlocked": "Ce bloc est signalé comme épuisé. La coupe attend la réponse du pathologiste prescripteur.",
@@ -14640,6 +15494,7 @@
       "notPermitted": "Vous n’avez pas l’autorisation de signaler une exception de bloc. Demandez à votre administrateur.",
       "note": "Note",
       "noteRequired": "Une note est requise.",
+      "orderHeld": "Ce bloc est épuisé. Cette lame attend le pathologiste prescripteur : signalez-la avec Bloc épuisé pour qu’il choisisse une alternative.",
       "sentToDesk": "Aucun pathologiste prescripteur n’est enregistré pour cette lame ; l’avis a donc été envoyé au superviseur / bureau d’accessionnement.",
       "title": "Signaler le bloc comme épuisé"
     },
@@ -14702,9 +15557,12 @@
       "blockNotFound": "Bloc {{label}} introuvable.",
       "blockNotOnCase": "Bloc introuvable sur ce dossier.",
       "caseNotFound": "Dossier introuvable.",
+      "cutAtMicrotome": "C’est un bloc : coupez-le au microtome.",
       "decantNotFound": "Décantat {{label}} introuvable.",
       "empty": "Scan vide.",
       "matrixBlockNotFound": "Bloc matriciel introuvable dans le cas trouvé.",
+      "notHandedOff": "Le cytobloc {{label}} n’a pas été remis : remettez-le d’abord au poste de préparation cytologique.",
+      "prepareAtCytology": "{{label}} est un liquide ou une aliquote : préparez-le au poste de préparation cytologique.",
       "specimenNotFound": "Échantillon introuvable sur le dossier identifié.",
       "unresolved": "Ce scan ne correspond à aucun dossier, bloc ou décantat — vérifiez le code-barres et réessayez.",
       "unsupported": "Le scan d’un échantillon seul n’est pas pris en charge au poste de microtomie. Scannez le code-barres d’un bloc, d’un bloc matriciel ou d’un décantat/récipient de liquide."
@@ -14731,8 +15589,16 @@
       "commentOnLabelTitle": "Le commentaire de cette lame s'imprime sur l'étiquette physique",
       "control": "Contrôle",
       "duplicateCount": "×",
+      "forPieces_one": "Pour {{count}} fragment",
+      "forPieces_other": "Pour {{count}} fragments",
       "levelDepth": "µm",
       "levelShort": "N{{n}}",
+      "levelsOnSlide_one": "{{count}} niveau sur cette lame",
+      "levelsOnSlide_other": "{{count}} niveaux sur cette lame",
+      "moveDown": "Descendre cette lame dans l’ordre d’impression",
+      "moveDownShort": "↓",
+      "moveUp": "Monter cette lame dans l’ordre d’impression",
+      "moveUpShort": "↑",
       "onLabel": "Sur l'étiquette",
       "pairControl": "Associer une lame contrôle",
       "print": "Imprimer",
@@ -14740,6 +15606,7 @@
       "reprintReasonPrompt": "Motif…",
       "reprintedCount": "Réimprimé {{count}}×",
       "searchStains": "Rechercher une coloration…",
+      "selectForBatch": "Inclure cette lame dans l’impression par lot",
       "selectStain": "Sélectionner une coloration…",
       "slideComments": "Commentaires de la lame",
       "title": "Grille des lames"
@@ -15847,6 +16714,7 @@
   },
   "newContainerModal": {
     "autoSetFromStation": "↳ Défini à partir de l'étape de {{station}}.",
+    "chooseStep": "Choisir une étape…",
     "containerCreated": "Contenant créé",
     "containerIdentifierMode": "Mode d'identification du contenant",
     "containerType": "Type de contenant",
@@ -15863,6 +16731,7 @@
     "generateAndPrint": "Générer et imprimer",
     "generating": "Génération…",
     "hours": "h",
+    "largeFormat": "Prend les lames grand format (mégablocs)",
     "minutes": "min",
     "noReagentLots": "Aucun lot de réactif actif dans le registre.",
     "noReferenceLabConfigured": "Aucun établissement n'est actuellement configuré avec le rôle de laboratoire de référence — ajoutez-en un dans les paramètres des établissements.",
@@ -15871,6 +16740,9 @@
     "printInstructions": "Imprimez ce code-barres principal du lot et apposez-le sur le contenant physique.",
     "priority": "Priorité",
     "processingNode": "Étape de traitement",
+    "processor": "Automate",
+    "processorNone": "— Non choisi —",
+    "processorOption": "{{name}} ({{code}})",
     "protocolLabel": "Protocole / Paramètres d'exécution",
     "protocolPlaceholder": "ex. Cycle H&E standard de nuit",
     "rackCheckedOutNoPrint": "Le portoir {{barcode}} est maintenant affecté à ce lot — aucune nouvelle étiquette à imprimer.",
@@ -17626,6 +18498,10 @@
       "description": "Suivi des cassettes et lames",
       "title": "Gestion des lots"
     },
+    "cytologyPrepTile": {
+      "description": "Liquides, lames, remise des cytoblocs",
+      "title": "Préparation cytologique"
+    },
     "cytologyTile": {
       "description": "Dépistage, tri et CQ",
       "title": "Espace de travail Cytologie"
@@ -18469,6 +19345,7 @@
       "unsupportedProtocol": "L’agent PathScribe de ce poste doit être mis à jour."
     },
     "bridgeNotImplemented": "Le pont d’impression « {{bridgeType}} » n’a pas encore de mode d’impression opérationnel pour ce type d’étiquette. Seuls QZ Tray et l’agent PathScribe sont connectés ici.",
+    "directPrintingOff": "Non imprimé : l’impression directe du navigateur vers {{printer}} est désactivée pour cet établissement. Imprimez via le moteur d’interface ou utilisez la boîte de dialogue d’impression du navigateur.",
     "popupBlockedAlert": "Veuillez autoriser les fenêtres pop-up pour ce site afin d’imprimer les étiquettes.",
     "preparing": "Préparation des étiquettes…",
     "preparingTitle": "Préparation des étiquettes"
@@ -19920,6 +20797,10 @@
       "label": "Période de tendance :"
     }
   },
+  "quickReasons": {
+    "label": "Motifs rapides",
+    "withNote": "{{reason}} : {{note}}"
+  },
   "reagentLotsSection": {
     "addReagentLotButton": "+ Ajouter un lot de réactif",
     "allLabsLabel": "Tous les laboratoires",
@@ -20498,37 +21379,6 @@
     "finalizedReadOnly": "Finalisé — lecture seule",
     "footerNote": "Envoyé au LIS lors de la finalisation. Les champs définis par le protocole se trouvent dans les onglets Tumeur, Marges et Biomarqueurs."
   },
-  "reportImages": {
-    "accessionLine": "Compte rendu {{accession}}",
-    "add": "Ajouter",
-    "captionLabel": "Légende (facultatif)",
-    "captionPlaceholder": "Imprimée sous l'image",
-    "close": "Terminé",
-    "dismiss": "Fermer",
-    "empty": "Aucune image jointe pour le moment.",
-    "intro": "Les images s'impriment après les pages du compte rendu, une image par page avec sa légende. Un compte rendu déjà signé n'est pas modifié ; les images ajoutées apparaissent dans les comptes rendus générés à partir de maintenant.",
-    "linkLabel": "Lien vers l’image (https)",
-    "linkNote": "PathScribe ne stocke pas d’images. Liez une image conservée dans le système de votre hôpital ; elle est récupérée et intégrée au PDF à la génération du rapport. Si elle est inaccessible, le rapport imprime une page « Image indisponible » à sa place.",
-    "linkPlaceholder": "https://imagerie.hopital.org/…",
-    "listLabel": "Images jointes",
-    "problems": {
-      "duplicate": "Cette image est déjà liée à ce rapport.",
-      "failed": "L'image n'a pas pu être jointe.",
-      "invalidLink": "Saisissez un lien https:// vers un serveur nommé (sans nom d’utilisateur ni mot de passe).",
-      "notPermitted": "Vous n'avez pas l'autorisation de joindre des images aux comptes rendus.",
-      "tooMany": "Un compte rendu peut contenir au plus {{max}} images."
-    },
-    "remove": "Retirer",
-    "source": "Depuis {{host}}",
-    "title": "Joindre des images au compte rendu",
-    "typeLabel": "Type d'image",
-    "types": {
-      "blockFace": "Face du bloc",
-      "grossSpecimen": "Pièce macroscopique",
-      "microphotograph": "Microphotographie",
-      "other": "Autre"
-    }
-  },
   "reportPreviewRenderer": {
     "badgeAccepted": "✓ Accepté",
     "badgeAiDraft": "Brouillon IA",
@@ -20626,6 +21476,46 @@
     "sending": "Envoi…",
     "sentToCodeReview": "Dossier envoyé en révision de codage",
     "title": "Demander une révision par un collègue"
+  },
+  "researchCases": {
+    "accessionPrefixes": "Préfixes de numéro de cas",
+    "active": "Actif",
+    "addPurpose": "Ajouter",
+    "applies": {
+      "charges": "n'envoie aucun acte à la facturation et transmet la classe financière sans facturation",
+      "results": "n'envoie aucun résultat au DPI ni aucun compte rendu par fax ou dépôt de fichier",
+      "retention": "propose ses blocs et lames à l'élimination une fois ce nombre de jours écoulé (les mises en attente s'appliquent toujours)",
+      "stats": "l'exclut des chiffres de délai, de volume et de qualité",
+      "worklist": "l'exclut des listes de travail cliniques (retrouvez-le avec la Recherche)"
+    },
+    "appliesHeading": "Pour un cas de recherche, PathScribe :",
+    "builtIn": "Intégré",
+    "casesHeading": "Cas de recherche",
+    "enabled": "Traiter les cas correspondants comme des cas de recherche",
+    "financialClass": "Classe financière sans facturation",
+    "mrnPrefixes": "Préfixes IPP du patient de recherche",
+    "newPurpose": "Nouvel objet",
+    "notPermitted": "Vous n'avez pas l'autorisation de modifier ce paramètre.",
+    "prefixHint": "Séparez les préfixes par des virgules. Un cas correspond lorsque son numéro ou l'IPP de son patient commence par l'un d'eux (majuscules ou non).",
+    "problems": {
+      "financialClassRequired": "Saisissez la classe financière sans facturation.",
+      "noMarker": "Saisissez au moins un préfixe de numéro ou d'IPP, ou désactivez les cas de recherche.",
+      "prefixInvalid": "Un préfixe ne peut pas contenir d'espace ni dépasser 20 caractères.",
+      "retentionDaysInvalid": "Saisissez un nombre entier de jours entre 0 et 36500."
+    },
+    "purposeName": "Nom de l'objet",
+    "purposeProblems": {
+      "duplicateName": "Deux objets portent le même nom.",
+      "nameRequired": "Chaque objet doit avoir un nom.",
+      "nameTooLong": "Le nom d'un objet ne peut pas dépasser 40 caractères.",
+      "routineRequired": "Routine doit rester actif."
+    },
+    "purposesHeading": "Objets des lots",
+    "purposesHint": "Chaque nouveau porteur est Routine sauf si un autre objet est choisi. Un écran mural peut n'afficher que les objets choisis. Les objets intégrés peuvent être désactivés mais pas supprimés ; Routine est toujours actif.",
+    "retentionDays": "Conserver le matériel (jours après l'enregistrement)",
+    "saved": "Enregistré.",
+    "subtitle": "Un prélèvement de recherche est enregistré comme un cas rattaché à un patient de recherche, en attendant la gestion d'éléments de recherche sans enregistrement. Définissez ici comment ces cas sont reconnus et conservés, et à quoi peut servir chaque porteur.",
+    "title": "Cas de recherche et objets des lots"
   },
   "researchFeedSection": {
     "actions": {
@@ -21296,17 +22186,59 @@
     "searchPlaceholder": "Rechercher par nom ou code de code-barres...",
     "stages": {
       "accessioning": "Enregistrement",
+      "checkout": "Vérification finale",
+      "cytologyImaging": "Imagerie cytologique",
+      "cytologyPreparation": "Préparation cytologique",
+      "cytologyProcessing": "Traitement de cytologie en milieu liquide",
+      "cytologyStaining": "Coloration cytologique",
+      "decal": "Décalcification / Traitement spécial",
       "embedding": "Inclusion",
+      "externalReferral": "Envoi externe",
       "grossing": "Macroscopie",
       "microtomy": "Microtomie / Coupe",
       "other": "Autre",
       "processing": "Circulation",
       "slideArchival": "Archivage des lames",
+      "slideDistribution": "Distribution des lames",
       "staining": "Coloration"
     },
     "statusFilterAll": "Tous",
-    "subtitle": "Les postes physiques auxquels un terminal peut s'identifier (à la connexion et dans la barre supérieure), et vers lesquels une étiquette de poste imprimée bascule en cours de flux. Huit sont configurés au départ ; le nom, le code-barres et l'étape du flux sont à définir par vous.",
+    "subtitle": "Les postes physiques auxquels un terminal peut s'identifier (à la connexion et dans la barre supérieure), et vers lesquels une étiquette de poste imprimée bascule en cours de flux. Un premier ensemble est fourni ; le nom, le code-barres et l'étape du flux sont à définir par vous.",
     "title": "Postes de scan"
+  },
+  "scanTrail": {
+    "actions": {
+      "completed": "Terminé ici",
+      "loaded": "Chargé dans le porteur",
+      "matched": "Rapproché",
+      "missing": "Manquant",
+      "printed": "Étiquette imprimée",
+      "received": "Reçu",
+      "unexpected": "Inattendu",
+      "unloaded": "Retiré du porteur"
+    },
+    "byCarrier": "Enregistré lors du scan du porteur",
+    "cameFrom": "de {{parent}}",
+    "cols": {
+      "item": "Élément",
+      "what": "Ce qui s'est passé",
+      "when": "Quand",
+      "where": "Où",
+      "who": "Qui"
+    },
+    "empty": "Aucun scan de poste enregistré pour ce cas.",
+    "hide": "Masquer l'historique des scans",
+    "inCarrier": "Dans le porteur {{carrier}}",
+    "loading": "Chargement de l'historique…",
+    "refused": "Vous n'avez pas l'autorisation de voir l'historique des scans.",
+    "results": {
+      "mismatch": "Non concordant",
+      "not-found": "Introuvable",
+      "ok": "OK",
+      "wrong-item": "Mauvais élément"
+    },
+    "show": "Afficher l'historique des scans",
+    "title": "Historique des scans"
   },
   "scopeReference": {
     "columns": {
@@ -22645,6 +23577,7 @@
       "notConfigured": "Ce poste n’est pas configuré pour imprimer des étiquettes de lame.",
       "notInQueue": "Cette lame n’est plus dans la file.",
       "profileMissing": "Le profil d’imprimante configuré n’existe plus.",
+      "scannerNotLargeFormat": "{{scanner}} n’accepte pas les lames grand format. Choisissez un scanner prévu pour les lames grand format.",
       "stationNotFound": "Le poste de scan est introuvable."
     },
     "exceptions": {
@@ -22696,7 +23629,7 @@
       "notResolved": "Ce scan ne correspond à aucun cas, bloc ou lame. Vérifiez le code-barres et réessayez.",
       "slideNotFound": "La lame {{slide}} est introuvable.",
       "specimenNotFound": "Le prélèvement est introuvable dans ce cas.",
-      "unsupportedTarget": "Ce poste n’accepte que les codes-barres de bloc et de lame. Les cassettes matricielles ou de cytobloc, les décantations et les codes-barres de prélèvement ne sont pas encore pris en charge."
+      "unsupportedTarget": "Ce poste accepte les codes-barres de bloc, de bloc matriciel et de lame. Les cassettes de cytobloc, les décantations et les codes-barres de prélèvement ne sont pas encore pris en charge."
     },
     "scanPlaceholder": "Scannez ou saisissez un code-barres…",
     "scanPrompt": "Scannez une lame ou un code-barres de bloc/cassette — la file s'allonge en continu",
@@ -23516,6 +24449,59 @@
     "intro": "Le(s) lot(s) de coloration ci-dessous doivent être résolus avant que ce dossier puisse être signé.",
     "rowTitle": "Lot {{batchBarcode}} — {{specimenList}}"
   },
+  "stationCarrier": {
+    "addToOutput": "Ajouter les lames imprimées au plateau ({{count}})",
+    "andMore": "et {{count}} de plus",
+    "chooseStation": "Poste de cet ordinateur",
+    "close": "Fermer",
+    "dismiss": "Fermer le message",
+    "finish": "Terminer le déchargement",
+    "listLabel": "Porteurs ouverts pour ce poste",
+    "noStation": "Aucun poste de scan n'est défini pour cet ordinateur : les scans effectués ici ne sont pas enregistrés et les porteurs ne peuvent pas être ouverts ici. Choisissez le poste de cet ordinateur.",
+    "noneHere": "Aucun porteur ouvert pour ce poste.",
+    "notice": {
+      "addedToOutput": "Lames ajoutées à {{barcode}} : {{count}}.",
+      "closedAborted": "{{barcode}} est clos : il a été annulé le {{at}}.",
+      "closedComplete": "{{barcode}} est clos : il a été terminé le {{at}}.",
+      "finished": "Déchargement de {{barcode}} terminé.",
+      "handoff": "{{barcode}} est arrivé ici depuis l'étape {{from}}. Éléments : {{count}}.",
+      "movedHere": "{{barcode}} a été déplacé vers ce poste et ouvert ici ; le déplacement est enregistré. Éléments : {{count}}.",
+      "noStation": "Définissez le poste de cet ordinateur avant d'ouvrir {{barcode}}.",
+      "opened": "{{barcode}} ouvert ici. Éléments : {{count}}.",
+      "openedAdHoc": "{{barcode}} ouvert ici ; ce poste a été enregistré comme son poste de travail. Éléments : {{count}}.",
+      "openedMismatch": "{{barcode}} ouvert ici bien qu'il relève d'une autre étape. Cela a été enregistré.",
+      "outputSet": "{{barcode}} est maintenant le plateau de sortie.",
+      "sealed": "{{barcode}} scellé. Éléments : {{count}}.",
+      "unexpectedKept": "{{item}} conservé et enregistré comme inattendu dans {{barcode}}.",
+      "unknown": "Aucun porteur ne porte le code-barres {{barcode}}."
+    },
+    "openInBatchManagement": "Ouvrir dans la gestion des lots",
+    "outputHint": "Scannez un porteur {{node}} ouvert pour l'utiliser comme plateau de sortie des lames coupées.",
+    "outputTray": "Plateau de sortie",
+    "pending": {
+      "continueAnyway": "Continuer quand même",
+      "mismatch": "{{barcode}} est un porteur de l'étape {{node}}. Ce poste traite l'étape {{here}}. L'ouvrir ici quand même ?",
+      "openAnyway": "Ouvrir ici quand même",
+      "wrongItem": "{{item}} ne figure pas dans le porteur {{barcode}}. Continuer quand même ? Il sera enregistré comme inattendu."
+    },
+    "progress": "{{matched}} sur {{total}} pointés",
+    "routedHere": "Destiné à ce poste",
+    "scanToUnload": "Scannez chaque élément au moment où vous le retirez du porteur.",
+    "seal": "Sceller le manifeste",
+    "sealed": "Scellé",
+    "stationLine": "Poste : {{station}}",
+    "stillToScan": "Encore à scanner : {{items}}",
+    "title": "Porteurs à ce poste",
+    "unexpectedCount_one": "{{count}} élément inattendu scanné",
+    "unexpectedCount_other": "{{count}} éléments inattendus scannés",
+    "useStation": "Utiliser ce poste"
+  },
+  "stationScan": {
+    "backToScanning": "Revenir au scan (masquer le clavier)",
+    "backToScanningShort": "⌨ Scanner",
+    "typeAnId": "Saisir un identifiant avec le clavier à l’écran",
+    "typeAnIdShort": "⌨ Saisir"
+  },
   "stationSwitch": {
     "discardedAndSwitched": "📍 Modifications abandonnées et passé au poste {{station}}.",
     "notAuthorized": "Vous n'êtes pas autorisé(e) à utiliser {{station}} ; la station n'a donc pas été changée.",
@@ -23812,9 +24798,13 @@
     "clinician": "Médecin prescripteur",
     "confidential": "CONFIDENTIEL — RAPPORT D’ANATOMOPATHOLOGIE",
     "dob": "Date de naissance",
+    "documentAttached": "Document joint : {{caption}}. Ses pages suivent le compte rendu.",
+    "documentAttachedNoCaption": "Document joint. Ses pages suivent le compte rendu.",
     "documentReference": "Document {{accession}} · version de l’enregistrement {{version}}",
     "documentReferenceNoVersion": "Document {{accession}}",
     "figureNotDrawn": "Avis : la carte n’a pas pu être dessinée sous forme d’image. Ce qu’elle montre :",
+    "imageUnavailable": "Image indisponible : l’image liée n’a pas pu être récupérée lors de la création de ce compte rendu.",
+    "imagesTitle": "Images",
     "intraopDiagnosis": "Diagnostic peropératoire",
     "mrn": "IPP",
     "noContent": "Aucun contenu",
@@ -24735,6 +25725,7 @@
       "assetLocations": "Dictionnaire des emplacements d'actifs",
       "assistLisPolling": "Réception SIL (mode Assistance)",
       "batchRegistryFeed": "Fichiers de lot des registres",
+      "benchReasons": "Motifs du poste de travail",
       "biFeed": "Flux de rapports (Power BI)",
       "billingDictionary": "Dictionnaire de facturation (saisie des frais)",
       "billingRelease": "Libération de la facturation",
@@ -24804,6 +25795,7 @@
       "qaTrendPolicy": "Politique de tendance de discordance",
       "reagentLots": "Lots de réactifs et de solutions",
       "releaseBuffer": "Tampon de libération après signature",
+      "researchCases": "Cas de recherche et objets des lots",
       "researchFeed": "Flux de recherche",
       "retention": "Conservation des données",
       "revisionReasons": "Motifs de révision",
@@ -25788,6 +26780,16 @@
       "testAll": "Tout tester",
       "testing": "Test en cours…"
     }
+  },
+  "touchLayout": {
+    "modes": {
+      "auto": "Auto",
+      "off": "Jamais",
+      "on": "Toujours"
+    },
+    "nowOff": "Les écrans de poste utilisent la disposition compacte.",
+    "nowOn": "Les écrans de poste utilisent de grandes zones tactiles.",
+    "title": "Disposition tactile sur cet ordinateur"
   },
   "tumorBoard": {
     "boards": {
@@ -27061,6 +28063,11 @@
     },
     "subtitle": "Les parties sur lesquelles porte le compte rendu {{protocol}}.",
     "title": "Parties couvertes"
+  },
+  "wrongCaseScan": {
+    "continue": "Continuer quand même",
+    "message": "{{item}} appartient au cas {{itemCase}}, pas au cas {{openCase}} ouvert ici.",
+    "setAside": "Le mettre de côté"
   },
   "wsiScanBatches": {
     "batchesEmpty": "Aucun lot de numérisation pour le moment.",

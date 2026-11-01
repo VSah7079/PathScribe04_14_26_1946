@@ -21,7 +21,8 @@ Both use the store described here.
 | Export files | built in the browser | `exports` |
 | Staff signature images | `signatureUrl` (`src/services/users/IUserService.ts`): a link since Batch 544 (it was a file read into a data URL on Configuration → Staff) | **none: a link** (§6) |
 | Gross and block-face photos | sent to the lab's imaging system; PathScribe keeps only its URL (`src/services/imageAssociation/mockImageUploadService.ts`, `ImageAssociation`) | **none: a link.** A lab without an imaging system can't capture photos in PathScribe (the camera says so); it links to wherever it keeps them |
-| Images linked to a report (Batch 609) | the https link, type and caption (`src/services/imageAssociation/caseReportImages.ts`); fetched when the report PDF is made, drawn into it, never kept | **none: a link.** The PDF is the stored record, as for a letterhead logo |
+| Images linked to a report (Batch 609) | the https link, type and caption (`src/services/imageAssociation/caseReportImages.ts`); fetched when the report PDF is made, drawn into it, never kept. Since Batch 742 the placement also names its report section | **none: a link.** The PDF is the stored record, as for a letterhead logo |
+| Files attached to a case (Batch 742: PDF, JPG, PNG) | sent from the browser to the **hospital's own storage** through the storage adapter; PathScribe keeps the object key it hands back (`src/services/caseAttachments/`, `CASE_ATTACHMENTS_API.md`) | **none: a pointer** into the customer's storage |
 | Referral results sent as PDF | a URL reference (`pdfAttachmentUrl`, `src/types/events/ReferralResultEventPayload.ts`) | **none: a link** |
 | Facility letterhead logo | a URL (`headerLogoUrl`, `src/types/config/FacilityBranding.ts`) | **none: a link** |
 | Organ-map figures (the map image inserted into a report) | the SVG, with a base64 PNG data URL (`pngDataUrl`), on the case, and copied with both hashes (`svgSha256`, `pngSha256`) into each report version (`src/services/organMapping/organMapFigures.ts`) | **kept, as PathScribe's own output.** PathScribe draws these maps from the report's answers, so they are not images someone attached and the rule allows them: the PNG stays with the report version that used it (`report-versions`), with its hash, so the map in a signed version can be checked |
@@ -128,10 +129,13 @@ Pete, Oct 13, 2026: like all images and file attachments, photos are not stored 
 - **Photos:** the camera capture (`src/components/GrossingHardware/CameraCaptureControl.tsx`) sends the photo to the lab's imaging system (through `IImageUploadService.upload`; with the API server, the API passes the bytes on to the vendor and keeps nothing) and keeps the URL it gets back; with no imaging system configured it says so and stores nothing (`mockImageUploadService.ts`).
 - **Signatures:** Configuration → Staff takes a link to the person's signature image (Batch 544), not a file. A link that isn't `https://` is refused (`src/services/staff/staffFormChecks.ts`). A signature saved earlier as an image opens with the field empty and a note that a link is needed, so the record can still be saved (`signatureLinkOnOpen`).
 - **Audit (Planned, with the API server):** opening a linked image or attachment from a PathScribe screen is audited with the link's source system and no patient data in `detail`.
+- **Attached files (Batch 742, Pete, Oct 30, 2026):** Attach External File sends a PDF, JPG or PNG to the hospital's own storage through the **storage adapter** (a pre-signed upload to the hospital's bucket, or the adapter's staging link for a network share or the interface engine), and PathScribe keeps only the object key (or permanent URL) it hands back. Read links are minted on demand and never stored. Contract: `CASE_ATTACHMENTS_API.md`.
 
-## 7. No file uploads
+## 7. No file uploads into PathScribe's storage
 
-PathScribe keeps no uploaded file (Pete's rule above), so there is no upload endpoint for files to keep, no staging area and no malware scanning. (A camera photo passes through to the imaging system, §6.) Report documents, report versions, held releases and exports are written by the server only. Data imports that read a file in the browser (CSV dictionaries, the action registry) read it, check it and save the rows; the file itself is never kept.
+PathScribe keeps no uploaded file (Pete's rule above): nothing a user attaches is written to PathScribe's own containers (§3). Report documents, report versions, held releases and exports are written by the server only. Data imports that read a file in the browser (CSV dictionaries, the action registry) read it, check it and save the rows; the file itself is never kept.
+
+Two paths do carry a user's bytes, both straight to the hospital's own systems: a camera photo passes through to the imaging system (§6), and, since Batch 742, an attached file goes to the hospital's storage through the storage adapter (`CASE_ATTACHMENTS_API.md`). **Correction to the earlier wording of this section** ("no upload endpoint, no staging area and no malware scanning"): the adapter's staging link and its malware scanning exist for that second path; they are the adapter's, in the customer's storage, not PathScribe's.
 
 ## 8. Retention, legal hold and disposal
 
@@ -168,6 +172,7 @@ PathScribe keeps no uploaded file (Pete's rule above), so there is no upload end
 | This contract | **Written, Batch 543** |
 | `IBlobStore` implementations, the files API, the disposal and orphan jobs | **Planned** (India team, phase 2e) |
 | Images and attachments as links only (Pete, Oct 13) | **Decided**; staff signatures switched to links in **Batch 544** |
+| Files attached to a case through the storage adapter (Pete, Oct 30) | **Browser side built, Batch 742**; the adapter and its endpoints **Planned** (`CASE_ATTACHMENTS_API.md`) |
 | The https check on the letterhead logo (facility and department) and the gross imaging vendor's address | **Done, Batch 549** |
 | The browser using the files API when the API server is configured | **Browser side built for report documents, Batch 556** (`src/services/reportDocuments/httpReportDocumentService.ts`), **and for report versions, Batch 558** (`src/services/reports/httpReportVersionService.ts`; both below). The endpoints are Planned (phase 2e). Held releases need no browser endpoint (below). Exports went through the API in Batch 550. With an API server configured, the browser keeps no patient data in its storage (PS-485). |
 

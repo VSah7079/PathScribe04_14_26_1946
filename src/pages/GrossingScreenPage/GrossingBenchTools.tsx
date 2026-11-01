@@ -1,5 +1,6 @@
 // src/pages/GrossingScreenPage/GrossingBenchTools.tsx
 // Batch 720 (Pete): the tools that were on the Synoptic report's Material tab, on the Grossing screen itself: print and release
+// (Batch 726: the decal bench became "load into a carrier": a Decal vessel or a processor basket, recorded with the station.)
 // cassettes (with the triage checklist), gross photos (camera, foot pedal 1), the decalcification bench, and the Add-On Order
 // Builder. It reuses the Material tab's own handlers (useSpecimenBlockManagement) so both screens behave the same.
 import React, { useCallback, useEffect, useState } from 'react';
@@ -21,7 +22,9 @@ import { useGrossingBenchEvents } from './hooks/useGrossingBenchEvents';
 import type { ShowToast } from '@/pages/Synoptic/useSynopticToast';
 
 type BlockParams = Parameters<typeof useSpecimenBlockManagement>[0];
-const DECAL_NODE = 'Decal / Special Processing';
+// Batch 726 (Lab Workflow & Batch spec §2 row 1): cassettes are loaded into a carrier at Grossing — a Decal vessel or a
+// processor basket, the two first steps — not only into a Decal batch.
+const FIRST_STEP_NODES: readonly string[] = ['Decal / Special Processing', 'Processing'];
 
 interface Props {
   caseData: Case;
@@ -52,7 +55,7 @@ const GrossingBenchTools: React.FC<Props> = ({ caseData, setCaseData, signingUse
     cassetteColorService.getAll().then(r => { if (r.ok) setColors(r.data); });
     batchService.getAll().then(r => {
       if (!r.ok) return;
-      const active = (r.data as Batch[]).filter(b => b.processingNode === DECAL_NODE && b.status === 'active');
+      const active = (r.data as Batch[]).filter(b => FIRST_STEP_NODES.includes(b.processingNode) && b.status === 'active' && !b.sealedAt);
       setDecalBatches(active);
       setDecalBatchId(prev => prev || active[0]?.id || '');
     });
@@ -65,15 +68,17 @@ const GrossingBenchTools: React.FC<Props> = ({ caseData, setCaseData, signingUse
 
   const assignDecal = useCallback(async () => {
     const batch = decalBatches.find(b => b.id === decalBatchId);
-    if (!batch) { showToast(t('grossingBench.decal.noBatch'), 'warning'); return; }
+    if (!batch) { showToast(t('grossingBench.carrier.noBatch'), 'warning'); return; }
     const scan = decalBlock || blockIds[0] || '';
-    if (!scan) { showToast(t('grossingBench.decal.noBlock'), 'warning'); return; }
-    const out = await batchService.addItemByScan(batch.id, scan, signingUser?.id ?? '', signingUser?.name ?? '');
-    if (out.outcome === 'added') showToast(t('grossingBench.decal.added', { block: scan, batch: batch.masterBarcode }), 'info', { containsPhi: true });
-    else if (out.outcome === 'already-in-batch') showToast(t('grossingBench.decal.already', { block: out.displayId }), 'warning', { containsPhi: true });
-    else if (out.outcome === 'in-other-active-batch') showToast(t('grossingBench.decal.otherBatch', { block: out.displayId, batch: out.otherMasterBarcode }), 'warning', { containsPhi: true });
-    else showToast(t('grossingBench.decal.notFound'), 'warning');
-  }, [decalBatches, decalBatchId, decalBlock, blockIds, signingUser, showToast, t]);
+    if (!scan) { showToast(t('grossingBench.carrier.noBlock'), 'warning'); return; }
+    // Batch 726: with this computer's station, the load is recorded on the station scan log (spec §7.1).
+    const out = await batchService.addItemByScan(batch.id, scan, signingUser?.id ?? '', signingUser?.name ?? '', undefined, effectiveStationId ?? undefined);
+    if (out.outcome === 'added') showToast(t('grossingBench.carrier.added', { block: scan, batch: batch.masterBarcode }), 'info', { containsPhi: true });
+    else if (out.outcome === 'already-in-batch') showToast(t('grossingBench.carrier.already', { block: out.displayId }), 'warning', { containsPhi: true });
+    else if (out.outcome === 'in-other-active-batch') showToast(t('grossingBench.carrier.otherBatch', { block: out.displayId, batch: out.otherMasterBarcode }), 'warning', { containsPhi: true });
+    else if (out.outcome === 'not-accepting') showToast(t('grossingBench.carrier.notAccepting', { batch: batch.masterBarcode }), 'warning');
+    else showToast(t('grossingBench.carrier.notFound'), 'warning');
+  }, [decalBatches, decalBatchId, decalBlock, blockIds, signingUser, showToast, t, effectiveStationId]);
 
   const takePhoto = useCallback(() => { if (firstSpecimen) setPhotoFor(firstSpecimen.id); }, [firstSpecimen]);
   useGrossingBenchEvents({
@@ -90,16 +95,16 @@ const GrossingBenchTools: React.FC<Props> = ({ caseData, setCaseData, signingUse
         <button type="button" className="ps-btn-secondary" onClick={takePhoto} disabled={!firstSpecimen}>{t('grossingBench.takePhoto')}</button>
         <button type="button" className="ps-btn-secondary" onClick={() => void openCase(caseData.id, 'addOnOrders')}>{t('grossingBench.addOnOrders')}</button>
         <label className="ps-grossing-bench-decal">
-          <span>{t('grossingBench.decal.label')}</span>
-          <select className="ps-conf-select" value={decalBatchId} onChange={e => setDecalBatchId(e.target.value)} aria-label={t('grossingBench.decal.label')}>
-            {decalBatches.length === 0 && <option value="">{t('grossingBench.decal.none')}</option>}
-            {decalBatches.map(b => <option key={b.id} value={b.id}>{b.masterBarcode}</option>)}
+          <span>{t('grossingBench.carrier.label')}</span>
+          <select className="ps-conf-select" value={decalBatchId} onChange={e => setDecalBatchId(e.target.value)} aria-label={t('grossingBench.carrier.label')}>
+            {decalBatches.length === 0 && <option value="">{t('grossingBench.carrier.none')}</option>}
+            {decalBatches.map(b => <option key={b.id} value={b.id}>{t('grossingBench.carrier.option', { barcode: b.masterBarcode, node: t(`batchManagement.nodes.${b.processingNode}`) })}</option>)}
           </select>
         </label>
-        <select className="ps-conf-select" value={decalBlock} onChange={e => setDecalBlock(e.target.value)} aria-label={t('grossingBench.decal.block')}>
+        <select className="ps-conf-select" value={decalBlock} onChange={e => setDecalBlock(e.target.value)} aria-label={t('grossingBench.carrier.block')}>
           {blockIds.map(id => <option key={id} value={id}>{id}</option>)}
         </select>
-        <button type="button" className="ps-btn-secondary" onClick={() => void assignDecal()} disabled={decalBatches.length === 0}>{t('grossingBench.decal.assign')}</button>
+        <button type="button" className="ps-btn-secondary" onClick={() => void assignDecal()} disabled={decalBatches.length === 0}>{t('grossingBench.carrier.assign')}</button>
       </div>
       <p className="ps-grossing-bench-hint">{t('grossingBench.hint')}</p>
       {message && <p role="status" data-phi="accession" className={`ps-grossing-bench-message ps-grossing-bench-message--${message.kind}`}>{message.text}</p>}

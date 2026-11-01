@@ -1,6 +1,6 @@
 // src/services/billing/materialChargePreview.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// Batch 460 (Pete): what a histotech sees at the Microtomy bench by default —
+// Batch 460 (Pete): what a histotech sees at the Microtome bench by default —
 // the codes the scanned block's (or decant's, or matrix block's) slides
 // generate, read-only. Approving or changing them stays with the billing
 // review (the report page, or Microtomy's full review for people with

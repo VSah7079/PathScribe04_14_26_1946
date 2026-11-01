@@ -3,7 +3,7 @@
 <p><strong>Purpose.</strong> Batch Management follows groups of cassettes and slides from one laboratory step to the next. A <em>batch</em> is a physical carrier (a processor basket, a decalcification vessel, a staining rack, an archive tray, or an ad-hoc box) with a barcode on it. You scan each cassette or slide into the batch, and when the carrier reaches its destination you scan every item back out and PathScribe checks that nothing is missing and nothing extra arrived. The result is a record of who handled what, and when.</p>
 <p>The module is also the doorway to eight related screens, reached from the tiles at the top of the page: Pending Load, Disposal, the Waste Tracking Report, Retention Holds, Label reprint, Slide scanning, the Engraver Monitor and the Equipment log. Each has its own article, linked at the end of this one.</p>
 <p><strong>Intended users.</strong> Histotechnologists, cytotechnologists and molecular technologists, who have the screen by default, and laboratory managers. Administrators can open the screen but their roles do not include the batch actions unless your laboratory adds them. If the Batch Management tile is missing from the <a href="/help/pathology-workspace">Pathology Workspace</a>, ask your laboratory manager.</p>
-<p><strong>Where it fits.</strong> Batch Management sits between the workstations. <a href="/help/grossing">Grossing</a> creates the cassettes. The <a href="/help/workstations/embedding">Embedding</a> and <a href="/help/workstations/microtomy">Microtomy</a> workstations turn them into blocks and slides. <a href="/help/workstations/slide-distribution">Slide Distribution</a> hands slides to pathologists or to a scanner. Batch Management records the movement of groups of those items between the processing, staining and checkout steps, and out to a reference laboratory.</p>
+<p><strong>Where it fits.</strong> Batch Management sits between the workstations. <a href="/help/grossing">Grossing</a> creates the cassettes. The <a href="/help/workstations/embedding">Embedding</a> and <a href="/help/workstations/microtomy">Microtome</a> workstations turn them into blocks and slides. <a href="/help/workstations/slide-distribution">Slide Distribution</a> hands slides to pathologists or to a scanner. Batch Management records the movement of groups of those items between the processing, staining and checkout steps, and out to a reference laboratory.</p>
 <div class="admonition note">
 <p class="admonition-title">Demonstration data today</p>
 <p>In this version the batches, racks and readings are held in your browser session and the example batches are seeded for demonstration. Three examples are provided: a staining batch part-way through reconciliation (one slide missing, one unexpected scan), a referral batch with an unacknowledged temperature excursion of 11.4 °C, and a running processing batch. Resetting the demonstration restores them. The cold-chain readings come from a labelled Simulated control because no temperature sensor feed is connected yet.</p>
@@ -47,7 +47,7 @@
 </tr>
 <tr>
 <td>Processing node</td>
-<td>The laboratory step a batch belongs to. There are ten: Decal / Special Processing, Processing, Embedding, Microtomy / Sectioning, Staining, Checkout, External Referral, Cytology Processing, Cytology Staining and Cytology Imaging.</td>
+<td>The laboratory step a batch belongs to. There are ten: Decal / Special Processing, Processing, Embedding, Microtome / Sectioning, Staining, Checkout, External Referral, Liquid-Based Cytology Processing (called Cytology Processing before Batch 739), Cytology Staining and Cytology Imaging.</td>
 </tr>
 <tr>
 <td>Reconciliation</td>
@@ -62,12 +62,24 @@
 <h2 id="screen-tour">Screen Tour</h2>
 <figure class="ps-ug-figure"><img src="img/batch-management-overview.png" alt="The Batch Management page with stage tiles, page tiles, the lookup box and the batch list"><figcaption>The Batch Management page with stage tiles, page tiles, the lookup box and the batch list</figcaption></figure>
 
-<p>The page title is <strong>Batch Management</strong> with the line "Track groups of cassettes and slides through processing nodes (Decal / Special Processing, Processing, Embedding, Microtomy, Staining, Checkout) via container barcodes — chain-of-custody scanning, reconciliation, and QA discrepancy logging."</p>
+<p>The page title is <strong>Batch Management</strong> with the line "Track groups of cassettes and slides through processing nodes (Decal / Special Processing, Processing, Embedding, Microtome, Staining, Checkout) via container barcodes — chain-of-custody scanning, reconciliation, and QA discrepancy logging."</p>
 <p>From top to bottom: a row of tiles, the lookup box with the <strong>New Container</strong> button, then two lists of batches. Selecting a batch opens its detail page. <strong>New Container</strong> opens a dialog.</p>
 <figure class="ps-ug-figure"><img src="img/batch-management-new-container.png" alt="The New Container dialog"><figcaption>The New Container dialog</figcaption></figure>
 
 <figure class="ps-ug-figure"><img src="img/batch-management-batch-detail.png" alt="A batch open on its detail page with the manifest and action buttons"><figcaption>A batch open on its detail page with the manifest and action buttons</figcaption></figure>
 
+<h3 id="carrier-steps-and-sealing">Carrier steps and sealing</h3>
+<p>Since Batch 726 a carrier keeps its batch as it moves from step to step, and Batch Detail shows its trip:</p>
+<ul>
+<li><strong>The list opens on your station's step.</strong> When this computer's station works on one step, the list opens filtered to that step. A carrier with no Target Workstation scanned here records this station as its workstation.</li>
+<li><strong>Seal manifest.</strong> Nothing can be added to or removed from a sealed carrier. Reconciliation and moving on still work. Moving a carrier on seals it. Batch Detail then reads "Manifest sealed by … on …." with the name and date.</li>
+<li><strong>Move to <next step>.</strong> Moves the same carrier, with everything in it, to its next step: Processing to Embedding, Embedding to Microtome / Sectioning, Staining to Checkout, Cytology Staining to Cytology Imaging. The steps it has moved through are listed under <strong>Steps this carrier has moved through</strong>, with who moved it and when. Each item is recorded as moved "from the carrier".</li>
+<li><strong>Ad-hoc carriers move with you (Batch 734).</strong> Scanning an open ad-hoc carrier at another station moves it to that station without asking, and says so in a note; the move is recorded in the carrier's history. You are asked only when the step does not fit the carrier.</li>
+<li><strong>Decal: Transfer to Processing</strong> now moves the same batch to Processing (same barcode). It no longer creates a new Processing batch.</li>
+<li><strong>Closed carriers</strong> say so plainly at the top of Batch Detail: "This carrier is closed: it was completed on …" (or aborted).</li>
+<li><strong>Another step.</strong> When this computer's station works on a different step, Batch Detail says so.</li>
+<li>The bench workstations (Embedding, Microtome, Slide Distribution) open carriers themselves; see their articles. <strong>Open in Batch Management</strong> there brings you to the carrier here.</li>
+</ul>
 <h3 id="field-definitions">Field definitions</h3>
 <p><strong>Stage tiles (the first ten tiles)</strong></p>
 <table>
@@ -79,7 +91,7 @@
 </thead>
 <tbody>
 <tr>
-<td>Decal / Special, Processing, Embedding, Microtomy, Staining, Checkout, Referral, Cyto Processing, Cyto Staining, Cyto Imaging</td>
+<td>Decal / Special, Processing, Embedding, Microtome, Staining, Checkout, Referral, Cyto Processing, Cyto Staining, Cyto Imaging</td>
 <td>The number of open batches (Active or Reconciling) at that step. Select a tile to show only those batches in the Active &amp; Reconciling list. The tooltip reads "Filter by: ..." and, once chosen, "Showing: ... — click to reset". Select the tile again to clear the filter.</td>
 </tr>
 </tbody>
@@ -125,6 +137,10 @@
 <tr>
 <td>Equipment log</td>
 <td><a href="/help/batch-management/equipment-log">Equipment Log</a></td>
+</tr>
+<tr>
+<td>Workflow Reports</td>
+<td><a href="/help/batch-management/workflow-reports">Lab Workflow Reports</a></td>
 </tr>
 </tbody>
 </table>
@@ -189,7 +205,11 @@
 </tr>
 <tr>
 <td>Processing Node</td>
-<td>The step. If you change it after choosing a station whose stage differs, a warning reads "(station) is normally a (node) station — double-check this is intentional."</td>
+<td>The step. It starts at "Choose a step…" unless the station sets it (there is no hidden default), and Generate &amp; Print waits until a step is chosen. If you change it after choosing a station whose stage differs, a warning reads "(station) is normally a (node) station — double-check this is intentional."</td>
+</tr>
+<tr>
+<td>Purpose</td>
+<td>What the carrier is for: Routine (the default), Research, Teaching, Clinical Trial, Biobank, QA / Validation, or one your lab added. A purpose other than Routine shows as a badge on the batch's detail page, and a wall display can be set to show only some purposes.</td>
 </tr>
 <tr>
 <td>Protocol / Run Parameters</td>
@@ -379,7 +399,7 @@
 </tr>
 <tr>
 <td>Transfer to Processing</td>
-<td>Replaces Start Reconciliation on a Decal / Special Processing batch. Greyed out when the batch is empty.</td>
+<td>Replaces Start Reconciliation on a Decal / Special Processing batch. Moves the same batch to Processing (Batch 726). Greyed out when the batch is empty, and without the permission to move a carrier.</td>
 </tr>
 <tr>
 <td>Abort Batch</td>
@@ -457,6 +477,18 @@
 <td>A scan during reconciliation that is not on the manifest.</td>
 </tr>
 <tr>
+<td>Exhausted block (warning)</td>
+<td>Batch 737. A block with no tissue left was scanned into the batch. It is added, and a yellow message stays until you close it: "… is exhausted: no tissue remains in this block. It was added to the batch; check with the pathologist before it is processed or cut."</td>
+</tr>
+<tr>
+<td>Processor</td>
+<td>Batch 739. For a Liquid-Based Cytology Processing batch: the liquid-based processor it runs on (ThinPrep, SurePath or another, from the Equipment register; the first is chosen for you, or choose "— Not chosen —"). It goes on the instrument order sent to the lab's interface.</td>
+</tr>
+<tr>
+<td>Large-format slide refused</td>
+<td>Batch 737. A slide cut from a megablock was scanned onto a staining carrier that does not take large-format slides: "… is a large-format slide, and … does not take large-format slides. Use a large-format staining rack." When making a Staining carrier, tick <strong>Takes large-format slides (megablocks)</strong> for one that does.</td>
+</tr>
+<tr>
 <td>Simulated badge</td>
 <td>A temperature reading entered with the Simulated control, not from a sensor.</td>
 </tr>
@@ -465,6 +497,15 @@
 <h3 id="hotkeys">Hotkeys</h3>
 <p>On the hub, a barcode scan beginning CONT- or RACK- opens the matching batch from anywhere on the page, with no need to click first. On a batch's detail page every scan goes to the batch.</p>
 <p>In the New Container dialog, <strong>Ctrl+Alt+Shift+N</strong> does what Generate &amp; Print (or Start Session) does, and the spoken command "create container" or "generate container" does the same. They work only while the dialog is open. The overrides, abort and acknowledge buttons have no key and no voice command on purpose.</p>
+<h3 id="using-a-tablet-at-the-bench">Using a tablet at the bench</h3>
+<p>Since Batch 735 the station screens work with a finger, including a gloved one.</p>
+<ul>
+<li><strong>Touch layout.</strong> On a tablet, buttons, chips and tick boxes are at least 44 px, main actions such as Confirm or Print are larger, and text in fields is 16 px. On a desktop the screen keeps its compact layout. Change this per computer with <strong>Touch layout on this computer</strong> in the station menu at the top (<strong>Auto</strong>, <strong>Always on</strong>, <strong>Always off</strong>).</li>
+<li><strong>Scanning.</strong> The scan field accepts a barcode scanner without opening the on-screen keyboard and stays ready for the next scan. To type an ID by hand, select <strong>⌨ Type</strong>; <strong>⌨ Scan</strong> hides the keyboard again.</li>
+<li><strong>Keyboard up.</strong> When you type in a field, the field stays in view. If the form's Save button would be hidden by the keyboard, a copy of it appears just above the keyboard.</li>
+<li><strong>Tooltips.</strong> Tap a label that has extra information to read it.</li>
+<li><strong>Abort and complete with exceptions.</strong> Tap a reason (for example <strong>Created in error</strong> or <strong>Approved by the supervisor</strong>; your lab may word them differently); add a note only if you need to.</li>
+</ul>
 <h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
 <h3 id="standard-workflow">Standard workflow</h3>
 <p><strong>Create a batch and fill it</strong></p>
@@ -489,7 +530,7 @@
 <ol>
 <li>Create the batch with node Decal / Special Processing, choose the <strong>Solution Type</strong> and set the <strong>Target Duration</strong>.</li>
 <li>Scan the cassettes in. Watch the timer on the batch page.</li>
-<li>When decalcification is finished, select <strong>Transfer to Processing</strong>. All items move into a new Processing batch in a disposable processor basket, the decal batch is marked Complete and a message reads "(n) item(s) transferred to new Processing batch (barcode)." You return to the list. No reconciliation is needed for this step.</li>
+<li>When decalcification is finished, select <strong>Transfer to Processing</strong>. The same batch, with the same barcode and every item in it, moves to Processing and its manifest is sealed. A message reads "(barcode) moved to Processing as the same batch. Items: (n)." and the batch stays open. No reconciliation is needed for this step. (Before Batch 726 this created a new Processing batch.)</li>
 </ol>
 <h3 id="alternative-workflow">Alternative workflow</h3>
 <ol>
@@ -558,7 +599,7 @@
 <ul>
 <li><a href="/help/pathology-workspace">Pathology Workspace</a>: the Batch Management tile opens this module.</li>
 <li><a href="/help/grossing">Grossing</a>: creates the cassettes and shows the imager batch and field-of-view count for cytology slides.</li>
-<li><a href="/help/workstations/embedding">Embedding</a> and <a href="/help/workstations/microtomy">Microtomy</a>: produce the blocks and slides that go into batches.</li>
+<li><a href="/help/workstations/embedding">Embedding</a> and <a href="/help/workstations/microtomy">Microtome</a>: produce the blocks and slides that go into batches.</li>
 <li><a href="/help/batch-management/engraver-monitor">Engraver Monitor</a> and <a href="/help/batch-management/label-reprint">Label Reprint</a>: the engravers and labels behind the items you scan.</li>
 </ul>
 <h3 id="downstream-workflow">Downstream workflow</h3>
@@ -566,6 +607,7 @@
 <li><a href="/help/batch-management/pending-load">Pending Batch Load</a>: what is printed but not yet batched.</li>
 <li><a href="/help/workstations/slide-distribution">Slide Distribution</a> and <a href="/help/batch-management/wsi-scan">Slide Scanning</a>: slides routed to a scanner.</li>
 <li><a href="/help/batch-management/equipment-log">Equipment Log</a>: maintenance and calibration of the instruments batches run on.</li>
+<li><a href="/help/batch-management/workflow-reports">Lab Workflow Reports</a>: turnaround, volume and exception reports from the station scans.</li>
 <li><a href="/help/batch-management/retention-holds">Retention Holds</a>, <a href="/help/batch-management/disposal">Disposal Queue</a> and <a href="/help/batch-management/disposal-report">Waste Tracking Report</a>: the end of the material's life.</li>
 </ul>
 <h2 id="troubleshooting">Troubleshooting</h2>

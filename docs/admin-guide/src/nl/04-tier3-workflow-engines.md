@@ -48,6 +48,7 @@ Configureer niveau 3 in deze volgorde. Elk inrichtingsscherm heeft een kader Inr
 29. [Bijdrage-instellingen](#screen-contribution_settings): de pagina Mijn bijdrage.
 30. [Feedback](#screen-feedback): de KA-feedbackknop.
 31. [Onderzoeksfeed](#screen-research_feed): de PubMed-kop op Start.
+32. [Redenen aan de werkbank](#screen-bench_reasons): de aantikbare redenen aan de werkbank, in de woorden van uw lab.
 
 Naslagpagina's, geen onderdeel van de inrichting: [Batchbeheer](#screen-batch-management), [Inbedstation](#screen-embedding-station), [Microtomie-werkstation](#screen-microtomy-workstation), [Objectglaasjes-distributiestation](#screen-slide-distribution-station), [Start](#screen-home), [Lockbox-afgifte](#screen-lockbox-drop-off), [Kwaliteitsborging](#screen-quality-assurance), [Margeafwijkingen beoordelen](#screen-margin-exception-review) en [Cytologie-KC-wachtrij](#screen-cytology-qc-queue).
 
@@ -991,6 +992,31 @@ Unlocks: Geen.
 
 **7. Machtigingen.** Het scherm openen: `screen:configuration:open`. Wijzigen: `config:revision-reasons:manage` (hoog risico; Beheerder en Laboratoriumdirecteur).
 **Bekende beperkingen.** In het product zijn de beginwaarden: diagnose, snijrand, stadium en herclassificatie van weefsel aan; administratieve correcties uit (`revisionReasonRules.ts`). De service staat toe redenen toe te voegen, te bewerken, te deactiveren en te reactiveren, maar dit scherm heeft daarvoor geen knop; dat wordt voor Pete vermeld in `open-questions/ch4.md`. Contract: `docs/architecture/LAB_DICTIONARIES_API.md`.
+
+### Redenen aan de werkbank {#screen-bench_reasons}
+Breadcrumb: Start > Configuratie > Systeem > Beheer en compliance > Redenen aan de werkbank
+
+**Status:** Gebouwd (batch 736)
+
+**1. Navigatie:** configuratietabblad **Systeem** > groep **Beheer en compliance**
+**2. Onderhoudsitem:** Redenen aan de werkbank
+
+**3. Doel en reikwijdte.** De redenen die medewerkers aan de werkbank aantikken in plaats van typen, in vijf groepen: microtoom (blok uitgeput); aanvullende orders bij een uitgeput blok (order en antwoord van de patholoog, inclusief goedkeuring van destructief snijden); batch afbreken; batch afronden met afwijkingen; koudeketenafwijking. Elk lab formuleert ze op zijn eigen manier. Een reden houdt bij herformulering haar **code**; elk record en elke auditregel bewaart de code naast de tekst, zodat rapporten (kolom **Redencode** in het rapport afstemmingsafwijkingen) haar voor en na herformulering op dezelfde manier tellen. Een notitie blijft optioneel.
+
+**4. Voorwaarden en afhankelijkheden.** Geen. De standaardredenen worden in alle zes talen geleverd.
+
+Setup step: Tier 3, step 32
+Requires: None.
+Unlocks: None.
+
+**5. Scherm.**
+
+[SCREENSHOT PLACEHOLDER: system-bench_reasons - Redenen aan de werkbank in vijf groepen]
+
+**6. Velden.** Formulering (met **Herformuleren**; een standaardreden verschijnt in de taal van elke gebruiker, een geherformuleerde zoals ingevoerd), Code (alleen-lezen, verandert nooit), ↑ / ↓ (volgorde), **Standaardformulering gebruiken**, **Intrekken** / **Herstellen**, **Reden toevoegen**.
+
+**7. Rechten.** Scherm openen: `screen:configuration:open`. Wijzigen: `config:bench-reasons:manage` (hoog risico; beheerder en labdirecteur).
+**Bekende beperkingen.** Eén lijst voor de hele organisatie; een locatie kan nog geen eigen formulering hebben.
 
 ### Tumor board-regels voor automatische markering {#screen-tumor_board_rules}
 Breadcrumb: Start > Configuratie > Systeem > Beheer & compliance > Tumor board-regels voor automatische markering

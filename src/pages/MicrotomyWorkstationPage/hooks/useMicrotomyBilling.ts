@@ -1,6 +1,6 @@
 // src/pages/MicrotomyWorkstationPage/hooks/useMicrotomyBilling.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// Batch 460 (Pete): billing at the Microtomy bench. By default a read-only
+// Batch 460 (Pete): billing at the Microtome bench. By default a read-only
 // list of the codes the scanned block's slides generate, with their charge
 // status and warnings (services/billing/materialChargePreview.ts). People
 // with billing:applied-code:review get a switch to the full billing review

@@ -1,3 +1,13 @@
+**Batch 742:** the bottom bar's Attachments badge opens `components/CaseAttachments/CaseAttachmentsModal` (replacing the Batch 609 Attach images window), with the report layout's sections to place images in; the render payload carries `sectionImages` (`services/imageAssociation/reportSectionImages.ts`). 7,060 lines to 7,057.
+
+**Batch 739:** `modals/BlockStainEditorModal.tsx` and `modals/MaterialTrackingHistoryModal.tsx` show a decant's type in the reader's language (was the English `DECANT_TYPE_LABEL`).
+
+**Batch 738:** `hooks/useSignOutWorkflow.ts` builds the Review before finalising entries with `services/reports/synopticReviewEntries.ts` (answers in words).
+
+**Batch 737:** `hooks/useSpecimenBlockManagement.ts` passes the block type with cassette label requests.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 **Batch 650:** the bottom bar's Sign Out Case, Sign Out and Next (Assist), Finalise, Add Amendment, History and Codes answer voice and key commands (`hooks/useBottomBarActionEvents.ts`, decided by `services/reports/bottomBarActions.ts`); the Finalise window answers Cancel finalise and the History window Close history. No command signs: the sign-out and finalise windows still need the signer's credentials.
 
 **Batch 649 (Amendment window):** the Amendment window, the Amend button and the draft banner's Edit button now grey out by the release capabilities (`surgical:amendment|correction|addendum:release`) instead of refusing at the end; see `modals/`, `components/` and `hooks/useRevisionReleaseAvailability.ts`.
@@ -53,7 +63,7 @@ The render request carries `fontUnits` (the template's units) next to `documentS
 
 ## Batch 609 (part A)
 
-- Attach images button in the bottom action bar (opens `components/ReportImages/AttachReportImagesModal`); print, preview and release add the linked images after the report's pages; a failure blocks the release (`generationError`).
+- Attachments badge in the bottom action bar (opens `components/CaseAttachments/CaseAttachmentsModal`, Batch 742; was Attach images); images placed in a section are drawn there by the renderer, documents and unplaced images are added after the report's pages; a failure blocks the release (`generationError`).
 
 ## Batch 318 (PS-137)
 
@@ -317,7 +327,7 @@ The browser draft copy carries its merge base and version; restoring it merges s
 
 ## Batch 460
 
-The billing panel's handlers now call `services/billing/caseBillingCoding.ts` and `caseBillingCharges.ts`, shared with the Cytology Workspace and Microtomy, instead of computing inline.
+The billing panel's handlers now call `services/billing/caseBillingCoding.ts` and `caseBillingCharges.ts`, shared with the Cytology Workspace and Microtome, instead of computing inline.
 - Each change first checks `billing:applied-code:review`; a refusal shows a warning and changes nothing.
 - Behaviour is otherwise unchanged: the same post-sign-out reason, ledger entries and audit text.
 - Rule 2 progress: the charge, credit and correction decisions left the page; `recordChargeTransaction` and `recordCreditTransaction` are now one-line wrappers.

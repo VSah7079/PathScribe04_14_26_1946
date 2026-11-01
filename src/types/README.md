@@ -1,3 +1,11 @@
+**Batch 742:** `caseAttachments/CaseAttachment.ts` (new): a case attachment is a pointer (object key or permanent URL), never a file; Pete's `source_type` enum and the three accepted file types.
+
+**Batch 739:** `case/Material.ts` (aliquot decants), `case/MolecularOrderOutboundQueueEntry.ts` (processor on the instrument order).
+
+**Batch 736:** `reasons/ReasonDictionaryEntry.ts` gains the `BENCH_*` categories and `sortOrder`; `case/addOnOrderException.ts` gains `reasonCode` and `responseReasonCode`.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # src/types/
 
 Pure TypeScript type/interface definitions (a few files also carry
@@ -387,3 +395,15 @@ See `services/aiIntegration/aiSuggestionRules.ts`, `services/coding/aiCodeSugges
 `case/Case.ts`: `intraoperativeFindings`, `lockboxReceiptId`; `intraop/CaseIntraoperativeFinding.ts` (new).
 
 **Batch 715:** `case/CaseLabelStyle.ts` adds `Case.labelStyle` (the letters/numbers style in force at accessioning) to `Case`.
+
+## Batch 729
+
+- `case/MatrixBlock.ts`: the Embedding Station fields (mold, orientation, discrepancy, cassette reprint), as on `HistologyBlock`.
+
+## Batch 731
+
+- `case/Specimen.ts`: the add-on exception statuses and events gain `used_unstained`, `moved_to_other_block`, `reembed_requested`, `reembedded` (edited in place; the file does not grow).
+
+## Batch 732
+
+- Batch 732: `case/blockPieces.ts` (new): `BlockType`, `SlideSize`, `BlockPiece`. `case/Specimen.ts`: `HistologyBlock.blockType` / `pieces`; `StainOrder.slideSize` / `sectionCount` / `levelCount` / `pieceIds`; `AddOnOrderException` and `AddOnOrderExceptionEvent` moved to `case/addOnOrderException.ts` (re-exported) so the file shrinks (1,840 lines). `case/MatrixBlock.ts`: a participant's `orientation`, `ink`, `exhaustedAt`.

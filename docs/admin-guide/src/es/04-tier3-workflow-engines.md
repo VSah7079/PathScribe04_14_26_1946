@@ -48,6 +48,7 @@ Configure el Nivel 3 en este orden. Cada pantalla de configuración incluye un c
 29. [Ajustes de contribución](#screen-contribution_settings): la página Mi contribución.
 30. [Comentarios](#screen-feedback): el botón de comentarios de calidad.
 31. [Canal de investigación](#screen-research_feed): el titular de PubMed en Inicio.
+32. [Motivos del puesto de trabajo](#screen-bench_reasons): los motivos de un toque del puesto, con las palabras de su laboratorio.
 
 Páginas de referencia, que no forman parte de la configuración: [Gestión de lotes](#screen-batch-management), [Estación de inclusión](#screen-embedding-station), [Estación de microtomía](#screen-microtomy-workstation), [Estación de distribución de preparaciones](#screen-slide-distribution-station), [Inicio](#screen-home), [Buzón de depósito](#screen-lockbox-drop-off), [Garantía de calidad](#screen-quality-assurance), [Revisión de excepciones de márgenes](#screen-margin-exception-review) y [Cola de control de calidad de citología](#screen-cytology-qc-queue).
 
@@ -991,6 +992,31 @@ Unlocks: Ninguno.
 
 **7. Permisos.** Abrir la pantalla: `screen:configuration:open`. Cambiar: `config:revision-reasons:manage` (riesgo alto; Admin y Lab Director).
 **Límites conocidos.** En el producto, los valores iniciales son: diagnóstico, margen, estadio y reclasificación del tejido activados; correcciones administrativas desactivadas (`revisionReasonRules.ts`). El servicio permite añadir, editar, desactivar y reactivar motivos, pero esta pantalla no tiene ningún botón para ello; así consta para Pete en `open-questions/ch4.md`. Contrato: `docs/architecture/LAB_DICTIONARIES_API.md`.
+
+### Motivos del puesto de trabajo {#screen-bench_reasons}
+Breadcrumb: Inicio > Configuración > Sistema > Administración y cumplimiento > Motivos del puesto de trabajo
+
+**Estado:** Construido (lote 736)
+
+**1. Navegación:** pestaña de configuración **Sistema** > grupo **Administración y cumplimiento**
+**2. Elemento de mantenimiento:** Motivos del puesto de trabajo
+
+**3. Finalidad y alcance.** Los motivos que el personal toca en el puesto en lugar de escribirlos, en cinco grupos: micrótomo (bloque agotado); pedidos adicionales sobre un bloque agotado (pedido y respuesta del patólogo, incluida la aprobación del corte destructivo); anulación de lote; lote completado con excepciones; desviación de la cadena de frío. Cada laboratorio los redacta a su manera. Un motivo conserva su **código** al reformularlo, y cada registro y entrada de auditoría guarda el código junto al texto, de modo que los informes (columna **Código del motivo** del informe de excepciones de conciliación) lo cuentan igual antes y después de reformularlo. La nota sigue siendo opcional.
+
+**4. Requisitos previos y dependencias.** Ninguno. Los motivos predeterminados se suministran en los seis idiomas.
+
+Setup step: Tier 3, step 32
+Requires: None.
+Unlocks: None.
+
+**5. Pantalla.**
+
+[SCREENSHOT PLACEHOLDER: system-bench_reasons - Motivos del puesto en cinco grupos]
+
+**6. Campos.** Redacción (con **Reformular**; un motivo predeterminado se muestra en el idioma de cada usuario, uno reformulado tal como se escribió), Código (solo lectura, no cambia nunca), ↑ / ↓ (orden), **Usar la redacción predeterminada**, **Retirar** / **Restablecer**, **Añadir motivo**.
+
+**7. Permisos.** Abrir la pantalla: `screen:configuration:open`. Cambiar: `config:bench-reasons:manage` (riesgo alto; administrador y director de laboratorio).
+**Limitaciones conocidas.** Una lista para toda la organización; un centro aún no puede tener su propia redacción.
 
 ### Reglas de marcado automático para comité de tumores {#screen-tumor_board_rules}
 Breadcrumb: Inicio > Configuración > Sistema > Administración y cumplimiento > Reglas de marcado automático para comité de tumores

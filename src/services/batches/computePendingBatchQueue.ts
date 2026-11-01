@@ -43,6 +43,8 @@
 import { slideLevelOf } from '@/services/material/slideLevels';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { batchService } from './batchServiceInstance';
+import { facilityService } from '@/services/facilities/facilityServiceInstance';
+import { caseFacilityId } from '@/services/facilityOpsDashboard/caseFacility';
 import { cassetteIdentifier, slideIdentifier } from '@/types/labels/LabelData';
 import type { BlockStatus } from '@/types/case/Specimen';
 
@@ -74,11 +76,13 @@ const PHYSICALLY_EXISTS: ReadonlySet<BlockStatus> = new Set(['Grossed', 'Embedde
  * returned before this fix.
  */
 export async function computePendingBatchQueue(facilityId: string | undefined): Promise<PendingBatchQueueItem[]> {
-  const [casesRes, batchesRes] = await Promise.all([
+  const [casesRes, batchesRes, facilitiesRes] = await Promise.all([
     caseRouter.getAll(undefined, { bypassAccessControl: true, includeOrchestration: true }),
     batchService.getAll(),
+    facilityId ? facilityService.getAll() : Promise.resolve(null),
   ]);
   if (!casesRes.ok || !batchesRes.ok) return [];
+  const facilities = facilitiesRes?.ok ? facilitiesRes.data : [];
 
   const batchedDisplayIds = new Set<string>();
   for (const batch of batchesRes.data) {
@@ -88,7 +92,7 @@ export async function computePendingBatchQueue(facilityId: string | undefined): 
 
   const queue: PendingBatchQueueItem[] = [];
   for (const c of casesRes.data) {
-    if (facilityId && c.originHospitalId !== facilityId) continue;
+    if (facilityId && caseFacilityId(c.originHospitalId, facilities) !== facilityId) continue; // Batch 747: a legacy tenant id resolved
     const fullAccession = c.accession?.fullAccession ?? c.id;
     for (const specimen of c.specimens ?? []) {
       for (const block of specimen.blocks ?? []) {

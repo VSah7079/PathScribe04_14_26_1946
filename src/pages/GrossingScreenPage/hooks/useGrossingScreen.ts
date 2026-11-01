@@ -7,6 +7,8 @@
 // with the actual real persistence.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { setBlockPieceMap } from '@/utils/blockPieceRules';
+import type { BlockPiece, BlockType } from '@/types/case/blockPieces';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { specimenDeficiencyService, fieldRequirementService, authorizationService, auditService, inkColorService, facilityService } from '@/services';
@@ -203,6 +205,16 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
     if (result.ok) await persistSpecimen(result.specimen);
   }, [caseData, signingUser, persistSpecimen]);
 
+  /** Batch 732 (spec §11.1, §11.2): the block's type and piece map (utils/blockPieceRules.ts). False when not valid. */
+  const handleSetBlockPieceMap = useCallback(async (specimenId: string, blockId: string, blockType: Exclude<BlockType, 'matrix'>, pieces: BlockPiece[]): Promise<boolean> => {
+    const specimen = (caseData?.specimens ?? []).find((sp: Specimen) => sp.id === specimenId);
+    if (!specimen) return false;
+    const result = setBlockPieceMap(specimen, blockId, blockType, pieces);
+    if (!result.ok) return false;
+    await persistSpecimen(result.specimen);
+    return true;
+  }, [caseData, persistSpecimen]);
+
   const handleUpdateMatrixBlock = useCallback(async (matrixBlockId: string, patch: { pieceCount?: number; pieceDescription?: string }) => {
     if (!caseData?.id) return;
     const next = updateMatrixBlockPieces(caseData.matrixBlocks ?? [], matrixBlockId, patch);
@@ -380,7 +392,7 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
   return {
     handleAddBlock, handleRemoveBlock, handleAddStain, handleRemoveStain,
     pendingStainRemoval, confirmPendingStainRemoval, cancelPendingStainRemoval,
-    handleUpdatePieceCount, handleUpdatePieceDescription, handleUpdateMatrixBlock, handleRecordFixationEnded, handleConfirmFixativeRatio,
+    handleUpdatePieceCount, handleUpdatePieceDescription, handleUpdateMatrixBlock, handleSetBlockPieceMap, handleRecordFixationEnded, handleConfirmFixativeRatio,
     handleRaiseFixationDeficiency, specimensWithOpenFixationDeficiency,
     missingItems, handleCompleteGrossing, completeRefusal,
     secondaryReviewSpecimens, pendingProtocolConfirmation, confirmCompleteWithoutProtocol, cancelCompleteWithoutProtocol,

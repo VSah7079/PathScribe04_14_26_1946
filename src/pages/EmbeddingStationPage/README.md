@@ -1,8 +1,14 @@
+**Batch 737:** `hooks/useEmbeddingStation.ts` passes the block type with each cassette label request (a megablock prints on its own template).
+
+**Batch 735:** the shared `StationScanField` before and during a cassette (in the context bar); windows are dialogs; in the station touch layout.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # pages/EmbeddingStationPage/
 
 **NEW (Sep 2026)** — PS-285, second of the PS-284→285→286→287→288 workstation-build sequence. A dedicated, bench-facing surface for the embedding tech: scan a cassette barcode, confirm the piece count against what was recorded at grossing (or one-touch flag a genuine discrepancy), pick a base mold size and record orientation instructions, group split cassettes from one specimen so they're all embedded together, and reprint a damaged/wax-obscured cassette label with a mandatory reason. Built to visually match `MicrotomyWorkstationPage.tsx`/`GrossingScreenPage.tsx` (same header/back-button pattern, same `ps-overlay`/`ps-modal-dark` modal convention, same dark palette) per the same direct visual-consistency guidance PS-284 followed — sibling workstation to sibling workstation.
 
-**Route**: `/workstations/embedding` — deliberately NOT nested under the `:caseId`-scoped, `synopticLoader`-gated clinical route group, for the identical reason `MicrotomyWorkstationPage.tsx`'s own README states: an embedding tech works cassette-by-cassette across many cases in a single shift. Lives in the same non-case-scoped, `ScannerProvider`-wrapped route group in `App.tsx` as Microtomy. Reached from its tile on the Pathology Workspace hub (`/pathology-workspace`, `PathologyWorkspacePage.tsx`); the route needs `screen:embedding:open`.
+**Route**: `/workstations/embedding` — deliberately NOT nested under the `:caseId`-scoped, `synopticLoader`-gated clinical route group, for the identical reason `MicrotomyWorkstationPage.tsx`'s own README states: an embedding tech works cassette-by-cassette across many cases in a single shift. Lives in the same non-case-scoped, `ScannerProvider`-wrapped route group in `App.tsx` as Microtome. Reached from its tile on the Pathology Workspace hub (`/pathology-workspace`, `PathologyWorkspacePage.tsx`); the route needs `screen:embedding:open`.
 
 *Corrected in the Batch 496 README audit (Oct 9, 2026): the tile is on the Pathology Workspace hub, not `Home.tsx` (`PathologyWorkspacePage.tsx`, `App.tsx` ScreenGate `embedding`).*
 
@@ -24,7 +30,7 @@
 
 ## Notes
 
-- Built with `useTranslation()` from the start — every visible string goes through the `embeddingStation.*` locale namespace, across all 5 languages (see `i18n/README.md`'s running log). Only the new `home.embeddingTile.*` strings were converted in the not-yet-fully-converted `Home.tsx` *(since moved: the tile's strings are now `pathologyWorkspace.embeddingTile.*` on the Pathology Workspace hub — checked in the Batch 496 README audit)*, same precedent as the Microtomy tile before it.
+- Built with `useTranslation()` from the start — every visible string goes through the `embeddingStation.*` locale namespace, across all 5 languages (see `i18n/README.md`'s running log). Only the new `home.embeddingTile.*` strings were converted in the not-yet-fully-converted `Home.tsx` *(since moved: the tile's strings are now `pathologyWorkspace.embeddingTile.*` on the Pathology Workspace hub — checked in the Batch 496 README audit)*, same precedent as the Microtome tile before it.
 - **Multi-Cassette / Split-Block Tracking is deliberately the opposite concept from the pre-existing `sharedCassetteId`** (multiple *specimens* sharing one cassette): `splitBlockGroupId` covers one *specimen's* tissue split across several cassettes (A1/A2/A3). The two fields are never conflated or cross-checked against each other in this pass.
 - **Biopsy/Needle Core alert badges are deliberately NOT new stored booleans** — they're derived live from the specimen's own linked `SpecimenEntry.type`/`procedure` (looked up once per work item), never a second, driftable copy of a fact the dictionary entry already states.
 - **"Audit Triggers: routes an alert to the histotechnology supervisor"** is implemented as the real, existing `def-tissue-discrepancy` deficiency landing in the real, existing QA working queue (`QualityAssurancePage.tsx`) supervisors already monitor — not a new, separate paging/notification channel.
@@ -74,3 +80,19 @@ The page follows the organisation's Field Requirements (page "embedding", `servi
 - **The Tissue Discrepancy item** a mismatch or flag raises is now confirmed on screen ("has been raised for QA"), and a failed raise (a rejected call or a not-ok answer) shows a red line, not only the console.
 - DOB uses `utils/formatDate.ts`; the status list on the left shows `embeddingStation.blockStatus.*` through `blockStatusLabelKey`.
 - Tests: `hooks/useEmbeddingStation.test.tsx` (new), `components/embeddingRequirements.test.tsx`, `utils/embeddingOperations.test.ts`.
+
+## Batch 726
+
+The **Carriers at this station** card (`components/Workstation/StationCarrierPanel`, `hooks/useStationCarrier`): every scan goes through `carrier.route`, so a CONT-/RACK- scan opens a carrier here (a processor basket moves here from Processing) and cassette scans are checked off against it. Matrix blocks are still refused here; fixing that is Batch 729 (spec 11.6).
+
+## Batch 729
+
+- `hooks/useEmbeddingStation.ts`: matrix blocks through `utils/embeddingMatrixView.ts`, saved with `saveCaseFields`; a matrix block's discrepancy against its first participant; Confirm records `completed`. Page: "Matrix block of specimens …" and the scan history.
+
+## Batch 731
+
+- Batch 731: `ExhaustedBlockBanner` for the block at the bench; "Re-embedded: release the orders" (`handleReembedded` → `addOnOrders.completeReembedding`, `material:reembed:complete`). Not for a matrix block.
+
+## Batch 732
+
+- Batch 732: `BlockPieceMapPanel` (read-only) for the block at the bench (`pieceView`).

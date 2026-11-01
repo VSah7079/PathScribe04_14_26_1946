@@ -1,3 +1,5 @@
+**Batch 742:** `ReportPreviewRenderer.tsx` shows images placed in a section under that section, and those placed at the end of the text (or under a section the layout lacks) under "Images", as `functions/main.py` prints them (`components/CaseAttachments/PlacedImages.tsx`, `hooks/useReportPlacements.ts`).
+
 ## Batch 613 (part B)
 `ReportPreviewRenderer` takes `intraoperativeDiagnosis` (drawn after the case header, part of the case report) and `relatedCases` (the section the signer attached, drawn after the body with the shared `RelatedCaseList`).
 

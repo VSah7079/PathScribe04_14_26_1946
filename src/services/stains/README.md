@@ -1,3 +1,9 @@
+**Batch 744:** `mockStainTypeService.ts`: TTF-1 (st-ttf1).
+
+**Batch 739:** `st-pap-surepath` (Pap Smear, Liquid-Based (SurePath)).
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/stains/
@@ -13,7 +19,7 @@ Stain catalog — THREE distinct sub-concepts bundled in one well-reasoned inter
 - **`IStainService.ts`**'s `StainType.defaultCptCode` — **New**, per direct guidance on real IHC coding nuances (a specific antibody billed differently than the generic rule, or a real multiplex panel billed as its own single code like 88344). Real, optional, coder-entered — this app never fabricates the mapping. Editable through this folder's own admin UI (`components/Config/System/StainDictionarySection.tsx`).
 - **Real, researched demo data, per direct request.** `mockStainTypeService.ts`'s seed data now carries real `defaultCptCode` values: 88312 for the three special stains, and a real, defensible 88344 for the "p63/CK5/6 Dual Stain" entry — a genuine multiplex case (two separately identifiable antibodies on one slide), verified via direct search, not the generic single-antibody rule. Standard, single-antibody IHC stains (ER/PR/HER2/Ki-67/PD-L1) are deliberately left unassigned, since the generic first/additional rule genuinely applies to them with no real, verified exception.
 - **`firestoreStainService.ts`** — MINOR: its auto-generated stub comment only names one of the three mocks as 'the active implementation' — should name all three. Cosmetic, self-inflicted during the July 2026 cleanup pass, not yet fixed.
-- **`mockStainTypeService.ts`** — **New entry (PS-284, Microtomy Workstation):** `Diff-Quik / Wright-Giemsa` (`category: 'Cytology'`), one of the ticket's three spec'd cytology "Stain Quick-Toggle" options (alongside the already-cataloged Pap Stain and H&E). See `services/cytology/README.md`'s Phase 79 entry for the fuller Microtomy Workstation account.
+- **`mockStainTypeService.ts`** — **New entry (PS-284, Microtome Workstation):** `Diff-Quik / Wright-Giemsa` (`category: 'Cytology'`), one of the ticket's three spec'd cytology "Stain Quick-Toggle" options (alongside the already-cataloged Pap Stain and H&E). See `services/cytology/README.md`'s Phase 79 entry for the fuller Microtome Workstation account.
 
 ## Notes
 

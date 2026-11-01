@@ -16,6 +16,7 @@ import '../../../pathscribe.css';
 import { IS_MOCK_BACKEND, authorizationService } from '@/services/index';
 import { resetAllDemoData } from '@/services/demoReset/demoReset';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import DemoDisplayTokensCard from './DemoDisplayTokensCard';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -194,6 +195,8 @@ const DemoResetTab: React.FC = () => {
             </button>
           </div>
         </div>
+        {/* Batch 747 (S8): the wall display and OR Suite tokens for Video 6, issued after each reset and shown once. */}
+        <DemoDisplayTokensCard />
       </div>
 
     </div>

@@ -1,3 +1,5 @@
+**Batch 738:** `templates/generic/colon_resection.json`: PathScribe-authored wording and conditional questions (see `templates/generic/README.md`).
+
 # src/data/
 
 Pure JSON data — 31 synoptic reporting protocol templates (breast,

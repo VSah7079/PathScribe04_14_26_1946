@@ -1,3 +1,5 @@
+**Batch 734:** `directDevicePrinting.ts` — `directPrintDecision(bridge, demo, facilityAllows)` and `checkDirectDevicePrint(printer, document, deps)`: direct bridges (QZ Tray, PathScribe agent, Zebra Browser Print, BarTender) are allowed in the demo, and in a server deployment only for a facility that allows them; each is audited ("Direct Device Print" / "Direct Device Print Blocked"). `directDevicePrintingDeps.ts` wires the app's services. `attemptPrintDelivery` checks it on the QZ Tray branch (a refused job fails with PRINT_REJECTED, not retried).
+
 # services/printing/
 
 Component B of the "Decoupled Dispatch & Print Management System" spec — the Print Queue Engine. All three real delivery modes the source spec (and PS-278) describe, gated by Component C (`services/delivery/`) and running as a genuinely concurrent second subscriber to `services/reports/publishReportReleasedEvent.ts`, alongside electronic dispatch.

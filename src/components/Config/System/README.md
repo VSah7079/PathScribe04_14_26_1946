@@ -1,3 +1,11 @@
+**Batch 747:** `DemoDisplayTokensCard.tsx` (+ `.css`, new), on `DemoResetTab.tsx`: Issue tokens shows a fresh token for each demo wall display and the OR Suite terminal, once (`services/demoReset/demoDisplayTokens.ts`).
+
+**Batch 737:** `StainingRacksPanel.tsx` (new), shown in `EquipmentSection.tsx`: the lab's reusable staining racks with **Takes large-format slides** (saved at once; the rack registry checks `config:equipment:manage`).
+
+**Batch 736:** `BenchReasonsSection.tsx` (+ `.css`), section `bench_reasons` (Administration & Compliance): reword, add, order, retire and restore the bench's reasons; codes shown, never changed (`config:bench-reasons:manage`).
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # components/Config/System/
 
 The biggest, most central components folder after Config/ itself — every
@@ -1310,7 +1318,7 @@ Saving goes through `services/templates/templateGovernanceSettings.ts → saveTe
 
 ## Batch 388
 
-`FieldRequirementsSection`: the Microtomy workstation page, with the group Slide orders (Comments already existed).
+`FieldRequirementsSection`: the Microtome workstation page, with the group Slide orders (Comments already existed).
 
 ## Batch 392
 
@@ -1717,3 +1725,23 @@ Registry batch files: a card per profile (example and NAACCR XML shipped; NAACCR
 Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): the AI instructions test result no longer prints a confidence percentage. Admin threshold inputs (Clinical Mismatch Rules, Confidence Threshold) stay numeric: they are settings.
 
 `FeedbackSection.tsx` (Oct 28, 2026): two more cards, **Validation recipients** and **Enhancement request destination URL** (with a line saying which host is in use). Rules in `services/feedback/`.
+
+## Batch 727
+
+`DisplayProfilesSection.tsx`: the Stations view in the view list, and **Time limit X (minutes)** when Embedding & Microtome or Stations is ticked (15 to 1440; Save stays off outside that).
+
+## Batch 728
+
+- `ResearchCasesSection.tsx` (+ `.css`, new): Research Cases & Batch Purposes (section `research_cases`). `DisplayProfilesSection.tsx`: the purpose filter.
+
+## Batch 729
+
+- `DisplayProfilesSection.tsx`: Not-scanned warning (minutes) for the Stations view.
+
+## Batch 730
+
+- `EquipmentSection.tsx`: the temperature range; `EquipmentLogModal.tsx`: Temperature check with its reading and automatic outcome.
+
+## Batch 732
+
+- Batch 732: Equipment window, "Takes large-format slides" for stainers and slide scanners (`EquipmentSection.css`, new).

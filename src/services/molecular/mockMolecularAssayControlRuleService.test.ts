@@ -23,8 +23,8 @@ describe('mockMolecularAssayControlRuleService — real, per §3.2 Dynamic Contr
     const res = await mockMolecularAssayControlRuleService.getAll();
     expect(res.ok).toBe(true);
     if (res.ok) {
-      // Batch 467 adds the EGFR PCR rule (NTC A01, positive control A02).
-      expect(res.data.map(r => r.assayCode)).toEqual(['st-hpv-highrisk-screen', 'st-egfr-pcr']);
+      // Batch 467 adds the EGFR PCR rule (NTC A01, positive control A02); Batch 746 the KRAS PCR rule, laid out the same.
+      expect(res.data.map(r => r.assayCode)).toEqual(['st-hpv-highrisk-screen', 'st-egfr-pcr', 'st-kras-pcr']);
       expect(res.data[0].requiredControls).toHaveLength(2);
     }
   });
@@ -115,7 +115,7 @@ describe('Batch 669 (mol-14): reason, no empty rule, duplicate assay on Edit', (
     expect(await svc.update('rule-001', { requiredControls: ntc }, '')).toEqual({ ok: false, error: 'reasonRequired' });
     expect(await svc.delete('rule-001', ' ')).toEqual({ ok: false, error: 'reasonRequired' });
     const all = await svc.getAll();
-    expect(all.ok && all.data).toHaveLength(2);
+    expect(all.ok && all.data).toHaveLength(3);
     expect(logEvent).not.toHaveBeenCalled();
   });
 

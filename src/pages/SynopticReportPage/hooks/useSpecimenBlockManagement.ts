@@ -330,7 +330,7 @@ export function useSpecimenBlockManagement({
       const result = await printCassetteLabel({
         fullAccession, specimenLabel, blockLabel, cassetteId,
         patientName: `${caseData.patient.givenNames} ${caseData.patient.familyNames}`.trim(),
-        tissueDescription: block?.tissueDescription,
+        tissueDescription: block?.tissueDescription, blockType: block?.blockType,
       }, printer, gtin, cassetteLabelLayout);
       // Real, deliberate cast — see attemptPrintedLabel's own doc
       // comment on why this project's own tsconfig.json requires it.

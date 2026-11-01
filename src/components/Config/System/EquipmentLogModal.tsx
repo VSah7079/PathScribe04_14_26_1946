@@ -12,7 +12,7 @@ import '../../../pathscribe.css';
 import { equipmentLogService, EQUIPMENT_LOG_OUTCOMES, EQUIPMENT_LOG_TYPES } from '../../../services';
 import type { Equipment, EquipmentLogEntry, EquipmentLogOutcome, EquipmentLogType } from '../../../services';
 import {
-  equipmentServiceState, validateEquipmentLogEntry, type DueInfo, type EquipmentLogErrors,
+  equipmentServiceState, validateEquipmentLogEntry, temperatureOutcome, type DueInfo, type EquipmentLogErrors,
 } from '../../../services/equipment/equipmentLogRules';
 import { formatCalendarDate } from '../../../utils/search/caseSearchCsv';
 
@@ -27,12 +27,12 @@ interface Props {
   onClose: () => void;
 }
 
-type Draft = { type: EquipmentLogType; performedOn: string; performedBy: string; outcome: EquipmentLogOutcome; notes: string };
+type Draft = { type: EquipmentLogType; performedOn: string; performedBy: string; outcome: EquipmentLogOutcome; notes: string; temperature: string };
 
 const EquipmentLogModal: React.FC<Props> = ({ item, entries, today, userId, userName, onAdded, onClose }) => {
   const { t, i18n } = useTranslation();
   const day = (iso: string) => formatCalendarDate(iso, i18n.language, 'UTC');
-  const [draft, setDraft] = useState<Draft>({ type: 'maintenance', performedOn: today, performedBy: userName, outcome: 'pass', notes: '' });
+  const [draft, setDraft] = useState<Draft>({ type: 'maintenance', performedOn: today, performedBy: userName, outcome: 'pass', notes: '', temperature: '' });
   const [errors, setErrors] = useState<EquipmentLogErrors>({});
   const [saveFailed, setSaveFailed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -40,15 +40,27 @@ const EquipmentLogModal: React.FC<Props> = ({ item, entries, today, userId, user
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => { setDraft(prev => ({ ...prev, [k]: v })); setErrors(prev => ({ ...prev, [k]: undefined })); };
 
+  // Batch 730: a temperature check carries its reading and the device's range; the outcome follows the range.
+  const range = { minCelsius: item.temperatureMinCelsius, maxCelsius: item.temperatureMaxCelsius };
+  const reading = draft.type === 'temperature_check' && draft.temperature.trim() !== '' ? Number(draft.temperature) : undefined;
+  const setTemperature = (text: string) => {
+    const value = text.trim() === '' ? undefined : Number(text);
+    const outcome = value !== undefined && Number.isFinite(value) ? temperatureOutcome(value, range) : null;
+    setDraft(prev => ({ ...prev, temperature: text, ...(outcome ? { outcome } : {}) }));
+    setErrors(prev => ({ ...prev, temperatureCelsius: undefined, outcome: undefined }));
+  };
+  const entry = { type: draft.type, performedOn: draft.performedOn, performedBy: draft.performedBy, outcome: draft.outcome, notes: draft.notes,
+    ...(draft.type === 'temperature_check' ? { temperatureCelsius: reading, ...range } : {}) };
+
   const handleAdd = async () => {
-    const e = validateEquipmentLogEntry(draft, today);
+    const e = validateEquipmentLogEntry(entry, today);
     if (Object.keys(e).length > 0) { setErrors(e); return; }
     setSaving(true);
     try {
-      const res = await equipmentLogService.add({ ...draft, equipmentId: item.id, recordedByUserId: userId }, today);
+      const res = await equipmentLogService.add({ ...entry, equipmentId: item.id, recordedByUserId: userId }, today);
       setSaveFailed(!res.ok);
       if (res.ok) {
-        setDraft(prev => ({ ...prev, notes: '' }));
+        setDraft(prev => ({ ...prev, notes: '', temperature: '' }));
         await onAdded();
       }
     } finally {
@@ -105,8 +117,19 @@ const EquipmentLogModal: React.FC<Props> = ({ item, entries, today, userId, user
               <select id="eqlog-outcome" className="ps-conf-select" value={draft.outcome} onChange={e => set('outcome', e.target.value as EquipmentLogOutcome)}>
                 {EQUIPMENT_LOG_OUTCOMES.map(x => <option key={x} value={x}>{t(`equipmentLog.outcomes.${x}`)}</option>)}
               </select>
+              {errorText('outcome')}
             </div>
           </div>
+          {draft.type === 'temperature_check' && (
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label" htmlFor="eqlog-temp">{t('equipmentLog.modal.temperatureLabel')}</label>
+              <input id="eqlog-temp" type="number" step="0.1" className={`ps-conf-input ${errors.temperatureCelsius ? 'ps-conf-input--error' : ''}`}
+                value={draft.temperature} onChange={e => setTemperature(e.target.value)} />
+              {errorText('temperatureCelsius') ?? <span className="ps-conf-field-hint">{
+                range.minCelsius === undefined && range.maxCelsius === undefined ? t('equipmentLog.modal.noRange')
+                  : t('equipmentLog.modal.range', { min: range.minCelsius ?? '—', max: range.maxCelsius ?? '—' })}</span>}
+            </div>
+          )}
           <div className="ps-conf-form-field">
             <label className="ps-conf-label" htmlFor="eqlog-by">{t('equipmentLog.modal.performedByLabel')}</label>
             <input id="eqlog-by" className={`ps-conf-input ${errors.performedBy ? 'ps-conf-input--error' : ''}`}
@@ -135,7 +158,7 @@ const EquipmentLogModal: React.FC<Props> = ({ item, entries, today, userId, user
                 {entries.map(e => (
                   <tr key={e.id} className="ps-conf-tr">
                     <td className="ps-conf-td">{day(e.performedOn)}</td>
-                    <td className="ps-conf-td">{t(`equipmentLog.types.${e.type}`)}</td>
+                    <td className="ps-conf-td">{t(`equipmentLog.types.${e.type}`)}{e.temperatureCelsius !== undefined && <span className="ps-eqlog-muted"> {t('equipmentLog.temperatureReading', { value: e.temperatureCelsius })}</span>}</td>
                     <td className="ps-conf-td"><span className={`ps-eqlog-outcome ps-eqlog-outcome--${e.outcome}`}>{t(`equipmentLog.outcomes.${e.outcome}`)}</span></td>
                     <td className="ps-conf-td">{e.performedBy}</td>
                     <td className="ps-conf-td">{e.notes ?? '—'}</td>

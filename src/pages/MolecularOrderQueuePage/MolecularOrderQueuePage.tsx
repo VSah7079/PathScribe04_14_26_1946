@@ -153,7 +153,7 @@ const MolecularOrderQueuePage: React.FC = () => {
               <tr key={entry.id} className={isMolecularPayload(entry.payload) && entry.payload.reflexFromMessageId ? 'ps-molq-row--reflex' : ''}>
                 <td>{entry.eventType === 'order.molecular' ? t('molecularOrderQueue.typeMolecular') : t('molecularOrderQueue.typeInstrument')}</td>
                 <td data-phi="accession">{isMolecularPayload(entry.payload) ? `${entry.payload.accessionNumber}-${entry.payload.specimenLetter}` : entry.payload.masterBarcode}</td>
-                <td>{isMolecularPayload(entry.payload) ? entry.payload.assayCode : entry.payload.instrumentVendor}</td>
+                <td>{isMolecularPayload(entry.payload) ? entry.payload.assayCode : (entry.payload.processorCode ?? entry.payload.masterBarcode)}</td>
                 <td>
                   {isMolecularPayload(entry.payload) ? (
                     entry.payload.reflexFromMessageId

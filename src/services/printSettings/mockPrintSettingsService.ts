@@ -4,7 +4,14 @@ import { storageGet, storageSet } from '../mockStorage';
 import { ServiceResult } from '../types';
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
-const load    = () => ({ ...DEFAULT_PRINT_SETTINGS_CONFIG, ...storageGet<PrintSettingsConfig>('printSettings', DEFAULT_PRINT_SETTINGS_CONFIG) });
+// Batch 738 (Pete, Demo Seed Data S3): the demo prints labels with a GS1 restricted-circulation GTIN (GS1 prefix 02,
+// numbers a GS1 Member Organisation reserves for use inside one organisation, never in the open supply chain), so a
+// cassette or slide label is not refused with "No GS1 GTIN configured". It is not ForMedrixAI's GTIN and not a
+// registered one; the product default (IPrintSettingsService) stays empty, and a lab enters its own in Print Settings.
+export const DEMO_RESTRICTED_CIRCULATION_GTIN = '0299990000101';
+const DEMO_DEFAULTS: PrintSettingsConfig = { ...DEFAULT_PRINT_SETTINGS_CONFIG, gs1Gtin: DEMO_RESTRICTED_CIRCULATION_GTIN };
+
+const load    = () => ({ ...DEMO_DEFAULTS, ...storageGet<PrintSettingsConfig>('printSettings', DEMO_DEFAULTS) });
 const persist = (d: PrintSettingsConfig) => storageSet('printSettings', d);
 let MOCK_CONFIG: PrintSettingsConfig = load();
 
@@ -26,7 +33,7 @@ const printSettingsServiceUnchecked: IPrintSettingsService = {
 
   async reset() {
     await delay();
-    MOCK_CONFIG = { ...DEFAULT_PRINT_SETTINGS_CONFIG };
+    MOCK_CONFIG = { ...DEMO_DEFAULTS };
     persist(MOCK_CONFIG);
     return ok({ ...MOCK_CONFIG });
   },

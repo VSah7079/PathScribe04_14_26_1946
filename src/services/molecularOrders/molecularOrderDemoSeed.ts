@@ -14,16 +14,19 @@
 //             answer, twice. That is why its rack is still waiting for
 //             extraction.
 //
+// Batch 744 (S14): two instrument orders, one per liquid-based Pap batch (ThinPrep sent, SurePath queued).
+//
 // S26-5003 is left alone: it is the case the page's own demo panel queues
 // an order and simulates a result for.
 // Times are relative to when the seed is first read, so they stay recent.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { LBC_DEMO_BATCH_BARCODES } from '../batches/batchDemoSeeds';
 import type { MolecularOrderOutboundQueueEntry, MolecularOrderPayload } from '@/types/case/MolecularOrderOutboundQueueEntry';
 
 const HOUR = 3_600_000;
 
-export const MOLECULAR_ORDER_DEMO_IDS = ['mo-demo-5001', 'mo-demo-5002', 'mo-demo-5002-reflex', 'mo-demo-4650', 'mo-demo-4651', 'mo-demo-4652'] as const;
+export const MOLECULAR_ORDER_DEMO_IDS = ['mo-demo-5001', 'mo-demo-5002', 'mo-demo-5002-reflex', 'mo-demo-4650', 'mo-demo-4651', 'mo-demo-4652', 'io-demo-lbc-tp', 'io-demo-lbc-sp'] as const;
 
 export function molecularOrderDemoEntries(now: number = Date.now()): MolecularOrderOutboundQueueEntry[] {
   const at = (hoursAgo: number) => new Date(now - hoursAgo * HOUR).toISOString();
@@ -45,5 +48,15 @@ export function molecularOrderDemoEntries(now: number = Date.now()): MolecularOr
       status: 'FAILED', errorCode: 'DISPATCH_UNREACHABLE', retryCount: 2, lastAttemptAt: at(0.5),
       errorMessage: 'Panther 2 middleware did not respond (connection refused).',
     }),
+    // Batch 744 (S14): the instrument orders the two liquid-based Pap batches sent to their processors (batchDemoSeeds.ts).
+    // An instrument order names the batch, not a case (InstrumentOrderPayload).
+    {
+      id: 'io-demo-lbc-tp', eventType: 'order.instrument', status: 'SENT', queuedAt: at(1), lastAttemptAt: at(0.99), retryCount: 0, maxRetriesExceeded: false,
+      payload: { masterBarcode: LBC_DEMO_BATCH_BARCODES.thinPrep, processorCode: 'LBC_PROC_01', processorMake: 'Hologic', processorModel: 'ThinPrep 5000' },
+    },
+    {
+      id: 'io-demo-lbc-sp', eventType: 'order.instrument', status: 'QUEUED', queuedAt: at(0.5), retryCount: 0, maxRetriesExceeded: false,
+      payload: { masterBarcode: LBC_DEMO_BATCH_BARCODES.surePath, processorCode: 'LBC_PROC_02', processorMake: 'BD', processorModel: 'PrepStain' },
+    },
   ];
 }

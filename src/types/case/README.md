@@ -1,3 +1,11 @@
+**Batch 741:** `Material.ts`: aliquot volume, destination, status and history, receiving accession; `SpecimenDivision`. `Specimen.ts`: `division`.
+
+**Batch 740:** `Material.ts`: `Decant.handoff` (the cell block hand-off).
+
+**Batch 739:** `Material.ts`: `DecantType` gains `aliquot`; `ALIQUOT_PURPOSES` / `AliquotPurpose`, `Decant.aliquotPurpose`. `MolecularOrderOutboundQueueEntry.ts`: the instrument order names the processor (`processorCode`, `processorMake`, `processorModel`), no fixed vendor.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # types/case/
 
 The core case domain model — `Case`, `Specimen`, and every real type layered onto them as the app grew. The single most important folder in `types/`: almost every service and page ultimately reads or writes through these shapes.
@@ -94,7 +102,7 @@ See `services/digitalPathology/wsiScanQueue.ts`.
 
 ## Batch 460
 
-`MatrixBlock` gains `tinyTissue`, `fragile` and `requiresDecal` (Microtomy alert badges, as on `HistologyBlock`). Its comments no longer point to `utils/matrixBlocks.ts` or `utils/matrixBlockIdentifier.ts`, which don't exist. The identifier is in `types/labels/LabelData.ts`.
+`MatrixBlock` gains `tinyTissue`, `fragile` and `requiresDecal` (Microtome alert badges, as on `HistologyBlock`). Its comments no longer point to `utils/matrixBlocks.ts` or `utils/matrixBlockIdentifier.ts`, which don't exist. The identifier is in `types/labels/LabelData.ts`.
 
 ## Batch 461
 
@@ -166,3 +174,7 @@ See `services/digitalPathology/wsiScanQueue.ts`.
 ## Batch 652 — Specimen pipeline gaps
 
 - `Case.intraoperativeFindings` (`CaseIntraoperativeFinding[]`) and `Case.lockboxReceiptId`. `Case.ts` stays at 1058 lines.
+
+## Batch 732
+
+- Batch 732: `blockPieces.ts` (new) and `addOnOrderException.ts` (new, moved out of `Specimen.ts`); block type, piece map and slide fields on `Specimen.ts`; matrix participant orientation, ink and exhaustion on `MatrixBlock.ts`.

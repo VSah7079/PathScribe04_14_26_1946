@@ -8,7 +8,7 @@
 
 import { ICaseService } from "./ICaseService";
 import { withAddOnOrderDemo } from './addOnOrderDemo';
-import { withMaterialDemo } from '../material/materialDemoSeed';
+import { withMaterialDemo } from '../material/materialDemoSeed'; import { withFluidDemo } from './demoFluidCases';
 import { DEMO_BASELINE_CASES } from './demoBaselineCases';
 import { ConcurrencyConflictError } from "./ConcurrencyConflictError";
 import { updateCaseWithRetry, updateCaseWithRetryOrThrow, type CaseWriteDeps } from "./caseWrite";
@@ -360,7 +360,7 @@ const MOCK_CASES: Case[] = [
           { id: 'blk-4403-a1', label: '1', status: 'Embedded',
             locationHistory: [
               { location: 'Embedding Station 2', workflowStage: 'Embedding', action: 'Embedded', at: isoHoursAgo(26), source: 'LIS Middleware (simulated)', performedByName: 'Tech: J. Smith' },
-              { location: 'Microtomy Bench 1', workflowStage: 'Microtomy/Sectioning', action: 'Sectioned', at: isoHoursAgo(25), source: 'LIS Middleware (simulated)', performedByName: 'Tech: J. Smith' },
+              { location: 'Microtome Bench 1', workflowStage: 'Microtomy/Sectioning', action: 'Sectioned', at: isoHoursAgo(25), source: 'LIS Middleware (simulated)', performedByName: 'Tech: J. Smith' },
             ],
             stains: [
             { id: 'stn-4403-a1-1', stainName: 'H&E', status: 'Ready for Review',
@@ -4049,7 +4049,7 @@ export const mockPatientHistory = mockPatientHistoryMap['S26-4401'] ?? DEFAULT_H
 // ─── Persisted case store ─────────────────────────────────────────────────────
 // Version bump here forces a re-seed whenever mock data changes structurally.
 // Increment MOCK_VERSION whenever MOCK_CASES fields are added/changed.
-const MOCK_VERSION = '61'; // bumped (Batch 469): A26-4663 gains a still-pending toxicology order; new HTA-jurisdiction (GB_EW) autopsy A26-4664 with a retention tier on file to demo organ/tissue retention disposal.
+const MOCK_VERSION = '67'; // bumped (Batch 747): S8 wall-volume cases S26-5301..5341 (demoWallVolumeCases.ts). 66 (Batch 746): S7 molecular cases S26-5201..5216 (demoMolecularCases.ts). 65 (Batch 745): autopsies A26-4665..4667 (seed row S6). 64 (Batch 744): S14 fluid and FNA cases (demoFluidCases.ts) and S26-5005's ROSE. 63 (Batch 742): S26-4680 gains its gross and block-face demo photos. 62 (Batch 738): sign-out-ready colon case S26-4680 (demoSignOutReadyCase.ts, in the baseline). 61 (Batch 469): A26-4663 gains a still-pending toxicology order; new HTA-jurisdiction (GB_EW) autopsy A26-4664 with a retention tier on file to demo organ/tissue retention disposal.
 // Previous: '60'; // bumped (Batch 468): A26-4660's and A26-4661's consent narrowed (no retention / brain excluded) to demo consent-scope enforcement; new forensic autopsy A26-4663 with a chain-of-custody entry on record.
 // Previous: '59'; // bumped (Batch 467): S26-4493 gains block A1 with an in-house EGFR PCR add-on; its EGFR answer awaits the result. 58 (Batch 466d): Colorectal Local Excision's Margins section rebuilt (S26-4465, MFT26-8803). 57 (Batch 466): renal resection case S26-4467. 56 (Batch 465): head and neck composite case S26-4466 (oral cavity + neck dissection). 55 (Batch 464): colorectal demo cases S26-4464 (rectal resection) and S26-4465 (malignant polyp). 54 (Batch 463): Mohs demo case S26-4463. 53 (Batch 462): breast map answers on S26-4401 and S26-4405. 52 (Batch 461): anatomical map answers on S26-4404 (Core results grid) and MFT26-8804 (map sectors). 51 (Batch 457): ICD-O codes on S26-4405 and S26-4490 (registry Resend). 50 (Batch 456): S26-9101's diagnosis names Fenwick's cytopathologist, not PATH-UK-001; autopsy cases A26-4660..4662; demo decants and a matrix block. 49 (Batch 455): the demo baseline cases (demoBaselineCases.ts).
 // Previous: '48'; // bumped (Batch 436): MFT26-8801/8803/8805 get their ordering facility; S26-9101-CYT-001 status finalized.
@@ -4070,7 +4070,7 @@ let CASES: Case[] = stored ? JSON.parse(stored) : null;
 if (!CASES) {
   // Batch 455: plus the demo baseline (services/cases/demoBaselineCases.ts).
   // Batch 456: the demo decants and matrix block (material/materialDemoSeed.ts).
-  CASES = JSON.parse(JSON.stringify(withMaterialDemo(withAddOnOrderDemo([...MOCK_CASES, ...DEMO_BASELINE_CASES]))));
+  CASES = JSON.parse(JSON.stringify(withFluidDemo(withMaterialDemo(withAddOnOrderDemo([...MOCK_CASES, ...DEMO_BASELINE_CASES]))))); // Batch 744: S14 fluids
   storageSet(STORAGE_KEY, CASES);
 }
 

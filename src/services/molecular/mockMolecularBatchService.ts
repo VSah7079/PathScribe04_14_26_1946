@@ -22,6 +22,7 @@ import { checkDeckSlot } from './deckSlots';
 import { cloneWellsForSupersede } from './cloneWellsForSupersede';
 import { withMissingSeedRecords } from '../mockSeedMerge';
 import { MOLECULAR_DEMO_BATCHES } from './molecularDemoSeed';
+import { MOLECULAR_RUN_HISTORY_BATCHES } from './molecularRunHistoryDemoSeed';
 
 const STORE_KEY = 'molecular_batches';
 const ok = <T>(data: T) => ({ ok: true as const, data });
@@ -71,7 +72,8 @@ const SEED: MolecularBatch[] = [
 // Batch 456: the demo baseline's batches (molecularDemoSeed.ts) join the
 // spec's worked example. Batches are never deleted (superseded instead), so a
 // seed id missing from storage means it was added since: append it.
-const SEED_WITH_DEMO: MolecularBatch[] = [...SEED, ...MOLECULAR_DEMO_BATCHES];
+// Batch 746 (S7): the completed runs, and the blocked KRAS run its repeat superseded.
+const SEED_WITH_DEMO: MolecularBatch[] = [...SEED, ...MOLECULAR_DEMO_BATCHES, ...MOLECULAR_RUN_HISTORY_BATCHES];
 const load = (): MolecularBatch[] => {
   const { records, added } = withMissingSeedRecords(storageGet<MolecularBatch[] | null>(STORE_KEY, null), SEED_WITH_DEMO);
   if (added > 0) storageSet(STORE_KEY, records);

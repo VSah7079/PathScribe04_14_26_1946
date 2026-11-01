@@ -20,7 +20,7 @@ status: Draft
 
 **Intended users.** Histotechnologists, cytotechnologists, molecular technologists and laboratory managers, anyone who has the Batch Management screen.
 
-**Where it fits.** After [Grossing](help:grossing) prints cassettes, and after the [Embedding](help:workstations/embedding) and [Microtomy](help:workstations/microtomy) workstations produce blocks and slides, the items wait here until someone scans them into a batch on the [Batch Management](help:batch-management) page. As soon as an item is scanned into an open batch it leaves this list.
+**Where it fits.** After [Grossing](help:grossing) prints cassettes, and after the [Embedding](help:workstations/embedding) and [Microtome](help:workstations/microtomy) workstations produce blocks and slides, the items wait here until someone scans them into a batch on the [Batch Management](help:batch-management) page. As soon as an item is scanned into an open batch it leaves this list.
 
 !!! note "Nothing is stored on this screen"
     The list is worked out fresh each time you open or refresh the page, by comparing every case's physical material with the manifests of all open batches. It cannot be edited, and it cannot go out of date except between refreshes.
@@ -123,7 +123,7 @@ None.
 ### Upstream workflow
 
 - [Grossing](help:grossing): prints the cassettes.
-- [Embedding](help:workstations/embedding) and [Microtomy](help:workstations/microtomy): turn cassettes into blocks and slides.
+- [Embedding](help:workstations/embedding) and [Microtome](help:workstations/microtomy): turn cassettes into blocks and slides.
 - [Label Reprint](help:batch-management/label-reprint): reprint labels for cases whose cassettes were damaged or lost.
 
 ### Downstream workflow

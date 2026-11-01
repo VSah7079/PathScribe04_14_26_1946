@@ -42,6 +42,7 @@ Richt niveau 2 in de onderstaande volgorde in. Elk scherm bevat een kader **Inri
 30. [Lands- en laboratoriumregels](#screen-cytology_compliance_features): werklastlimiet, terugblik, spoedhandtekening en screeningsintervallen.
 31. [Ondersteunde instrumentatie](#screen-cytology_instrumentation): whole slide imaging of traditionele beoordeling.
 32. [Cyto-histologische correlatie (SNOMED)](#screen-snomed_histology_severity_mapping): de SNOMED-ernstniveaus die bij de correlatie worden gebruikt.
+33. [Onderzoekscasussen en doelen van charges](#screen-research_cases): hoe onderzoekscasussen worden herkend en buiten het klinische werk blijven, en waarvoor een drager dient (Batch 728).
 
 De onderstaande delen volgen het onderwerp, niet de volgorde van inrichting: [Deel A](#ch3-anatomic-specialties) de specialismen van de anatomische pathologie, [Deel B](#ch3-specimen-tissue) monsters en weefsel, [Deel C](#ch3-container-cassette) containers, cassettes en inkt, [Deel D](#ch3-stains-protocols) kleuringen en protocollen, [Deel E](#ch3-code-libraries) codebibliotheken en [Deel F](#ch3-physicians-clients) artsen, klanten en toezichthoudende organen.
 
@@ -904,6 +905,62 @@ Unlocks: Geen.
 **7. Machtigingen.** Openen: `screen:configuration:open`. Toevoegen, bewerken, deactiveren, verwijderen: `config:cold-chain:manage` (hoog risico, geaudit). Beheerder, Laboratoriumdirecteur en Superadmin hebben deze standaard. Het versturen van een gesimuleerde meting wordt apart gecontroleerd: wie de machtiging mist, ziet "U mag geen gesimuleerde meting versturen."
 
 **Bekende beperkingen.** Er is geen sensorfeed verbonden. Elke meting komt van het bedieningselement Gesimuleerd en wordt overal als Gesimuleerd aangeduid. Daarom is de status Gedeeltelijk: de woordenboeken voor eenheden en typen zijn gerealiseerd, de live metingen niet. De standaard aanwezige typen zijn Frozen Tissue (hoogstens -20 °C) en Fresh Tissue (hoogstens 8 °C).
+
+### Onderzoekscasussen en doelen van charges {#screen-research_cases}
+Breadcrumb: Start > Configuratie > Systeem > Labmaterialen en werkstromen > Onderzoekscasussen en doelen van charges
+
+**Status:** Gedeeltelijk
+
+**1. Navigatie:** configuratietabblad **Systeem** > groep **Labmaterialen en werkstromen**
+**2. Onderhoudsitem:** Onderzoekscasussen en doelen van charges
+
+**3. Bedrijfsdoel en reikwijdte.** Twee instellingen voor werk dat geen routinezorg is.
+
+*Onderzoekscasussen.* Totdat onderzoeksitems zonder registratie worden ondersteund, wordt een onderzoeksmonster geregistreerd als casus van een fictieve onderzoekspatiënt. Deze kaart bepaalt hoe PathScribe die casussen herkent: aan het voorvoegsel van het registratienummer (bijvoorbeeld `RES`) of aan het voorvoegsel van het patiëntnummer van de onderzoekspatiënt (bijvoorbeeld `RSCH-`). Een onderzoekscasus wordt dan:
+
+- niet getoond in de klinische werklijsten (tegels en lijsten; vindbaar via Casus zoeken);
+- niet meegeteld in de doorlooptijd-, volume- en kwaliteitscijfers van de Contribution-dashboards;
+- nooit als resultaat naar het EPD gestuurd (definitief, voorlopig, gewijzigd of cytologie) en nooit per fax of bestandsoverdracht bezorgd; het auditlogboek legt elk niet-verstuurd resultaat met reden vast;
+- nooit naar facturatie gestuurd: verrichtingen worden geweigerd aan de facturatiewachtrij, en het bericht met de financiële klasse draagt de **financiële klasse zonder facturatie**, zonder dekking;
+- nooit gemeld aan een kanker- of screeningsregister;
+- bewaard gedurende de **dagen** vanaf registratie en daarna op de vernietigingslijst gezet. Bewaarblokkades blijven gelden.
+
+*Doelen van charges.* Waarvoor een drager dient. Zes zijn ingebouwd: Routine, Onderzoek, Onderwijs, Klinische studie, Biobank, QA / Validatie. Ze kunnen worden uitgeschakeld maar niet verwijderd; Routine staat altijd aan. Voeg eigen doelen van het lab toe. Een nieuwe drager is Routine, tenzij in **Nieuwe container** iets anders wordt gekozen. Een ander doel verschijnt op de detailpagina van de charge, en elk [weergaveprofiel](#screen-display_profiles) kan alleen bepaalde doelen tonen.
+
+**4. Vereisten en afhankelijkheden.** Geen voor de instellingen. Registreer voor de onderzoeksoplossing de fictieve onderzoekspatiënt (met een patiëntnummer dat met het voorvoegsel begint) en zo nodig een nummerformaat met het onderzoeksvoorvoegsel.
+
+Setup step: Tier 2, step 33
+Requires: Geen, dit is een beginpunt.
+Unlocks: Geen.
+
+**5. Scherm.**
+
+[SCREENSHOT PLACEHOLDER: system-research_cases - Kaarten Onderzoekscasussen en Doelen van charges]
+
+**6. Veldreferentie.**
+
+#### Kaart Onderzoekscasussen
+
+| Veldnaam | Gegevenstype / formaat | Verplicht/Optioneel | Beschrijving en bedrijfslogica | Systeemstandaard |
+|---|---|---|---|---|
+| Overeenkomende casussen als onderzoekscasussen behandelen | Selectievakje | Optioneel | Uit: geen casus is een onderzoekscasus. | Aan |
+| Voorvoegsels van het registratienummer | Tekst, gescheiden door komma's | Verplicht als aan (dit of de patiëntnummervoorvoegsels) | Komt overeen als het voorvoegsel gelijk is of het volledige nummer ermee begint. Zonder spaties; maximaal 20 tekens. | RES |
+| Voorvoegsels van het patiëntnummer (MRN) van de onderzoekspatiënt | Tekst, gescheiden door komma's | Verplicht als aan (dit of de registratievoorvoegsels) | Komt overeen als het patiëntnummer ermee begint. | RSCH- |
+| Financiële klasse zonder facturatie | Tekst | Verplicht als aan | Verstuurd als factuurtype van het account in het bericht met de financiële klasse. | Research - No Charge |
+| Materiaal bewaren (dagen na registratie) | Geheel getal, 0 tot 36500 | Verplicht | Wanneer blokken en coupes van de casus op de vernietigingslijst komen. | 365 |
+| Opslaan | Knop | Niet van toepassing | Geweigerd zonder de toestemming hieronder of bij ongeldige waarden. | Niet van toepassing |
+
+#### Kaart Doelen van charges
+
+| Veldnaam | Gegevenstype / formaat | Verplicht/Optioneel | Beschrijving en bedrijfslogica | Systeemstandaard |
+|---|---|---|---|---|
+| Doelregels | Naam en selectievakje Actief | Niet van toepassing | Ingebouwde namen worden in de taal van de lezer getoond. De naam van een labdoel wordt ter plekke bewerkt (uniek, maximaal 40 tekens). Routine kan niet worden uitgevinkt. | Zes ingebouwde doelen, alle actief |
+| Nieuw doel, Toevoegen | Tekst en knop | Optioneel | Voegt een labdoel toe. | Leeg |
+| Opslaan | Knop | Niet van toepassing | Geweigerd zonder de toestemming hieronder, of bij een lege, te lange of dubbele naam. | Niet van toepassing |
+
+**7. Machtigingen.** Openen: `screen:configuration:open`. Onderzoekscasussen opslaan: `config:research-cases:manage`. Doelen van charges opslaan: `config:batch-purposes:manage`. Hoog risico; standaard Admin, Labdirecteur en Superadmin.
+
+**Bekende beperkingen.** Het verslagscherm markeert een onderzoekscasus nog niet als 'onderzoek, geen klinisch verslag'; de casus kan worden afgetekend (er wordt niets verstuurd). Er is geen onderzoekswerklijst. Kwaliteitscijfers buiten de Contribution-dashboards en de BI-feed op de server worden nog niet gefilterd. Onderzoeksitems zonder registratie volgen later.
 
 ### Specimentekortkomingen {#screen-deficiencies}
 Breadcrumb: Start > Configuratie > Systeem > Integraties > Specimentekortkomingen

@@ -23,7 +23,7 @@
 // Not to be confused with constants/systemActions.ts (ACTION_GROUPS): those
 // are the voice and keyboard commands, which are not access control.
 // ─────────────────────────────────────────────────────────────────────────────
-import { LOCKBOX_CAPABILITIES } from './lockboxCapabilities';
+import { LOCKBOX_CAPABILITIES } from './lockboxCapabilities'; import { BATCH_CARRIER_CAPABILITIES } from './batchCarrierCapabilities'; import { LAB_WORKFLOW_REPORT_CAPABILITIES } from './labWorkflowReportCapabilities'; import { MATERIAL_LIFECYCLE_CAPABILITIES } from './materialLifecycleCapabilities'; import { PRINTING_POLICY_CAPABILITIES } from './printingPolicyCapabilities'; import { BENCH_REASON_CAPABILITIES } from './benchReasonCapabilities'; import { CYTOLOGY_PREP_CAPABILITIES } from './cytologyPrepCapabilities'; import { CASE_ATTACHMENT_CAPABILITIES } from './caseAttachmentCapabilities';
 import { WORKFLOW_CAPABILITIES } from './workflowCapabilities'; import { INTRAOP_CAPABILITIES } from './intraopCapabilities'; import { MOLECULAR_CONTROL_RULES_CAPABILITIES } from './molecularControlRulesCapabilities';
 export type CapabilityRisk = 'high' | 'standard';
 export type CapabilityGroupId =
@@ -298,14 +298,10 @@ export const CAPABILITY_CATALOG = [
   { key: 'add-on:order:place',                     labelId: 'addOnOrderPlace',                    group: 'casework', risk: 'high', requires: [] },
   { key: 'add-on:exception:approve-destructive-cut', labelId: 'addOnExceptionApproveDestructiveCut', group: 'casework', risk: 'high', requires: [] },
 
-  // Batch 404 (Pete: "3 permissions, keep users"): Batch Management's three
-  // chain-of-custody overrides. Completing a reconciliation with items
-  // missing or unexpected, aborting a batch, and acknowledging a cold-chain
-  // temperature excursion. Checked in services/batches/mockBatchService.ts;
-  // seeded to every role with the Batch Management screen.
-  { key: 'batch:reconciliation:override',          labelId: 'batchReconciliationOverride',        group: 'casework', risk: 'high', requires: [] },
-  { key: 'batch:run:abort',                        labelId: 'batchRunAbort',                      group: 'casework', risk: 'high', requires: [] },
-  { key: 'batch:cold-chain-excursion:acknowledge', labelId: 'batchColdChainExcursionAcknowledge', group: 'casework', risk: 'high', requires: [] },
+  // Batch 404 and 726: Batch Management's overrides and carriers at the workstations (batchCarrierCapabilities.ts).
+  ...BATCH_CARRIER_CAPABILITIES,
+  ...LAB_WORKFLOW_REPORT_CAPABILITIES, // Batch 730: lab workflow reports (labWorkflowReportCapabilities.ts).
+  ...MATERIAL_LIFECYCLE_CAPABILITIES, ...PRINTING_POLICY_CAPABILITIES, ...BENCH_REASON_CAPABILITIES, ...CYTOLOGY_PREP_CAPABILITIES, ...CASE_ATTACHMENT_CAPABILITIES, // Batch 731: end states and re-embedding; 734: direct printing; 736: bench reasons; 740: cytology preparation; 742: case attachments.
   // Batch 432: recording where a referral batch is (in transit, delivered).
   { key: 'referral:transit-status:update', labelId: 'referralTransitStatusUpdate', group: 'casework', risk: 'high', requires: [] },
   // Batch 434 (Pete): WSI scan batches. Loading slides from the scanning queue
@@ -409,7 +405,7 @@ export const CAPABILITY_CATALOG = [
   // that works cases, like the correction above, so nobody loses it; taken
   // off per role in the Role Dictionary. Checked in services/billing/
   // caseBillingCharges.ts (enforceBillingReview) for the report page, the
-  // Cytology Workspace and Microtomy.
+  // Cytology Workspace and Microtome.
   { key: 'billing:applied-code:review', labelId: 'billingAppliedCodeReview', group: 'billing', risk: 'high', requires: [] },
   // Batch 433 (Pete): approving, rejecting, holding and releasing charges
   // that wait for billing approval. Nobody by default: each facility approves
@@ -770,6 +766,9 @@ export const CAPABILITY_CATALOG = [
   { key: 'config:departments:manage', labelId: 'configDepartmentsManage', group: 'configLab', risk: 'high', requires: [] },
   { key: 'config:asset-locations:manage', labelId: 'configAssetLocationsManage', group: 'configLab', risk: 'high', requires: [] },
   { key: 'config:cold-chain:manage', labelId: 'configColdChainManage', group: 'configLab', risk: 'high', requires: [] },
+  // Batch 728 (Lab Workflow spec, Decision 4): research cases and batch purposes (services/researchCases/, batches/batchPurposes.ts).
+  { key: 'config:research-cases:manage', labelId: 'configResearchCasesManage', group: 'configLab', risk: 'high', requires: [] },
+  { key: 'config:batch-purposes:manage', labelId: 'configBatchPurposesManage', group: 'configLab', risk: 'high', requires: [] },
   { key: 'config:case-masks:manage', labelId: 'configCaseMasksManage', group: 'configLab', risk: 'high', requires: [] },
   // Results, reporting and quality
   { key: 'config:participation-types:manage', labelId: 'configParticipationTypesManage', group: 'configQuality', risk: 'high', requires: [] },

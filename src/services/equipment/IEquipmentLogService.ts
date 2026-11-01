@@ -14,7 +14,8 @@
 import type { ServiceResult, ID } from '../types';
 
 /** Stored values; labels come from equipmentLog.types.<type>. */
-export const EQUIPMENT_LOG_TYPES = ['maintenance', 'calibration', 'function_check', 'repair', 'malfunction'] as const;
+/** Batch 730 (Lab Workflow & Batch spec, Equipment Log): + temperature_check, a temperature reading against the device's range. */
+export const EQUIPMENT_LOG_TYPES = ['maintenance', 'calibration', 'function_check', 'repair', 'malfunction', 'temperature_check'] as const;
 export type EquipmentLogType = typeof EQUIPMENT_LOG_TYPES[number];
 
 /** Stored values; labels come from equipmentLog.outcomes.<outcome>. */
@@ -31,6 +32,11 @@ export interface EquipmentLogEntry {
   performedBy: string;
   outcome: EquipmentLogOutcome;
   notes?: string;
+  /** Batch 730: a temperature check's reading, in °C (required for that type, absent otherwise). */
+  temperatureCelsius?: number;
+  /** Batch 730: the range it was checked against, copied from the device when the entry was made (absent when it has none). */
+  minCelsius?: number;
+  maxCelsius?: number;
   /** When it was recorded (ISO timestamp) and by whom (user id). */
   recordedAt: string;
   recordedByUserId: string;

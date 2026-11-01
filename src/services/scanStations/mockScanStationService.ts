@@ -33,23 +33,26 @@ import { mockWorkstationGroupService } from '../workstationGroups/mockWorkstatio
 import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const SEED_STATIONS: ScanStation[] = [
-  // Real, deliberate example: this station is configured to print real
-  // GS1 DataMatrix cassette labels via the seeded printer-zt411-example
-  // profile (a real, QZ-Tray-bridged Zebra ZT411) — the other seeded
-  // stations are left with neither flag set, since which real
-  // hardware a given lab actually has is genuinely site-specific and
-  // shouldn't be fabricated here.
+  // Batch 738 (Demo Seed Data S3): until now only Grossing Station 1 and Microtome Bench 1 printed (through a QZ Tray profile); the
+  // other stations had no printer, on the reasoning that a lab's hardware is site-specific. The demo now gives every
+  // histology bench the one seeded profile so the videos never stop on a print error.
   { id: 'station-gross-1', name: 'Grossing Station 1', barcodeCode: 'GROSSING-01', facilityId: 'c-fenwick-general', workflowStage: 'Grossing', status: 'Active', supportsEngraving: false, supportsPrinting: true, cassetteSlidePrinterProfileId: 'printer-zt411-example' },
-  { id: 'station-gross-2', name: 'Grossing Station 2', barcodeCode: 'GROSSING-02', facilityId: 'c-fenwick-general', workflowStage: 'Grossing', status: 'Active', supportsEngraving: false, supportsPrinting: false },
-  { id: 'station-gross-3', name: 'Grossing Station 3', barcodeCode: 'GROSSING-03', facilityId: 'c-fenwick-general', workflowStage: 'Grossing', status: 'Active', supportsEngraving: false, supportsPrinting: false },
-  { id: 'station-embed-1', name: 'Histology — Embedding', barcodeCode: 'EMBEDDING-A', facilityId: 'c-fenwick-general', workflowStage: 'Embedding', status: 'Active', supportsEngraving: false, supportsPrinting: false },
-  { id: 'station-micro-1', name: 'Microtomy — Bench 1', barcodeCode: 'MICROTOMY-01', facilityId: 'c-fenwick-general', workflowStage: 'Microtomy / Sectioning', status: 'Active', supportsEngraving: false, supportsPrinting: true, cassetteSlidePrinterProfileId: 'printer-zt411-example' },
-  { id: 'station-stain-1', name: 'Staining Station 1', barcodeCode: 'STAINING-01', facilityId: 'c-fenwick-general', workflowStage: 'Staining', status: 'Active', supportsEngraving: false, supportsPrinting: false },
-  { id: 'station-stain-2', name: 'Staining Station 2', barcodeCode: 'STAINING-02', facilityId: 'c-fenwick-general', workflowStage: 'Staining', status: 'Active', supportsEngraving: false, supportsPrinting: false },
+  { id: 'station-gross-2', name: 'Grossing Station 2', barcodeCode: 'GROSSING-02', facilityId: 'c-fenwick-general', workflowStage: 'Grossing', status: 'Active', supportsEngraving: false, supportsPrinting: true, cassetteSlidePrinterProfileId: 'printer-zt411-example' },
+  { id: 'station-gross-3', name: 'Grossing Station 3', barcodeCode: 'GROSSING-03', facilityId: 'c-fenwick-general', workflowStage: 'Grossing', status: 'Active', supportsEngraving: false, supportsPrinting: true, cassetteSlidePrinterProfileId: 'printer-zt411-example' },
+  { id: 'station-embed-1', name: 'Histology — Embedding', barcodeCode: 'EMBEDDING-A', facilityId: 'c-fenwick-general', workflowStage: 'Embedding', status: 'Active', supportsEngraving: false, supportsPrinting: true, cassetteSlidePrinterProfileId: 'printer-zt411-example' },
+  { id: 'station-micro-1', name: 'Microtome — Bench 1', barcodeCode: 'MICROTOMY-01', facilityId: 'c-fenwick-general', workflowStage: 'Microtomy / Sectioning', status: 'Active', supportsEngraving: false, supportsPrinting: true, cassetteSlidePrinterProfileId: 'printer-zt411-example' },
+  { id: 'station-stain-1', name: 'Staining Station 1', barcodeCode: 'STAINING-01', facilityId: 'c-fenwick-general', workflowStage: 'Staining', status: 'Active', supportsEngraving: false, supportsPrinting: true, cassetteSlidePrinterProfileId: 'printer-zt411-example' },
+  { id: 'station-stain-2', name: 'Staining Station 2', barcodeCode: 'STAINING-02', facilityId: 'c-fenwick-general', workflowStage: 'Staining', status: 'Active', supportsEngraving: false, supportsPrinting: true, cassetteSlidePrinterProfileId: 'printer-zt411-example' },
   { id: 'station-archive-1', name: 'Slide Archive — Shelf 12', barcodeCode: 'ARCHIVE-12', facilityId: 'c-fenwick-general', workflowStage: 'Slide Archival', status: 'Active', supportsEngraving: false, supportsPrinting: false },
   // Batch 356 (PS-326): the molecular bay where the seeded Panther instruments
   // sit (services/equipment/), so worklist dispatch can check the station.
   { id: 'station-molecular-1', name: 'Molecular — Amplification Bay', barcodeCode: 'MOLECULAR-01', facilityId: 'c-fenwick-general', workflowStage: 'Other', status: 'Active', supportsEngraving: false, supportsPrinting: false },
+  // Batch 726 (Lab Workflow & Batch spec §7.2): the tissue processor and the slide distribution desk, so a carrier can be
+  // scanned at every histology step in the demo.
+  { id: 'station-proc-1', name: 'Histology — Tissue Processor 1', barcodeCode: 'PROCESSOR-01', facilityId: 'c-fenwick-general', workflowStage: 'Processing', status: 'Active', supportsEngraving: false, supportsPrinting: true, cassetteSlidePrinterProfileId: 'printer-zt411-example' },
+  { id: 'station-slidedist-1', name: 'Slide Distribution — Desk 1', barcodeCode: 'SLIDEDIST-01', facilityId: 'c-fenwick-general', workflowStage: 'Slide Distribution', status: 'Active', supportsEngraving: false, supportsPrinting: true, cassetteSlidePrinterProfileId: 'printer-zt411-example' },
+  // Batch 740 (fluid decision 1): the Cytology Preparation bench, where fluids are decanted and prepared.
+  { id: 'station-cytoprep-1', name: 'Cytology Preparation — Bench 1', barcodeCode: 'CYTOPREP-01', facilityId: 'c-fenwick-general', workflowStage: 'Cytology Preparation', status: 'Active', supportsEngraving: false, supportsPrinting: true, cassetteSlidePrinterProfileId: 'printer-zt411-example' },
 ];
 
 const STORAGE_KEY = 'scan_stations';

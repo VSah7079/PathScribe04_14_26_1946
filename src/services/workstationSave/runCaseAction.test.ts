@@ -1,6 +1,6 @@
 // Batch 669 (ws-8): the shared save used by the Embedding, Slide Distribution and Add-On Order stations.
 import { describe, it, expect, vi } from 'vitest';
-import { runCaseAction, saveSpecimenChange, saveFailedKey, replaceSpecimenById } from './runCaseAction';
+import { runCaseAction, saveSpecimenChange, saveCaseChange, saveFailedKey, replaceSpecimenById } from './runCaseAction';
 import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 import type { Case } from '@/types/case/Case';
 import type { Specimen } from '@/types/case/Specimen';
@@ -114,5 +114,29 @@ describe('helpers', () => {
   it('replaceSpecimenById swaps only the matching specimen', () => {
     const out = replaceSpecimenById([sp('a'), sp('b')], { ...sp('b'), label: 'B2' } as Specimen);
     expect(out.map(s => s.label)).toEqual(['a', 'B2']);
+  });
+});
+
+// Batch 729: the same save for other case fields (a matrix block lives in Case.matrixBlocks).
+describe('saveCaseChange', () => {
+  it('saves the derived fields, retrying from the newer case on a conflict', async () => {
+    const calls: number[] = [];
+    const d = deps({ cases: [caseAt(4), caseAt(5)], update: async (_i, _u, v) => { calls.push(v); if (v === 4) throw new ConcurrencyConflictError('c1', 4, 5); } });
+    const r = await saveCaseChange('c1', cur => ({ matrixBlocks: [{ id: `mb-v${(cur as { version: number }).version}` }] as never }), d);
+    expect(r.status).toBe('saved');
+    expect(calls).toEqual([4, 5]);
+    expect(r.status === 'saved' && (r.caseData.matrixBlocks as unknown as { id: string }[])[0].id).toBe('mb-v5');
+  });
+  it('a change that no longer applies is reported as not saved (conflict), with the stored case', async () => {
+    const d = deps();
+    const r = await saveCaseChange('c1', () => null, d);
+    expect(r).toMatchObject({ status: 'failed', reason: 'conflict' });
+    expect(d.updateCase).not.toHaveBeenCalled();
+  });
+  it('another error is not retried', async () => {
+    const d = deps({ update: async () => { throw new Error('network down'); } });
+    const r = await saveCaseChange('c1', () => ({ matrixBlocks: [] }), d);
+    expect(r).toMatchObject({ status: 'failed', reason: 'notApplied' });
+    expect(d.updateCase).toHaveBeenCalledTimes(1);
   });
 });

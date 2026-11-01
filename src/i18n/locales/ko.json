@@ -890,6 +890,8 @@
       "fragile": "취약함",
       "levelsCut": "이미 절편 {{count}}개 절단됨",
       "lost": "분실됨",
+      "matrixParts": "부분 {{parts}}",
+      "matrixTitle": "공유(매트릭스) 블록",
       "noBlocks": "이 검체에 블록이 없습니다.",
       "specimen": "검체 {{label}} {{description}}",
       "tinyTissue": "미세 조직",
@@ -909,7 +911,9 @@
         "recut": "재절단 / 심부 절편",
         "special_stain": "특수염색"
       },
+      "levelCount": "레벨 수",
       "levelDepth": "절편 깊이 (µm)",
+      "levelsPerSlide": "슬라이드당 레벨 수",
       "noStains": "일치하는 염색이 없습니다.",
       "panelPicker": "IHC 패널",
       "panelStainsMissingAll": "이 패널의 염색이 염색 사전에 하나도 없어({{stains}}) 추가할 수 없습니다. 관리자에게 추가를 요청하세요.",
@@ -924,28 +928,69 @@
       "primaryPathologistLine": "주 병리의사: {{name}}"
     },
     "errors": {
+      "alternativeRefused": {
+        "needsNewSection": "대기 중인 슬라이드 중 하나는 새 절편이 필요하여 무염색 슬라이드에 할 수 없습니다. “이 슬라이드에만 답변”을 선택하고 슬라이드별로 답변하세요.",
+        "notEnoughSlides": "대기 중인 모든 슬라이드에 쓸 무염색 슬라이드가 부족합니다. “이 슬라이드에만 답변”을 선택하고 슬라이드별로 답변하세요.",
+        "nothingLeft": "블록이 이미 소진되어 파괴적 절단을 할 수 없습니다. 대안을 선택하세요."
+      },
       "blockCancelled": "블록 {{block}}이(가) 취소되었습니다.",
       "blockDamaged": "블록 {{block}}이(가) 손상으로 표시되어 재포매 전까지 주문할 수 없습니다.",
-      "blockExhausted": "블록 {{block}}이(가) 소진되어 더 이상 절편 주문을 넣을 수 없습니다.",
+      "blockExhausted": "블록 {{block}}이(가) 소진되었습니다. 주문 작성기 위 상자에서 각 줄의 대안을 선택하세요: 이미 절편된 무염색 슬라이드, 재포매 또는 같은 검체의 다른 블록.",
       "blockLost": "블록 {{block}}이(가) 분실로 표시되어 찾을 때까지 주문할 수 없습니다.",
       "blockNotFound": "이 케이스에서 블록 {{block}}을(를) 찾을 수 없습니다.",
       "caseNotFound": "“{{query}}”에 해당하는 케이스가 없습니다.",
       "enterAccession": "접수 번호를 입력하거나 스캔하세요.",
+      "exhaustedNeedsChoice_one": "블록 {{block}}이(가) 소진되었습니다. {{count}}개 줄에 아직 대안이 필요합니다.",
+      "exhaustedNeedsChoice_other": "블록 {{block}}이(가) 소진되었습니다. {{count}}개 줄에 아직 대안이 필요합니다.",
+      "exhaustedReasonRequired": "블록 {{block}}이(가) 소진되었습니다. 이 주문의 사유를 입력하세요.",
       "failed": "처리되지 않았습니다. 주문이 변경되었을 수 있으니 케이스를 다시 열고 다시 시도하세요.",
       "inHouseNotAvailable": "이 증례의 검사실은 {{tests}}을(를) 원내에서 수행하지 않습니다. 외부 의뢰를 선택하세요.",
+      "matrixExhausted": "매트릭스 블록 {{block}}: 선택한 조직이 소진되었습니다. 해당 부분의 다른 블록에서 오더하거나 재포매를 요청하세요.",
+      "mixedPieces": "블록 {{block}}: 선택한 조각 중 일부가 소진되었습니다. 남은 조각만 선택하거나, 대안을 보려면 소진된 조각만 선택하세요.",
       "noLines": "블록 {{block}}에 주문 항목을 하나 이상 추가하세요.",
-      "notPermitted": "이 작업에 대한 권한이 없습니다. 관리자에게 문의하세요."
+      "notPermitted": "이 작업에 대한 권한이 없습니다. 관리자에게 문의하세요.",
+      "pieceExhausted": "블록 {{block}}: 선택한 조각이 소진되었습니다. 주문 작성기 위 상자에서 각 줄의 처리 방법을 선택하세요."
     },
     "exceptionReasons": {
       "blockExhausted": "블록 소진",
       "insufficientTissue": "패널에 조직 부족",
       "requiresRegrossing": "재육안 검사 필요"
     },
+    "exhausted": {
+      "addLines": "주문 줄을 추가하세요. 이 블록에서 각 줄이 어떻게 처리되는지 여기에 표시됩니다.",
+      "choose": "대안 선택…",
+      "controlsNote": "이미 절편된 슬라이드에 하는 염색에는 대조 슬라이드가 자동으로 추가되지 않습니다. 주문과 사유는 감사 로그에 기록됩니다.",
+      "noAlternative": "제시할 대안이 없습니다. 이 줄을 삭제하세요.",
+      "otherBlock": "대신 블록 {{block}}에서 주문",
+      "otherPiece": "대신 조각 {{position}}({{part}})에서 주문",
+      "problem": {
+        "blockUnusable": "해당 블록은 더 이상 절편할 수 없습니다.",
+        "chooseAlternative": "이미 절편된 무염색 슬라이드, 재포매 또는 다른 블록을 선택하세요.",
+        "needsNewSection": "이 블록에서 새 절편이 필요합니다. 재포매 또는 다른 블록을 선택하세요.",
+        "pieceUnusable": "해당 조각은 소진되었거나 더 이상 블록에 없습니다.",
+        "slideUnavailable": "해당 슬라이드는 더 이상 사용할 수 없거나 다른 줄에서 이미 사용 중입니다."
+      },
+      "reason": "소진된 블록에 주문하는 사유",
+      "reembed": "재포매 요청(완료될 때까지 주문 대기)",
+      "useSlide": "무염색 슬라이드 {{level}} 사용(이미 절편됨)"
+    },
     "pageTitle": "추가 오더 작성",
     "panels": {
       "panel-breast": "유방 패널(ER/PR/HER2/Ki-67)",
       "panel-lynch-mmr": "린치/MMR 패널(MLH1/MSH2/MSH6/PMS2)",
       "panel-renal-if": "신장 IF 패널(IgG/IgA/IgM/C3/C1q/Kappa/Lambda)"
+    },
+    "printAt": {
+      "atMicrotome": "블록을 절편할 때 마이크로톰에서",
+      "hint": "라벨은 지금 해당 작업대에서 인쇄됩니다. 마이크로톰은 다시 인쇄하지 않고 절편만 기록합니다.",
+      "label": "라벨 인쇄 위치",
+      "noPrinter": "{{station}}에서 라벨을 인쇄하지 않았습니다. 슬라이드 프린터가 설정되어 있지 않습니다. 라벨은 마이크로톰에서 인쇄됩니다.",
+      "notPermitted": "{{station}}에서 라벨을 인쇄하지 않았습니다. 다른 작업대로 인쇄 작업을 보낼 권한이 없습니다. 라벨은 마이크로톰에서 인쇄됩니다.",
+      "printedSomeFailed_one": "{{station}}에서 라벨 {{count}}개를 인쇄했습니다. {{failed}}개는 인쇄되지 않아 마이크로톰에서 인쇄됩니다.",
+      "printedSomeFailed_other": "{{station}}에서 라벨 {{count}}개를 인쇄했습니다. {{failed}}개는 인쇄되지 않아 마이크로톰에서 인쇄됩니다.",
+      "printed_one": "{{station}}에서 라벨 {{count}}개를 인쇄했습니다.",
+      "printed_other": "{{station}}에서 라벨 {{count}}개를 인쇄했습니다.",
+      "withPlaced": "{{placed}} {{printed}}"
     },
     "priority": {
       "Research_Protocol": "연구 / 프로토콜",
@@ -975,6 +1020,8 @@
       "inHouseQueue": "분자검사 워크센터의 오더 대기열로 갑니다.",
       "labsAll": "이 검사에 연결된 검사실이 아직 없어 모든 참조 검사실이 표시됩니다.",
       "labsApprovedForTest": "이 검사에 승인된 검사실만 표시됩니다.",
+      "levelRange_one": "레벨 {{count}}개, 슬라이드당 {{perSlide}}개",
+      "levelRange_other": "레벨 {{count}}개, 슬라이드당 {{perSlide}}개",
       "microns": "{{count}}µm 절편",
       "molecularRouting": "수행",
       "noPerformingLab": "이 케이스의 수행 검사실을 확인할 수 없습니다 — 검사실 기준 스테이션 매칭 없이도 오더는 생성됩니다.",
@@ -994,11 +1041,22 @@
       "title": "오더 요약 및 라우팅"
     },
     "tracking": {
+      "alternative": "또는 대안 사용",
+      "alternativeNeedsNote": "먼저 응답 메모를 입력하세요. 대안의 사유가 됩니다.",
+      "answerAppliesToAll_one": "이 답변은 {{block}}의 대기 중인 슬라이드 {{count}}개 모두에 적용됩니다.",
+      "answerAppliesToAll_other": "이 답변은 {{block}}의 대기 중인 슬라이드 {{count}}개 모두에 적용됩니다.",
+      "answerIndividually": "이 슬라이드에만 답변",
+      "answerThisOnly": "이 답변은 이 슬라이드에만 적용됩니다.",
+      "answeredCount_one": "대기 중인 슬라이드 {{count}}개에 답변했습니다.",
+      "answeredCount_other": "대기 중인 슬라이드 {{count}}개에 답변했습니다.",
+      "applyAlternative": "적용",
       "approveDestructive": "파괴적 절단 승인",
       "cancelFlag": "취소",
       "cancelOrder": "오더 취소",
       "confirmFlag": "예외 표시",
       "count": "{{count}}",
+      "destructiveNotOffered": "이 표시 전에 이미 블록이 소진되어 절단할 조직이 없으므로 파괴적 절단은 제공되지 않습니다.",
+      "destructiveWarning": "끝까지 절단하면 이 블록의 마지막 조직을 사용합니다. 이후 이 블록으로는 재절편, 바이오마커 또는 분자 검사를 할 수 없으며, 이는 작은 생검에서 특히 중요합니다. 응답 메모가 필요합니다.",
       "empty": "이 케이스에 대해 아직 추가 오더가 없습니다.",
       "exceptionNote": "선택적 메모…",
       "exceptionNoteLabel": "메모",
@@ -1015,6 +1073,7 @@
       "resubmit": "다시 제출",
       "sendOutTo": "외부 의뢰: {{lab}}",
       "stage": {
+        "AwaitingRe-embedding": "재포매 대기",
         "BlockRetrieved": "블록 회수됨",
         "Cancelled": "취소됨",
         "CheckedOutScanned": "출고됨 / 스캔됨",
@@ -2268,6 +2327,18 @@
     "unexpectedError": "예기치 않은 바코드 스캔 오류",
     "unknownError": "알 수 없는 오류"
   },
+  "batchCarrier": {
+    "closedAborted": "이 운반체는 닫혔습니다. {{at}}에 중단되었습니다.",
+    "closedComplete": "이 운반체는 닫혔습니다. {{at}}에 완료되었습니다.",
+    "historyLabel": "이 운반체가 거친 단계",
+    "historyStep": "{{from}} → {{to}}, {{name}}, {{at}}",
+    "moveTo": "{{node}} 단계로 이동",
+    "movedToast": "{{barcode}}이(가) {{node}} 단계로 이동했습니다. 항목: {{count}}개.",
+    "otherStep": "이 컴퓨터의 작업대({{station}})는 {{stationSteps}} 단계를 처리하며, 이 운반체는 {{node}} 단계에 있습니다.",
+    "seal": "명세서 봉인",
+    "sealedBy": "{{name}}이(가) {{at}}에 명세서를 봉인했습니다.",
+    "sealedToast": "{{barcode}} 봉인됨."
+  },
   "batchDetail": {
     "abortBatch": "배치 중단",
     "abortModalText": "이 배치와 명세서는 감사를 위해 보존되지만 중단됨으로 표시되며 더 이상 스캔을 받을 수 없습니다.",
@@ -2290,7 +2361,10 @@
     "completeDisabledTitle": "{{missing}}개 누락, {{unexpected}}개 예상치 못함 — 해결하거나 재정의하세요",
     "emptyManifest": "아직 이 배치에 스캔된 항목이 없습니다.",
     "errors": {
+      "alreadySealed": "{{barcode}}은(는) 이미 봉인되었습니다.",
       "batchNotFound": "이 배치는 더 이상 존재하지 않습니다. 목록으로 돌아가 다시 여십시오.",
+      "batchSealed": "{{barcode}}은(는) 봉인되어 추가하거나 제거할 수 없습니다.",
+      "cannotAdvance": "{{barcode}}은(는) 해당 단계로 이동할 수 없습니다.",
       "coldChainUnacknowledged": "이 배치에 확인되지 않은 콜드체인 이탈이 있습니다. 확인하거나 감독자 예외 승인을 사용하십시오.",
       "destinationNotActive": "활성 배치로만 항목을 옮길 수 있습니다.",
       "excursionAlreadyOpen": "배치 {{barcode}}에 이미 확인되지 않은 콜드체인 이탈이 있습니다. 새로 기록하기 전에 확인하십시오.",
@@ -2301,7 +2375,7 @@
       "noItemsToTransfer": "이 배치에는 이관할 항목이 없습니다.",
       "noRack": "이 배치에는 해제할 재사용 랙이 없습니다.",
       "notActive": "배치 {{barcode}}은(는) 더 이상 활성 상태가 아닙니다. 이미 대조, 이관 또는 종료되었을 수 있습니다.",
-      "notCytologyProcessing": "장비 상태는 세포 처리 배치에만 적용됩니다.",
+      "notCytologyProcessing": "장비 상태는 액상세포검사 처리 배치에만 적용됩니다.",
       "notDecal": "처리 단계로 이관은 탈회/특수 처리 배치에만 적용됩니다.",
       "notReconciling": "먼저 배치 {{barcode}}의 대조를 시작하십시오.",
       "notStaining": "염색 배치에만 적용됩니다.",
@@ -2310,9 +2384,11 @@
       "rackNotRegistered": "랙 {{rackId}}이(가) 등록되어 있지 않습니다. ID를 확인하거나 먼저 랙을 등록하십시오.",
       "sameBatch": "항목이 이미 이 배치에 있습니다. 다른 배치를 선택하십시오.",
       "sourceNotActive": "활성 배치에서만 항목을 옮길 수 있습니다.",
+      "stationRequired": "먼저 이 컴퓨터의 작업대를 설정하세요.",
       "unexpectedScans_one": "이 배치에 속하지 않는 항목 {{count}}개가 스캔되었습니다. 해결하거나 감독자 예외 승인을 사용하십시오.",
       "unexpectedScans_other": "이 배치에 속하지 않는 항목 {{count}}개가 스캔되었습니다. 해결하거나 감독자 예외 승인을 사용하십시오."
     },
+    "exhaustedWarning": "{{displayId}}은(는) 소진되었습니다. 이 블록에 조직이 남아 있지 않습니다. 배치에 추가되었으니 처리하거나 절편하기 전에 병리의사와 확인하세요.",
     "forceCompletedToast": "배치 {{barcode}}가 재정의로 강제 완료되었습니다.",
     "instrumentReports": "기기 보고: {{status}}",
     "manifestSection": "명세서 ({{count}})",
@@ -2363,15 +2439,19 @@
     "removedToast": "{{displayId}}가 배치에서 제거되었습니다.",
     "scanHintActive": "카세트 또는 슬라이드 바코드를 스캔하여 이 배치에 추가하세요. 핸즈프리 — 필드를 먼저 클릭할 필요 없음.",
     "scanHintReconcile": "프로세스 외 검증: 운반체에서 제거할 때 각 실물 항목을 스캔하세요.",
+    "scanHintSealed": "명세서가 봉인되었습니다. 검증을 시작하여 항목을 스캔해 꺼내세요.",
     "scanRejected": {
       "alreadyInBatch": "{{displayId}}은(는) 이미 이 배치에 있습니다.",
       "inOtherActiveBatch": "{{displayId}}은(는) 이미 활성 배치 {{barcode}}에 있습니다.",
-      "notFound": "“{{value}}”과(와) 일치하는 카세트나 슬라이드가 없습니다."
+      "notAccepting": "{{barcode}}은(는) 더 이상 항목을 받지 않습니다.",
+      "notFound": "“{{value}}”과(와) 일치하는 카세트나 슬라이드가 없습니다.",
+      "sealed": "{{barcode}}은(는) 봉인되어 더 이상 항목을 추가할 수 없습니다.",
+      "slideTooLarge": "{{displayId}}은(는) 대형 슬라이드이며 {{barcode}}에는 대형 슬라이드를 넣을 수 없습니다. 대형 염색 랙을 사용하세요."
     },
     "startReconciliation": "조정 시작",
     "supervisorOverrideLink": "감독자 재정의…",
     "transferToProcessing": "처리로 전송",
-    "transferredToast": "{{count}}개 항목이 새 처리 배치 {{barcode}}로 전송되었습니다.",
+    "transferredToast": "{{barcode}}이(가) 같은 배치로 처리 단계로 이동했습니다. 항목: {{count}}개.",
     "unexpected": "예상치 못함",
     "unexpectedFlash": "예상치 못함 — 이 배치의 명세서에 없음",
     "unexpectedSection": "예상치 못한 항목 / 추가 ({{count}})"
@@ -2395,12 +2475,13 @@
     "labelReprintTile": "라벨 재인쇄",
     "labelReprintTitle": "여러 증례의 라벨을 한 번에 재인쇄",
     "loading": "배치를 불러오는 중…",
+    "lookupButton": "조회",
     "lookupPlaceholder": "마스터 배치 바코드를 스캔하거나 입력하세요…",
     "newContainer": "새 용기",
     "nodeTileLabel": {
       "Checkout": "확인",
       "Cytology Imaging": "세포 영상",
-      "Cytology Processing": "세포 처리",
+      "Cytology Processing": "액상 처리",
       "Cytology Staining": "세포 염색",
       "Decal / Special Processing": "탈회/특수",
       "Embedding": "포매",
@@ -2412,7 +2493,7 @@
     "nodes": {
       "Checkout": "최종 확인",
       "Cytology Imaging": "세포검사 영상",
-      "Cytology Processing": "세포검사 처리",
+      "Cytology Processing": "액상세포검사 처리",
       "Cytology Staining": "세포검사 염색",
       "Decal / Special Processing": "탈회 / 특수 처리",
       "Embedding": "포매",
@@ -2437,6 +2518,17 @@
     },
     "wsiScanTile": "슬라이드 스캔",
     "wsiScanTitle": "슬라이드를 스캐너에 적재하고, 배치를 전송하고, 언로드합니다"
+  },
+  "batchPurposes": {
+    "builtIn": {
+      "biobank": "바이오뱅크",
+      "clinical-trial": "임상시험",
+      "qa-validation": "QA / 검증",
+      "research": "연구",
+      "routine": "일상 업무",
+      "teaching": "교육"
+    },
+    "label": "목적"
   },
   "batchRegistryFeedSection": {
     "addProgram": "프로그램 추가",
@@ -2607,6 +2699,62 @@
     "title": "현장 기여도",
     "windowLabel": "최근 {{days}}일"
   },
+  "benchReasons": {
+    "AE_DIAGNOSIS_NEEDED": "진단 완료에 필요",
+    "AE_LAST_MATERIAL": "남은 마지막 검체",
+    "AE_PATHOLOGIST_REQUEST": "병리의 요청",
+    "BA_CREATED_IN_ERROR": "잘못 생성됨",
+    "BA_EQUIPMENT_FAILURE": "장비 고장",
+    "BA_RUN_CANCELLED": "검사실에서 런 취소",
+    "BA_WRONG_CONTAINER": "잘못된 용기 또는 랙",
+    "BE_BLOCK_DAMAGED": "블록 손상",
+    "BE_FEW_SECTIONS": "절편이 몇 장만 남음",
+    "BE_INCOMPLETE_FACE": "완전한 단면을 얻을 수 없음",
+    "BE_NO_TISSUE": "블록에 조직이 남아 있지 않음",
+    "BO_ACCOUNTED_ELSEWHERE": "다른 곳에서 확인된 항목",
+    "BO_LABEL_DAMAGED": "라벨 손상, 육안으로 식별 확인",
+    "BO_SCANNED_BY_HAND": "수동 확인: 바코드 스캔 불가",
+    "BO_SUPERVISOR_APPROVED": "감독자 승인",
+    "CC_BACK_IN_RANGE": "도착 시 온도가 범위 내로 돌아옴",
+    "CC_COURIER_DELAY": "배송 지연, 내용물 확인",
+    "CC_LOGGER_FAULT": "포장 이상 없음, 기록 장치 오류"
+  },
+  "benchReasonsSection": {
+    "add": "사유 추가",
+    "addAria": "{{category}}의 새 사유",
+    "addPlaceholder": "검사실 표현으로 새 사유",
+    "categories": {
+      "BENCH_ADDON_EXHAUSTED": "추가 오더: 소진된 블록의 오더 또는 답변",
+      "BENCH_BATCH_ABORT": "배치 관리: 배치 중단",
+      "BENCH_BATCH_COLD_CHAIN": "배치 관리: 콜드체인 이탈 확인",
+      "BENCH_BATCH_OVERRIDE": "배치 관리: 예외 포함 완료",
+      "BENCH_BLOCK_EXHAUSTED": "마이크로톰: 블록 소진"
+    },
+    "columns": {
+      "actions": "작업",
+      "code": "코드",
+      "wording": "표현"
+    },
+    "defaultWording": "기본 표현(각 사용자의 언어로 표시)",
+    "errors": {
+      "duplicate": "이 범주에 같은 표현의 사유가 이미 있습니다.",
+      "required": "표현을 입력하세요."
+    },
+    "labWording": "검사실 표현(입력한 그대로 표시)",
+    "moveDown": "이 사유를 아래로 이동",
+    "moveDownShort": "↓",
+    "moveUp": "이 사유를 위로 이동",
+    "moveUpShort": "↑",
+    "notSaved": "저장되지 않았습니다. 작업대 사유를 변경할 권한이 없을 수 있습니다. 관리자에게 문의하세요.",
+    "restore": "복원",
+    "retire": "사용 중지",
+    "reword": "표현 변경",
+    "rewordAria": "“{{reason}}”의 새 표현",
+    "saved": "저장되었습니다.",
+    "subtitle": "작업대에서 직원이 누르는 사유입니다. 검사실의 표현으로 바꾸고, 사유를 추가하고, 순서를 정하거나 사용을 중지할 수 있습니다. 표현을 바꿔도 각 사유는 코드를 유지하므로 보고서에서 같은 방식으로 집계됩니다. 메모는 선택 사항입니다.",
+    "title": "작업대 사유",
+    "useDefault": "기본 표현 사용"
+  },
   "biFeed": {
     "approval": {
       "approver": "승인자",
@@ -2646,9 +2794,17 @@
     "copy": "복사",
     "copyFailed": "복사하지 못했습니다. 토큰을 선택하여 직접 복사하세요.",
     "datasets": {
+      "add_on_orders": {
+        "description": "유형, 우선순위, 오더 및 절편 시각, 상태, 배정 대기열이 포함된 추가 오더.",
+        "name": "추가 오더"
+      },
       "audit": {
         "description": "이벤트 유형별 허용·거부된 작업의 일별 건수. 건수만 있으며 사용자나 환자 세부 정보는 없습니다.",
         "name": "감사 요약"
+      },
+      "batches": {
+        "description": "운반체별 목적, 현재 단계, 단계 이력, 시각, 목표 및 대조 건수. 증례 데이터는 없습니다.",
+        "name": "운반체 및 배치"
       },
       "billing": {
         "description": "CPT 코드, 수량, 금액, 재무 분류가 포함된, 청구 시스템으로 보낸 수가 입력 및 청구 이벤트.",
@@ -2658,6 +2814,10 @@
         "description": "접수 및 최종 서명 시간, 상태, 우선순위, 병리의, 진단 코드, 처리 시간(시간)이 포함된 사례.",
         "name": "사례 및 처리 시간"
       },
+      "item_end_states": {
+        "description": "블록 또는 슬라이드에 기록된 각 최종 상태(소진, 보관소 반환, 아카이브, 외부 발송, 소모, 폐기)와 유래 항목, 기록자, 시각입니다. 비식별화 시 자유 입력 사유는 제거됩니다.",
+        "name": "항목 최종 상태"
+      },
       "qa": {
         "description": "심각도, 결과, 시점이 포함된 불일치·결함·수정 등의 품질 이벤트.",
         "name": "품질 및 불일치"
@@ -2665,6 +2825,10 @@
       "specimens": {
         "description": "유형, 채취 및 수령 시간, 블록·슬라이드·염색 수가 포함된 검체.",
         "name": "검체"
+      },
+      "station_events": {
+        "description": "작업대에서 카세트, 블록 또는 슬라이드를 스캔한 모든 기록: 시각, 위치, 단계, 처리 내용, 운반체 스캔에서 나왔는지 여부.",
+        "name": "작업대 스캔"
       },
       "workload": {
         "description": "사람별·일별로 처리한 사례, 검체, 블록, 슬라이드. 환자 데이터는 없습니다.",
@@ -3407,6 +3571,53 @@
     "entirelySubmittedRange_one": "블록 {{range}}에 전량 제출됨",
     "entirelySubmittedRange_other": "블록 {{range}}에 전량 제출됨"
   },
+  "blockPieces": {
+    "addPiece": "+ 조각 추가",
+    "cols": {
+      "description": "설명",
+      "ink": "잉크",
+      "orientation": "방향",
+      "part": "검체",
+      "position": "위치",
+      "remove": "조각 삭제"
+    },
+    "edit": "유형 및 조각",
+    "exhausted": "소진",
+    "lastPieceUsed": "마지막 조각이었습니다. 이제 블록이 소진되었습니다.",
+    "markExhausted": "조각 소진",
+    "notPermitted": "이 항목을 기록할 권한이 없습니다. 관리자에게 문의하세요.",
+    "notSaved": "저장되지 않았습니다. 조각을 확인한 후 다시 시도하세요.",
+    "orderFor": "조각",
+    "pieceCount_one": "조각 {{count}}개",
+    "pieceCount_other": "조각 {{count}}개",
+    "pieceLabel": "조각 {{position}}({{part}})",
+    "pieceMarked": "조각을 소진으로 표시했습니다.",
+    "problems": {
+      "partMissing": "각 조각에 검체를 지정해야 합니다.",
+      "pieceInUse": "소진되었거나 주문에 지정된 조각은 삭제할 수 없습니다.",
+      "piecesNeedMultiPiece": "조각이 여러 개이면 유형을 다중 조각 블록 또는 메가블록으로 해야 합니다.",
+      "positionInvalid": "각 위치는 1 이상의 정수여야 합니다.",
+      "positionRepeated": "두 조각의 위치가 같습니다.",
+      "typeUnknown": "블록 유형을 선택하세요."
+    },
+    "save": "저장",
+    "saved": "저장되었습니다.",
+    "slideSizes": {
+      "large_format": "대형 슬라이드",
+      "standard": "표준 슬라이드"
+    },
+    "slidesAre": "슬라이드: {{size}}",
+    "title": "블록 유형 및 조각",
+    "typeLabel": "블록 유형",
+    "typeNote": "이 블록의 슬라이드: {{slideSize}}.",
+    "types": {
+      "matrix": "매트릭스 블록",
+      "megablock": "메가블록",
+      "multi_piece": "다중 조각 블록",
+      "standard": "표준 블록"
+    },
+    "wholeBlockHint": "블록 전체에 주문하려면 아무것도 선택하지 마세요."
+  },
   "blockStainEditorModal": {
     "addPhotoButton": "📷 사진 추가",
     "blockCommentsLabel": "블록 메모",
@@ -3539,9 +3750,10 @@
       "label": "확정됨 — 구조화된 데이터 완료, LIS가 공식 서명을 처리",
       "title": "어시스트 모드 사례는 확정을 통해 완료됩니다 — 이 보고 모드의 공식 서명은 PathScribe가 아니라 LIS가 담당합니다."
     },
-    "attachImages": {
-      "label": "이미지 첨부",
-      "title": "이 보고서에 이미지를 첨부합니다. 보고서 페이지 뒤에 인쇄됩니다"
+    "attachments": {
+      "add": "첨부 파일 추가",
+      "label": "첨부 파일 ({{number}})",
+      "title": "이 증례의 사진, 파일, 링크 및 보고서에 배치된 항목"
     },
     "common": {
       "synopticPendingTitle": "비활성화됨 — 1단계 요약 할당 평가 진행 중이거나 검토 대기 중"
@@ -3853,6 +4065,10 @@
         "description": "주문된 사후 독성학 검사의 결과를 기록하고, 아직 해제되지 않았다면 해당 검사로 시작된 보류를 해제합니다.",
         "label": "독성학 결과 기록"
       },
+      "batchCarrierAdvance": {
+        "description": "운반체를 다음 처리 단계로 이동하고 안의 모든 항목을 갱신합니다.",
+        "label": "운반체를 다음 단계로 이동"
+      },
       "batchColdChainExcursionAcknowledge": {
         "description": "배치의 온도 이탈을 메모와 함께 확인하여 완료할 수 있게 합니다.",
         "label": "콜드체인 이탈 확인"
@@ -3860,6 +4076,10 @@
       "batchColdChainReadingSimulate": {
         "description": "센서 없이 이탈, 배치 보류, CAPA를 확인할 수 있도록 보관 장치나 용기에 “시뮬레이션” 표시가 붙은 온도 측정값을 보냅니다.",
         "label": "시뮬레이션 온도 측정값 시험"
+      },
+      "batchManifestSeal": {
+        "description": "운반체 명세서를 봉인하여 더 이상 추가하거나 제거할 수 없게 합니다.",
+        "label": "운반체 명세서 봉인"
       },
       "batchReconciliationOverride": {
         "description": "항목이 누락되었거나 예상치 않은 경우에도 사유를 기록하고 배치를 완료로 표시합니다.",
@@ -3896,6 +4116,18 @@
       "caseAccessionCreate": {
         "description": "접수 화면에서 새 증례를 생성합니다. 접수 화면 권한이 필요합니다.",
         "label": "접수 시 증례 생성"
+      },
+      "caseAttachmentLink": {
+        "description": "병원 시스템(이미지 또는 문서)으로 가는 https 링크를 증례에 첨부합니다. 링크의 호스트만 감사 기록됩니다.",
+        "label": "증례에 파일 링크"
+      },
+      "caseAttachmentUnlink": {
+        "description": "증례에서 첨부된 파일이나 링크의 연결을 해제합니다. 파일은 병원 저장소에 남습니다. 감사 기록됨.",
+        "label": "증례에서 첨부 파일 제거"
+      },
+      "caseAttachmentUpload": {
+        "description": "증례에 PDF, JPG, PNG를 첨부합니다. 파일은 저장소 어댑터를 통해 병원 자체 저장소로 전송되며 링크만 보관됩니다. 감사 기록됨.",
+        "label": "증례에 파일 첨부"
       },
       "caseClinicalHistoryRecord": {
         "description": "접수 후(육안 검사, 보고서 검토, 서명 시) 증례의 코드화된 임상 병력을 추가하거나 조정합니다. 서명 전까지 가능. 기본: 병리의사, 펠로우, 전공의, PA.",
@@ -4073,9 +4305,17 @@
         "description": "Assist 모드에서 LIS를 조회하는 주기와 대상을 설정합니다. 감사 기록됩니다.",
         "label": "Assist LIS 폴링 관리"
       },
+      "configBatchPurposesManage": {
+        "description": "기본 배치 목적을 켜거나 끄고 검사실 고유의 목적을 추가합니다.",
+        "label": "배치 목적 관리"
+      },
       "configBatchRegistryFeedManage": {
         "description": "일괄 파일을 받는 각 레지스트리 또는 검진 프로그램의 파일 형식을 설정하고 켜거나 끕니다. 감사 기록이 남습니다.",
         "label": "레지스트리 일괄 파일 관리"
+      },
+      "configBenchReasonsManage": {
+        "description": "작업대에서 누르는 사유의 표현 변경, 추가, 정렬, 사용 중지. 사유는 코드를 유지하므로 보고서가 일관됩니다.",
+        "label": "작업대 사유 관리"
       },
       "configBiFeedIdentifiedApprove": {
         "description": "식별형(비식별 아님) 피드 토큰을 누가 왜 승인했는지 기록하거나 그 승인을 철회합니다. 감사 대상입니다.",
@@ -4257,6 +4497,10 @@
         "description": "부서와 보존 기간 예외를 추가하고 편집합니다. 감사 기록됩니다.",
         "label": "부서 관리"
       },
+      "configDirectDevicePrintingManage": {
+        "description": "기관의 브라우저-프린터 직접 인쇄(QZ Tray, PathScribe Agent, Zebra Browser Print, BarTender)를 켜거나 끕니다. 서버 배포에서는 기본적으로 꺼져 있으며, 변경 및 각 직접 인쇄가 감사 기록됩니다.",
+        "label": "브라우저 직접 인쇄 허용"
+      },
       "configDisplayProfilesManage": {
         "description": "벽면 대시보드에 표시할 내용을 정합니다. 감사 기록됩니다.",
         "label": "벽면 디스플레이 프로필 관리"
@@ -4437,6 +4681,10 @@
         "description": "보고서 레이아웃 또는 구성 요소를 사용 상태로 전환합니다. 감사 기록됩니다.",
         "label": "보고서 템플릿 및 구성 요소 게시"
       },
+      "configResearchCasesManage": {
+        "description": "연구 증례를 인식하는 방법, 함께 보내는 무과금 재정 분류, 재료 보관 기간을 설정합니다. 이러한 증례는 임상 작업 목록과 통계에서 제외되며 결과나 과금 항목으로 전송되지 않습니다.",
+        "label": "연구 증례 설정 관리"
+      },
       "configResearchFeedManage": {
         "description": "문헌 피드의 검색 조건을 변경합니다. 감사 기록됩니다.",
         "label": "연구 피드 관리"
@@ -4573,6 +4821,10 @@
         "description": "모든 검체의 서명이 끝나기 전에 사유와 함께 세포검사 케이스를 확정합니다. 감사 기록에 남으며, 서명되지 않은 검체가 명시되고 이후에도 서명할 수 있습니다.",
         "label": "세포검사 케이스 조기 확정"
       },
+      "cytologyCellBlockHandOff": {
+        "description": "세포검사 준비 작업대에서 원재료와 카세트를 스캔한 후 인계합니다. 마이크로톰은 인계된 세포 블록만 받습니다.",
+        "label": "세포 블록을 조직검사실로 인계"
+      },
       "cytologyCsmsEligibilityVerify": {
         "description": "CSMS QA 탭에서 사례의 CSMS 대상 여부 확인 결과를 기록합니다. 확인됨 또는 사유와 함께 비대상. 사례의 확인 플래그가 해제됩니다. 수행자, 시각, 결과가 감사 기록에 남습니다.",
         "label": "CSMS 대상 여부 확인 기록"
@@ -4701,6 +4953,10 @@
         "description": "용기 바코드를 스캔하여 서버 시간과 사용자 이름이 포함된 영구 \"락박스 접수\" 영수증을 기록합니다. 대기 중인 주문이 없는 바코드에는 임시 기록이 만들어지며 접수 번호는 부여되지 않습니다.",
         "label": "락박스에서 검체 접수"
       },
+      "materialAliquotStatusUpdate": {
+        "description": "발송됨, 접수됨, 결과 회신(수신 부서 접수번호 포함).",
+        "label": "분주 상태 업데이트"
+      },
       "materialBlockDeleteInProcess": {
         "description": "아직 진행 중인 블록을 삭제합니다. 대기 중인 절편과 염색은 취소되고, 사유가 기록되며, 청구 담당자를 위한 크레딧 항목이 대기열에 추가됩니다. 블록은 삭제됨으로 표시된 채 케이스에 남습니다. 감사 기록됩니다.",
         "label": "진행 중인 블록 삭제"
@@ -4712,6 +4968,22 @@
       "materialBlockFlagAmended": {
         "description": "수정된 보고서에서 블록을 “무효” 또는 “대체됨”으로 표시합니다. 표시만 하며 블록은 삭제되지 않습니다. 감사 기록이 남습니다.",
         "label": "수정된 보고서의 블록 표시"
+      },
+      "materialEndStateRecord": {
+        "description": "작업대에서 블록 또는 슬라이드의 최종 상태(소진, 보관소 반환, 아카이브, 외부 발송, 검사에 소모, 폐기)를 사유와 함께 기록합니다.",
+        "label": "항목의 최종 상태 기록"
+      },
+      "materialReembedComplete": {
+        "description": "포매 작업대에서 소진된 블록의 조직이 재포매되었음을 기록합니다. 대기 중인 주문은 마이크로톰으로 넘어갑니다.",
+        "label": "블록 재포매 완료 표시"
+      },
+      "materialReembedRequest": {
+        "description": "추가 주문 작성기에서 또는 “블록 소진” 표시에 대한 답으로, 소진된 블록의 잔여 조직이나 습조직의 재포매를 요청합니다. 완료될 때까지 주문은 대기합니다.",
+        "label": "소진된 블록의 재포매 요청"
+      },
+      "materialSpecimenDivide": {
+        "description": "육안 검사 또는 세포검사 준비 작업대에서 초기 용량과 분주별 용량, 목적지를 기록합니다.",
+        "label": "검체를 분주로 분할"
       },
       "messageSecureEmailSend": {
         "description": "조직 외부 주소로 보안 이메일을 보냅니다.",
@@ -4937,9 +5209,25 @@
         "description": "합성 테스트 사례(가상 환자만)를 레지스트리 테스트 시스템으로 보냅니다. 검증 인스턴스에서만 가능합니다. 감사 기록됩니다.",
         "label": "레지스트리 테스트 모음 실행"
       },
+      "reportAddOnVolumeExport": {
+        "description": "보고서를 CSV 파일로 다운로드합니다. 행 수와 함께 감사 기록됩니다.",
+        "label": "검사실 워크플로 보고서 내보내기: 추가 오더"
+      },
+      "reportAddOnVolumeView": {
+        "description": "작업대 스캔, 증례 및 운반체에서 집계한 합계만 표시하며 연구 증례는 제외됩니다.",
+        "label": "검사실 워크플로 보고서 보기: 추가 오더"
+      },
+      "reportBatchDurationExport": {
+        "description": "보고서를 CSV 파일로 다운로드합니다. 행 수와 함께 감사 기록됩니다.",
+        "label": "검사실 워크플로 보고서 내보내기: 배치 소요 시간"
+      },
+      "reportBatchDurationView": {
+        "description": "작업대 스캔, 증례 및 운반체에서 집계한 합계만 표시하며 연구 증례는 제외됩니다.",
+        "label": "검사실 워크플로 보고서 보기: 배치 소요 시간"
+      },
       "reportCaseImagesAttach": {
-        "description": "케이스 보고서에 이미지(육안 사진, 현미경 사진)를 첨부하거나 제거합니다. 보고서 페이지 뒤에 인쇄됩니다. 감사 기록이 남습니다.",
-        "label": "보고서에 이미지 첨부"
+        "description": "증례 보고서(보고서 섹션 안)에 사진, 파일, 링크를 배치하거나 뺍니다. 서명된 보고서는 먼저 수정 또는 추가 보고가 필요합니다. 감사 기록됨.",
+        "label": "보고서에 이미지 배치"
       },
       "reportCaseReportPrint": {
         "description": "케이스 보고서를 인쇄 또는 재인쇄하거나, 저장된 버전의 PDF를 엽니다. 모든 인쇄는 감사 로그에 기록됩니다.",
@@ -4953,6 +5241,22 @@
         "description": "서명 전에 시놉틱 답변으로 그린 해부학적 지도를 보고서에 넣거나 뺍니다. 감사 기록됨.",
         "label": "장기 지도를 보고서에 삽입"
       },
+      "reportReconciliationExceptionsExport": {
+        "description": "보고서를 CSV 파일로 다운로드합니다. 행 수와 함께 감사 기록됩니다.",
+        "label": "검사실 워크플로 보고서 내보내기: 대조 예외"
+      },
+      "reportReconciliationExceptionsView": {
+        "description": "작업대 스캔, 증례 및 운반체에서 집계한 합계만 표시하며 연구 증례는 제외됩니다.",
+        "label": "검사실 워크플로 보고서 보기: 대조 예외"
+      },
+      "reportRecutReworkExport": {
+        "description": "보고서를 CSV 파일로 다운로드합니다. 행 수와 함께 감사 기록됩니다.",
+        "label": "검사실 워크플로 보고서 내보내기: 재절편 및 재작업"
+      },
+      "reportRecutReworkView": {
+        "description": "작업대 스캔, 증례 및 운반체에서 집계한 합계만 표시하며 연구 증례는 제외됩니다.",
+        "label": "검사실 워크플로 보고서 보기: 재절편 및 재작업"
+      },
       "reportRelatedCasesAttach": {
         "description": "서명 중인 보고서와 함께 보낼 환자의 다른 발행 케이스를 선택합니다. 보고서 서명 시 확정됩니다. 감사 기록됩니다.",
         "label": "보고서에 관련 케이스 첨부"
@@ -4964,6 +5268,30 @@
       "reportRestrictedCasePrint": {
         "description": "인쇄를 제한하는 플래그(VIP, 기밀 자문)가 있는 증례를 인쇄, 재인쇄하거나 PDF로 엽니다. \"증례 보고서 인쇄\" 권한도 필요합니다.",
         "label": "제한 증례 인쇄"
+      },
+      "reportStatPerformanceExport": {
+        "description": "보고서를 CSV 파일로 다운로드합니다. 행 수와 함께 감사 기록됩니다.",
+        "label": "검사실 워크플로 보고서 내보내기: STAT 성과"
+      },
+      "reportStatPerformanceView": {
+        "description": "작업대 스캔, 증례 및 운반체에서 집계한 합계만 표시하며 연구 증례는 제외됩니다.",
+        "label": "검사실 워크플로 보고서 보기: STAT 성과"
+      },
+      "reportStationVolumeExport": {
+        "description": "보고서를 CSV 파일로 다운로드합니다. 행 수와 함께 감사 기록됩니다.",
+        "label": "검사실 워크플로 보고서 내보내기: 작업대별 물량"
+      },
+      "reportStationVolumeView": {
+        "description": "작업대 스캔, 증례 및 운반체에서 집계한 합계만 표시하며 연구 증례는 제외됩니다.",
+        "label": "검사실 워크플로 보고서 보기: 작업대별 물량"
+      },
+      "reportWorkflowTurnaroundExport": {
+        "description": "보고서를 CSV 파일로 다운로드합니다. 행 수와 함께 감사 기록됩니다.",
+        "label": "검사실 워크플로 보고서 내보내기: 단계별 처리 시간"
+      },
+      "reportWorkflowTurnaroundView": {
+        "description": "작업대 스캔, 증례 및 운반체에서 집계한 합계만 표시하며 연구 증례는 제외됩니다.",
+        "label": "검사실 워크플로 보고서 보기: 단계별 처리 시간"
       },
       "retentionDisposalReportExport": {
         "description": "케이스 접수번호가 포함된 폐기물 추적 보고서를 다운로드합니다.",
@@ -5004,6 +5332,10 @@
       "screenConfigurationOpen": {
         "description": "'구성' 화면과 홈 페이지의 타일을 볼 수 있습니다.",
         "label": "'구성' 열기"
+      },
+      "screenCytologyPrepOpen": {
+        "description": "세포검사 준비 작업대와 병리 작업 공간의 타일을 봅니다.",
+        "label": "세포검사 준비 열기"
       },
       "screenCytologyQcQueueOpen": {
         "description": "'작업 목록'에서 '세포병리 QC 동료 검토 대기열'을(를) 볼 수 있습니다.",
@@ -5089,6 +5421,14 @@
         "description": "저장된 보고서를 실행하여 선택한 사용자에게 CSV로 보내는 일정을 설정, 변경, 일시 중지 또는 삭제합니다. 모든 변경은 감사 로그에 기록됩니다.",
         "label": "사례 검색 보고서 예약"
       },
+      "stationScanHistoryView": {
+        "description": "어떤 항목이 어느 작업대에서 누구에 의해 언제 스캔되었는지 확인합니다.",
+        "label": "작업대 스캔 기록 보기"
+      },
+      "stationScanMismatchContinue": {
+        "description": "경고 후 다른 단계의 작업대에서 운반체를 열거나 적재된 운반체에 없는 항목을 유지합니다. 감사 추적에 기록됩니다.",
+        "label": "작업대 불일치 경고 후 계속"
+      },
       "surgicalAddendumRelease": {
         "description": "서명된 외과 병리 보고서에 추가 보고서를 발행합니다(정보 추가).",
         "label": "외과 병리 추가 보고서 발행"
@@ -5162,6 +5502,86 @@
     "reviewRequest": "검토 요청을 보낼 권한이 없습니다.",
     "revisionNone": "수정 보고서, 정정 보고서 또는 추가 보고서를 발행할 권한이 없습니다.",
     "signOut": "외과 병리 보고서에 서명할 권한이 없습니다."
+  },
+  "caseAttachments": {
+    "accessionLine": "증례 {{accession}}",
+    "addLink": "링크 추가",
+    "afterReportPages": "이 보고서는 이미지를 보고서 페이지 뒤에 인쇄합니다.",
+    "assistNote": "Assist 증례에서는 LIS가 보고서를 작성합니다. 여기의 첨부 파일은 작업 중 열어 볼 수 있는 이 증례의 참조 자료이며, LIS 보고서에 추가되지 않습니다.",
+    "attachAnyway": "그래도 첨부",
+    "attachFile": "외부 파일 첨부…",
+    "cancel": "취소",
+    "captionLabel": "설명 (선택)",
+    "captionPlaceholder": "보고서에서 그 아래에 인쇄됩니다",
+    "close": "완료",
+    "dismiss": "닫기",
+    "document": "PDF 문서: 해당 섹션에 표시되며 페이지는 보고서 뒤에 이어집니다",
+    "empty": {
+      "external": "아직 첨부된 파일이나 링크가 없습니다.",
+      "gross": "이 증례에 육안 사진이나 블록 단면 사진이 없습니다.",
+      "intraop": "이 증례에 수술 중 또는 자문 사진이 없습니다.",
+      "slide": "슬라이드 뷰어에서 보고서에 추가로 저장한 영역이 여기에 표시됩니다. 슬라이드 뷰어는 아직 구축되지 않았습니다."
+    },
+    "fileHint": "PDF, JPG 또는 PNG. Word 문서는 먼저 PDF로 저장하십시오.",
+    "groupCount": "{{title}} ({{number}})",
+    "groups": {
+      "external": "외부 파일 및 링크",
+      "gross": "육안 사진",
+      "intraop": "수술 중 및 자문 촬영",
+      "slide": "현미경 및 슬라이드 영역"
+    },
+    "inReport": "보고서 내: {{section}}",
+    "inReportAfter": "보고서 내, 보고서 뒤 별도 페이지",
+    "inReportEmpty": "아직 보고서에 배치된 항목이 없습니다.",
+    "inReportTitle": "보고서 내",
+    "insert": "보고서에 삽입 ({{number}})",
+    "insertInto": "삽입 위치",
+    "kinds": {
+      "blockFacePhoto": "블록 단면 사진",
+      "grossPhoto": "육안 사진",
+      "intraopPhoto": "수술 중 사진",
+      "link": "링크",
+      "uploadedFile": "첨부 파일"
+    },
+    "large": "이 파일은 {{size}}MB로 {{limit}}MB를 넘습니다. 큰 파일은 전송과 인쇄에 시간이 더 걸립니다.",
+    "linkLabel": "링크 (https)",
+    "linkPlaceholder": "https://imaging.hospital.org/…",
+    "notices": {
+      "inserted": "보고서에 배치됨: {{number}}.",
+      "uploaded": "파일이 첨부되었습니다. 병원 저장소에 보관됩니다."
+    },
+    "open": "열기",
+    "problems": {
+      "assistCase": "Assist 증례에서는 LIS가 보고서를 작성하므로 여기에서는 보고서에 아무것도 배치하지 않습니다.",
+      "duplicate": "해당 링크는 이미 이 증례에 첨부되어 있습니다.",
+      "empty": "이 파일은 비어 있습니다.",
+      "expired": "업로드 시간이 너무 오래 걸렸습니다. 다시 시도하십시오.",
+      "failed": "작업을 완료할 수 없습니다. 다시 시도하십시오.",
+      "inReport": "보고서에 배치되어 있습니다. 먼저 보고서에서 빼십시오.",
+      "invalidLink": "이름이 있는 서버로 가는 https:// 링크를 입력하십시오 (사용자 이름이나 비밀번호 없이).",
+      "notConfigured": "이 사이트에는 첨부 파일 저장소가 설정되지 않았습니다. 관리자에게 문의하십시오.",
+      "notFound": "해당 항목이 더 이상 없습니다.",
+      "notPermitted": "이 작업을 수행할 권한이 없습니다.",
+      "nothingChosen": "항목을 하나 이상 선택하십시오.",
+      "refused": "병원 저장소가 이 파일을 거부했습니다.",
+      "signedNeedsAmendment": "이 보고서는 서명되었습니다. 먼저 수정 또는 추가 보고를 시작하십시오.",
+      "tooLarge": "이 파일은 병원 저장소가 허용하는 크기보다 큽니다.",
+      "tooMany": "보고서에는 이미지와 문서를 최대 {{max}}개까지 넣을 수 있습니다.",
+      "unavailable": "지금은 파일에 접근할 수 없습니다.",
+      "unsupportedType": "PDF, JPG, PNG 파일만 첨부할 수 있습니다.",
+      "wordDocument": "Word 문서입니다. PDF로 저장한 다음 PDF를 첨부하십시오."
+    },
+    "removeFromCase": "증례에서 제거",
+    "reportEnd": "보고서 본문 끝",
+    "rowDetail": "{{when}} · {{by}}",
+    "rowTitle": "{{kind}} · {{owner}}",
+    "select": "{{name}} 선택",
+    "signedNote": "이 보고서는 서명되었습니다. 이미지를 배치하거나 빼려면 먼저 수정 또는 추가 보고를 시작하십시오. 파일은 계속 증례에 첨부할 수 있습니다.",
+    "source": "출처: {{host}}",
+    "storageNote": "PathScribe는 각 항목에 대한 링크만 보관합니다. 첨부한 파일은 병원 자체 저장소로 전송되고, 그 링크가 증례에 보관됩니다.",
+    "takeOut": "보고서에서 빼기",
+    "thisCase": "이 증례",
+    "title": "첨부 파일"
   },
   "caseClinicalHistory": {
     "add": "임상 병력 추가",
@@ -6837,6 +7257,9 @@
       "sys-asset-locations": {
         "description": "영안실 보관 슬롯과 실시간 점유율을 포함한 물리적 자산/위치에 대한 관리되는 참조 목록입니다."
       },
+      "sys-bench-reasons": {
+        "description": "작업대에서 누르는 사유의 표현 변경, 추가, 정렬, 사용 중지(블록 소진, 배치 중단 및 예외, 콜드체인)."
+      },
       "sys-bi-feed": {
         "description": "Power BI 및 다른 보고 도구가 PathScribe 데이터를 읽도록 허용: 데이터 집합과 시설 선택, 피드 토큰 발급·취소, 식별 데이터 승인, 필드 목록 보기."
       },
@@ -6947,6 +7370,9 @@
       },
       "sys-qa-trend-policy": {
         "description": "병리의사 또는 검체 유형에 대해 주요 불일치 추세를 표시하는 조건: 기간, 최소 검토 수, 기준, 전달 경로(사이트별)."
+      },
+      "sys-research-cases": {
+        "description": "연구 증례를 인식하고 보관하며 임상 작업 목록, 결과 및 청구에서 제외하는 방법과 운반체의 용도를 설정합니다."
       },
       "sys-revision-reasons": {
         "description": "발행된 보고서를 수정하거나 정정하는 사유와 그중 임상적으로 중요한 사유입니다. 이러한 사유로 개정을 발행하면 CAPA가 권고됩니다."
@@ -7890,6 +8316,40 @@
     "startBtn": "긴급 예비 보고서 발송",
     "title": "긴급 예비 보고서"
   },
+  "cytologyPrep": {
+    "decant": "디캔트:",
+    "handoff": {
+      "cellBlock": "세포 블록 {{label}}",
+      "confirm": "인계",
+      "done": {
+        "cellBlockMade": "세포 블록 {{label}}이(가) 만들어졌습니다. 라벨을 인쇄하고 펠릿이 카세트에 들어가면 인계하세요.",
+        "handedOff": "세포 블록 {{label}}이(가) 조직검사실로 인계되었습니다."
+      },
+      "handedOffBy": "{{name}} 인계, {{when}}",
+      "intro": "세포 블록은 인계 후에만 조직검사실로 갑니다. 원재료인 체액 또는 분주를 스캔한 다음 카세트를 스캔하세요.",
+      "make": "이 디캔트로 세포 블록 만들기",
+      "next": "다음",
+      "none": "이 검체에는 아직 세포 블록이 없습니다.",
+      "printLabel": "라벨 인쇄",
+      "problem": {
+        "alreadyHandedOff": "이 세포 블록은 이미 인계되었습니다.",
+        "cassetteMismatch": "인계되지 않음: 두 번째 스캔이 이 세포 블록의 카세트가 아닙니다.",
+        "notCellBlock": "세포 블록이 아닙니다.",
+        "notPermitted": "세포 블록을 인계할 권한이 없습니다. 관리자에게 문의하세요.",
+        "notSaved": "저장되지 않았습니다. 케이스가 변경되었을 수 있으니 다시 스캔하고 반복하세요.",
+        "sourceMismatch": "인계되지 않음: 첫 번째 스캔이 이 세포 블록의 원재료 체액 또는 분주가 아닙니다."
+      },
+      "scanCassette": "세포 블록 카세트 스캔",
+      "scanSource": "원재료 체액 또는 분주 스캔",
+      "start": "인계",
+      "title": "세포 블록",
+      "waiting": "인계 대기 중"
+    },
+    "pageTitle": "세포검사 준비",
+    "patientName": "{{family}} {{given}}",
+    "scanPlaceholder": "용기 또는 디캔트 바코드 스캔",
+    "scanPrompt": "준비할 체액, 분주 또는 세포 블록을 스캔하세요."
+  },
   "cytologyQaTab": {
     "apacPtTable": {
       "challenge": "시험 검체",
@@ -8418,8 +8878,9 @@
   },
   "cytologyScreening": {
     "assistModeOnly": "이 증례는 외부 LIS에서 관리됩니다(보조 모드). PathScribe의 구조화된 세포병리 판독 및 서명 워크플로는 오케스트레이션 모드의 증례에서만 사용할 수 있습니다.",
-    "attachImagesBtn": "이미지 첨부",
-    "attachImagesTitle": "이 케이스의 보고서에 이미지를 첨부합니다. 보고서 페이지 뒤에 인쇄됩니다",
+    "attachmentsAddBtn": "첨부 파일 추가",
+    "attachmentsBtn": "첨부 파일 ({{number}})",
+    "attachmentsTitle": "이 증례의 사진, 파일, 링크; 이미지는 보고서 뒤에 인쇄됩니다",
     "backToWorklist": "작업 목록으로 돌아가기",
     "billingBtn": "청구",
     "billingDrawer": {
@@ -8569,8 +9030,18 @@
     "materialDrawer": {
       "addCellBlockBtn": "세포 블록 추가",
       "addResidualFluidBtn": "잔여 액체 추가",
+      "aliquotPurpose": {
+        "flow_cytometry": "유세포 분석",
+        "hpv": "HPV 검사",
+        "microbiology": "미생물 검사",
+        "molecular": "분자 검사",
+        "other": "기타 검사"
+      },
+      "aliquotType": "{{purpose}}용 분주",
       "decantConflict": "작업 중에 다른 사용자가 이 증례의 검체 재료를 변경하여 디캔트 변경이 저장되지 않았습니다. 증례를 다시 불러왔으니 변경을 다시 하십시오.",
+      "decantHeading": "{{label}} — {{type}}",
       "decantType": {
+        "aliquot": "분주",
         "cell_block": "세포 블록",
         "residual_fluid": "잔여 액체"
       },
@@ -9665,11 +10136,32 @@
     },
     "subtitle": "이 도구를 사용하여 데모 또는 테스트 데이터를 지우고 앱을 깨끗한 초기 상태로 되돌리세요. 이는 모의 데모 백엔드에만 영향을 미치며, 실제 운영 고객 데이터베이스에는 영향을 주지 않습니다.",
     "testingTools": {
+      "displayTokensDescription": "Desert Valley의 각 벽면 디스플레이, 예비 디스플레이, 수술실 단말기에 새 토큰을 발급하고, '디스플레이를 사용할 수 없음' 화면을 보여 주기 위해 예전 휴게실 디스플레이의 토큰을 취소합니다. 전체 초기화 후마다 새로 발급하십시오.",
+      "displayTokensTitle": "데모 디스플레이 토큰",
+      "issueTokensBtn": "토큰 발급",
       "molecularOrderQueueDescription": "고정된 시드 케이스에 대해 주문 및 수신 HPV 결과를 시뮬레이션합니다. 프로덕션 주문 워크플로가 아닌 테스트/데모 화면입니다.",
       "molecularOrderQueueTitle": "분자 검사 주문 대기열",
       "openBtn": "열기",
       "subtitle": "이 데모 환경에서 시나리오를 테스트하고 시뮬레이션하기 위한 기타 도구입니다.",
-      "title": "테스트 및 데모 도구"
+      "title": "테스트 및 데모 도구",
+      "tokens": {
+        "copied": "복사됨",
+        "copy": "복사",
+        "display": "디스플레이",
+        "issueFailed": "일부 토큰을 발급하지 못했습니다. 다시 시도하십시오.",
+        "notPermitted": "데모 디스플레이 토큰을 발급할 권한이 없습니다.",
+        "shownOnce": "한 번만 표시됩니다. 각 토큰을 필요한 곳에 복사하십시오. 나중에 다시 볼 수 없습니다.",
+        "token": "토큰",
+        "use": "용도",
+        "uses": {
+          "orSuite": "수술실 보드",
+          "revoked": "취소됨: '디스플레이를 사용할 수 없음' 화면",
+          "rotating": "다섯 가지 보기 모두, 순환",
+          "secondSite": "두 번째 시설",
+          "singleView": "한 부서",
+          "spare": "예비"
+        }
+      }
     },
     "title": "데모 및 테스트 데이터 초기화"
   },
@@ -9810,6 +10302,15 @@
     },
     "removeAria": "“{{word}}” 삭제"
   },
+  "directPrinting": {
+    "allow": "이 기관에서 브라우저 직접 인쇄 허용",
+    "intro": "라벨과 보고서는 보통 인터페이스 엔진을 거쳐 프린터로 가며, 브라우저 인쇄 대화 상자가 대체 수단입니다. 이 기관이 브라우저에서 프린터로 직접 인쇄해야 하는 경우(QZ Tray, PathScribe Agent, Zebra Browser Print 또는 BarTender)에만 선택하세요. 이러한 인쇄는 모두 감사 로그에 기록됩니다.",
+    "notPermitted": "직접 인쇄 설정을 변경할 권한이 없습니다. 관리자에게 문의하세요.",
+    "save": "직접 인쇄 설정 저장",
+    "saveFailed": "저장되지 않았습니다. 다시 시도하세요.",
+    "saved": "저장되었습니다. 변경 내용이 감사 로그에 기록되었습니다.",
+    "title": "브라우저에서 직접 인쇄"
+  },
   "discordanceReconciliationModal": {
     "categoryDiffersNote": "최종 범주가 동결절편과 다릅니다 — 서명 완료를 계속하기 전에 불일치로 기록해야 합니다.",
     "commentLabel": "코멘트 — 필수",
@@ -9907,6 +10408,9 @@
   },
   "displayProfiles": {
     "addButton": "+ 디스플레이 프로필 추가",
+    "addOnLimitHint": "이 시간보다 오래 대기한 추가 오더는 빨간색으로 바뀌고 포매 및 마이크로톰 보기의 맨 위로 이동하며, 그 직전에는 주황색으로 표시됩니다. 작업대 보기는 이를 넘긴 운반체와 추가 오더를 셉니다. 비워 두면 120분입니다.",
+    "addOnLimitInvalid": "15에서 1440 사이의 분을 정수로 입력하세요.",
+    "addOnLimitLabel": "시간 한도 X(분)",
     "addTitle": "디스플레이 프로필 추가",
     "assignedViewsLabel": "할당된 대시보드 보기",
     "carouselIntervalLabel": "캐러셀 간격(초)",
@@ -9922,11 +10426,16 @@
     "launchDashboardButton": "🖥️ 시설 운영 대시보드 열기",
     "nameLabel": "디스플레이 이름",
     "namePlaceholder": "예: 조직학 벤치 3 — 벽면 디스플레이",
+    "purposesHint": "아무것도 선택하지 않으면 모든 목적이 표시됩니다. 추가 오더는 운반체가 아니므로 항상 표시됩니다.",
+    "purposesLabel": "다음 목적의 운반체 표시",
     "reactivate": "재활성화",
     "sectionSubtitle": "시설 운영 대시보드의 다섯 개 벽면 디스플레이를 위한 실제 데이터 전용 레지스트리입니다 — 각 프로필은 물리적 디스플레이를 하나의 수행 검사실과 하나 이상의 부서 뷰에 연결합니다. 실제 하드웨어 연결은 검증되거나 강제되지 않으며, 장치 토큰은 정보 제공 목적으로만 사용됩니다.",
     "sectionTitle": "디스플레이 프로필(시설 운영 대시보드)",
     "selectFacility": "— 시설 선택 —",
-    "showInactive": "비활성 표시"
+    "showInactive": "비활성 표시",
+    "staleScanHint": "작업대 보기는 이 시간보다 오래 어느 작업대에서도 스캔되지 않은 카세트, 블록 및 슬라이드를 표시합니다. 비워 두면 240분입니다.",
+    "staleScanInvalid": "30에서 10080 사이의 분을 정수로 입력하세요.",
+    "staleScanLabel": "미스캔 경고(분)"
   },
   "disposalQueue": {
     "computing": "현재 대기열을 계산하는 중…",
@@ -10003,6 +10512,52 @@
       "total": "총 폐기 수"
     },
     "unknownLocation": "알 수 없음"
+  },
+  "divideSpecimen": {
+    "add": "+ 분주 추가",
+    "aliquotLine": "{{volume}} mL → {{destination}}",
+    "destination": "목적지",
+    "destinationKind": "목적지 유형",
+    "divide": "분할",
+    "done": {
+      "divided": "{{labels}}(으)로 분할, {{remaining}} mL 남음.",
+      "statusSaved": "상태가 저장되었습니다."
+    },
+    "kind": {
+      "department": "부서",
+      "reference_lab": "위탁 검사실"
+    },
+    "markAs": "{{status}}(으)로 표시",
+    "open": "검체 분할",
+    "problem": {
+      "alreadyDivided": "이 검체는 이미 분할되었습니다.",
+      "noRows": "분주를 하나 이상 추가하세요.",
+      "noStartingVolume": "먼저 초기 용량을 입력하세요.",
+      "notAliquot": "분주가 아닙니다.",
+      "notForward": "분주 상태는 앞으로만 진행됩니다.",
+      "notFound": "해당 분주가 더 이상 케이스에 없습니다.",
+      "notPermitted": "이 작업에 대한 권한이 없습니다. 관리자에게 문의하세요.",
+      "notSaved": "저장되지 않았습니다. 케이스가 변경되었을 수 있으니 다시 시도하세요.",
+      "overStartingVolume": "분주 합계가 초기 용량보다 큽니다.",
+      "receivingAccessionRequired": "결과 회신을 기록하려면 수신 부서 접수번호를 입력하세요.",
+      "rowDestination": "모든 분주에는 목적지가 필요합니다.",
+      "rowVolume": "모든 분주에는 0 mL보다 큰 용량이 필요합니다."
+    },
+    "purpose": "용도",
+    "receivingAccession": "수신 부서 접수번호",
+    "record": "{{name}}, {{when}} 분할: {{start}} mL 중 {{split}} mL를 분주, {{remaining}} mL 남음.",
+    "remove": "삭제",
+    "startingVolume": "초기 용량(mL)",
+    "status": {
+      "not_sent": "미발송",
+      "received": "접수됨",
+      "result_back": "결과 회신",
+      "sent": "발송됨"
+    },
+    "statusWithReceiving": "{{status}}, 수신 접수번호 {{accession}}",
+    "title": "검체 {{label}} 분할",
+    "totals": "{{start}} mL 중 {{split}} mL 분할, {{remaining}} mL 남음.",
+    "volume": "용량(mL)"
   },
   "documentStyleSection": {
     "bold": "굵게",
@@ -10114,6 +10669,7 @@
         "requiresDecal": "탈회 필요",
         "tinyTissue": "미세 조직"
       },
+      "matrixBlockOf": "검체 {{specimens}}의 매트릭스 블록",
       "patient": "환자:",
       "scanNext": "다음 카세트 스캔 →",
       "specimenBlock": "검체/블록:",
@@ -10199,7 +10755,7 @@
       "blockNotFound": "블록 {{block}}을(를) 찾을 수 없습니다.",
       "notResolved": "스캔한 값과 일치하는 케이스나 블록이 없습니다. 바코드를 확인하고 다시 시도하세요.",
       "specimenNotFound": "해당 케이스에서 검체를 찾을 수 없습니다.",
-      "unsupportedTarget": "포매 스테이션은 블록 카세트만 처리합니다. 매트릭스 또는 세포 블록 카세트, 디캔트, 검체 바코드는 아직 지원되지 않습니다."
+      "unsupportedTarget": "포매 스테이션은 블록 및 매트릭스 블록 카세트를 처리합니다. 세포 블록 카세트, 디캔트, 검체 바코드는 아직 지원되지 않습니다."
     },
     "scanPlaceholder": "바코드를 스캔하거나 입력하세요…",
     "scanPrompt": "시작하려면 카세트 바코드를 스캔하세요",
@@ -10369,6 +10925,7 @@
     "camera": "카메라",
     "engraver": "각인기",
     "label_printer": "라벨 프린터",
+    "lbc_processor": "액상세포검사 처리기",
     "other": "기타",
     "scale": "저울",
     "slide_scanner": "슬라이드 스캐너",
@@ -10381,9 +10938,11 @@
       "dateInFuture": "날짜는 미래일 수 없습니다.",
       "dateRequired": "수행한 날짜를 입력하세요.",
       "notesRequired": "무슨 일이 있었는지 기술하세요. 실패 또는 고장 시 필수입니다.",
+      "outcomeMismatch": "결과는 범위 대비 측정값과 일치해야 합니다.",
       "outcomeRequired": "결과를 선택하세요.",
       "performedByRequired": "수행자를 입력하세요.",
       "saveFailed": "항목을 저장할 수 없습니다.",
+      "temperatureRequired": "측정한 온도를 입력하세요.",
       "typeRequired": "유형을 선택하세요."
     },
     "headers": {
@@ -10403,6 +10962,7 @@
       "historyEmpty": "아직 항목이 없습니다.",
       "historyTitle": "이력",
       "lastDone": "마지막 수행 {{date}}",
+      "noRange": "이 장비에 설정된 범위가 없습니다(구성 → 시스템 → 장비). 결과를 직접 선택하세요.",
       "notScheduled": "일정 없음",
       "notesHint": "실패 또는 고장 시 필수입니다.",
       "notesLabel": "메모",
@@ -10410,6 +10970,8 @@
       "outcomeLabel": "결과",
       "performedByLabel": "수행자",
       "performedByPlaceholder": "직원 또는 서비스 엔지니어",
+      "range": "허용 범위: {{min}}~{{max}} °C. 결과는 측정값에 따라 정해집니다.",
+      "temperatureLabel": "온도(°C)",
       "title": "서비스 기록 — {{name}} ({{code}})",
       "typeLabel": "유형"
     },
@@ -10426,12 +10988,14 @@
       "ok": "최신",
       "overdue": "기한 초과"
     },
+    "temperatureReading": "({{value}} °C)",
     "types": {
       "calibration": "교정",
       "function_check": "기능 점검",
       "maintenance": "유지보수",
       "malfunction": "고장",
-      "repair": "수리"
+      "repair": "수리",
+      "temperature_check": "온도 점검"
     }
   },
   "equipmentSection": {
@@ -10464,7 +11028,8 @@
       "kindRequired": "종류를 선택하세요.",
       "nameRequired": "이름은 필수입니다.",
       "saveFailed": "장비를 저장할 수 없습니다. 입력 항목을 확인한 후 다시 시도하세요.",
-      "stationOtherFacility": "이 스캔 스테이션은 다른 검사실에 있습니다."
+      "stationOtherFacility": "이 스캔 스테이션은 다른 검사실에 있습니다.",
+      "temperatureRangeInvalid": "숫자를 입력하고 최저값이 최고값보다 낮아야 합니다."
     },
     "headers": {
       "actions": "작업",
@@ -10497,6 +11062,7 @@
       "intervalHint": "일정이 없으면 비워 두세요. 예정일은 서비스 기록의 마지막 통과 항목부터 계산됩니다.",
       "intervalPlaceholder": "예: 30",
       "kindLabel": "종류",
+      "largeFormatLabel": "대형 슬라이드 사용 가능",
       "maintenanceIntervalLabel": "유지보수 주기(일)",
       "makeLabel": "제조사",
       "makePlaceholder": "예: Hologic",
@@ -10510,9 +11076,21 @@
       "stationHint": "장비가 있는 위치입니다. 분석기의 경우 작업 목록 전송 시 이 스테이션에서 전송하는지 확인합니다.",
       "stationLabel": "스캔 스테이션",
       "stationNoneOption": "— 스테이션 없음 —",
-      "statusLabel": "상태"
+      "statusLabel": "상태",
+      "temperatureHint": "선택 사항입니다. 장비 기록에서 이 범위를 벗어난 온도 점검은 실패로 처리됩니다.",
+      "temperatureMaxLabel": "최고 온도(°C)",
+      "temperatureMinLabel": "최저 온도(°C)"
     },
     "nextDue": "다음 예정 {{date}}",
+    "racks": {
+      "largeFormat": "대형 슬라이드",
+      "largeFormatAria": "{{rack}}에 대형 슬라이드 사용",
+      "largeFormatLabel": "대형 슬라이드 사용",
+      "notSaved": "저장되지 않았습니다. 장비를 변경할 권한이 없을 수 있습니다. 관리자에게 문의하세요.",
+      "rack": "랙",
+      "subtitle": "재사용 염색 랙(각인된 RACK- ID). 메가블록의 대형 슬라이드는 대형 슬라이드를 넣을 수 있는 랙에만 들어갑니다.",
+      "title": "염색 랙"
+    },
     "searchPlaceholder": "이름, 코드, 제조사, 모델 또는 일련번호로 검색...",
     "settingsLink": {
       "grossingHardware": "육안 검사 하드웨어: {{name}}",
@@ -10548,6 +11126,19 @@
     "noDocumentationAtAll": "이 검체에는 현미경 소견과 종합 소견 템플릿이 모두 없습니다 — 최종 확정 전에 문서를 추가하세요.",
     "requiredForProcedure": "이 시술에는 현미경 소견 서술이 필요합니다.",
     "unsavedDraft": "이 검체의 현미경 소견은 저장되지 않은 초안입니다 — 최종 확정 전에 저장하거나 삭제하세요."
+  },
+  "exhaustedBlock": {
+    "awaitingReembed_one": "{{count}}건의 주문이 이 블록의 재포매를 기다리고 있습니다.",
+    "awaitingReembed_other": "{{count}}건의 주문이 이 블록의 재포매를 기다리고 있습니다.",
+    "failed": "재포매를 기록할 수 없습니다. 변경된 내용은 없습니다.",
+    "markReembedded": "재포매 완료: 주문 해제",
+    "none": "없음",
+    "notPermitted": "재포매를 기록할 권한이 없습니다. 관리자에게 문의하세요.",
+    "piecesTitle": "블록 {{block}}에서 선택한 조각이 소진되었습니다.",
+    "released_one": "재포매가 기록되었습니다. {{count}}건의 주문이 마이크로톰으로 넘어갔습니다.",
+    "released_other": "재포매가 기록되었습니다. {{count}}건의 주문이 마이크로톰으로 넘어갔습니다.",
+    "remains": "남은 것: 무염색 슬라이드 {{unstained}}, 이 검체의 다른 블록 {{blocks}}.",
+    "title": "블록 {{block}}이(가) 소진되었습니다."
   },
   "exports": {
     "notice": {
@@ -10992,7 +11583,29 @@
     }
   },
   "facilityOpsDashboard": {
+    "addOnPill": "추가",
+    "addOnTypes": {
+      "ihc": "IHC",
+      "molecular": "분자검사용 절편",
+      "other": "추가 오더",
+      "recut": "재절편 / 레벨",
+      "sendOut": "송부용 절편",
+      "specialStain": "특수 염색"
+    },
     "ageLabel": "{{duration}} 전",
+    "alertKinds": {
+      "coldChainExcursion": "콜드체인 이탈",
+      "decalOverdue": "탈회 지연",
+      "notScanned": "스캔 안 됨",
+      "qcFailed": "QC 실패",
+      "reconciliation": "대조",
+      "recutRequested": "재절편 요청",
+      "runFailed": "실행 실패",
+      "scanFailed": "스캔 실패",
+      "scanQcFailed": "스캔 QC 실패",
+      "stat": "STAT",
+      "statAddOn": "STAT 추가 오더"
+    },
     "bindDisplayDescription": "이 벽면 장치에 표시할 디스플레이 프로필을 선택하세요.",
     "bindDisplayTitle": "이 디스플레이 연결",
     "confirmTokenDescription": "이 디스플레이(\"{{name}}\") 연결을 완료하려면 등록된 장치 토큰을 입력하세요.",
@@ -11000,21 +11613,96 @@
     "confirmTokenNote": "이는 관리자가 이 디스플레이에 기록한 토큰을 알고 있음을 확인하는 것이며, 실제 물리적 하드웨어를 검증하지는 않습니다.",
     "confirmTokenPlaceholder": "장치 토큰 입력",
     "confirmTokenTitle": "장치 토큰 확인",
+    "details": {
+      "awaitingIntake": "{{specimen}}: 접수 대기 ({{material}})",
+      "blockStain": "{{block}} · {{stain}}",
+      "instrument": "{{node}} · 항목: {{count}}개 · 장비: {{instrument}}",
+      "lastSeenAt": "마지막 스캔: {{station}}, {{duration}} 전",
+      "node": "{{node}}",
+      "nodeItems": "{{node}} · 항목: {{count}}개",
+      "reconciliation": "누락: {{missing}}개 · 예상치 못함: {{unexpected}}개",
+      "referral": "{{lab}} · {{test}}",
+      "referralTransit": "{{lab}} · {{test}} · {{transit}}",
+      "slideFailure": "{{position}}: {{reason}}",
+      "stationRow": "운반체: {{carriers}}개 · 항목: {{items}}개",
+      "stationRowLoose": "운반체: {{carriers}}개 · 항목: {{items}}개 · 운반체 없음: {{loose}}개",
+      "temperature": "{{temp}} °C",
+      "temperatureAt": "{{at}}에 {{temp}} °C",
+      "wsi": "{{status}} · 슬라이드: {{count}}개"
+    },
+    "instrumentStatus": {
+      "In Process": "진행 중",
+      "Loaded to Instrument": "적재됨",
+      "Run Completed": "실행 완료",
+      "Run Failed": "실행 실패"
+    },
     "lastUpdated": "{{time}}에 업데이트됨",
     "loadingData": "대시보드 데이터 로드 중…",
     "loadingProfile": "디스플레이 프로필 로드 중…",
+    "material": {
+      "block": "블록",
+      "slide": "슬라이드"
+    },
     "noProfilesConfigured": "아직 구성된 디스플레이 프로필이 없습니다. 설정 → 시스템 → 디스플레이 프로필에서 추가하세요.",
     "offlineStaleBadge": "오프라인 / 오래된 데이터",
     "overdueBy": "{{duration}} 초과",
+    "pinned": "고정됨",
     "queueEmpty": "현재 대기열이 비어 있습니다.",
     "selectProfile": "— 디스플레이 프로필 선택 —",
     "statPill": "STAT",
+    "stats": {
+      "addOnsWaiting": "대기 중인 추가 오더",
+      "coldChainAlerts": "콜드체인 이탈",
+      "coldChainOpen": "콜드체인 이탈",
+      "completed": "완료",
+      "cytologyStainingActive": "세포검사 염색 배치",
+      "decalActive": "탈회 / 특수 처리",
+      "delivered": "배송 완료",
+      "dispatched": "발송됨",
+      "embeddingActive": "포매 배치",
+      "imageQcFailed": "이미지 QC 실패",
+      "inStaining": "염색 중인 슬라이드",
+      "inTransit": "운송 중",
+      "microtomyActive": "마이크로톰 배치",
+      "notScanned": "최근 스캔 없음",
+      "pastLimit": "시간 한도 초과",
+      "pending": "대기",
+      "pendingIntake": "접수 대기",
+      "processingActive": "처리 배치",
+      "qcFailed": "QC 실패",
+      "readyForReview": "판독 준비 완료",
+      "reconciliationExceptions": "누락 또는 예상치 못한 항목",
+      "recutRequested": "재절편 요청",
+      "resultReceived": "결과 수신",
+      "runFailed": "실패한 장비 실행",
+      "scanFailed": "스캔 실패",
+      "scanning": "스캔 중",
+      "stainingActive": "진행 중인 염색 배치",
+      "statBatches": "STAT 배치",
+      "statPending": "STAT 대기",
+      "statWaiting": "대기 중인 STAT",
+      "totalItems": "처리 중인 카세트/슬라이드"
+    },
+    "transit": {
+      "delivered": "배송 완료",
+      "dispatched": "발송됨",
+      "in_transit": "운송 중",
+      "result_received": "결과 수신"
+    },
     "views": {
       "diagnosticSignout": "진단 판독 / 스캐너",
       "embeddingMicrotomy": "포매 및 마이크로톰",
       "grossingIntake": "그로싱 및 접수",
       "sendoutReference": "송부 및 참조검사실",
-      "stainingIhc": "염색 및 IHC"
+      "stainingIhc": "염색 및 IHC",
+      "stationOverview": "작업대"
+    },
+    "wsiStatus": {
+      "completed": "완료",
+      "failed": "실패",
+      "loaded": "적재됨",
+      "scanning": "스캔 중",
+      "unloaded": "하역됨"
     }
   },
   "facilityPrintingTab": {
@@ -12204,19 +12892,21 @@
   },
   "grossingBench": {
     "addOnOrders": "추가 오더",
-    "decal": {
-      "added": "{{block}}이(가) 탈회 배치 {{batch}}에 추가되었습니다.",
-      "already": "{{block}}은(는) 이미 해당 탈회 배치에 있습니다.",
-      "assign": "탈회로 보내기",
-      "block": "보낼 블록",
-      "label": "탈회 배치",
-      "noBatch": "추가할 활성 탈회 배치가 없습니다.",
-      "noBlock": "아직 탈회로 보낼 블록이 없습니다.",
-      "none": "활성 탈회 배치 없음",
+    "carrier": {
+      "added": "{{block}}이(가) {{batch}}에 적재되었습니다.",
+      "already": "{{block}}은(는) 이미 해당 운반체에 있습니다.",
+      "assign": "운반체에 적재",
+      "block": "적재할 블록",
+      "label": "운반체",
+      "noBatch": "적재할 열린 탈회 또는 처리 운반체가 없습니다.",
+      "noBlock": "아직 적재할 블록이 없습니다.",
+      "none": "열린 운반체 없음",
+      "notAccepting": "{{batch}}은(는) 봉인되었거나 닫혀 더 이상 블록을 받지 않습니다.",
       "notFound": "해당 블록을 찾을 수 없습니다.",
+      "option": "{{barcode}} · {{node}}",
       "otherBatch": "{{block}}은(는) 이미 다른 활성 배치({{batch}})에 있습니다."
     },
-    "hint": "단축키: Alt+Shift+1 카세트 인쇄, 2 사진, 3 탈회, 4 추가 오더. 풋페달 1은 사진 촬영, 페달 2는 카세트 인쇄입니다.",
+    "hint": "단축키: Alt+Shift+1 카세트 인쇄, 2 사진, 3 운반체에 적재, 4 추가 오더. 풋페달 1은 사진 촬영, 페달 2는 카세트 인쇄입니다.",
     "printCassettes": "카세트 인쇄",
     "takePhoto": "사진 촬영",
     "title": "작업대 도구"
@@ -13611,6 +14301,58 @@
       "unavailableSummary": "집도의 연락 불가: {{reason}}"
     }
   },
+  "itemEndState": {
+    "currentDetail": " — {{reason}} · {{name}}, {{when}}",
+    "errors": {
+      "failed": "최종 상태를 기록할 수 없습니다. 다시 시도하세요.",
+      "invalid": "사유를 입력해야 합니다.",
+      "notPermitted": "최종 상태를 기록할 권한이 없습니다. 관리자에게 문의하세요."
+    },
+    "loading": "최종 상태를 불러오는 중…",
+    "none": "아직 기록된 최종 상태가 없습니다.",
+    "quickReasons": "빠른 사유",
+    "reasonLabel": "사유",
+    "reasons": {
+      "archived": {
+        "caseSignedOut": "증례 서명 완료",
+        "retentionPolicy": "보존 정책에 따라 보관"
+      },
+      "consumed": {
+        "flowOrOther": "다른 검사에 사용",
+        "molecularTest": "분자 검사에 사용"
+      },
+      "discarded": {
+        "damagedUnusable": "손상되어 사용할 수 없음",
+        "retentionEnded": "보존 기간 종료"
+      },
+      "exhausted": {
+        "facedThrough": "카세트까지 절편됨",
+        "noTissueLeft": "블록에 남은 조직 없음"
+      },
+      "returned_to_storage": {
+        "awaitingDecision": "결정 대기 중",
+        "workComplete": "작업 완료"
+      },
+      "sent_out": {
+        "consult": "자문을 위해 발송",
+        "referral": "다른 검사실로 의뢰",
+        "research": "연구용으로 반출"
+      }
+    },
+    "recordButton": "최종 상태 기록",
+    "recorded": "최종 상태가 기록되었습니다.",
+    "save": "기록",
+    "stateLabel": "최종 상태",
+    "states": {
+      "archived": "보관(아카이브)",
+      "consumed": "검사에 소모",
+      "discarded": "폐기",
+      "exhausted": "소진(남은 조직 없음)",
+      "returned_to_storage": "보관소로 반환",
+      "sent_out": "외부 발송"
+    },
+    "title": "최종 상태"
+  },
   "jurisdictionNames": {
     "AU": "호주",
     "BE": "벨기에",
@@ -13698,6 +14440,116 @@
       "status": "상태"
     },
     "title": "관할권 결제 매핑"
+  },
+  "labWorkflowReports": {
+    "byDay": "일",
+    "byWeek": "주",
+    "caseTypes": {
+      "autopsy": "부검",
+      "cytology": "세포병리",
+      "surgpath": "외과병리"
+    },
+    "columns": {
+      "at": "시각",
+      "by": "처리자",
+      "carrier": "운반체",
+      "caseAccession": "증례",
+      "cases": "증례",
+      "cut": "절편 완료",
+      "finishedAt": "종료",
+      "group": "그룹",
+      "item": "항목",
+      "items": "항목",
+      "kind": "종류",
+      "late": "지연",
+      "latePct": "지연 %",
+      "measure": "지표",
+      "medianHours": "중앙값(시간)",
+      "medianMinutesToCut": "절편까지 중앙값(분)",
+      "minutes": "분",
+      "node": "단계",
+      "ordered": "오더",
+      "overTarget": "목표 초과",
+      "p90Hours": "90번째 백분위수(시간)",
+      "period": "기간",
+      "reason": "사유",
+      "reasonCode": "사유 코드",
+      "scans": "스캔",
+      "stage": "작업 단계",
+      "startedAt": "시작",
+      "stat": "STAT",
+      "stationName": "작업대",
+      "step": "단계",
+      "targetHours": "목표(시간)",
+      "targetMinutes": "목표(분)",
+      "type": "유형",
+      "value": "값"
+    },
+    "descriptions": {
+      "addOns": "선택한 기간에 접수된 추가 오더를 유형별로 보여 줍니다. 건수, 절편 완료 건수, 오더부터 절편까지의 중앙값(분), STAT 건수입니다.",
+      "batchDuration": "각 탈회 및 염색 배치가 해당 단계에 머문 시간을 목표와 비교합니다(탈회: 배치 자체 목표, 염색: 여기서 설정한 목표).",
+      "reconciliation": "운반체 대조 시 누락되거나 예상치 않게 스캔된 항목과 감독자 재정의를 운반체, 항목, 처리자와 함께 보여 줍니다.",
+      "rework": "선택한 기간에 절편된 슬라이드, 재절편 오더, 슬라이드 및 카세트 라벨 재인쇄, 절편 슬라이드당 비율입니다.",
+      "statPerformance": "STAT 증례만 대상으로 한 처리 시간 보고서입니다.",
+      "stationVolume": "작업대별로 일 또는 주 단위로 스캔된 카세트, 블록 및 슬라이드입니다. 항목 자체를 스캔한 경우만 셉니다. 운반체 없이 옮긴 항목도 포함됩니다.",
+      "turnaround": "선택한 기간에 접수된 증례에 대해 접수부터 각 단계까지의 시간입니다. 증례의 마지막 항목이 단계에 도달하면 증례가 그 단계에 도달한 것으로 봅니다. 중앙값, 90번째 백분위수, 목표 초과 비율을 표시합니다."
+    },
+    "empty": "이 기간에 해당 항목이 없습니다.",
+    "errors": {
+      "BAD_DATES": "종료일과 같거나 그 이전의 시작일을 선택하세요.",
+      "LOAD_FAILED": "보고서를 만들 수 없습니다. 다시 시도하세요.",
+      "NOT_PERMITTED": "이 보고서를 볼 권한이 없습니다."
+    },
+    "export": "CSV 내보내기",
+    "exportRefused": "이 보고서를 내보낼 권한이 없습니다.",
+    "footnote": "포매, 절편, 염색, 배포는 작업대 스캔에서 가져옵니다. 작업대가 설정되지 않은 곳에서 한 작업이나 작업대 추적(Batch 726) 이전의 작업은 집계되지 않습니다. 이 보고서의 예약 발송은 아직 지원되지 않습니다.",
+    "from": "시작",
+    "groupBy": "그룹 기준",
+    "groupings": {
+      "caseType": "증례 유형",
+      "facility": "기관",
+      "none": "전체 증례",
+      "priority": "우선순위"
+    },
+    "kinds": {
+      "missing": "누락",
+      "override": "감독자 재정의",
+      "unexpected": "예상치 못한 항목"
+    },
+    "loading": "보고서를 만드는 중…",
+    "measures": {
+      "cassetteReprints": "카세트 라벨 재인쇄",
+      "recutOrders": "재절편 오더",
+      "recutRatePct": "재절편율(절편 슬라이드 대비 %)",
+      "reworkRatePct": "재작업률(절편 슬라이드 대비 %)",
+      "slideReprints": "슬라이드 라벨 재인쇄",
+      "slidesCut": "절편된 슬라이드"
+    },
+    "pageSubtitle": "작업대 스캔, 증례 및 운반체에서 집계한 처리 시간, 물량 및 예외입니다. 합계만 표시하며 연구 증례는 제외됩니다.",
+    "pageTitle": "검사실 워크플로 보고서",
+    "period": "단위",
+    "reports": {
+      "addOns": "추가 오더",
+      "batchDuration": "배치 소요 시간",
+      "reconciliation": "대조 예외",
+      "rework": "재절편 및 재작업",
+      "statPerformance": "STAT 성과",
+      "stationVolume": "작업대별 물량",
+      "turnaround": "단계별 처리 시간"
+    },
+    "stainingTarget": "염색 목표(분)",
+    "steps": {
+      "cut": "절편",
+      "distribute": "배포",
+      "embed": "포매",
+      "gross": "육안검사",
+      "signOut": "서명",
+      "stain": "염색"
+    },
+    "targets": "목표(접수 후 시간)",
+    "tile": "워크플로 보고서",
+    "tileTitle": "처리 시간, 물량 및 예외 보고서",
+    "to": "종료"
   },
   "labelDesignerPage": {
     "allFieldsPlaced": "모든 필드가 배치되었습니다.",
@@ -14570,6 +15422,8 @@
         "coresNotEvaluated": "{{stain}}: 병리의사가 평가한 코어를 확인하면 청구됩니다."
       }
     },
+    "blocksStillWaiting_one": "이 증례의 다른 블록 {{count}}개가 아직 절편을 기다리고 있습니다: {{blocks}}",
+    "blocksStillWaiting_other": "이 증례의 다른 블록 {{count}}개가 아직 절편을 기다리고 있습니다: {{blocks}}",
     "comments": {
       "add": "코멘트 추가",
       "empty": "아직 코멘트가 없습니다.",
@@ -14631,7 +15485,7 @@
       "approved": "병리의가 파괴적 절단을 승인했습니다. 절단을 계속할 수 있습니다.",
       "bannerBody": "{{name}} 님이 표시했습니다. 의뢰한 병리의가 답할 때까지 절단이 차단됩니다.",
       "bannerTitle": "블록 소진.",
-      "body": "의뢰한 병리의에게 이메일이 전송됩니다. 병리의가 파괴적 절단 승인, 또는 주문 취소·수정으로 답할 때까지 이 블록의 절단이 차단됩니다.",
+      "body": "표시 한 번으로 이 블록에서 아직 절단을 기다리는 모든 슬라이드가 포함되며, 의뢰한 병리의에게 이메일이 전송됩니다. 답변이 있을 때까지 절단이 차단됩니다: 이미 절편된 무염색 슬라이드 사용, 재포매 요청, 같은 검체의 다른 블록에서 주문, 파괴적 절단 승인(조직이 남아 있을 수 있는 경우에만), 또는 주문 취소·수정.",
       "button": "블록 소진",
       "confirm": "소진으로 표시",
       "cuttingBlocked": "이 블록은 소진으로 표시되었습니다. 의뢰한 병리의의 답을 기다리는 동안 절단할 수 없습니다.",
@@ -14640,6 +15494,7 @@
       "notPermitted": "블록 예외를 표시할 권한이 없습니다. 관리자에게 문의하세요.",
       "note": "메모",
       "noteRequired": "메모가 필요합니다.",
+      "orderHeld": "이 블록은 소진되었습니다. 이 슬라이드는 의뢰 병리의를 기다립니다. 병리의가 대안을 선택할 수 있도록 “블록 소진”으로 표시하세요.",
       "sentToDesk": "이 슬라이드에는 의뢰한 병리의가 기록되어 있지 않아 알림을 관리자/접수 데스크로 보냈습니다.",
       "title": "블록 소진 표시"
     },
@@ -14702,9 +15557,12 @@
       "blockNotFound": "블록 {{label}}을(를) 찾을 수 없습니다.",
       "blockNotOnCase": "이 케이스에서 블록을 찾을 수 없습니다.",
       "caseNotFound": "케이스를 찾을 수 없습니다.",
+      "cutAtMicrotome": "블록입니다. 마이크로톰에서 절편하세요.",
       "decantNotFound": "디캔트 {{label}}을(를) 찾을 수 없습니다.",
       "empty": "빈 스캔입니다.",
       "matrixBlockNotFound": "확인된 증례에서 매트릭스 블록을 찾을 수 없습니다.",
+      "notHandedOff": "세포 블록 {{label}}이(가) 인계되지 않았습니다. 먼저 세포검사 준비 작업대에서 인계하세요.",
+      "prepareAtCytology": "{{label}}은(는) 체액 또는 분주입니다. 세포검사 준비 작업대에서 준비하세요.",
       "specimenNotFound": "확인된 케이스에서 검체를 찾을 수 없습니다.",
       "unresolved": "이 스캔은 케이스, 블록 또는 디캔트로 확인되지 않았습니다. 바코드를 확인한 후 다시 시도하십시오.",
       "unsupported": "검체 단독 스캔은 마이크로톰 워크스테이션에서 지원되지 않습니다. 블록, 매트릭스 블록 또는 디캔트/액체 용기의 바코드를 스캔하십시오."
@@ -14731,8 +15589,16 @@
       "commentOnLabelTitle": "이 슬라이드의 코멘트가 실제 라벨에 인쇄됩니다",
       "control": "대조군",
       "duplicateCount": "×",
+      "forPieces_one": "조각 {{count}}개용",
+      "forPieces_other": "조각 {{count}}개용",
       "levelDepth": "µm",
       "levelShort": "L{{n}}",
+      "levelsOnSlide_one": "이 슬라이드에 레벨 {{count}}개",
+      "levelsOnSlide_other": "이 슬라이드에 레벨 {{count}}개",
+      "moveDown": "이 슬라이드를 인쇄 순서에서 아래로 이동",
+      "moveDownShort": "↓",
+      "moveUp": "이 슬라이드를 인쇄 순서에서 위로 이동",
+      "moveUpShort": "↑",
       "onLabel": "라벨에 표시",
       "pairControl": "대조군 슬라이드와 짝짓기",
       "print": "인쇄",
@@ -14740,6 +15606,7 @@
       "reprintReasonPrompt": "사유…",
       "reprintedCount": "{{count}}회 재인쇄됨",
       "searchStains": "염색 검색…",
+      "selectForBatch": "이 슬라이드를 일괄 인쇄에 포함",
       "selectStain": "염색 선택…",
       "slideComments": "슬라이드 코멘트",
       "title": "슬라이드 그리드"
@@ -15847,6 +16714,7 @@
   },
   "newContainerModal": {
     "autoSetFromStation": "↳ {{station}}의 단계에서 자동 설정됨.",
+    "chooseStep": "단계 선택…",
     "containerCreated": "용기 생성됨",
     "containerIdentifierMode": "용기 식별 모드",
     "containerType": "용기 유형",
@@ -15863,6 +16731,7 @@
     "generateAndPrint": "생성 및 인쇄",
     "generating": "생성 중…",
     "hours": "시간",
+    "largeFormat": "대형 슬라이드 사용(메가블록)",
     "minutes": "분",
     "noReagentLots": "등록된 활성 시약 로트가 없습니다.",
     "noReferenceLabConfigured": "현재 참조 검사실 역할로 구성된 기관이 없습니다 — 먼저 기관 설정에서 추가하세요.",
@@ -15871,6 +16740,9 @@
     "printInstructions": "이 마스터 배치 바코드를 인쇄하여 실제 용기에 부착하세요.",
     "priority": "우선순위",
     "processingNode": "처리 단계",
+    "processor": "처리기",
+    "processorNone": "— 선택 안 함 —",
+    "processorOption": "{{name}} ({{code}})",
     "protocolLabel": "프로토콜 / 실행 매개변수",
     "protocolPlaceholder": "예: 표준 H&E 야간 실행",
     "rackCheckedOutNoPrint": "럭 {{barcode}}이(가) 이제 이 배치에 할당되었습니다 — 인쇄할 새 라벨이 없습니다.",
@@ -17626,6 +18498,10 @@
       "description": "카세트·슬라이드 추적",
       "title": "배치 관리"
     },
+    "cytologyPrepTile": {
+      "description": "체액, 슬라이드, 세포 블록 인계",
+      "title": "세포검사 준비"
+    },
     "cytologyTile": {
       "description": "스크리닝, 분류, QC",
       "title": "세포검사 워크스페이스"
@@ -18469,6 +19345,7 @@
       "unsupportedProtocol": "이 워크스테이션의 PathScribe Agent를 업데이트해야 합니다."
     },
     "bridgeNotImplemented": "프린터 브리지 \"{{bridgeType}}\"에는 아직 이 라벨 유형에 대해 작동하는 인쇄 경로가 없습니다. 여기에는 QZ Tray와 PathScribe Agent만 연결되어 있습니다.",
+    "directPrintingOff": "인쇄되지 않음: 이 기관에서는 브라우저에서 {{printer}}(으)로 직접 인쇄할 수 없습니다. 인터페이스 엔진을 통해 인쇄하거나 브라우저 인쇄 대화 상자를 사용하세요.",
     "popupBlockedAlert": "라벨을 인쇄하려면 이 사이트의 팝업을 허용해 주세요.",
     "preparing": "라벨을 준비하는 중…",
     "preparingTitle": "라벨 준비 중"
@@ -19920,6 +20797,10 @@
       "label": "추세 기간:"
     }
   },
+  "quickReasons": {
+    "label": "빠른 사유",
+    "withNote": "{{reason}}: {{note}}"
+  },
   "reagentLotsSection": {
     "addReagentLotButton": "+ 시약 로트 추가",
     "allLabsLabel": "모든 검사실",
@@ -20498,37 +21379,6 @@
     "finalizedReadOnly": "최종 확정됨 — 읽기 전용",
     "footerNote": "최종 확정 시 LIS로 전송됩니다. 프로토콜에서 정의한 필드는 종양, 절제연 및 생물표지자 탭에 있습니다."
   },
-  "reportImages": {
-    "accessionLine": "보고서 {{accession}}",
-    "add": "추가",
-    "captionLabel": "캡션(선택)",
-    "captionPlaceholder": "이미지 아래에 인쇄됩니다",
-    "close": "완료",
-    "dismiss": "닫기",
-    "empty": "아직 첨부된 이미지가 없습니다.",
-    "intro": "이미지는 보고서 페이지 뒤에 페이지당 한 장씩 캡션과 함께 인쇄됩니다. 이미 서명된 보고서는 변경되지 않으며, 지금 추가한 이미지는 이후에 생성되는 보고서에 나타납니다.",
-    "linkLabel": "이미지 링크 (https)",
-    "linkNote": "PathScribe는 이미지를 저장하지 않습니다. 병원 자체 시스템에 있는 이미지를 링크하세요. 보고서를 만들 때 이미지를 가져와 PDF에 넣습니다. 접근할 수 없으면 해당 위치에 “이미지 사용 불가” 페이지가 인쇄됩니다.",
-    "linkPlaceholder": "https://imaging.hospital.org/…",
-    "listLabel": "첨부된 이미지",
-    "problems": {
-      "duplicate": "이 이미지는 이미 이 보고서에 링크되어 있습니다.",
-      "failed": "이미지를 첨부할 수 없습니다.",
-      "invalidLink": "이름이 있는 서버의 https:// 링크를 입력하세요(사용자 이름이나 비밀번호 없이).",
-      "notPermitted": "보고서에 이미지를 첨부할 권한이 없습니다.",
-      "tooMany": "보고서에는 이미지를 최대 {{max}}장까지 첨부할 수 있습니다."
-    },
-    "remove": "제거",
-    "source": "{{host}}에서",
-    "title": "보고서에 이미지 첨부",
-    "typeLabel": "이미지 유형",
-    "types": {
-      "blockFace": "블록 단면",
-      "grossSpecimen": "육안 검체",
-      "microphotograph": "현미경 사진",
-      "other": "기타"
-    }
-  },
   "reportPreviewRenderer": {
     "badgeAccepted": "✓ 승인됨",
     "badgeAiDraft": "AI 초안",
@@ -20626,6 +21476,46 @@
     "sending": "전송 중…",
     "sentToCodeReview": "케이스가 코드 검토로 전송됨",
     "title": "동료 검토 요청"
+  },
+  "researchCases": {
+    "accessionPrefixes": "접수 번호 접두어",
+    "active": "활성",
+    "addPurpose": "추가",
+    "applies": {
+      "charges": "청구 시스템에 과금 항목을 보내지 않고 무과금 재정 분류를 보냅니다",
+      "results": "EHR로 결과를 보내지 않으며 팩스나 파일 전송으로 보고서를 보내지 않습니다",
+      "retention": "위 일수가 지나면 블록과 슬라이드를 폐기 목록에 올립니다(보존 보류는 계속 적용됨)",
+      "stats": "처리 시간, 물량 및 품질 수치에서 제외합니다",
+      "worklist": "임상 작업 목록에서 제외합니다(검색으로 찾을 수 있음)"
+    },
+    "appliesHeading": "연구 증례의 경우 PathScribe는 다음과 같이 처리합니다.",
+    "builtIn": "기본 제공",
+    "casesHeading": "연구 증례",
+    "enabled": "일치하는 증례를 연구 증례로 처리",
+    "financialClass": "무과금 재정 분류",
+    "mrnPrefixes": "연구용 환자 MRN 접두어",
+    "newPurpose": "새 목적",
+    "notPermitted": "이 항목을 변경할 권한이 없습니다.",
+    "prefixHint": "접두어는 쉼표로 구분합니다. 접수 번호 또는 환자 MRN이 그중 하나로 시작하면 일치합니다(대소문자 무관).",
+    "problems": {
+      "financialClassRequired": "무과금 재정 분류를 입력하세요.",
+      "noMarker": "접수 번호 또는 MRN 접두어를 하나 이상 입력하거나 연구 증례를 끄세요.",
+      "prefixInvalid": "접두어에는 공백을 넣을 수 없으며 20자를 넘을 수 없습니다.",
+      "retentionDaysInvalid": "0에서 36500 사이의 일수를 정수로 입력하세요."
+    },
+    "purposeName": "목적 이름",
+    "purposeProblems": {
+      "duplicateName": "두 목적의 이름이 같습니다.",
+      "nameRequired": "모든 목적에는 이름이 필요합니다.",
+      "nameTooLong": "목적 이름은 최대 40자입니다.",
+      "routineRequired": "일상 업무는 활성 상태여야 합니다."
+    },
+    "purposesHeading": "배치 목적",
+    "purposesHint": "다른 목적을 선택하지 않으면 새 운반체는 일상 업무로 지정됩니다. 벽면 디스플레이에는 선택한 목적만 표시할 수 있습니다. 기본 목적은 끌 수 있지만 삭제할 수 없으며, 일상 업무는 항상 켜져 있습니다.",
+    "retentionDays": "재료 보관 기간(접수 후 일수)",
+    "saved": "저장되었습니다.",
+    "subtitle": "접수 없이 연구 검체를 관리하는 기능이 구현될 때까지 연구 검체는 연구용 환자에 대한 증례로 접수됩니다. 여기에서 이러한 증례를 인식하고 보관하는 방법과 각 운반체의 용도를 설정합니다.",
+    "title": "연구 증례 및 배치 목적"
   },
   "researchFeedSection": {
     "actions": {
@@ -21296,17 +22186,59 @@
     "searchPlaceholder": "이름 또는 바코드 코드로 검색...",
     "stages": {
       "accessioning": "접수",
+      "checkout": "최종 확인",
+      "cytologyImaging": "세포검사 영상",
+      "cytologyPreparation": "세포검사 준비",
+      "cytologyProcessing": "액상세포검사 처리",
+      "cytologyStaining": "세포검사 염색",
+      "decal": "탈회 / 특수 처리",
       "embedding": "포매",
+      "externalReferral": "외부 의뢰",
       "grossing": "육안 검사",
       "microtomy": "박절 / 절편 제작",
       "other": "기타",
       "processing": "조직 처리",
       "slideArchival": "슬라이드 보관",
+      "slideDistribution": "슬라이드 배포",
       "staining": "염색"
     },
     "statusFilterAll": "전체",
-    "subtitle": "단말기가 자신을 식별할 수 있는(로그인 시 및 상단 표시줄) 실제 작업대이며, 인쇄된 스테이션 라벨로 작업 중간에 전환할 수 있습니다. 처음에 8개가 설정되어 있으며 이름, 바코드 코드, 작업 단계는 직접 설정합니다.",
+    "subtitle": "단말기가 자신을 식별할 수 있는(로그인 시 및 상단 표시줄) 실제 작업대이며, 인쇄된 스테이션 라벨로 작업 중간에 전환할 수 있습니다. 기본 작업대가 처음부터 설정되어 있으며 이름, 바코드 코드, 작업 단계는 직접 설정합니다.",
     "title": "스캔 스테이션"
+  },
+  "scanTrail": {
+    "actions": {
+      "completed": "여기서 완료",
+      "loaded": "운반체에 적재",
+      "matched": "대조 완료",
+      "missing": "누락",
+      "printed": "라벨 인쇄",
+      "received": "수령",
+      "unexpected": "예상치 못한 항목",
+      "unloaded": "운반체에서 꺼냄"
+    },
+    "byCarrier": "운반체를 스캔할 때 기록됨",
+    "cameFrom": "{{parent}}에서",
+    "cols": {
+      "item": "항목",
+      "what": "처리 내용",
+      "when": "시각",
+      "where": "위치",
+      "who": "작업자"
+    },
+    "empty": "이 증례에 기록된 작업대 스캔이 아직 없습니다.",
+    "hide": "스캔 이력 숨기기",
+    "inCarrier": "운반체 {{carrier}}에 있음",
+    "loading": "스캔 이력을 불러오는 중…",
+    "refused": "스캔 이력을 볼 권한이 없습니다.",
+    "results": {
+      "mismatch": "불일치",
+      "not-found": "찾을 수 없음",
+      "ok": "정상",
+      "wrong-item": "잘못된 항목"
+    },
+    "show": "스캔 이력 보기",
+    "title": "스캔 이력"
   },
   "scopeReference": {
     "columns": {
@@ -22645,6 +23577,7 @@
       "notConfigured": "이 스테이션은 슬라이드 라벨 인쇄용으로 설정되어 있지 않습니다.",
       "notInQueue": "해당 슬라이드가 더 이상 대기열에 없습니다.",
       "profileMissing": "설정된 프린터 프로필이 더 이상 없습니다.",
+      "scannerNotLargeFormat": "{{scanner}}은(는) 대형 슬라이드를 받지 않습니다. 대형 슬라이드용 스캐너를 선택하세요.",
       "stationNotFound": "스캔 스테이션을 찾을 수 없습니다."
     },
     "exceptions": {
@@ -22696,7 +23629,7 @@
       "notResolved": "스캔한 값과 일치하는 케이스, 블록 또는 슬라이드가 없습니다. 바코드를 확인하고 다시 시도하세요.",
       "slideNotFound": "슬라이드 {{slide}}을(를) 찾을 수 없습니다.",
       "specimenNotFound": "해당 케이스에서 검체를 찾을 수 없습니다.",
-      "unsupportedTarget": "이 스테이션은 블록 및 슬라이드 바코드만 처리합니다. 매트릭스 또는 세포 블록 카세트, 디캔트, 검체 바코드는 아직 지원되지 않습니다."
+      "unsupportedTarget": "이 스테이션은 블록, 매트릭스 블록 및 슬라이드 바코드를 처리합니다. 세포 블록 카세트, 디캔트, 검체 바코드는 아직 지원되지 않습니다."
     },
     "scanPlaceholder": "바코드를 스캔하거나 입력하세요…",
     "scanPrompt": "슬라이드 또는 블록/카세트 바코드를 스캔하세요 — 대기열이 계속 늘어납니다",
@@ -23516,6 +24449,59 @@
     "intro": "아래의 염색 배치는 이 증례를 서명하기 전에 해결되어야 합니다.",
     "rowTitle": "배치 {{batchBarcode}} — {{specimenList}}"
   },
+  "stationCarrier": {
+    "addToOutput": "인쇄된 슬라이드를 트레이에 추가 ({{count}})",
+    "andMore": "외 {{count}}개",
+    "chooseStation": "이 컴퓨터의 작업대",
+    "close": "닫기",
+    "dismiss": "메시지 닫기",
+    "finish": "하역 완료",
+    "listLabel": "이 작업대의 열린 운반체",
+    "noStation": "이 컴퓨터에 스캔 작업대가 설정되어 있지 않아 여기서 한 스캔은 기록되지 않으며 운반체를 열 수 없습니다. 이 컴퓨터의 작업대를 선택하세요.",
+    "noneHere": "이 작업대에 열린 운반체가 없습니다.",
+    "notice": {
+      "addedToOutput": "{{barcode}}에 추가된 슬라이드: {{count}}개.",
+      "closedAborted": "{{barcode}}은(는) 닫혔습니다. {{at}}에 중단되었습니다.",
+      "closedComplete": "{{barcode}}은(는) 닫혔습니다. {{at}}에 완료되었습니다.",
+      "finished": "{{barcode}} 하역이 완료되었습니다.",
+      "handoff": "{{barcode}}이(가) {{from}} 단계에서 이곳으로 옮겨졌습니다. 항목: {{count}}개.",
+      "movedHere": "{{barcode}}이(가) 이 작업대로 옮겨져 여기서 열렸으며, 이동이 기록되었습니다. 포함 항목: {{count}}개.",
+      "noStation": "{{barcode}}을(를) 열기 전에 이 컴퓨터의 작업대를 설정하세요.",
+      "opened": "{{barcode}}을(를) 여기서 열었습니다. 항목: {{count}}개.",
+      "openedAdHoc": "{{barcode}}을(를) 여기서 열었으며 이 작업대가 해당 작업대로 기록되었습니다. 항목: {{count}}개.",
+      "openedMismatch": "{{barcode}}은(는) 다른 단계에 속하지만 여기서 열었습니다. 이 사실이 기록되었습니다.",
+      "outputSet": "{{barcode}}이(가) 이제 출력 트레이입니다.",
+      "sealed": "{{barcode}} 봉인됨. 항목: {{count}}개.",
+      "unexpectedKept": "{{item}}을(를) 유지했으며 {{barcode}}에 예상치 못한 항목으로 기록했습니다.",
+      "unknown": "바코드 {{barcode}}인 운반체가 없습니다."
+    },
+    "openInBatchManagement": "배치 관리에서 열기",
+    "outputHint": "열린 {{node}} 운반체를 스캔하면 절편 슬라이드의 출력 트레이로 사용됩니다.",
+    "outputTray": "출력 트레이",
+    "pending": {
+      "continueAnyway": "그래도 계속",
+      "mismatch": "{{barcode}}은(는) {{node}} 단계의 운반체입니다. 이 작업대는 {{here}} 단계를 처리합니다. 그래도 여기서 여시겠습니까?",
+      "openAnyway": "그래도 여기서 열기",
+      "wrongItem": "{{item}}은(는) 운반체 {{barcode}}에 없습니다. 그래도 계속하시겠습니까? 예상치 못한 항목으로 기록됩니다."
+    },
+    "progress": "{{total}}개 중 {{matched}}개 스캔 완료",
+    "routedHere": "이 작업대로 지정됨",
+    "scanToUnload": "운반체에서 꺼낼 때 각 항목을 스캔하세요.",
+    "seal": "명세서 봉인",
+    "sealed": "봉인됨",
+    "stationLine": "작업대: {{station}}",
+    "stillToScan": "아직 스캔할 항목: {{items}}",
+    "title": "이 작업대의 운반체",
+    "unexpectedCount_one": "예상치 못한 항목 {{count}}개 스캔됨",
+    "unexpectedCount_other": "예상치 못한 항목 {{count}}개 스캔됨",
+    "useStation": "이 작업대 사용"
+  },
+  "stationScan": {
+    "backToScanning": "스캔으로 돌아가기(키보드 숨기기)",
+    "backToScanningShort": "⌨ 스캔",
+    "typeAnId": "화면 키보드로 ID 입력",
+    "typeAnIdShort": "⌨ 입력"
+  },
   "stationSwitch": {
     "discardedAndSwitched": "📍 변경 사항을 버리고 {{station}}(으)로 전환했습니다.",
     "notAuthorized": "{{station}}을(를) 사용할 권한이 없어 스테이션이 전환되지 않았습니다.",
@@ -23812,9 +24798,13 @@
     "clinician": "담당의",
     "confidential": "기밀 — 병리 보고서",
     "dob": "생년월일",
+    "documentAttached": "첨부 문서: {{caption}}. 페이지는 보고서 뒤에 이어집니다.",
+    "documentAttachedNoCaption": "첨부 문서. 페이지는 보고서 뒤에 이어집니다.",
     "documentReference": "문서 {{accession}} · 레코드 버전 {{version}}",
     "documentReferenceNoVersion": "문서 {{accession}}",
     "figureNotDrawn": "지도 안내: 지도를 이미지로 그릴 수 없었습니다. 지도 내용:",
+    "imageUnavailable": "이미지를 사용할 수 없음: 이 보고서를 만들 때 연결된 이미지를 가져올 수 없었습니다.",
+    "imagesTitle": "이미지",
     "intraopDiagnosis": "수술 중 진단",
     "mrn": "환자번호",
     "noContent": "내용 없음",
@@ -24735,6 +25725,7 @@
       "assetLocations": "자산 위치 사전",
       "assistLisPolling": "LIS 수신(어시스트 모드)",
       "batchRegistryFeed": "레지스트리 일괄 파일",
+      "benchReasons": "작업대 사유",
       "biFeed": "보고 피드 (Power BI)",
       "billingDictionary": "청구 사전(비용 캡처)",
       "billingRelease": "청구 릴리스",
@@ -24804,6 +25795,7 @@
       "qaTrendPolicy": "불일치 추세 정책",
       "reagentLots": "시약 및 용액 로트",
       "releaseBuffer": "서명 후 공개 버퍼",
+      "researchCases": "연구 증례 및 배치 목적",
       "researchFeed": "연구 피드",
       "retention": "데이터 보존",
       "revisionReasons": "개정 사유",
@@ -25788,6 +26780,16 @@
       "testAll": "전체 테스트",
       "testing": "테스트 중…"
     }
+  },
+  "touchLayout": {
+    "modes": {
+      "auto": "자동",
+      "off": "항상 끄기",
+      "on": "항상 켜기"
+    },
+    "nowOff": "스테이션 화면에서 간단한 레이아웃을 사용합니다.",
+    "nowOn": "스테이션 화면에서 큰 터치 영역을 사용합니다.",
+    "title": "이 컴퓨터의 터치 레이아웃"
   },
   "tumorBoard": {
     "boards": {
@@ -27061,6 +28063,11 @@
     },
     "subtitle": "{{protocol}} 보고서가 다루는 부분입니다.",
     "title": "포함 부분"
+  },
+  "wrongCaseScan": {
+    "continue": "그래도 계속",
+    "message": "{{item}}은(는) 여기서 열린 {{openCase}}이(가) 아니라 증례 {{itemCase}}에 속합니다.",
+    "setAside": "따로 보관"
   },
   "wsiScanBatches": {
     "batchesEmpty": "아직 스캔 배치가 없습니다.",

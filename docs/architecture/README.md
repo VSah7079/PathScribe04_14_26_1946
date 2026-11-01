@@ -1,3 +1,5 @@
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 - `PASSWORD_RESET_REQUEST_API.md` (Batch 711): "Ask my administrator to reset my password" on the demo sign-in screen; SSO deployments do not use it; the server contract (anonymous POST, throttling, administrator notification by messaging).
 
 **Batch 650 to 652:** `AUTHORIZATION_API.md` (Superadmin statement, new audit events), `LIVE_UPDATES_SIGNALR.md` (the hub signs in with the session cookie; the demonstration build still sends the SSO token as a query string until the server session exists), `LOCKBOX_API.md` (receipt linked to a case at accessioning, `lockbox:folder:review`), `ACCESS_CONTROL_PLAN.md` and `AUTHENTICATION_OIDC.md` (wording aligned with the code). No new capability.
@@ -53,7 +55,7 @@ New `CASE_MATERIAL_API.md`: the atomic decant change. It returns the tree and th
 
 ## Batch 453 — The Batch 452 open items, and the native-speaker review register
 
-`AUTHORIZATION_API.md` gains `config:biopsy-resection-correlation:manage`. The Cytology Workspace and Microtomy workstation now call the atomic decant change in `CASE_MATERIAL_API.md`.
+`AUTHORIZATION_API.md` gains `config:biopsy-resection-correlation:manage`. The Cytology Workspace and Microtome workstation now call the atomic decant change in `CASE_MATERIAL_API.md`.
 
 ## Batch 454 — Follow-up not received: report, alerts and clinician email
 
@@ -487,3 +489,67 @@ The requirements are numbered CA-1 to CA-24 for the India team.
 ## Feedback destination (Oct 28, 2026)
 
 - `FEEDBACK_DESTINATION.md` (new): where enhancement requests are delivered (the Feedback setting, the config.json default, the Content-Security-Policy), and the AI / Template validation QA category (study and template links, validation recipients, `FEEDBACK_ROUTED_TO_VALIDATION`). `CONFIG_DICTIONARIES_API.md` and `RUNTIME_CONFIG.md` gained a note each.
+
+## Batch 726
+
+New `STATION_TRACKING_API.md` (the station scan event log). `CASE_WORKFLOWS_API.md`: IBatchService's new calls (`sealManifest`, `advanceToNode`, `recordCarrierScan`), the optional `stationId` on three calls, and the changed Decal transfer.
+
+## Batch 727
+
+`INTRAOP_OPS_API.md`: the Display Profile's `addOnAgeLimitMinutes` and the `station_overview` view.
+
+## Batch 728
+
+`BI_FEED_API.md`: research cases are left out of the clinical datasets (server rule). `AUTHORIZATION_API.md`: the two new capabilities.
+
+## Batch 729
+
+`STATION_TRACKING_API.md`: `activitySummary`, and the printed/completed and wrong-case events the benches record.
+
+## Batch 730
+
+`BI_FEED_API.md`: three datasets and the JSON body; `ASYNC_EXPORT_API.md`: the report kinds; `CASE_WORKFLOWS_API.md`: ILabelPrintRouteService; `AUTHORIZATION_API.md`: fourteen report capabilities.
+
+## Batch 731
+
+`CASE_WORKFLOWS_API.md`: IItemEndStateService and add-on orders on an exhausted block. `AUTHORIZATION_API.md`: the three `material:` permissions. `BI_FEED_API.md`: `parent_item_key`, `item_end_states`.
+
+## Batch 732
+
+Batch 732: `CASE_WORKFLOWS_API.md` (block type, piece map, slide fields, orders for pieces); `BI_FEED_API.md` (add-on block and slide fields).
+
+## Batch 743
+
+Batch 743: `CASE_ATTACHMENTS_API.md` §6a and §7 (Assist: references only; Pete's dev note on the LIS pushing attachment URLs through the interface engine, Planned, on the LIS ingestion layer).
+
+## Batch 742
+
+Batch 742: `CASE_ATTACHMENTS_API.md` (new: the storage adapter contract for case attachments, Pete's adapter pattern, the records, printing images inside report sections), `BLOB_STORAGE_API.md` §1, §6, §7 (corrected: an attached file goes to the hospital's storage through the adapter; the adapter's staging and malware scanning) and §11, `AUTHORIZATION_API.md` (three capabilities; `report:case-images:attach` reworded). `ASYNC_EXPORT_API.md` §2: the export-kind count corrected from 29 to 36 (it lagged Batch 730's seven Lab Workflow Reports; `phase2cContracts.guard.test.ts` was failing on it).
+
+## Batch 741
+
+Batch 741: `CASE_WORKFLOWS_API.md` (division, aliquot status), `AUTHORIZATION_API.md` (two capabilities).
+
+## Batch 740
+
+Batch 740: `AUTHORIZATION_API.md` (two capabilities), `CASE_WORKFLOWS_API.md` (the cell block hand-off).
+
+## Batch 739
+
+Batch 739: `CASE_WORKFLOWS_API.md` (aliquot decants, HPV-aliquot migration, batch processor, cytospin rule), `INTERFACE_TRANSACTIONS.md` (instrument order payload).
+
+## Batch 737
+
+Batch 737: `CASE_WORKFLOWS_API.md` (matrix add-on orders, `matrixExhausted`, cassette `blockType`, batch add-item warning and `slide-too-large`), `AUTHORIZATION_API.md` (rack update needs `config:equipment:manage`).
+
+## Batch 736
+
+Batch 736: `LAB_DICTIONARIES_API.md` §7 (bench categories, codes), `CASE_WORKFLOWS_API.md` (reason codes), `AUTHORIZATION_API.md` (`config:bench-reasons:manage`).
+
+## Batch 734
+
+Batch 734: `AUTHORIZATION_API.md`, `config:direct-device-printing:manage`.
+
+## Batch 733
+
+Batch 733: `CASE_WORKFLOWS_API.md`, one flag per block and group answers.

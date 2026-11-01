@@ -2,7 +2,7 @@
 module: Pathology Workspace
 workflow: Bench and Workstation Work
 role: [Histotechnologist, Pathology Assistant, Laboratory Manager]
-keywords: [pathology workspace, microtomy, embedding, slide distribution, cytology, molecular, batch management, workstation]
+keywords: [pathology workspace, microtome, embedding, slide distribution, cytology, molecular, batch management, workstation]
 routes: [/pathology-workspace]
 previous: grossing
 next: worklist
@@ -14,7 +14,7 @@ status: Draft
 
 ## Overview
 
-**Purpose.** Pathology Workspace is the doorway to the laboratory's workstations. It is a second-level screen of tiles: grossing, add-on orders, margin exception review, cytology screening, molecular diagnostics, the microtomy, embedding and slide distribution workstations, and batch management. Choose a tile to open that workstation.
+**Purpose.** Pathology Workspace is the doorway to the laboratory's workstations. It is a second-level screen of tiles: grossing, add-on orders, margin exception review, cytology screening, molecular diagnostics, the microtome, embedding and slide distribution workstations, and batch management. Choose a tile to open that workstation.
 
 **Intended users.** Histotechnologists, pathology assistants and laboratory managers. Cytology and molecular staff reach their own workstations here too. What you see depends on your role.
 
@@ -32,25 +32,26 @@ status: Draft
 | Item | What it means |
 |---|---|
 | Pathology Workspace | The screen title. |
-| Subtitle | "Cytology screening, molecular diagnostics, the microtomy, embedding, and slide distribution workstations, and batch management". |
+| Subtitle | "Cytology screening, molecular diagnostics, the microtome, embedding, and slide distribution workstations, and batch management". |
 | Tiles | One per workstation. Each has a title and a one-line description of what it is for. |
 
 The tiles, when your role allows them:
 
 | Tile | One-line description on the tile |
 |---|---|
-| Grossing | For pathology assistants and grossing pathologists. Opens the list of cases waiting to be grossed, and from there the Grossing screen with its bench tools (cassettes, photos, decal bench, add-on orders). |
+| Grossing | For pathology assistants and grossing pathologists. Opens the list of cases waiting to be grossed, and from there the Grossing screen with its bench tools (cassettes, photos, loading a decal or processing carrier, add-on orders). |
 | Add-On Orders | Opens the Add-On Orders screen, where add-on stains and levels are ordered on blocks already cut. |
 | Margin Exception Review | The tile reads "Review margin answers". Margin-distance answers the system could not read, to tag or dismiss. Moved here from Quality & Compliance, so pathologists reach it from their workspace. |
 | Cytology Workspace | The tile reads "Screening, triage and QC". Primary screening hub for GYN Paps, Non-GYN triage, cell block tracking, and mandatory QC. |
-| Microtomy Workspace | The tile reads "Slide labels, stains, prep". Real-time on-demand or batch slide label printing, stain management, and cytology/decant prep at the microtome bench. |
+| Cytology Preparation | Batch 740. The tile reads "Fluids, slides, cell block hand-off". The bench where fluids and aliquots are prepared and cell blocks are handed off to histology (see [Cytology Preparation](workstations/cytology-prep)). |
+| Microtome Workspace | The tile reads "Slide labels, stains, prep". Real-time on-demand or batch slide label printing, stain management, and cytology/decant prep at the microtome bench. |
 | Embedding Workspace | The tile reads "Verify cassettes at embedding". Cassette scan/verify, piece-count confirmation, mold selection, and discrepancy flagging at the embedding bench. |
 | Slide Distribution Workspace | The tile reads "Slide checkout and scanning". Continuous-scan checkout to pathologists or ingestion into a digital scanner, with split-destination warnings and exception handling. |
 | Molecular Workspace | The tile reads "Batches, plates, runs and QC". Batch and plate management, active runs, and QC/specimen association for molecular diagnostics (HPV, CT/NG, respiratory PCR). |
 | Batch Management | Track cassettes and slides through processing nodes via container barcodes. |
 
 !!! note "Workstation names"
-    The tile for the microtomy workstation is called Microtomy Workspace, but once you open it the page is titled Microtomy Workstation. The same applies to Embedding and Slide Distribution, which are titled Embedding Station and Slide Distribution Station.
+    The tile for the microtome workstation is called Microtome Workspace, but once you open it the page is titled Microtome Workstation. The same applies to Embedding and Slide Distribution, which are titled Embedding Station and Slide Distribution Station.
 
 ### Toolbar
 
@@ -90,13 +91,13 @@ None are specific to this screen. Alt+H (Go Home) returns you to Home, and F1 (V
 2. Use the tabs to move between **Worklist & Plate Builder**, **Active Runs & Batches**, **History & Archive** and **QC & Specimen Association**.
 3. To build a new run, select **+ New Batch**. **Control Rules** opens the molecular control rules.
 
-### Microtomy Workspace
+### Microtome Workspace
 
 **What it is for.** The microtome bench: label printing for slides, stains to cut, and preparation of cytology fluids and decants.
 
 **How to start.**
 
-1. Select the **Microtomy Workspace** tile. The Microtomy Workstation opens with the prompt "Scan a block or decant/fluid container barcode to begin".
+1. Select the **Microtome Workspace** tile. The Microtome Workstation opens with the prompt "Scan a block or decant/fluid container barcode to begin".
 2. Scan the block (or type the barcode in the box) and select **Go**.
 3. A **Block Summary** appears with the patient and block details, and a **Slide Grid** shows the slides for the block.
 
@@ -122,7 +123,7 @@ None are specific to this screen. Alt+H (Go Home) returns you to Home, and F1 (V
 
 ### Batch Management
 
-**What it is for.** Following groups of cassettes and slides through processing steps (decalcification and special processing, processing, embedding, microtomy, staining, checkout) by their container barcodes.
+**What it is for.** Following groups of cassettes and slides through processing steps (decalcification and special processing, processing, embedding, microtome, staining, checkout) by their container barcodes.
 
 **How to start.**
 
@@ -171,7 +172,7 @@ None are specific to this screen. Alt+H (Go Home) returns you to Home, and F1 (V
 
 ### Workflow recommendations
 
-- Work in bench order: Embedding, then Microtomy, then Slide Distribution.
+- Work in bench order: Embedding, then Microtome, then Slide Distribution.
 - Use Batch Management to follow groups of items between steps.
 
 ## Related Features

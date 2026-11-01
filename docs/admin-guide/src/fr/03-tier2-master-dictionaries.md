@@ -42,6 +42,7 @@ Configurez le niveau 2 dans l'ordre ci-dessous. Chaque écran comporte un encadr
 30. [Règles nationales et du laboratoire](#screen-cytology_compliance_features) : plafond de charge de travail, relecture rétrospective, signature en urgence et intervalles de dépistage.
 31. [Instrumentation assistée](#screen-cytology_instrumentation) : imagerie de lame entière ou relecture traditionnelle.
 32. [Corrélation cyto-histologique (SNOMED)](#screen-snomed_histology_severity_mapping) : les rangs de gravité SNOMED utilisés dans la corrélation.
+33. [Cas de recherche et objets des lots](#screen-research_cases) : comment les cas de recherche sont reconnus et tenus hors du travail clinique, et à quoi peut servir un porteur (Batch 728).
 
 Les parties ci-dessous suivent le sujet, non l'ordre de configuration : la [Partie A](#ch3-anatomic-specialties) les spécialités d'anatomie pathologique, la [Partie B](#ch3-specimen-tissue) les prélèvements et les tissus, la [Partie C](#ch3-container-cassette) les contenants, les cassettes et l'encre, la [Partie D](#ch3-stains-protocols) les colorations et les protocoles, la [Partie E](#ch3-code-libraries) les bibliothèques de codes, et la [Partie F](#ch3-physicians-clients) les médecins, les clients et les organismes de réglementation.
 
@@ -904,6 +905,62 @@ Unlocks: Aucune.
 **7. Autorisations.** Ouvrir : `screen:configuration:open`. Ajouter, modifier, désactiver, supprimer : `config:cold-chain:manage` (risque élevé, audité). Les rôles Administrateur, Directeur de laboratoire et Superadmin la détiennent par défaut. L'envoi d'un relevé simulé est contrôlé séparément : une personne qui n'a pas l'autorisation voit « You don't have permission to send a simulated reading. »
 
 **Limites connues.** Aucun flux de capteurs n'est connecté. Chaque relevé provient de la commande Simulé et est étiqueté Simulé partout. C'est pourquoi le statut est Partiel : les répertoires des unités et des types sont réalisés, les relevés en direct ne le sont pas. Les types préchargés sont Tissu congelé (au plus -20 °C) et Tissu frais (au plus 8 °C).
+
+### Cas de recherche et objets des lots {#screen-research_cases}
+Breadcrumb: Accueil > Configuration > Système > Matériel et flux de travail du laboratoire > Cas de recherche et objets des lots
+
+**Statut :** Partiel
+
+**1. Navigation :** onglet Configuration **Système** > groupe **Matériel et flux de travail du laboratoire**
+**2. Élément de maintenance :** Cas de recherche et objets des lots
+
+**3. Objectif métier et portée.** Deux réglages pour le travail qui n'est pas du soin courant.
+
+*Cas de recherche.* En attendant la gestion d'éléments de recherche sans enregistrement, un prélèvement de recherche est enregistré comme un cas rattaché à un patient de recherche fictif. Cette carte indique comment PathScribe reconnaît ces cas : par préfixe de numéro de cas (par exemple `RES`) ou par préfixe d'IPP du patient de recherche (par exemple `RSCH-`). Un cas de recherche est alors :
+
+- exclu des listes de travail cliniques (tuiles et listes ; retrouvez-le avec la Recherche de cas) ;
+- exclu des chiffres de délai, de volume et de qualité des tableaux de bord Contribution ;
+- jamais transmis au DPI comme résultat (définitif, préliminaire, amendé ou cytologie), ni envoyé par fax ou dépôt de fichier ; le journal d'audit consigne chaque résultat non envoyé et pourquoi ;
+- jamais transmis à la facturation : ses actes sont refusés à la file de facturation, et son message de classe financière porte la **classe financière sans facturation**, sans couverture ;
+- jamais déclaré à un registre du cancer ou de dépistage ;
+- conservé pendant le **nombre de jours** compté à partir de l'enregistrement, puis proposé dans la file d'élimination. Les mises en attente de conservation s'appliquent toujours.
+
+*Objets des lots.* À quoi sert un porteur. Six sont intégrés : Routine, Recherche, Enseignement, Essai clinique, Biobanque, AQ / Validation. Ils peuvent être désactivés mais pas supprimés ; Routine est toujours actif. Ajoutez les objets propres au laboratoire. Un nouveau porteur est Routine sauf choix contraire dans **Nouveau conteneur**. Un objet autre que Routine apparaît dans le détail du lot, et chaque [profil d'affichage](#screen-display_profiles) peut n'afficher que certains objets.
+
+**4. Prérequis et dépendances.** Aucun pour les réglages. Pour la solution de recherche, enregistrez le patient de recherche fictif (avec un IPP commençant par le préfixe) et, le cas échéant, un format de numéro avec le préfixe de recherche.
+
+Setup step: Tier 2, step 33
+Requires: Aucun, c'est un point de départ.
+Unlocks: Aucune.
+
+**5. Écran.**
+
+[SCREENSHOT PLACEHOLDER: system-research_cases - Cartes Cas de recherche et Objets des lots]
+
+**6. Référence des champs.**
+
+#### Carte Cas de recherche
+
+| Nom du champ | Type de données / format | Obligatoire/Facultatif | Description et logique métier | Valeur par défaut du système |
+|---|---|---|---|---|
+| Traiter les cas correspondants comme des cas de recherche | Case à cocher | Facultatif | Désactivé : aucun cas n'est un cas de recherche. | Activé |
+| Préfixes de numéro de cas | Texte, séparé par des virgules | Obligatoire si activé (ceci ou les préfixes IPP) | Correspond si le préfixe du cas est égal ou si son numéro complet commence par l'un d'eux. Sans espace ; 20 caractères au plus. | RES |
+| Préfixes IPP du patient de recherche | Texte, séparé par des virgules | Obligatoire si activé (ceci ou les préfixes de numéro) | Correspond si l'IPP du patient commence par l'un d'eux. | RSCH- |
+| Classe financière sans facturation | Texte | Obligatoire si activé | Transmise comme type de facturation du compte dans le message de classe financière. | Research - No Charge |
+| Conserver le matériel (jours après l'enregistrement) | Nombre entier, 0 à 36500 | Obligatoire | Quand les blocs et lames du cas sont proposés à l'élimination. | 365 |
+| Enregistrer | Bouton | Sans objet | Refusé sans l'autorisation ci-dessous ou si une valeur échoue aux contrôles. | Sans objet |
+
+#### Carte Objets des lots
+
+| Nom du champ | Type de données / format | Obligatoire/Facultatif | Description et logique métier | Valeur par défaut du système |
+|---|---|---|---|---|
+| Lignes d'objet | Nom et case Actif | Sans objet | Les noms intégrés sont affichés dans la langue du lecteur. Le nom d'un objet du laboratoire se modifie sur place (unique, 40 caractères au plus). La case de Routine ne peut pas être décochée. | Six objets intégrés, tous actifs |
+| Nouvel objet, Ajouter | Texte et bouton | Facultatif | Ajoute un objet du laboratoire. | Vide |
+| Enregistrer | Bouton | Sans objet | Refusé sans l'autorisation ci-dessous, ou si un nom est vide, trop long ou en double. | Sans objet |
+
+**7. Autorisations.** Ouvrir : `screen:configuration:open`. Enregistrer les cas de recherche : `config:research-cases:manage`. Enregistrer les objets des lots : `config:batch-purposes:manage`. Risque élevé ; Admin, Directeur de laboratoire et Superadmin par défaut.
+
+**Limites connues.** L'écran du compte rendu n'indique pas encore « recherche, pas un compte rendu clinique » ; le cas peut être validé (rien n'est envoyé). Il n'y a pas de liste de travail de recherche. Les chiffres de qualité hors des tableaux de bord Contribution et le flux BI côté serveur ne sont pas encore filtrés. Les éléments de recherche sans enregistrement viendront plus tard.
 
 ### Non-conformités des spécimens {#screen-deficiencies}
 Breadcrumb: Accueil > Configuration > Système > Intégrations > Non-conformités des spécimens

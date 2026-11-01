@@ -30,6 +30,7 @@ import { resultInstanceIds } from './resultInstances';
 import type { GenerateReportPdf } from './resolveOruReportPdf';
 import { outboundResultQueueService } from './reportServicesInstance';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
+import { skipResearchCaseDispatch } from '../interfaceDispatch/resolveDispatchOrganisation';
 
 export async function dispatchPreliminaryCaseInstances(
   caseId: string,
@@ -38,6 +39,8 @@ export async function dispatchPreliminaryCaseInstances(
 ): Promise<number> {
   const caseData = await caseRouter.getCase(caseId);
   if (!caseData) return 0;
+  // Batch 728 (Lab Workflow spec, Decision 4): a research case sends no result to the EHR.
+  if (await skipResearchCaseDispatch(caseData, 'Surgical', 'preliminary')) return 0;
 
   // Batch 393: one result per synoptic report, or one for an autopsy report (the PAD).
   const instances = resultInstanceIds(caseData as any, 'PRELIMINARY').map(instanceId => ({ instanceId }));

@@ -25,14 +25,16 @@
 // batchFormHelpers.ts, and scan stations come from @/services.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   batchService, hardwareContainerRegistryService, printSettingsService, facilityService, stainTypeService, reagentLotService,
-  scanStationService, activeReferenceLabs, actionRegistryService, batchCreateMissing, batchFieldRequired,
+  scanStationService, activeReferenceLabs, actionRegistryService, batchCreateMissing, batchFieldRequired, equipmentService,
 } from '@/services';
+import type { Equipment } from '@/services/equipment/IEquipmentService';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
-import { deriveNodeFromStation, CONTAINER_TYPE_KEYS, DECAL_SOLUTION_KEYS } from '@/services/batches/batchFormHelpers';
+import { deriveNodeFromStation, nodeIsChosen, CONTAINER_TYPE_KEYS, DECAL_SOLUTION_KEYS, type NodeChoice } from '@/services/batches/batchFormHelpers';
+import { getBatchPurposes, batchPurposeLabelKey, DEFAULT_BATCH_PURPOSE_ID } from '@/services/batches/batchPurposes';
 import { formatList } from '@/utils/formatList';
 import type { ReagentLot } from '@/services/reagentLots/IReagentLotService';
 import type { Facility } from '@/services/facilities/IFacilityService';
@@ -42,7 +44,7 @@ import { dispatchContainerLabelPrint } from '@/utils/labels/dispatchContainerLab
 import { CONTAINER_TYPES, isHardwareEligible } from '@/services/hardwareContainers/IHardwareContainerRegistryService';
 import type { ContainerType, HardwareContainer } from '@/services/hardwareContainers/IHardwareContainerRegistryService';
 import { BATCH_PROCESSING_NODES, isBatchErrorCode } from '@/services/batches/IBatchService';
-import type { Batch, BatchProcessingNode, BatchPriority } from '@/services/batches/IBatchService';
+import type { Batch, BatchPriority } from '@/services/batches/IBatchService';
 import { DECAL_SOLUTION_TYPES, DECAL_WARNING_MINUTES_BEFORE_TARGET, formatDecalDuration } from '@/services/batches/DecalBatch';
 import type { DecalSolutionType } from '@/services/batches/DecalBatch';
 import type { ScanStation } from '@/services/scanStations/IScanStationService';
@@ -74,7 +76,10 @@ const NewContainerModal: React.FC<Props> = ({ onClose, onCreated, userId, userNa
   const { t, i18n } = useTranslation();
   const requirements = useFieldRequirements('batchManagement');
   const [containerType, setContainerType] = useState<ContainerType>(CONTAINER_TYPES[0]);
-  const [processingNode, setProcessingNode] = useState<BatchProcessingNode>(BATCH_PROCESSING_NODES[0]);
+  // Batch 728: no silent default (it used to start at Decal); the station sets it, or the tech picks one.
+  const [processingNode, setProcessingNode] = useState<NodeChoice>('');
+  const [purposeId, setPurposeId] = useState<string>(DEFAULT_BATCH_PURPOSE_ID);
+  const purposes = useMemo(() => getBatchPurposes().filter(p => p.active), []);
   const [nodeAutoDerived, setNodeAutoDerived] = useState(false);
   const [protocol, setProtocol] = useState('');
   const [priority, setPriority] = useState<BatchPriority>('Routine');
@@ -117,6 +122,14 @@ const NewContainerModal: React.FC<Props> = ({ onClose, onCreated, userId, userNa
   // superseded) lot has no business being newly assigned to a run.
   const [reagentLots, setReagentLots] = useState<ReagentLot[]>([]);
   const [stainingReagentLotIds, setStainingReagentLotIds] = useState<string[]>([]);
+  // Batch 737 (spec §11.1): a staining carrier that takes large-format slides.
+  const [largeFormat, setLargeFormat] = useState(false);
+  // Batch 739 (fluid decision 4): the liquid-based processor a Cytology Processing batch is made for (Equipment).
+  const [processors, setProcessors] = useState<Equipment[]>([]);
+  const [processorId, setProcessorId] = useState('');
+  useEffect(() => {
+    equipmentService.getActive('lbc_processor').then(res => { if (res.ok) { setProcessors(res.data); setProcessorId(res.data[0]?.id ?? ''); } });
+  }, []);
   useEffect(() => {
     reagentLotService.getAll().then(res => { if (res.ok) setReagentLots(res.data.filter(l => l.status === 'Active')); });
   }, []);
@@ -210,7 +223,7 @@ const NewContainerModal: React.FC<Props> = ({ onClose, onCreated, userId, userNa
     processingNode, protocol, identifierMode, rackId, targetDurationMinutes,
     referralDestinationFacilityId, referralTestRequested, cytologyStainTypeId, stainingReagentLotIds,
   }, requirements);
-  const canCreate = missing.length === 0;
+  const canCreate = nodeIsChosen(processingNode) && missing.length === 0;
   const star = (fieldId: string) => batchFieldRequired(requirements, fieldId) && <span className="ps-conf-required"> *</span>;
 
   // Real, derived (not stateful) mismatch check — recomputed on every
@@ -226,7 +239,7 @@ const NewContainerModal: React.FC<Props> = ({ onClose, onCreated, userId, userNa
   const stationNodeMismatch = stationDerivedNode !== null && stationDerivedNode !== processingNode;
 
   const handleCreate = async () => {
-    if (!canCreate) return;
+    if (!canCreate || !nodeIsChosen(processingNode)) return;
     setBusy(true);
     setError(null);
     const res = await batchService.create({
@@ -241,6 +254,9 @@ const NewContainerModal: React.FC<Props> = ({ onClose, onCreated, userId, userNa
       referralTestRequested: isReferralNode ? (referralTestRequested.trim() || undefined) : undefined,
       cytologyStainTypeId: isCytologyStainingNode ? cytologyStainTypeId : undefined,
       stainingReagentLotIds: isStainingNode && stainingReagentLotIds.length > 0 ? stainingReagentLotIds : undefined,
+      purposeId,
+      largeFormat: isStainingNode && largeFormat ? true : undefined,
+      processorEquipmentId: processingNode === 'Cytology Processing' && processorId ? processorId : undefined,
     });
     setBusy(false);
     // Batch 407: the service's refusal codes (a missing or checked-out rack), in the user's language.
@@ -270,7 +286,7 @@ const NewContainerModal: React.FC<Props> = ({ onClose, onCreated, userId, userNa
 
   return (
     <div className="ps-overlay ps-batch-overlay" onClick={onClose}>
-      <div className={`ps-modal-dark ps-batch-create-modal${createdBatch ? '' : ' ps-batch-create-modal--wide'}`} onClick={e => e.stopPropagation()}>
+      <div className={`ps-modal-dark ps-batch-create-modal${createdBatch ? '' : ' ps-batch-create-modal--wide'}`} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         {!createdBatch ? (
           <>
             <div className="ps-batch-modal-header">
@@ -299,8 +315,9 @@ const NewContainerModal: React.FC<Props> = ({ onClose, onCreated, userId, userNa
                   id="batch-node"
                   className="ps-batch-select"
                   value={processingNode}
-                  onChange={e => { setProcessingNode(e.target.value as BatchProcessingNode); setNodeAutoDerived(false); }}
+                  onChange={e => { setProcessingNode(e.target.value as NodeChoice); setNodeAutoDerived(false); }}
                 >
+                  <option value="">{t('newContainerModal.chooseStep')}</option>
                   {BATCH_PROCESSING_NODES.map(node => <option key={node} value={node}>{t(`batchManagement.nodes.${node}`)}</option>)}
                 </select>
                 {/* Real feature, per direct follow-up: "we should be
@@ -320,6 +337,13 @@ const NewContainerModal: React.FC<Props> = ({ onClose, onCreated, userId, userNa
                     {t('newContainerModal.stationMismatchWarning', { station: selectedStation?.name, node: stationDerivedNode ? t(`batchManagement.nodes.${stationDerivedNode}`) : stationDerivedNode })}
                   </div>
                 )}
+              </div>
+
+              <div className="ps-batch-field">
+                <label className="ps-batch-field-label" htmlFor="batch-purpose">{t('batchPurposes.label')}</label>
+                <select id="batch-purpose" className="ps-batch-select" value={purposeId} onChange={e => setPurposeId(e.target.value)}>
+                  {purposes.map(p => { const key = batchPurposeLabelKey(p.id); return <option key={p.id} value={p.id}>{key ? t(key) : p.name}</option>; })}
+                </select>
               </div>
 
               <div className="ps-batch-field">
@@ -477,6 +501,21 @@ const NewContainerModal: React.FC<Props> = ({ onClose, onCreated, userId, userNa
                       );
                     })}
                   </div>
+                </div>
+              )}
+              {isStainingNode && (
+                <label className="ps-batch-reagent-lot-row ps-batch-field--wide">
+                  <input type="checkbox" checked={largeFormat} onChange={e => setLargeFormat(e.target.checked)} />
+                  <span>{t('newContainerModal.largeFormat')}</span>
+                </label>
+              )}
+              {processingNode === 'Cytology Processing' && processors.length > 0 && (
+                <div className="ps-batch-field">
+                  <label className="ps-batch-field-label" htmlFor="batch-processor">{t('newContainerModal.processor')}</label>
+                  <select id="batch-processor" className="ps-batch-select" value={processorId} onChange={e => setProcessorId(e.target.value)}>
+                    <option value="">{t('newContainerModal.processorNone')}</option>
+                    {processors.map(p => <option key={p.id} value={p.id}>{t('newContainerModal.processorOption', { name: p.name, code: p.code })}</option>)}
+                  </select>
                 </div>
               )}
 

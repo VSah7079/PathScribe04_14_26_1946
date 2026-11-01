@@ -16,6 +16,7 @@
 // must never block the case's own, already-successful sign-out.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { isResearchCaseNow } from '../researchCases/researchCaseSettings';
 import { cancerRegistrySettingsService } from './cancerRegistrySettingsServiceInstance';
 import { facilityCancerRegistryOverrideService } from './facilityCancerRegistryOverrideServiceInstance';
 import { resolveEffectiveCancerRegistrySettings } from './resolveEffectiveCancerRegistrySettings';
@@ -79,6 +80,8 @@ export async function prepareCancerRegistrySubmission(caseData: Case, facilityId
   if (!enterpriseRes.ok) return { outcome: 'noSettings' };
   const effective = resolveEffectiveCancerRegistrySettings(enterpriseRes.data, overrideRes.ok ? overrideRes.data : null);
   if (effective.registryId === 'none') return { outcome: 'noRegistry' };
+  // Batch 728 (Lab Workflow spec, Decision 4): a research case (a dummy research patient) is never reported.
+  if (isResearchCaseNow(caseData)) return { outcome: 'notReportable', registryId: effective.registryId };
   // Checked per ICD-O finding: a multi-specimen case can carry reportable and non-reportable findings together.
   const anyReportable = (caseData.specimens ?? []).some(sp => (sp.coding?.icdO ?? []).some(icdO =>
     resolveCancerRegistryReportability(icdO.code, undefined, caseData.diagnostic?.primaryDiagnosis ?? '').outcome === 'reportable'));

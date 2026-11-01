@@ -71,7 +71,7 @@ type ScanLabelOutcomes = { id: string; outcome: Awaited<ReturnType<typeof dispat
 /** Batch 652: a slide that got no label stays Pending Cut; say why in the console so support can see it. */
 function logUnproduced(outcomes: ScanLabelOutcomes, where: string): void {
   for (const o of outcomes) {
-    if (!o.outcome.produced) console.warn(`[Microtomy] No label produced for a slide of ${where}: ${o.outcome.reason ?? 'unknown reason'}`);
+    if (!o.outcome.produced) console.warn(`[Microtome] No label produced for a slide of ${where}: ${o.outcome.reason ?? 'unknown reason'}`);
   }
 }
 
@@ -84,11 +84,11 @@ function scanLabelAuditDetail(outcomes: ScanLabelOutcomes, where: string): strin
     printed > 0 ? `${printed} slide label${printed === 1 ? '' : 's'} printed` : '',
     engraved > 0 ? `${engraved} slide${engraved === 1 ? '' : 's'} engraved` : '',
   ].filter(Boolean).join(', ');
-  return `${parts || 'Slide labels already produced'} for ${where} at microtomy.${left > 0 ? ` ${left} left pending (no label produced).` : ''}`;
+  return `${parts || 'Slide labels already produced'} for ${where} at the microtome.${left > 0 ? ` ${left} left pending (no label produced).` : ''}`;
 }
 
 /** Real feature, per direct follow-up: "slide engravers are common as
- *  well. In that workflow, the user scans the block at microtomy and
+ *  well. In that workflow, the user scans the block at microtome and
  *  the labels get generated dynamically." Confirmed directly:
  *  'Microtomy / Sectioning' is a real, already-established
  *  ScanStation.workflowStage value (scanStationService.ts's own
@@ -158,7 +158,7 @@ export async function processMicrotomyScan(
         }),
       }), caseRouter);
       auditService.logEvent({
-        type: 'system', event: 'Slides Engraved at Microtomy',
+        type: 'system', event: 'Slides Engraved at Microtome',
         detail: scanLabelAuditDetail(outcomes, `${specimen.label}${block.label}`),
         user: userId, caseId: caseData.id, confidence: null,
       }).catch(() => {});
@@ -190,13 +190,13 @@ export async function processMicrotomyScan(
         }),
       }), caseRouter);
       auditService.logEvent({
-        type: 'system', event: 'Slides Engraved at Microtomy',
+        type: 'system', event: 'Slides Engraved at Microtome',
         detail: scanLabelAuditDetail(outcomes, `matrix block ${matrixBlock.label}`),
         user: userId, caseId: caseData.id, confidence: null,
       }).catch(() => {});
     }
   } catch (e) {
-    console.error('[Microtomy] Failed to process dynamic slide generation:', e);
+    console.error('[Microtome] Failed to process dynamic slide generation:', e);
   }
 }
 
@@ -338,7 +338,7 @@ export function useGlobalMaterialScanTracking() {
     });
 
     // Real feature, per direct follow-up: "slide engravers are common
-    // as well... the user scans the block at microtomy and the labels
+    // as well... the user scans the block at microtome and the labels
     // get generated dynamically." Fire-and-forget, same posture as
     // the other real dispatches above — a slow/failed engrave dispatch
     // must never block the location event that already, correctly

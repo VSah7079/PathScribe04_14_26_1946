@@ -102,7 +102,7 @@ import { useCaseSpellCheck } from '@/hooks/useCaseSpellCheck';
 import type { SpellingLocale } from '@/services/spellcheck/spellingLocales';
 import { SignatureConfirmModal } from '@/components/Signing/SignatureConfirmModal';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
-import { AttachReportImagesModal } from '@/components/ReportImages/AttachReportImagesModal';
+import { CaseAttachmentsModal } from '@/components/CaseAttachments/CaseAttachmentsModal'; import { useCaseAttachmentCount } from '@/hooks/useCaseAttachments';
 import { CytologyRevisionActions } from './components/CytologyRevisionActions';
 import { CytologyRevisionPanel } from './components/CytologyRevisionPanel';
 import { useCytologyRevision } from './hooks/useCytologyRevision';
@@ -195,6 +195,7 @@ export default function CytologyScreeningPage() {
   // ── What loadCytologyWorkspace returns ─────────────────────────────────────
   const [loading, setLoading] = useState(true);
   const [caseData, setCaseData] = useState<Case | null>(null);
+  const attachmentCount = useCaseAttachmentCount(caseData, caseData?.id, caseData?.accession?.fullAccession); // Batch 742: the Attachments badge
   const [specimenId, setSpecimenId] = useState<string | null>(null);
   const [cytologySpecimens, setCytologySpecimens] = useState<CytologySpecimenTab[]>([]);
   // The specimen being worked on, so a reload after an action stays on it.
@@ -869,14 +870,14 @@ export default function CytologyScreeningPage() {
                 className="ps-cytoscreen-tag-btn ps-cytoscreen-tag-btn--teal">
                 🖨️ {t('cytologyScreening.printBtn')}
               </button>
-              {/* Batch 609 (PS-44): images printed after the report's pages; greyed without report:case-images:attach. */}
+              {/* Batch 609 (PS-44): images printed after the report's pages; greyed without report:case-images:attach. Batch 742: the Attachments badge. */}
               <CapabilityButton
                 capability="report:case-images:attach"
                 context={{ caseId: caseData.id, facilityId: caseData.order?.facilityId ?? null }}
                 className="ps-cytoscreen-tag-btn ps-cytoscreen-tag-btn--teal"
-                title={t('cytologyScreening.attachImagesTitle')}
+                title={t('cytologyScreening.attachmentsTitle')}
                 onClick={() => setShowAttachImages(true)}>
-                🖼️ {t('cytologyScreening.attachImagesBtn')}
+                📎 {attachmentCount > 0 ? t('cytologyScreening.attachmentsBtn', { number: attachmentCount }) : t('cytologyScreening.attachmentsAddBtn')}
               </CapabilityButton>
               {caseReleased && cytologySpecimens.length > 1 && (
                 <button
@@ -1423,13 +1424,9 @@ export default function CytologyScreeningPage() {
         <CytologySlideOverDrawer wide isOpen={showBillingDrawer && !!caseData} title={t('cytologyScreening.billingDrawer.title')} onClose={() => setShowBillingDrawer(false)}>
           {caseData && <CaseBillingReview caseData={caseData} review={billingReview} selectedMaterialId={currentSpecimen?.decants?.[0]?.id} />}
         </CytologySlideOverDrawer>
-        {showAttachImages && caseData && (
-          <AttachReportImagesModal
-            caseId={caseData.id}
-            accession={caseData.accession?.fullAccession ?? caseData.id}
-            facilityId={caseData.order?.facilityId ?? null}
-            onClose={() => setShowAttachImages(false)}
-          />
+        {showAttachImages && caseData && ( // Batch 742: the cytology report prints images after its pages, so no section is offered
+          <CaseAttachmentsModal caseData={caseData} caseId={caseData.id} accession={caseData.accession?.fullAccession ?? caseData.id}
+            facilityId={caseData.order?.facilityId ?? null} inlineSupported={false} onClose={() => setShowAttachImages(false)} />
         )}
         <CytologySlideOverDrawer isOpen={showMaterialDrawer} title={t('cytologyScreening.materialBtn')} onClose={() => setShowMaterialDrawer(false)}>
           <CytologyMaterialView

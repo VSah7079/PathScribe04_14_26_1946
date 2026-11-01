@@ -1,3 +1,7 @@
+**Batch 738:** the received time defaults to local time (`localInputValueFromDate`), not UTC; `AccessionPage.tsx` stays at 4,162 lines.
+
+**Batch 721:** the Accession screen is in two columns on a wide window (1,480 CSS px or more): Case & Patient on the left, Specimens on the right, the Cytology card under the specimens, and no Next or Back button. A narrower window keeps the tabs. New: `AccessionTabBar.tsx` (the tabs, moved out of `AccessionPage.tsx`), `AccessionColumnSlot.tsx` (draws the Cytology card in the right column), `accessionColumns.css`, `AccessionPage.twoColumn.e2e.test.tsx`. `AccessionPage.tsx` 4,165 to 4,163 lines. No new text, so no locale changes.
+
 **Batch 703:** **Go to Worklist** (after a save) opens the Worklist on the context that holds the case just saved (`worklistPathForCase`): an Orchestration case is listed under the Outreach tile, not LIS Cases, which is where the button used to land.
 
 **Batch 649:** creating a case needs `case:accession:create` (`createAccessionedCase` checks it; a refusal shows the reason and saves nothing). Tests updated: `AccessionPage.e2e.test.tsx`, `AccessionPage.contactBleeding.e2e.test.tsx`.
