@@ -1,3 +1,11 @@
+**Batch 755b (part 2):** eight more generic checklists reworded (see `templates/generic/README.md`).
+
+**Batch 755b (part 1):** breast invasive and the two UK-layout checklists reworded (see `templates/generic/README.md`).
+
+**Batch 755a:** the 19 generic checklists have plain names (see `templates/generic/README.md`).
+
+**Batch 753:** `templates/generic/` prostate needle biopsy and radical prostatectomy checklists in PathScribe's own wording (see `templates/generic/README.md`).
+
 **Batch 738:** `templates/generic/colon_resection.json`: PathScribe-authored wording and conditional questions (see `templates/generic/README.md`).
 
 # src/data/

@@ -1,3 +1,5 @@
+**Batch 755b (part 1):** the Manchester pathologist in the QA, discordance, supervision and reconciliation seeds is the fictional Dr. Imogen Hartley (PATH-UK-001).
+
 **Batch 650:** `tatTileActions.ts`: the eight `TAT_SHOW_*` commands choose their Contribution tile (the tab listened for an event nothing sent). Test: `tatTileActions.test.ts`.
 
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.

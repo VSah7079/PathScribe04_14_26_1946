@@ -610,6 +610,9 @@ export interface Facility {
    *  (QZ Tray, the PathScribe Agent, Zebra Browser Print, BarTender) in a server deployment. Off unless an administrator
    *  turns it on (setDirectDevicePrinting); the interface engine and the browser print dialog are always allowed. */
   allowDirectDevicePrinting?: boolean;
+  /** Batch 751 (spec section 12.3): a performing lab's organ map delivery to its laboratory system on Assist cases
+   *  (off, text only, or text and an image file to a destination). Only setOrganMapDelivery changes it. */
+  organMapDelivery?: import('../organMapping/organMapDeliveryRules').OrganMapDeliverySettings;
   printPresentationPreference?: Partial<{
     paperSource: import('@/types/printing/PrintJob').PaperSourceTray;
     duplexMode: import('@/types/printing/PrintJob').DuplexMode;
@@ -819,6 +822,9 @@ export interface IFacilityService {
   /** Batch 734: turns direct browser-to-printer printing on or off for the facility. Needs
    *  config:direct-device-printing:manage; audited. `add` and `update` never change it. */
   setDirectDevicePrinting(id: ID, allowed: boolean): Promise<ServiceResult<Facility>>;
+  /** Batch 751: sets the facility's organ map delivery (checked by validateOrganMapDelivery). Needs
+   *  config:organ-map-delivery:manage; audited. `add` and `update` never change it. */
+  setOrganMapDelivery(id: ID, settings: import('../organMapping/organMapDeliveryRules').OrganMapDeliverySettings): Promise<ServiceResult<Facility>>;
   /**
    * Called by order-intake / crosswalk resolution. No exact crosswalk
    * match on the order's facility code → creates an Unverified,

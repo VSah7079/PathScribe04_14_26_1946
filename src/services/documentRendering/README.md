@@ -327,3 +327,7 @@ cytology PDF pipeline this folder extends actually works end to end.*
 ## Batch 532
 
 `registerEmbeddedPrintFont.ts`: `toWinAnsiText` maps the Windows-1252 characters outside Latin-1 (em and en dash, curly quotes, bullet, ellipsis, euro) to their WinAnsi byte. jsPDF sent them as UTF-16, which the embedded WinAnsi font can't show, so the em dash in "Cytology Report — …" printed as a blank (the file's note that report text is "entirely Latin-1" was wrong; corrected there). Used by the cytology report and `applyContinuationPageHeaders.ts`. Korean (Pretendard) is unaffected.
+
+## Batch 751
+
+`imagePdf.ts` (new, pure): a one-page PDF holding one JPEG as it is (DCTDecode), for an organ map file sent as PDF. `svgToPng.ts`: `svgToJpegDataUrl` (on white) beside `svgToPngDataUrl`. Test: `imagePdf.test.ts`.

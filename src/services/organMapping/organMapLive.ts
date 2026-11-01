@@ -68,7 +68,9 @@ export const organMapFigureDeps: OrganMapFigureDeps = {
 /** Batch 461: the synoptics whose report map image no longer matches their
  *  answers (stale). Sign-out stops on these: the signed report must not carry
  *  a map that disagrees with the synoptic. */
-export async function findStaleOrganMapFigures(caseData: Pick<Case, 'organMapFigures' | 'synopticReports' | 'specimens' | 'order'> | null | undefined): Promise<string[]> {
+export async function findStaleOrganMapFigures(caseData: Pick<Case, 'organMapFigures' | 'synopticReports' | 'specimens' | 'order' | 'reportingMode'> | null | undefined): Promise<string[]> {
+  // Batch 751: no map goes into an Assist case's report, so none can hold up finalising.
+  if (caseData?.reportingMode === 'assist') return [];
   const figures = caseData?.organMapFigures ?? [];
   const stale: string[] = [];
   for (const figure of figures) {

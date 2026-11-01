@@ -2770,8 +2770,8 @@
     },
     {
       "slug": "wsi-viewer",
-      "title": "WSI Viewer",
-      "module": "WSI Viewer",
+      "title": "Slide Images",
+      "module": "Slide Images",
       "screen": "",
       "workflow": "Case Review",
       "roles": [
@@ -2780,19 +2780,26 @@
         "Laboratory Manager"
       ],
       "keywords": [
-        "wsi viewer",
+        "slide image",
+        "reference preview",
+        "thumbnail",
         "whole slide image",
+        "wsi",
         "digital slide",
-        "launch in viewer",
+        "open slide",
+        "digital pathology application",
         "slide viewer",
-        "demonstration viewer",
-        "mock viewer",
-        "scanned slide",
-        "image viewer",
-        "companion window"
+        "save position",
+        "window position",
+        "image quality",
+        "scanning",
+        "queued",
+        "wsi viewer",
+        "demonstration viewer"
       ],
       "routes": [
-        "/wsi-viewer"
+        "/wsi-viewer",
+        "/window-position"
       ],
       "previous": "batch-management/wsi-scan",
       "next": "report",

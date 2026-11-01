@@ -510,3 +510,7 @@ Batch 616: server version in `httpFacilityService.ts, httpRegistrySettingsServic
 ## Batch 715
 
 `Facility.labelStyle` (specimen, block, slide: letters or numbers; unset = follow the enterprise) beside the old `specimenLabelStyle` preset, which is still read. Resolved only through `services/labeling/resolveLabelStyle.ts`. Saving still needs `config:facilities:manage`.
+
+## Batch 751
+
+`Facility.organMapDelivery` and `setOrganMapDelivery(id, settings)` (capability `config:organ-map-delivery:manage`, checked with `validateOrganMapDelivery`, audited "Organ Map Delivery Changed"); `add` and `update` never change it. Server route `POST /api/facilities/facility/set-organ-map-delivery`. The demo lab Desert Valley (`c-ent-dvmc`) sends text and a PNG file; `SEED_VERSION` 9.

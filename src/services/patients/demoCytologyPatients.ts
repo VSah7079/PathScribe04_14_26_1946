@@ -47,6 +47,18 @@ export const DEMO_CYTOLOGY_PATIENTS: readonly DemoCytologyPatient[] = [
   { id: 'PAT-CYT-029', organisationId: 'ENT-DEFAULT', mrn: '105106', firstName: 'Bernard', lastName: 'Vasquez-Hale', age: 71, month: 3, day: 29 },
   { id: 'PAT-CYT-030', organisationId: 'ENT-DEFAULT', mrn: '105107', firstName: 'Rosalind', lastName: 'Ferreira', age: 36, month: 7, day: 14 },
   { id: 'PAT-CYT-031', organisationId: 'ENT-DEFAULT', mrn: '105108', firstName: 'Imogen', lastName: 'Castellanos', age: 42, month: 1, day: 30 },
+  // Batch 749 (S5, S4): cases/demoCytologyVolumeCases.ts.
+  { id: 'PAT-CYT-032', organisationId: 'ENT-DEFAULT', mrn: '105532', firstName: 'Maribel', lastName: 'Underwood', age: 38, month: 4, day: 9 },
+  { id: 'PAT-CYT-033', organisationId: 'ENT-DEFAULT', mrn: '105533', firstName: 'Celeste', lastName: 'Okonkwo', age: 45, month: 11, day: 2 },
+  { id: 'PAT-CYT-034', organisationId: 'ENT-DEFAULT', mrn: '105534', firstName: 'Danica', lastName: 'Holmberg', age: 33, month: 7, day: 21 },
+  { id: 'PAT-CYT-035', organisationId: 'ENT-DEFAULT', mrn: '105535', firstName: 'Juliet', lastName: 'Abernethy', age: 23, month: 2, day: 14 },
+  { id: 'PAT-CYT-036', organisationId: 'ENT-DEFAULT', mrn: '105536', firstName: 'Henrietta', lastName: 'Mbeki', age: 51, month: 9, day: 30 },
+  { id: 'PAT-CYT-037', organisationId: 'ENT-DEFAULT', mrn: '105537', firstName: 'Annika', lastName: 'Lindgren', age: 29, month: 5, day: 6 },
+  { id: 'PAT-CYT-038', organisationId: 'ENT-DEFAULT', mrn: '105538', firstName: 'Felicity', lastName: 'Ramsbottom', age: 41, month: 12, day: 17 },
+  { id: 'PAT-CYT-039', organisationId: 'ENT-DEFAULT', mrn: '105539', firstName: 'Ingrid', lastName: 'Solberg', age: 36, month: 3, day: 3 },
+  { id: 'PAT-CYT-040', organisationId: 'ENT-DEFAULT', mrn: '105540', firstName: 'Lucinda', lastName: 'Achebe', age: 47, month: 8, day: 25 },
+  { id: 'PAT-CYT-041', organisationId: 'ENT-DEFAULT', mrn: '105541', firstName: 'Rowena', lastName: 'Castellane', age: 52, month: 1, day: 11 },
+  { id: 'PAT-CYT-042', organisationId: 'ENT-DEFAULT', mrn: '105542', firstName: 'Theodora', lastName: 'Vasquez-Lind', age: 49, month: 6, day: 19 },
 ];
 
 const pad = (n: number) => String(n).padStart(2, '0');

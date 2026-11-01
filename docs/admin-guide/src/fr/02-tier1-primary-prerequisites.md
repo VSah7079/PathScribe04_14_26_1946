@@ -174,6 +174,9 @@ Les champs de contact obligatoires proviennent de la page **Éditeur d'établiss
 | ID de l'établissement destinataire (MSH-6) | Texte | Facultatif | Le code du système destinataire. | Vide |
 | Remplacement du canal sortant | Texte | Facultatif | Un autre canal du moteur pour cet établissement. | Vide |
 | Envoyer un seul PDF combiné par dossier | Interrupteur Oui/Non | Facultatif | Laboratoire exécutant uniquement. | Désactivé |
+| Envoi de la carte anatomique : Envoyer la carte anatomique | Choix : Désactivé, Texte seul, Texte et fichier image | Facultatif | Laboratoire exécutant uniquement (lot 751). Pour un cas en mode Assist, PathScribe ne place jamais la carte anatomique dans le compte rendu. Ce réglage l’envoie au système de laboratoire avec les données synoptiques : les constats de la carte en lignes de texte et, avec un fichier, la carte tracée à la finalisation à partir des réponses définitives. Enregistré séparément avec `config:organ-map-delivery:manage` et tracé. Un envoi en échec ne bloque jamais la finalisation ; il apparaît dans la file sortante, avec relance. | Désactivé |
+| Envoi de la carte anatomique : Format du fichier | Choix : Image PNG, Document PDF | Facultatif | Affiché pour Texte et fichier image. | Image PNG |
+| Envoi de la carte anatomique : Destination des fichiers | Texte | Obligatoire pour Texte et fichier image | Un dossier, une adresse SFTP ou un canal du moteur d’interfaces. Jamais de nom d’utilisateur ni de mot de passe. Les noms de fichier comportent le numéro d’enregistrement, le type de carte et l’heure, jamais le nom d’un patient. | Vide |
 
 #### Fenêtre d'édition : onglet Formats d'identifiants
 

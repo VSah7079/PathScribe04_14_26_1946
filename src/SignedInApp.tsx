@@ -64,6 +64,7 @@ const MolecularControlRulesPage = lazy(() => import("./pages/MolecularBatchPage/
 // Batch 527 (PS-486): demo and developer screens are left out of a server build (__DEMO_TOOLS__ is false there).
 const MockInterfaceEnginePage = __DEMO_TOOLS__ ? lazy(() => import("./pages/MockInterfaceEnginePage/MockInterfaceEnginePage")) : null;
 const MockEMRPage = __DEMO_TOOLS__ ? lazy(() => import("./pages/MockEMRPage")) : null;
+const WindowPositionPage = lazy(() => import("./pages/WindowPositionPage/WindowPositionPage")); // Batch 750
 const MockWsiViewerPage = __DEMO_TOOLS__ ? lazy(() => import("./pages/MockWsiViewerPage")) : null;
 const QualityAssurancePage = lazy(() => import("./pages/QualityAssurancePage"));
 const BatchManagementPage = lazy(() => import("./pages/BatchManagement/BatchManagementPage"));
@@ -192,6 +193,8 @@ const SignedInApp: React.FC = () => (
                           without hitting this app's own normal session
                           timeout. */}
                       <Route path="/facility-ops-dashboard" element={<FacilityOpsDashboardPage />} />
+                      {/* Batch 750: Save position for a remembered window; no patient data, so no sign-in. */}
+                      <Route path="/window-position" element={<WindowPositionPage />} />
 
 
                       {/* Protected Routes — ScannerProvider only active when authenticated */}

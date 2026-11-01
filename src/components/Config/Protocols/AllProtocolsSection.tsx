@@ -48,7 +48,9 @@ import {
   EmptyState,
 } from './ProtocolCardParts';
 import { matchesStatusFilter } from '@/services/templates/protocolLifecycle';
+import { DemoChecklistRemovalCard } from './DemoChecklistRemovalCard';
 import { pressable } from '@/utils/a11y/pressable';
+import { DemoWordingTag } from '@/components/Synoptic/DemoWordingTag';
 
 type StatusFilter = 'all' | LifecycleState;
 
@@ -81,7 +83,7 @@ const ProtocolCard: React.FC<{ protocol: Protocol }> = ({ protocol: p }) => {
       >
         <div className="ps-activeprotocols-cat-bar" style={categoryHueVar(p.category)} />
         <div className="ps-activeprotocols-info">
-          <div className="ps-activeprotocols-name" data-phi="name">{p.name}</div>
+          <div className="ps-activeprotocols-name"><span data-phi="name">{p.name}</span><DemoWordingTag templateId={p.id} /></div>
           <div className="ps-activeprotocols-meta">
             <span className="ps-activeprotocols-version">{p.version}</span>
             <span className="ps-activeprotocols-dot">&bull;</span>
@@ -174,6 +176,8 @@ const AllProtocolsSection: React.FC = () => {
           <TealBtn    onClick={() => setShowBuild(true)}>🔬 {t('activeProtocolsSection.buildCustomiseButton')}</TealBtn>
         </div>
       </div>
+
+      <DemoChecklistRemovalCard />
 
       {/* Status filter pills — each pill's colour is its lifecycle state's
           CSS hue class (.ps-lc-hue--*); the active pill is tinted from it. */}

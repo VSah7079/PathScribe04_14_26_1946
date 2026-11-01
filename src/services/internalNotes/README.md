@@ -1,3 +1,5 @@
+**Batch 755b (part 1):** the Manchester notes' author is the fictional Dr. Imogen Hartley (PATH-UK-001).
+
 # services/internalNotes/
 
 Lab-internal case notes and management reviews — never included in the generated patient report.

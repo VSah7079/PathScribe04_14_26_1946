@@ -179,7 +179,7 @@ describe('the demo cases draw their maps from their synoptic answers', () => {
 describe('sign-out and the report map image', () => {
   it('finds a report image that no longer matches the synoptic answers', async () => {
     const { findStaleOrganMapFigures } = await import('./organMapLive');
-    const c = (await mockCaseService.getCase('MFT26-8804-PR-RP'))!;
+    const c = { ...(await mockCaseService.getCase('MFT26-8804-PR-RP'))!, reportingMode: 'orchestrator' as const }; // Batch 751: an Assist case never holds up finalising over its map
     const inst = c.synopticReports!.find(r => r.templateId === 'prostate_radical_prostatectomy')!;
     const map = resolveProstateMap({ binding: pathScribeDefaultBinding(radical as never)!, answers: inst.answers as never, scheme: BUILT_IN_ORGAN_MAP_SCHEME, templateId: radical.id, instanceId: inst.instanceId });
     const figure = { id: 'f', instanceId: inst.instanceId, mapType: 'prostateSectors' as const, svg: '<svg/>', fingerprint: map.fingerprint, insertedAt: '', insertedBy: 'u', insertedByName: 'U' };

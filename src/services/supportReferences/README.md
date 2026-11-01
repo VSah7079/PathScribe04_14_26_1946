@@ -99,3 +99,7 @@ The route tests read both `App.tsx` and `SignedInApp.tsx`, where every route aft
 
 The support reference service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/DICTIONARIES_CONFIG_API.md`. The mocks are unchanged.
 - Batch 730: `/batch-management/workflow-reports` added to `SUPPORT_ROUTE_PATTERNS`.
+
+## Batch 750
+
+`supportTicketRules.ts`: `/window-position` (Save position for a window) added to the support route list.

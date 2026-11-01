@@ -45,3 +45,7 @@ Two new settings: `VITE_ERROR_MONITORING_DSN` (kind `dsn`: https, public key, pr
 - `VITE_REGULATORY_PROFILE` (Batch 679): "documentation" (default) or "clinical_support".
 
 - `VITE_ENHANCEMENT_REQUEST_URL` (Oct 28, 2026, kind `endpoint`): the default destination for Enhancement Requests; its origin goes into `connect-src` (`deploy/security-headers/securityHeaders.mjs`).
+
+## Batch 750
+
+- `VITE_SLIDE_VIEWER_URL_TEMPLATE` and `VITE_SLIDE_THUMBNAIL_URL_TEMPLATE` (kind `text`): the deployment's default slide image addresses (`digitalPathology/slideImages.ts`). The preview host must be added to the security policy's img-src by hand.

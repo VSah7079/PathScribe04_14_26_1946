@@ -756,7 +756,7 @@ Unlocks: Ninguno.
 ## Patología digital, integración de escáneres WSI y ajustes del visor {#ch4-digital-pathology}
 Breadcrumb: Inicio > Configuración > Sistema
 
-Esta parte trata lo que PathScribe ofrece hoy para la patología digital. Sea exacto con el alcance. Hay dos piezas. La primera, los diccionarios de proveedores de [Integraciones con proveedores](#screen-vendor_integrations), que son listas de nombres y direcciones web. La segunda, la cola de escaneo de portaobjetos de [Gestión de lotes](#screen-batch-management), que envía un manifiesto de escaneo al motor de interfaces y recibe un estado de vuelta. **No construido:** un controlador de escáner específico de un proveedor o un conector de proveedor. Ninguna pantalla configura un escáner, salvo darle nombre como Equipo del tipo "Escáner de portaobjetos" en [Equipos](#screen-equipment). La apertura del visor de imágenes se describe en Integraciones con proveedores. La página del visor simulado es solo una demostración.
+Esta parte trata lo que PathScribe ofrece hoy para la patología digital. Sea exacto con el alcance. Hay dos piezas. La primera, los diccionarios de proveedores de [Integraciones con proveedores](#screen-vendor_integrations), que son listas de nombres y direcciones web. La segunda, la cola de escaneo de portaobjetos de [Gestión de lotes](#screen-batch-management), que envía un manifiesto de escaneo al motor de interfaces y recibe un estado de vuelta. **No construido:** un controlador de escáner específico de un proveedor o un conector de proveedor. Ninguna pantalla configura un escáner, salvo darle nombre como Equipo del tipo "Escáner de portaobjetos" en [Equipos](#screen-equipment). PathScribe no tiene visor de portaobjetos: un portaobjetos escaneado muestra la vista previa de su escáner y se abre en la aplicación de patología digital del laboratorio, configurada en **Imágenes de portaobjetos** dentro de Integraciones con proveedores (lote 750). La página del visor simulado es solo una demostración.
 
 ### Integraciones con proveedores {#screen-vendor_integrations}
 Breadcrumb: Inicio > Configuración > Sistema > Materiales y flujos de trabajo del laboratorio > Integraciones con proveedores
@@ -766,9 +766,9 @@ Breadcrumb: Inicio > Configuración > Sistema > Materiales y flujos de trabajo d
 **1. Navegación:** pestaña **Sistema** de Configuración > grupo **Materiales y flujos de trabajo del laboratorio**
 **2. Elemento de mantenimiento:** Integraciones con proveedores (cuatro categorías en una lista a la izquierda: Patología digital / IA, Visores de WSI, Sistemas de gestión de imágenes, Imagen macroscópica y telepatología)
 
-**3. Finalidad y alcance.** Una pantalla contiene cuatro diccionarios de productos externos. Cada uno es una lista con **Añadir**, **Editar**, **Desactivar / Reactivar** y un interruptor **Mostrar inactivos**. Las entradas no se eliminan nunca. Las listas son datos de referencia: listas de selección y enlaces que leen otras partes de PathScribe. Las listas de Patología digital / IA, Sistemas de gestión de imágenes e Imagen macroscópica son nombres y ajustes que se registran y se muestran; el producto no contiene ningún conector específico de un proveedor que actúe sobre ellos. Solo la lista de Visores de WSI tiene un uso real: su **Plantilla de URL de apertura** se abre desde un caso con el botón **Abrir en el visor**.
+**3. Finalidad y alcance.** Una pantalla contiene cuatro diccionarios de productos externos. Cada uno es una lista con **Añadir**, **Editar**, **Desactivar / Reactivar** y un interruptor **Mostrar inactivos**. Las entradas no se eliminan nunca. Las listas son datos de referencia: listas de selección y enlaces que leen otras partes de PathScribe. Las listas de Patología digital / IA, Sistemas de gestión de imágenes e Imagen macroscópica son nombres y ajustes que se registran y se muestran; el producto no contiene ningún conector específico de un proveedor que actúe sobre ellos. Solo la categoría Visores de WSI tiene un uso real: sus ajustes de **Imágenes de portaobjetos** indican la dirección que abre un portaobjetos en la aplicación de patología digital del laboratorio y la dirección de su vista previa, y la **Plantilla de URL de apertura** de su lista se usa cuando allí no hay ninguna dirección de visor.
 
-**4. Requisitos previos y dependencias.** Ninguno aparte del acceso de la persona. Añada aquí un visor de WSI antes de poder abrir portaobjetos en un visor externo; el equipo escáner es una lista aparte (Equipos).
+**4. Requisitos previos y dependencias.** Ninguno aparte del acceso de la persona. Defina la dirección del visor en Imágenes de portaobjetos (o un visor de WSI con plantilla de apertura) antes de poder abrir portaobjetos en la aplicación del laboratorio; el equipo escáner es una lista aparte (Equipos).
 
 Setup step: Tier 3, step 9
 Requires: Ninguno.
@@ -797,10 +797,20 @@ Los datos de demostración contienen seis entradas: Paige Prostate, Ibex Prostat
 | Nombre del campo | Tipo de dato / formato | Obligatorio/Opcional | Descripción y lógica de negocio | Valor predeterminado del sistema |
 |---|---|---|---|---|
 | Nombre (proveedor / nombre del producto) | Texto | Obligatorio | Guardar está desactivado cuando está vacío. | Ninguno |
-| Plantilla de URL de apertura | Dirección web que contiene el token `{{wsiUniqueId}}` | Opcional | PathScribe sustituye el token por el identificador único del portaobjetos y abre el resultado en una ventana auxiliar. Aparece un aviso cuando el texto no contiene el token. Una entrada sin plantilla muestra "sin URL configurada" y no se puede abrir. | En blanco |
+| Plantilla de URL de apertura | Dirección web que contiene el token `{{wsiUniqueId}}` | Opcional | PathScribe sustituye el token por el identificador del portaobjetos. Solo se usa cuando no hay dirección de visor en Imágenes de portaobjetos: la primera entrada activa con una dirección https válida abre el portaobjetos. Aparece un aviso cuando el texto no contiene el token. | En blanco |
 | Mostrar inactivos | Interruptor | Opcional | | Desactivado |
 
-Todas las entradas de demostración tienen la plantilla en blanco, salvo `[DEMO ONLY] Sample WSI Viewer`, que apunta a una dirección de example.com y no es un visor real.
+Todas las entradas de demostración tienen la plantilla en blanco (la entrada de demostración de example.com se retiró en el lote 750).
+
+#### Imágenes de portaobjetos (Visores de WSI, encima de la lista)
+
+| Nombre del campo | Tipo de dato / formato | Obligatorio/Opcional | Descripción y lógica de negocio | Valor predeterminado del sistema |
+|---|---|---|---|---|
+| Dirección del visor | Dirección web https con `{{slideId}}` y, si se desea, `{{accession}}` | Opcional | Abre el portaobjetos en la aplicación de patología digital del laboratorio, en una ventana aparte que recuerda su posición en cada puesto de trabajo. No debe contener un nombre de usuario, una contraseña ni un nombre de paciente; el inicio de sesión corresponde a esa aplicación. La apertura queda en el registro de auditoría y requiere `case:slide-image:open`. | `VITE_SLIDE_VIEWER_URL_TEMPLATE` de la implantación, si está definida |
+| Dirección de la imagen de vista previa | Dirección web https con `{{slideId}}` y, si se desea, `{{accession}}` | Opcional | La vista previa del portaobjetos procedente del escáner o del sistema de imágenes, mostrada sin modificar con "Vista previa de referencia. No apta para diagnóstico." cuando el portaobjetos está escaneado. Añada su host a la política de seguridad (img-src). | `VITE_SLIDE_THUMBNAIL_URL_TEMPLATE` de la implantación, si está definida |
+| Centros con su propio sistema | Un centro y, después, las mismas dos direcciones | Opcional | Para un centro con su propio escáner o aplicación; en blanco se usa la dirección del laboratorio. | Ninguno |
+
+Para guardar se requiere `config:vendor-integrations:manage`. Sin dirección de visor, el usuario ve "No se ha definido ninguna dirección de visor. Consulte a su administrador." al abrir un portaobjetos. Cada puesto de trabajo elige dónde se abre la ventana de portaobjetos desde el menú del puesto (Ventana de imágenes de portaobjetos, Definir posición).
 
 #### Sistemas de gestión de imágenes (ventana de alta y edición)
 

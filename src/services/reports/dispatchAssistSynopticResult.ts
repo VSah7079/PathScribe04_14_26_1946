@@ -45,6 +45,9 @@ import { buildCombinedRenderPayload, buildWorkupRenderPayload, workupChanges, ty
 import { heldMessage } from './heldMessage';
 import { documentPdf, type IReportDocumentService } from '../reportDocuments/reportDocumentService';
 import type { ReportDocumentType, ReportPdf } from '../reportDocuments/reportDocuments';
+import type { OrganMapDeliverySettings } from '../organMapping/organMapDeliveryRules';
+import type { OrganMapForDelivery } from '../organMapping/organMapDelivery';
+import { ORGAN_MAP_GENERATED_FROM } from '../organMapping/organMapDeliveryRules';
 
 type Result<T> = { ok: true; data: T } | { ok: false; error?: string };
 
@@ -71,11 +74,20 @@ export interface AssistSynopticDeps {
   consolidatePdfs: (caseData: any) => Promise<boolean>;
   /** Batch 538: where each PDF sent is stored once, with its SHA-256 (a retry sends the stored one). */
   documents?: Pick<IReportDocumentService, 'store' | 'read'>;
+  /** Batch 751: the performing lab's organ map delivery (absent: none), and the map drawn for a workup. */
+  organMap?: {
+    settings: (caseData: object) => Promise<OrganMapDeliverySettings>;
+    build: (caseData: object, instance: object, settings: OrganMapDeliverySettings, at: string) => Promise<OrganMapForDelivery | null>;
+    audit: (entry: { event: string; detail: string; caseId: string }) => void;
+  };
 }
 
 const DOCUMENT_TYPE: Record<LisSyncKind, ReportDocumentType> = {
-  final: 'FINAL', case_pdf: 'FINAL', corrected: 'CORRECTED', corrected_with_addition: 'CORRECTED', new_instance: 'ADDENDUM',
+  final: 'FINAL', case_pdf: 'FINAL', corrected: 'CORRECTED', corrected_with_addition: 'CORRECTED', new_instance: 'ADDENDUM', organ_map: 'FINAL',
 };
+
+/** Batch 751: the messages that are a workup's own versions (not the case PDF or an organ map file). */
+export const isWorkupMessage = (e: Pick<OutboundLisSyncQueueEntry, 'kind'>) => e.kind !== 'case_pdf' && e.kind !== 'organ_map';
 
 /**
  * Batch 538: the PDF a message carries. A retry with the entry's stored document sends those bytes;
@@ -98,7 +110,7 @@ async function messagePdf(
 
 const documentFields = (d?: { id: string; sha256?: string }) => (d ? { reportDocumentId: d.id, ...(d.sha256 ? { pdfSha256: d.sha256 } : {}) } : {});
 
-const KIND_TO_FLAG: Record<LisSyncKind, 'A' | 'P'> = { final: 'A', corrected: 'A', corrected_with_addition: 'A', new_instance: 'P', case_pdf: 'A' };
+const KIND_TO_FLAG: Record<LisSyncKind, 'A' | 'P'> = { final: 'A', corrected: 'A', corrected_with_addition: 'A', new_instance: 'P', case_pdf: 'A', organ_map: 'A' };
 
 /** The plain-text header the LIS shows above the block (literal English, as Assist always sent it). */
 export function embeddedLisHeader(kind: LisSyncKind, timestamp: string, sequenceNumber?: number, title?: string): string {
@@ -126,6 +138,13 @@ export interface PreparedAssistMessage {
   version: number;
   /** Batch 538: the stored document the message carries. */
   document?: { id: string; sha256?: string };
+  /** Batch 751: the organ map sent with it (text in the message; a file to send after it). */
+  organMap?: OrganMapForDelivery & { destination: string };
+}
+
+/** Batch 751: the map's plain lines under a heading (literal English, like the block's other headers). */
+export function organMapTextBlock(lines: string[]): string {
+  return [`--- ORGAN MAP (generated from the ${ORGAN_MAP_GENERATED_FROM}) ---`, ...lines].join('\n');
 }
 
 /**
@@ -161,12 +180,22 @@ export async function prepareAssistSynopticMessage(
   const changes = input.kind === 'final' || input.kind === 'new_instance' ? [] : workupChanges(input.previous, result.synoptic_observations);
   const timestamp = deps.now();
   const embeddedHeader = embeddedLisHeader(input.kind, timestamp, input.sequenceNumber, instance.templateName);
+  // Batch 751: the organ map, when the performing lab has asked for it (text in this message, a file after it).
+  const mapSettings = deps.organMap ? await deps.organMap.settings(c).catch(() => null) : null;
+  const map = mapSettings && mapSettings.mode !== 'off' ? await deps.organMap!.build(c, instance, mapSettings, input.signer.signedAt).catch(() => null) : null;
+  const organMap = map ? { ...map, destination: mapSettings!.destination } : undefined;
   const message = {
     kind: input.kind, caseId: input.caseId, instanceId: input.instanceId, transactionStatusFlag: KIND_TO_FLAG[input.kind],
-    embeddedHeader, fullPayloadText: `${embeddedHeader}\n\n${synopticText(result, changes)}`, timestamp, synopticResult: result,
+    embeddedHeader, fullPayloadText: `${embeddedHeader}\n\n${synopticText(result, changes)}${map ? `\n\n${organMapTextBlock(map.lines)}` : ''}`, timestamp, synopticResult: result,
+    ...(map ? {
+      organMap: {
+        generatedFrom: ORGAN_MAP_GENERATED_FROM, mapType: map.mapType, lines: map.lines,
+        ...(map.file ? { file: { fileName: map.file.fileName, contentType: map.file.contentType, sha256: map.file.sha256 } } : {}),
+      },
+    } : {}),
   };
   // Batch 427: in the combined mode the PDF goes once for the case (dispatchAssistCasePdf), not per workup.
-  if (input.combinedPdfDocumentId) return { ok: true, version: input.version, observations: result.synoptic_observations, payload: message };
+  if (input.combinedPdfDocumentId) return { ok: true, version: input.version, observations: result.synoptic_observations, payload: message, ...(organMap ? { organMap } : {}) };
   const lang = await deps.reportLanguage(c);
   const accession = result.header.accession_number;
   const pdf = await messagePdf(() => deps.renderPdf(buildWorkupRenderPayload({
@@ -189,6 +218,7 @@ export async function prepareAssistSynopticMessage(
     version: input.version,
     observations: result.synoptic_observations,
     ...(pdf.documentId ? { document: { id: pdf.documentId, ...(pdf.sha256 ? { sha256: pdf.sha256 } : {}) } } : {}),
+    ...(organMap ? { organMap } : {}),
     payload: { ...message, workupPdf: { documentId: result.header.pdf_document_id, contentType: 'application/pdf', base64: pdf.pdfBase64 } },
   };
 }
@@ -209,7 +239,7 @@ export async function dispatchAssistSynopticResult(
   if (c.reportingMode !== 'assist') return { outcome: 'notAssist' };
   const prior = await deps.queue.getByCaseId(input.caseId);
   const entries = prior.ok ? prior.data : [];
-  const mine = entries.filter(e => e.instanceId === input.instanceId);
+  const mine = entries.filter(e => e.instanceId === input.instanceId && isWorkupMessage(e));
   if (input.kind === 'final' && mine.some(e => e.kind === 'final')) return { outcome: 'alreadySent' };
   const version = mine.length + 1;
   const previous = [...mine].reverse().find(e => e.sentObservations)?.sentObservations;
@@ -230,6 +260,10 @@ export async function dispatchAssistSynopticResult(
   }
   const sent = await deps.dispatch(queued.data.id, prepared.payload);
   if (combined && !input.skipCasePdf) await dispatchAssistCasePdf(input.caseId, input.signer, deps);
+  // Batch 751: the organ map file follows its workup's message (its failure never touches the workup's outcome).
+  if (prepared.organMap && (prepared.organMap.file || prepared.organMap.fileProblem)) {
+    await dispatchOrganMapFile({ caseId: input.caseId, instanceId: input.instanceId, organisationId: organisationId ?? '', signer, map: prepared.organMap }, deps).catch(() => undefined);
+  }
   if (sent.ok) { await deps.queue.markSent(queued.data.id); return { outcome: 'sent', queueEntryId: queued.data.id, version }; }
   await deps.queue.markFailed(queued.data.id, { errorCode: (sent.errorCode as any) ?? 'DISPATCH_REJECTED', errorMessage: sent.error ?? 'Unknown dispatch failure.', maxRetriesExceeded: false });
   return { outcome: 'failed', queueEntryId: queued.data.id, version, error: sent.error };
@@ -258,7 +292,7 @@ export async function prepareAssistCasePdfMessage(
   const lang = await deps.reportLanguage(c);
   const workups: Parameters<typeof buildCombinedRenderPayload>[0]['workups'] = [];
   for (const inst of finals) {
-    const sentForIt = entries.filter(e => e.instanceId === inst.instanceId && e.kind !== 'case_pdf').sort((a, b) => (a.workupVersion ?? 0) - (b.workupVersion ?? 0));
+    const sentForIt = entries.filter(e => e.instanceId === inst.instanceId && isWorkupMessage(e)).sort((a, b) => (a.workupVersion ?? 0) - (b.workupVersion ?? 0));
     const latest = sentForIt[sentForIt.length - 1];
     const before = sentForIt.length > 1 ? sentForIt[sentForIt.length - 2].sentObservations : undefined;
     const kind = latest?.kind ?? 'final';
@@ -359,8 +393,9 @@ export async function rebuildAssistSynopticMessage(entry: OutboundLisSyncQueueEn
     const f = p as { reason: string; held?: string };
     return f.reason === 'held' ? { held: f.held ?? '' } : null;
   }
+  if (entry.kind === 'organ_map') return rebuildOrganMapFileMessage(entry, deps);
   const all = await deps.queue.getByCaseId(entry.caseId);
-  const earlier = (all.ok ? all.data : []).filter(e => e.instanceId === entry.instanceId && e.id !== entry.id && (e.workupVersion ?? 0) < (entry.workupVersion ?? 1));
+  const earlier = (all.ok ? all.data : []).filter(e => e.instanceId === entry.instanceId && isWorkupMessage(e) && e.id !== entry.id && (e.workupVersion ?? 0) < (entry.workupVersion ?? 1));
   const previous = [...earlier].reverse().find(e => e.sentObservations)?.sentObservations;
   const prepared = await prepareAssistSynopticMessage({
     caseId: entry.caseId, instanceId: entry.instanceId, kind: entry.kind, version: entry.workupVersion ?? 1, previous,
@@ -371,4 +406,59 @@ export async function rebuildAssistSynopticMessage(entry: OutboundLisSyncQueueEn
   if (prepared.ok === true) return prepared.payload;
   const failed = prepared as { reason: string; held?: string };
   return failed.reason === 'held' ? { held: failed.held ?? '' } : null;
+}
+
+// ── Batch 751: the organ map file (spec section 12.3) ───────────────────────────────────────────────────────────────
+
+/** The organ_map message: the file, what it is, and where the interface engine is to put it. */
+function organMapFilePayload(caseId: string, instanceId: string, timestamp: string, map: OrganMapForDelivery & { destination: string }): object | null {
+  if (!map.file) return null;
+  return {
+    kind: 'organ_map', caseId, instanceId, transactionStatusFlag: 'A', timestamp, destination: map.destination,
+    organMapFile: { ...map.file, mapType: map.mapType, fingerprint: map.fingerprint, generatedFrom: ORGAN_MAP_GENERATED_FROM },
+  };
+}
+
+/** Queues and sends one organ map file; a file that couldn't be drawn is queued as held, for retry. Audited either way. */
+export async function dispatchOrganMapFile(
+  input: { caseId: string; instanceId: string; organisationId: string; signer: { id: string; name: string; signedAt: string }; map: OrganMapForDelivery & { destination: string } },
+  deps: AssistSynopticDeps,
+): Promise<{ outcome: 'sent' | 'failed' | 'held'; queueEntryId?: string }> {
+  const { map } = input;
+  const record = { fileName: map.file?.fileName ?? '', ...(map.file ? { sha256: map.file.sha256 } : {}), fingerprint: map.fingerprint, mapType: map.mapType, destination: map.destination };
+  const queued = await deps.queue.enqueue({ caseId: input.caseId, instanceId: input.instanceId, kind: 'organ_map', organisationId: input.organisationId, signer: input.signer, organMapFile: record });
+  if (queued.ok === false) return { outcome: 'failed' };
+  const what = `${map.mapType} map for synoptic ${input.instanceId}`;
+  const payload = organMapFilePayload(input.caseId, input.instanceId, deps.now(), map);
+  if (!payload) {
+    const why = map.fileProblem ?? 'The organ map file could not be drawn.';
+    await deps.queue.markFailed(queued.data.id, { errorCode: 'DISPATCH_REJECTED', errorMessage: heldMessage(why), maxRetriesExceeded: false });
+    deps.organMap?.audit({ event: 'Organ Map File Delivery Failed', detail: `${what}: ${why}`, caseId: input.caseId });
+    return { outcome: 'held', queueEntryId: queued.data.id };
+  }
+  const sent = await deps.dispatch(queued.data.id, payload);
+  if (sent.ok) {
+    await deps.queue.markSent(queued.data.id);
+    deps.organMap?.audit({ event: 'Organ Map File Sent', detail: `${what}: ${record.fileName} (SHA-256 ${(record.sha256 ?? '').slice(0, 12)}, fingerprint ${map.fingerprint.slice(0, 12)}) to ${map.destination}`, caseId: input.caseId });
+    return { outcome: 'sent', queueEntryId: queued.data.id };
+  }
+  await deps.queue.markFailed(queued.data.id, { errorCode: (sent.errorCode as OutboundLisSyncQueueEntry['errorCode']) ?? 'DISPATCH_REJECTED', errorMessage: sent.error ?? 'Unknown dispatch failure.', maxRetriesExceeded: false });
+  deps.organMap?.audit({ event: 'Organ Map File Delivery Failed', detail: `${what}: ${record.fileName} to ${map.destination}: ${sent.error ?? 'unknown dispatch failure'}`, caseId: input.caseId });
+  return { outcome: 'failed', queueEntryId: queued.data.id };
+}
+
+/** The outbound queue's retry of an organ map file: drawn again from the workup's final answers, under the same file
+ *  name (the result message names it). Held again when it still can't be drawn; null when there is no map now. */
+export async function rebuildOrganMapFileMessage(entry: OutboundLisSyncQueueEntry, deps: AssistSynopticDeps): Promise<object | { held: string } | null> {
+  if (!deps.organMap) return null;
+  const c = await deps.getCase(entry.caseId);
+  const instance = (c?.synopticReports ?? []).find(r => r.instanceId === entry.instanceId);
+  if (!c || !instance) return null;
+  const settings = await deps.organMap.settings(c);
+  if (settings.mode !== 'textAndFile') return null;
+  const map = await deps.organMap.build(c, instance, settings, entry.signer?.signedAt ?? entry.queuedAt).catch(() => null);
+  if (!map) return null;
+  if (!map.file) return { held: heldMessage(map.fileProblem ?? 'The organ map file could not be drawn.') };
+  const fileName = entry.organMapFile?.fileName || map.file.fileName;
+  return organMapFilePayload(entry.caseId, entry.instanceId, deps.now(), { ...map, file: { ...map.file, fileName }, destination: entry.organMapFile?.destination || settings.destination });
 }

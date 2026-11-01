@@ -1,3 +1,5 @@
+**Batch 755b:** `demo/demoAccounts.ts`: Paul Carter signs in to his own record (UK-ADV-001, no clinical credentials); the Manchester demo pathologist PATH-UK-001 is the fictional Dr. Imogen Hartley, with her own demo sign-in (imogen.hartley@demo.pathscribe.ai, shared demo password).
+
 **Batch 738:** `demo/demoAccounts.ts`: jordan.ellis@demo.pathscribe.ai (administrator only), same shared demo password (hash only).
 
 **Batch 675 (access-14):** `mfa/IMfaPolicyService.ts`, `httpMfaPolicyService.ts`, `mockMfaPolicyService.ts`, `mfaPolicyServiceInstance.ts`: the organisation's second-factor policy on the API server. `mfaService` takes an optional `policySource` (set only when an API server is configured); `loadPolicy` copies the server policy into the in-memory store the synchronous checks use, and `authSession` refuses a single sign-on (`server_unavailable`) or ends a restored session if it cannot be read. Contract: `docs/architecture/ACCESS_SESSION_API.md` §5.
@@ -127,7 +129,7 @@ It moved here from `useSignOutWorkflow.ts` so Surgical Pathology, Autopsy and (n
 
 ## Batch 371 (Pete: Superadmin is reserved for ForMedrixAI support)
 
-- **Demo accounts.** These stay `superadmin`: Pete Nimmo (both emails), System Admin, Paul Carter, Amber Fehrs-Battey, Bronwyn Prior and Rossana Babakhani. Dr. Sarah Johnson, Dr. Oliver Pemberton and Dr. J. Mark Tuthill now sign in as `pathologist`, so they see the product as their own staff would. Sarah Johnson gained a staff record (Pathologist, ORG-DVMC) in `users/mockUserService.ts`, which bumps the seed version.
+- **Demo accounts.** These stay `superadmin`: Pete Nimmo (both emails), System Admin, Paul Carter (UK workflow adviser; since Batch 755b his own id, UK-ADV-001, not the Manchester pathologist PATH-UK-001), Amber Fehrs-Battey, Bronwyn Prior and Rossana Babakhani. Dr. Sarah Johnson, Dr. Oliver Pemberton and Dr. J. Mark Tuthill now sign in as `pathologist`, so they see the product as their own staff would. Sarah Johnson gained a staff record (Pathologist, ORG-DVMC) in `users/mockUserService.ts`, which bumps the seed version.
 - **`caseAccessControl.isCrossTenantSupportAccess`** (new, pure): whether a granted case open relies on support access, i.e. a superadmin session and another organisation's case. `CaseRouter.getCase` then checks `platform:cross-tenant-cases:view`, which writes the audit entry. The tenant-check bypass in `resolveCaseAccess` itself is unchanged.
 
 ## Batch 374

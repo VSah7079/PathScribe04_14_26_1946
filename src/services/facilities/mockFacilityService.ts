@@ -1,4 +1,5 @@
 import { ServiceResult, ID } from '../types';
+import { organMapDeliveryChangeDetail, organMapDeliveryOf, validateOrganMapDelivery } from '../organMapping/organMapDeliveryRules';
 import { storageGet, storageSet } from '../mockStorage';
 import type { Facility, IFacilityService } from './IFacilityService';
 // Batch 428: the catch-all subspecialty is part of saving the facility (already
@@ -342,6 +343,8 @@ const SEED_FACILITIES: Facility[] = linkFacilitiesToOrganisations([
       enabled: true, mode: 'DIRECT_NETWORK_PRINT', paperSize: 'LETTER',
       directNetworkPrintDestination: { protocol: 'IPP', ipAddress: '10.20.30.40', displayName: 'Histology LaserJet (demo)' },
     },
+    // Batch 751 (seed row S15): the demo lab sends the organ map to its laboratory system as text and a PNG file.
+    organMapDelivery: { mode: 'textAndFile', fileFormat: 'png', destination: 'sftp://demo-interface.example/organ-maps' },
     status: 'Active', pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     tatFirstTouchHours: null, tatTotalHours: null,
     escalationTargets: [], escalationPriority: 'high',
@@ -632,7 +635,7 @@ const SEED_FACILITIES: Facility[] = linkFacilitiesToOrganisations([
 // unprotected gap this file's own new Korean facility
 // (c-kr-seoul-general) would otherwise silently never reach anyone
 // with pre-existing cached facility data.
-const SEED_VERSION = '8'; // Batch 372: hospital ids linked to their organisations; the international screening labs are their own organisations. (7, Batch 354: Manchester clients under their hospital sites; 6, Batch 352: the ordering clients of the Manchester, Midwest, Henry Ford and Desert Valley labs. 5: Lagan Valley Women's Health Centre.)
+const SEED_VERSION = '9'; // Batch 751: the demo lab's organ map delivery (Text and image file). 8, Batch 372: hospital ids linked to their organisations; the international screening labs are their own organisations. (7, Batch 354: Manchester clients under their hospital sites; 6, Batch 352: the ordering clients of the Manchester, Midwest, Henry Ford and Desert Valley labs. 5: Lagan Valley Women's Health Centre.)
 const SEED_VERSION_KEY = 'pathscribe_facilities_seed_version';
 if (storageGet<string | null>(SEED_VERSION_KEY, null) !== SEED_VERSION) {
   storageSet('pathscribe_facilities', SEED_FACILITIES);
@@ -687,7 +690,7 @@ void (async () => {
  * someone with only config:facilities:manage from changing printing.
  */
 function withoutPrintSettings<T extends Partial<Facility>>(input: T): T {
-  const { printDeliveryConfig: _d, printPresentationPreference: _p, allowDirectDevicePrinting: _x, ...rest } = input;
+  const { printDeliveryConfig: _d, printPresentationPreference: _p, allowDirectDevicePrinting: _x, organMapDelivery: _m, ...rest } = input;
   return rest as T;
 }
 
@@ -760,6 +763,21 @@ const facilityServiceUnchecked: IFacilityService = {
     return ok({ ...next });
   },
 
+  async setOrganMapDelivery(id, settings) {
+    await delay();
+    const idx = MOCK_FACILITIES.findIndex(f => f.id === id);
+    if (idx === -1) return err(`Facility ${id} not found`);
+    const checked = validateOrganMapDelivery(settings);
+    if (!checked.ok) return err(`ORGAN_MAP_DELIVERY_${checked.problem}`);
+    const before = organMapDeliveryOf(MOCK_FACILITIES[idx]);
+    const next: Facility = { ...MOCK_FACILITIES[idx], organMapDelivery: checked.settings.mode === 'off' && !checked.settings.destination ? undefined : checked.settings, updatedAt: new Date().toISOString() };
+    MOCK_FACILITIES = MOCK_FACILITIES.map((f, i) => (i === idx ? next : f));
+    persist(MOCK_FACILITIES);
+    const who = readSessionProfile();
+    void mockAuditService.logEvent({ type: 'user', event: 'Organ Map Delivery Changed', detail: organMapDeliveryChangeDetail(next.name, id, before, checked.settings), user: who?.name ?? who?.id ?? 'unknown', caseId: null, confidence: null }).catch(() => undefined);
+    return ok({ ...next });
+  },
+
   async deactivate(id) { return facilityServiceUnchecked.update(id, { status: 'Inactive' }); },
   async reactivate(id) { return facilityServiceUnchecked.update(id, { status: 'Active' }); },
   async verify(id) { return facilityServiceUnchecked.update(id, { status: 'Active' }); },
@@ -804,4 +822,6 @@ export const mockFacilityService: IFacilityService = guardConfigWrites(facilityS
   ['config:print-settings:manage', ['setPrintSettings']],
   // Batch 734 (Pete, Decision 6): direct browser-to-printer printing has its own permission.
   ['config:direct-device-printing:manage', ['setDirectDevicePrinting']],
+  // Batch 751 (spec section 12.3): organ map delivery to the laboratory system has its own permission.
+  ['config:organ-map-delivery:manage', ['setOrganMapDelivery']],
 ]);

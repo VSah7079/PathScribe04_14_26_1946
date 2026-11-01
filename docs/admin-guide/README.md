@@ -1,3 +1,5 @@
+**Batch 755a:** chapter 6 (Synoptic Library) describes the demonstration checklists by their plain names and tag, in all six languages; rebuilt and published.
+
 **Batch 739:** `src/02-tier1-primary-prerequisites.md` (and fr, de, nl, ko, es): Equipment kind Liquid-based cytology processor. Rebuilt.
 
 **Batch 737:** `src/02-tier1-primary-prerequisites.md` (and fr, de, nl, ko, es): Equipment → Staining racks. Rebuilt.
@@ -51,3 +53,11 @@
 ## Batch 732
 
 - Batch 732: chapter 2 Equipment, "Takes large-format slides" (all six languages). Rebuilt (English).
+
+## Batch 750
+
+- Batch 750: chapter 4, digital pathology and Vendor Integrations: no viewer in PathScribe; the WSI Viewers category's **Slide images** table; the example.com demo entry gone (six languages). Published.
+
+## Batch 751
+
+- Batch 751: chapter 2, Facility editor, LIS Integration tab: the three Organ map delivery rows (six languages). Published.

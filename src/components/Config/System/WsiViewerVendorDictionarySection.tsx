@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Real, per direct follow-up: "where is the url to the vendor
 // configured?" — confirmed directly first: it wasn't. The data layer
-// (IWsiViewerVendorService.ts) and the consumer (WsiViewerLaunchButton.tsx)
+// (IWsiViewerVendorService.ts) and the consumer (WsiViewerLaunchButton.tsx; since Batch 750 SlideImagePreview.tsx)
 // existed with no admin screen to actually set a real vendor's real
 // launchUrlTemplate. Same real list/add-edit-modal/deactivate pattern
 // as DpVendorDictionarySection.tsx (this app's own established
@@ -29,6 +29,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect } from 'react';
+import SlideImageSettingsCard from './SlideImageSettingsCard';
 import { useTranslation, Trans } from 'react-i18next';
 import '../../../pathscribe.css';
 
@@ -123,6 +124,9 @@ const WsiViewerVendorDictionarySection: React.FC = () => {
         <button className="ps-conf-btn-secondary" onClick={() => setModal({ mode: 'add' })}>{t('wsiViewerVendorSection.addVendor')}</button>
       </div>
 
+      {/* Batch 750: the slide preview and viewer addresses; a laboratory's own address is used before this list. */}
+      <SlideImageSettingsCard />
+
       <label className="ps-conf-toggle-label-row ps-conf-toggle-label-row--gap-below">
         <input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} className="ps-conf-radio-input" />
         <span className="ps-conf-option-text">{t('wsiViewerVendorSection.showInactive')}</span>
@@ -135,8 +139,8 @@ const WsiViewerVendorDictionarySection: React.FC = () => {
               {e.name}
               <span className="ps-conf-row-meta">
                 {e.launchUrlTemplate.trim() ? e.launchUrlTemplate : t('wsiViewerVendorSection.noUrlConfigured')}
-                {!e.active ? ` · ${t('wsiViewerVendorSection.inactive')}` : ''}
               </span>
+              {!e.active && <span className="ps-conf-row-meta">{t('wsiViewerVendorSection.inactive')}</span>}
             </span>
             <div className="ps-conf-row-actions">
               <button className="ps-conf-btn-secondary" onClick={() => toggleActive(e)}>{e.active ? t('wsiViewerVendorSection.actions.deactivate') : t('wsiViewerVendorSection.actions.reactivate')}</button>

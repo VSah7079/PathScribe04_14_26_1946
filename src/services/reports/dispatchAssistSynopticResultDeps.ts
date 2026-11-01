@@ -12,6 +12,23 @@ import { resolveReportLocaleForFacility } from './resolveReportLocale';
 import { surgicalReportLabelsFor, formatReportDateOfBirth } from './surgicalReportLabels';
 import { formatDateTime } from '@/utils/formatDate';
 import { resolvePerformingLabFacility } from './resolveReportLocale';
+import { reportTranslateFor } from './reportTranslate';
+import { organMapDeliveryOf, organMapForDelivery, type OrganMapFileFormat } from '../organMapping/organMapDelivery';
+import { svgToJpegDataUrl, svgToPngDataUrl } from '../documentRendering/svgToPng';
+import { jpegPdfBase64 } from '../documentRendering/imagePdf';
+import { auditService } from '../auditlog/auditServiceInstance';
+
+/** Batch 751: the organ map drawn as the file the site asked for (a browser canvas; undefined where there is none). */
+export async function drawOrganMapFile(svg: string, format: OrganMapFileFormat): Promise<{ base64: string } | undefined> {
+  if (format === 'png') {
+    const png = await svgToPngDataUrl(svg, 3);
+    return png?.startsWith('data:image/png;base64,') ? { base64: png.slice('data:image/png;base64,'.length) } : undefined;
+  }
+  const jpeg = await svgToJpegDataUrl(svg, 3);
+  if (!jpeg?.startsWith('data:image/jpeg;base64,')) return undefined;
+  const pdf = jpegPdfBase64(jpeg.slice('data:image/jpeg;base64,'.length));
+  return pdf ? { base64: pdf } : undefined;
+}
 
 /** The code system releases this deployment has loaded (SNOMED CT edition, ICD-10-CM year, ICD-O). Unset is
  *  sent as null, never guessed; the API server sets these from its terminology release (PS-345). */
@@ -47,4 +64,16 @@ export const assistSynopticDeps: AssistSynopticDeps = {
   now: () => new Date().toISOString(),
   // Batch 427: the performing lab's "one combined PDF per case" setting (Facility → LIS Integration).
   consolidatePdfs: caseData => labConsolidatesPdfs(caseData?.order?.facilityId),
+  // Batch 751: the performing lab's organ map delivery (Facility → LIS Integration), drawn in the report's language.
+  organMap: {
+    settings: async caseData => organMapDeliveryOf(await resolvePerformingLabFacility((caseData as { order?: { facilityId?: string } }).order?.facilityId).catch(() => undefined)),
+    build: async (caseData, instance, settings, at) => {
+      const c = caseData as Parameters<typeof organMapForDelivery>[0];
+      return organMapForDelivery(c, instance as Parameters<typeof organMapForDelivery>[1], settings, at, { t: (await reportTranslateFor(c.order?.facilityId)) as never, drawFile: drawOrganMapFile });
+    },
+    audit: entry => {
+      void auditService.logEvent({ type: 'system', event: entry.event, detail: entry.detail, user: 'System', caseId: entry.caseId, confidence: null })
+        .catch(e => console.error('[organMapDelivery] could not audit:', e));
+    },
+  },
 };

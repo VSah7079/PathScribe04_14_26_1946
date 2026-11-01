@@ -95,6 +95,7 @@ Endpoints so far:
 | Reset all demo data (demo deployments only) | `config:demo-data:reset` |
 | Open a case from another organisation (support) | `platform:cross-tenant-cases:view`, audited on every open |
 | Change the governing-body content settings | `platform:governing-bodies:manage` |
+| Remove the demonstration checklists from an organisation's library (`POST /api/templates/remove-demo-checklists`, Batch 754; `docs/architecture/DEMO_CHECKLISTS.md`) | `platform:demo-checklists:remove` and `config:protocol:retire` |
 | Change the Superadmin role | refused for everyone at a hospital; ForMedrixAI defines it |
 | Any endpoint serving a screen reached from Home (its lists and data) | that screen's `screen:<name>:open` (Batch 374), besides the action's own capability |
 | Complete grossing (case to Gross Complete) | `case:grossing:complete` with the case's facility; the organisation's Grossing field requirements checked first |
@@ -126,6 +127,7 @@ Endpoints so far:
 | Hand a cell block off to histology at the Cytology Preparation bench | `cytology:cell-block:hand-off` (Batch 740) |
 | Divide a specimen into aliquots; update an aliquot's status | `material:specimen:divide` / `material:aliquot-status:update` (Batch 741) |
 | Attach a file to a case; link a file; remove an attachment from a case | `case:attachment:upload` / `case:attachment:link` / `case:attachment:unlink` (Batch 742) |
+| Open a slide in the laboratory's own digital pathology application | `case:slide-image:open` (Batch 750) |
 | Complete a reconciliation with discrepancies; abort a batch; acknowledge a cold-chain excursion | `batch:reconciliation:override` / `batch:run:abort` / `batch:cold-chain-excursion:acknowledge` (Batch 404) |
 | Seal a carrier's manifest; move a carrier to its next step; open a carrier at a station for another step; read the station scan trail | `batch:manifest:seal` / `batch:carrier:advance` / `station:scan-mismatch:continue` / `station:scan-history:view` (Batch 726) |
 | Supersede a molecular run (clone and retire the original) | `molecular:batch:supersede` (Batch 405) |
@@ -334,6 +336,7 @@ code.
 | `config:printers:manage` | Manage printers. | high | Admin, Lab Director | `printerProfiles/mockPrinterProfileService.ts` |
 | `config:print-settings:manage` | Manage print settings, including a facility's report printing (Batch 517). Batch 553: also lets the Printing tab list the facility's own site agent printers for its default (`siteAgent/siteAgentAdminService.ts` reportPrinters). | high | Admin, Lab Director | `printSettings/mockFacilityPrintSettingsService.ts`, `printSettings/mockPrintSettingsService.ts`, `facilities/mockFacilityService.ts` (setPrintSettings) |
 | `config:direct-device-printing:manage` | Turn direct browser-to-printer printing on or off for a facility (Batch 734, Pete's Decision 4). Off by default in a server deployment; every direct print, and every blocked one, is audited. | high | Admin, Lab Director | `facilities/mockFacilityService.ts` (setDirectDevicePrinting) |
+| `config:organ-map-delivery:manage` | Set a performing lab's organ map delivery to its laboratory system on Assist cases: off (default), text only, or text and an image file (PNG or PDF) to a destination (Batch 751, spec section 12.3). Audited; each delivery and failure is audited too. | high | Admin, Lab Director | `facilities/mockFacilityService.ts` (setOrganMapDelivery) |
 | `config:print-routing:manage` | Manage print routing. Batch 553: also lets the rule window list a site's agent printers (`siteAgent/siteAgentAdminService.ts` reportPrinters). | high | Admin, Lab Director | `printRouting/mockPrintRoutingRuleService.ts` |
 | `config:label-layouts:manage` | Manage label layouts. | high | Admin, Lab Director | `labelDesigner/mockLabelLayoutService.ts` |
 | `config:cassette-routing:manage` | Manage cassette routing. | high | Admin, Lab Director | `cassetteRouting/mockCassetteRoutingRuleService.ts` |
@@ -499,6 +502,7 @@ code.
 | `case:attachment:upload` | Attach External File: a PDF, JPG or PNG sent to the hospital's own storage through the storage adapter; PathScribe keeps only the pointer it hands back (Batch 742; `CASE_ATTACHMENTS_API.md`). | standard | Every case-access role; hospital roles with case access | `caseAttachments/caseAttachments.ts` |
 | `case:attachment:link` | Attach an https link into a hospital system to a case (Batch 742). | standard | Every case-access role; hospital roles with case access | `caseAttachments/caseAttachments.ts` |
 | `case:attachment:unlink` | Remove an attachment from a case: unlinks only, the stored file is never deleted; refused while it is placed in the report (Batch 742). | standard | Every case-access role; hospital roles with case access | `caseAttachments/caseAttachments.ts` |
+| `case:slide-image:open` | Open a slide from its reference preview in the laboratory's own digital pathology application (a separate window; the address comes from the configured template; audited with who, which slide and when, no patient name) (Batch 750). | standard | Every case-access role; hospital roles with case access | `digitalPathology/slideImageOpen.ts` |
 | `report:related-cases:attach` | Choose a patient's other released cases to send with the report being signed out, and take them off before sign-out. The chosen cases are fixed when the report is signed out and travel with it in print, PDF and outbound results; a later amendment of a chosen case raises a flag and does not change the signed report (Batch 613). | standard | Pathologist, Fellow | `relatedCases/relatedCaseAttachments.ts` |
 | `patient:summary:print` | Print a Patient summary of a patient's released cases that the user may already see, from the patient history. Labelled a summary, not a signed report; every print is audited with counts only (Batch 613). | high | Every case-access role; hospital roles with case access | `relatedCases/patientSummary.ts` |
 | `ai:history-extraction:run` | Run the AI extraction on a historical report: the AI reads its Final Diagnosis and Microscopic text and the synoptic fields it finds are kept beside the case, labelled not verified. Advisory only; audited (`HISTORY_EXTRACTION_RUN`, no patient text) (Batch 621). | high | Pathologist, Fellow, Resident | `historyExtraction/runHistoryExtraction.ts`, `historyExtraction/mockHistoryExtractionService.ts` `save` |
@@ -679,7 +683,7 @@ code.
 | `screen:registry-exceptions:open` | Open Registry Exceptions. | standard | Admin, Lab Director, QA Reviewer; hospital roles with configuration access | `registrySubmission/captureRegistryExceptionAsCapa.ts`, `screens/screenAccess.ts` |
 | `screen:configuration:open` | Open Configuration. | standard | Admin, Template Author, Template Approver, Lab Director; hospital roles with configuration access | `screens/screenAccess.ts` |
 
-### ForMedrixAI platform support (6)
+### ForMedrixAI platform support (7)
 
 | Capability | What it allows | Risk | Default roles | Checked in (`src/services/`) |
 |---|---|---|---|---|
@@ -689,6 +693,7 @@ code.
 | `platform:interface-dictionary:manage` | Create vendor interface profiles, edit their field mappings and test them (Interface Dictionary). | high | Superadmin only (ForMedrixAI support) | `interfaceDictionary/interfaceDictionaryServices.ts` |
 | `platform:interface-dictionary:publish` | Publish, roll back or switch off a vendor interface profile. Needs manage. | high | Superadmin only (ForMedrixAI support) | `interfaceDictionary/interfaceDictionaryServices.ts` |
 | `platform:interface-dictionary:simulate` | Demo: apply a pasted vendor message to a case. Needs manage. | high | Superadmin only (ForMedrixAI support) | `interfaceDictionary/interfaceDictionaryServices.ts` |
+| `platform:demo-checklists:remove` | Remove the 19 demonstration checklists (tagged "Demo wording") from a customer organisation's synoptic library; each is archived (Batch 754). Needs `config:protocol:retire`. Audited. | high | Superadmin only (ForMedrixAI support) | `templates/demoChecklistRemoval.ts` |
 <!-- capability-catalog:end -->
 
 ## Configuration endpoints the API server must check (Batch 429, PS-345)
@@ -793,6 +798,7 @@ One row per write the browser's mock services do today. The endpoint that replac
 | `printSettings/mockPrintSettingsService.ts` | update, reset | `config:print-settings:manage` |
 | `facilities/mockFacilityService.ts` | setPrintSettings (Batch 517; add and update never change report printing) | `config:print-settings:manage` |
 | `facilities/mockFacilityService.ts` | setDirectDevicePrinting (Batch 734) | `config:direct-device-printing:manage` |
+| `facilities/mockFacilityService.ts` | setOrganMapDelivery (Batch 751) | `config:organ-map-delivery:manage` |
 | `secureMessaging/mockSecureMessagingConfigService.ts` | save | `config:secure-messaging:manage` |
 | `printerProfiles/mockPrinterProfileService.ts` | add, update, remove | `config:printers:manage` |
 | `protocols/mockProtocolService.ts` | add, update, restoreVersion | `config:processing-protocols:manage` |

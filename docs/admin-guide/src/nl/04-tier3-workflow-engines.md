@@ -756,7 +756,7 @@ Unlocks: Geen.
 ## Digitale pathologie, integratie van WSI-scanners en viewerinstellingen {#ch4-digital-pathology}
 Breadcrumb: Start > Configuratie > Systeem
 
-Dit deel behandelt wat PathScribe vandaag voor digitale pathologie biedt. Wees precies over de omvang. Er zijn twee onderdelen. Ten eerste de leveranciers-woordenboeken op [Leveranciersintegraties](#screen-vendor_integrations), dat lijsten met namen en webadressen zijn. Ten tweede de wachtrij voor het scannen van preparaten op [Batchbeheer](#screen-batch-management), die een scanmanifest naar de interface-engine stuurt en een status terugkrijgt. **Niet gerealiseerd:** een leverancierspecifieke scannerdriver of een leveranciersconnector. Geen enkel scherm configureert een scanner anders dan door hem te benoemen als Apparatuur van het soort "Slide scanner" op [Apparatuur](#screen-equipment). Het openen van de beeldviewer wordt beschreven onder Leveranciersintegraties. De mock-viewerpagina is uitsluitend een demonstratie.
+Dit deel behandelt wat PathScribe vandaag voor digitale pathologie biedt. Wees precies over de omvang. Er zijn twee onderdelen. Ten eerste de leveranciers-woordenboeken op [Leveranciersintegraties](#screen-vendor_integrations), dat lijsten met namen en webadressen zijn. Ten tweede de wachtrij voor het scannen van preparaten op [Batchbeheer](#screen-batch-management), die een scanmanifest naar de interface-engine stuurt en een status terugkrijgt. **Niet gerealiseerd:** een leverancierspecifieke scannerdriver of een leveranciersconnector. Geen enkel scherm configureert een scanner anders dan door hem te benoemen als Apparatuur van het soort "Slide scanner" op [Apparatuur](#screen-equipment). PathScribe heeft geen viewer voor preparaten: een gescand preparaat toont het voorbeeld van zijn scanner en opent in de digitale-pathologietoepassing van het laboratorium, ingesteld onder **Beelden van preparaten** in Leveranciersintegraties (batch 750). De mock-viewerpagina is uitsluitend een demonstratie.
 
 ### Leveranciersintegraties {#screen-vendor_integrations}
 Breadcrumb: Start > Configuratie > Systeem > Labmaterialen & workflows > Leveranciersintegraties
@@ -766,9 +766,9 @@ Breadcrumb: Start > Configuratie > Systeem > Labmaterialen & workflows > Leveran
 **1. Navigatie:** Configuratietabblad **Systeem** > groep **Labmaterialen & workflows**
 **2. Beheeronderdeel:** Leveranciersintegraties (vier categorieën in een lijst links: Digitale pathologie / AI, WSI-viewers, Beeldbeheersystemen, Macro-beeldvorming & telepathologie)
 
-**3. Doel en bereik.** Eén scherm bevat vier woordenboeken van externe producten. Elk is een lijst met **Toevoegen**, **Bewerken**, **Deactiveren / Reactiveren** en een schakelaar **Inactief tonen**. Items worden nooit verwijderd. De lijsten zijn referentiegegevens: keuzelijsten en links die andere onderdelen van PathScribe lezen. De lijsten Digitale pathologie / AI, Beeldbeheersystemen en Macro-beeldvorming zijn namen en instellingen die worden vastgelegd en getoond; het product bevat geen leverancierspecifieke connector die erop werkt. Alleen de lijst WSI-viewers heeft een werkend gebruik: de **Opstart-URL-sjabloon** ervan wordt vanuit een casus geopend met de knop **Openen in viewer**.
+**3. Doel en bereik.** Eén scherm bevat vier woordenboeken van externe producten. Elk is een lijst met **Toevoegen**, **Bewerken**, **Deactiveren / Reactiveren** en een schakelaar **Inactief tonen**. Items worden nooit verwijderd. De lijsten zijn referentiegegevens: keuzelijsten en links die andere onderdelen van PathScribe lezen. De lijsten Digitale pathologie / AI, Beeldbeheersystemen en Macro-beeldvorming zijn namen en instellingen die worden vastgelegd en getoond; het product bevat geen leverancierspecifieke connector die erop werkt. Alleen de categorie WSI-viewers heeft een werkend gebruik: de instellingen **Beelden van preparaten** geven het adres dat een preparaat opent in de digitale-pathologietoepassing van het laboratorium en het adres van het voorbeeld van het preparaat, en de **Opstart-URL-sjabloon** van de lijst wordt gebruikt wanneer daar geen viewer-adres is ingesteld.
 
-**4. Vereisten en afhankelijkheden.** Geen, behalve de toegang van de persoon. Voeg hier een WSI-viewer toe voordat preparaten in een externe viewer kunnen worden geopend; scannerhardware is een aparte lijst (Apparatuur).
+**4. Vereisten en afhankelijkheden.** Geen, behalve de toegang van de persoon. Stel het viewer-adres onder Beelden van preparaten in (of een WSI-viewer met een opstartsjabloon) voordat preparaten in de toepassing van het laboratorium kunnen worden geopend; scannerhardware is een aparte lijst (Apparatuur).
 
 Setup step: Tier 3, step 9
 Requires: Geen.
@@ -797,10 +797,20 @@ De demonstratiegegevens bevatten zes items: Paige Prostate, Ibex Prostate Detect
 | Veldnaam | Gegevenstype / indeling | Verplicht/Optioneel | Beschrijving en bedrijfslogica | Systeemstandaard |
 |---|---|---|---|---|
 | Naam (leveranciers-/productnaam) | Tekst | Verplicht | Opslaan is uitgeschakeld wanneer leeg. | Geen |
-| Opstart-URL-sjabloon | Webadres dat het token `{{wsiUniqueId}}` bevat | Optioneel | PathScribe vervangt het token door de unieke id van het preparaat en opent het resultaat in een bijbehorend venster. Een waarschuwing verschijnt wanneer de tekst het token mist. Een item zonder sjabloon toont "geen URL geconfigureerd" en kan niet worden gestart. | Leeg |
+| Opstart-URL-sjabloon | Webadres dat het token `{{wsiUniqueId}}` bevat | Optioneel | PathScribe vervangt het token door de identificatie van het preparaat. Alleen gebruikt wanneer onder Beelden van preparaten geen viewer-adres is ingesteld: het eerste actieve item met een bruikbaar https-adres opent het preparaat. Een waarschuwing verschijnt wanneer de tekst het token mist. | Leeg |
 | Inactief tonen | Schakelaar | Optioneel | | Uit |
 
-Alle demonstratie-items hebben een leeg sjabloon, behalve `[DEMO ONLY] Sample WSI Viewer`, dat naar een adres op example.com wijst en geen echte viewer is.
+Alle demonstratie-items hebben een leeg sjabloon (het demonstratie-item met example.com is in batch 750 verwijderd).
+
+#### Beelden van preparaten (WSI-viewers, boven de lijst)
+
+| Veldnaam | Gegevenstype / indeling | Verplicht/Optioneel | Beschrijving en bedrijfslogica | Systeemstandaard |
+|---|---|---|---|---|
+| Viewer-adres | https-webadres met `{{slideId}}`, optioneel `{{accession}}` | Optioneel | Opent het preparaat in de digitale-pathologietoepassing van het laboratorium, in een apart venster dat zijn plaats op elke werkplek onthoudt. Er mag geen gebruikersnaam, wachtwoord of patiëntnaam in staan; het aanmelden hoort bij die toepassing. Het openen wordt in het auditlogboek vastgelegd en vereist `case:slide-image:open`. | `VITE_SLIDE_VIEWER_URL_TEMPLATE` van de installatie, indien ingesteld |
+| Adres van de voorbeeldafbeelding | https-webadres met `{{slideId}}`, optioneel `{{accession}}` | Optioneel | Het voorbeeld van het preparaat uit de scanner of het beeldsysteem, ongewijzigd getoond met "Referentievoorbeeld. Niet voor diagnose." zodra het preparaat gescand is. Voeg de host toe aan het beveiligingsbeleid (img-src). | `VITE_SLIDE_THUMBNAIL_URL_TEMPLATE` van de installatie, indien ingesteld |
+| Locaties met een eigen systeem | Een locatie, daarna dezelfde twee adressen | Optioneel | Voor een locatie met een eigen scanner of toepassing; leeg: het adres van het laboratorium wordt gebruikt. | Geen |
+
+Opslaan vereist `config:vendor-integrations:manage`. Zonder viewer-adres ziet de gebruiker bij het openen van een preparaat "Er is geen viewer-adres ingesteld. Vraag het uw beheerder.". Elke werkplek kiest in het werkplekmenu waar het venster voor preparaten opent (Venster voor beelden van preparaten, Positie instellen).
 
 #### Beeldbeheersystemen (venster Toevoegen en Bewerken)
 

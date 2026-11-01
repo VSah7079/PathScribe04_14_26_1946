@@ -1,3 +1,5 @@
+**Batch 749:** `mockAiScreeningResultService.ts`: completed AI gallery reads for S26-5501 and S26-5503 (seed row S5); a seed result missing from storage is added.
+
 **Batch 747:** `mockWsiScanBatchService.ts`: the wall display's scanner runs (`batches/wallDisplayDemoBatches.ts`) are added when missing; the two September runs still scanning now have times relative to the reset.
 
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
@@ -267,3 +269,7 @@ Batch 616 (part D, PS-502): server versions of AiScreeningResultService, AiStall
 ## Batch 624
 
 `resolveWorklistDpBadges.ts`: each badge also returns a translatable label (`summaryLabel`, `primaryLabel`: a key plus values) for the wording PathScribe writes, and `dpLabelText` picks it or the received text. Scanner and AI vendor wording is never translated: `primaryLabel` is absent when the headline is the vendor's, and a scanner failure reason is only inserted as a value. The English `summaryText` / `primaryText` stay (voice summaries, tests).
+
+## Batch 750
+
+PathScribe has no slide viewer (Pete, Oct 31, 2026). `slideImages.ts` (new, pure): the slide image settings (`EnterpriseConfig.slideImages`: viewer and preview address templates with `{{slideId}}` and `{{accession}}`, per facility), which address applies (facility, laboratory, the WSI Viewers list for opening only, the deployment's `VITE_SLIDE_*`), the image state from the slide's scanner fields (No image yet, Queued, Scanning, Scan failed, Failed image quality, available), and the thumbnail (a delivered preview, else the template; never altered). `slideImageOpen.ts` (new): `case:slide-image:open`, the address, the audit event Slide Image Opened. `ISlidePreviewService.ts`, `mockSlidePreviewService.ts` (no seed), `httpSlidePreviewService.ts`, `slidePreviewServiceInstance.ts` (new): previews the interface delivers (feed Planned). `wsiScanQueue.stainUnloaded` now records `lastScanOutcome`. `mockWsiViewerVendorService.ts`: the example.com demo entry removed. `buildWsiViewerLaunchUrl.ts` and `WsiViewerLaunchButton.tsx` (described above) are deleted; the launch is `components/SlideImage/SlideImagePreview.tsx`. Contract: `docs/architecture/SLIDE_IMAGES.md`.

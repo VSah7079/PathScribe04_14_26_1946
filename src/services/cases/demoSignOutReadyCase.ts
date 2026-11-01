@@ -68,7 +68,7 @@ const blocks = BLOCKS.map(b => ({
 }));
 
 /** The colon synoptic, every required question answered (option ids from colon_resection.json). */
-const ANSWERS: Record<string, string | string[]> = {
+export const SIGN_OUT_READY_COLON_ANSWERS: Record<string, string | string[]> = {
   procedure: 'procedure_opt_5',                          // Sigmoidectomy
   tumor_site: ['tumor_site_opt_8'],                      // Sigmoid colon
   histologic_type: 'histologic_type_opt_1',              // Adenocarcinoma
@@ -129,8 +129,8 @@ export const DEMO_SIGN_OUT_READY_CASE = {
   },
   synopticReports: [{
     instanceId: `${SP}_colon_resection_demo`, specimenId: SP,
-    templateId: 'colon_resection', templateName: 'Generic Template — Colon Resection',
-    status: 'draft', answers: ANSWERS,
+    templateId: 'colon_resection', templateName: 'Colon resection',
+    status: 'draft', answers: SIGN_OUT_READY_COLON_ANSWERS,
     createdAt: demoDaysAgo(2), updatedAt: hoursAgo(3),
   }],
   // The signing pathologist must be an active participant whose participation type can finalize.

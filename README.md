@@ -1,3 +1,23 @@
+**Batch 755b (part 2):** eight more checklists in PathScribe's own wording (fourteen in all); the five unused demo checklists are off the case checklist list.
+
+**Batch 755b (part 1):** the breast invasive carcinoma checklist and the two UK-layout checklists read in real words; the Manchester demo pathologist is the fictional Dr. Imogen Hartley, and Paul Carter (UK workflow adviser, not a physician) has his own non-clinical sign-in.
+
+**Batch 755a:** the demonstration checklists have plain names ("Colon resection") with a grey **Demo wording** tag until a pathologist has reviewed their wording, and no copy may start from one (refused on screen and in the template service). The Video 4 autopsy cases carry PathScribe's own autopsy checklist, and the Video 9 cases' written reports read in real words. See `docs/architecture/DEMO_CHECKLISTS.md`.
+
+**Batch 754:** the 19 "Generic Template" demonstration checklists never reach a customer: `npm run build:server` leaves them out and its check fails if one slips in, and ForMedrixAI support can remove them from an organisation's library (in the app, or `scripts/remove-demo-checklists.mjs` once the API server offers it). See `docs/architecture/DEMO_CHECKLISTS.md`.
+
+**Batch 753:** the prostate needle biopsy and radical prostatectomy checklists read in real words, PathScribe's own (not CAP or RCPath text), so Video 9 shows no placeholder answers. See `src/data/templates/generic/README.md`.
+
+**Batch 752:** the demo's slide images are hosted in Cloudflare R2 at `slides-demo.formedrix.ai` and set in Vercel (Production); `scripts/Setup-PathScribeSlideDemo.ps1` rebuilds them. The developer handover note (`docs/developer/HANDOVER_FIRST_RELEASE.md`) is brought up to Oct 31. See `docs/product/SLIDE_IMAGE_DEMO.md`.
+
+**Batch 751:** the organ map on Assist cases is a working aid only ("Your laboratory system writes this report."), and a lab can have it delivered to its laboratory system as text and a PNG or PDF file (Facility → LIS Integration → Organ map delivery, `config:organ-map-delivery:manage`). Seed row S15. See `docs/architecture/ORGAN_MAPPING_API.md`.
+
+**Batch 750:** slide images (seed row S10). PathScribe has no slide viewer: a scanned slide shows its scanner's reference preview ("Reference preview. Not for diagnosis.") and opens in the laboratory's own digital pathology application in a remembered window; new capability `case:slide-image:open` (audited). A standalone demonstration page for the demo lives in `tools/demo-slide-viewer/`. See `docs/architecture/SLIDE_IMAGES.md` and `docs/product/SLIDE_IMAGE_DEMO.md`.
+
+**Batch 749:** demo seed rows S5 (a full GYN worklist and the Video 3 Pap) and S4 (a breast FNA). See `docs/product/DEMO_SEED_DATA.md`.
+
+**Batch 748:** demo seed rows S9 (an open batch at every step, a retention hold) and S11 (multi-piece, megablock and exhausted-block cases). See `docs/product/DEMO_SEED_DATA.md`.
+
 **Batch 747:** demo seed row S8 (wall displays: profiles, demo display tokens, a busy day on every view) and a fix so the wall views find their facility's work. See `docs/product/DEMO_SEED_DATA.md`.
 
 **Batch 746:** demo seed row S7 (molecular orders, runs, lots and a resulted case for Video 5). See `docs/product/DEMO_SEED_DATA.md`.

@@ -45,12 +45,14 @@ export async function permitSystemConfigPatch(patch: Record<string, unknown>, de
 }
 
 /** Whether the signed-in person may apply this change to the enterprise settings. */
-export async function permitEnterpriseConfigPatch(patch: { features?: Record<string, unknown>; terminologyLicences?: unknown }, deps?: ConfigCheckDeps): Promise<boolean> {
+export async function permitEnterpriseConfigPatch(patch: { features?: Record<string, unknown>; terminologyLicences?: unknown; slideImages?: unknown }, deps?: ConfigCheckDeps): Promise<boolean> {
   const checks: ((d: ConfigCheckDeps) => Promise<{ allowed: boolean }>)[] = [];
   const caps: string[] = [];
   if (patch.features && 'abnormalDetectionEnabled' in patch.features) {
     checks.push(d => d.enforce('config:abnormal-triggers:manage')); caps.push('config:abnormal-triggers:manage');
   }
   if ('terminologyLicences' in patch) { checks.push(d => d.enforce('config:code-systems:manage')); caps.push('config:code-systems:manage'); }
+  // Batch 750: the slide preview and viewer addresses are digital pathology integration settings, like the viewer list.
+  if ('slideImages' in patch) { checks.push(d => d.enforce('config:vendor-integrations:manage')); caps.push('config:vendor-integrations:manage'); }
   return checkAll(checks, caps, deps);
 }

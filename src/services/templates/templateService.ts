@@ -34,6 +34,8 @@ import {
 import { getTemplateGovernanceSettings } from './templateGovernanceSettings';
 import { dataStorage } from '../browserData/dataStorage';
 import { auditService } from '../auditlog/auditServiceInstance';
+import { DEMO_CHECKLIST_LOADERS } from './demoChecklistLoaders';
+import { checklistCopyRefusal } from './demoChecklists';
 import { templateLifecycleAuditEntry, type TemplateLifecycleEvent, type TemplateLifecycleSubject } from './templateLifecycleAudit';
 
 // â”€â”€â”€ Shared types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -185,6 +187,7 @@ const GOVERNANCE_MESSAGES: Record<string, string> = {
   NOT_ENOUGH_APPROVALS:   'This template does not yet have the required number of independent approvals.',
   SNOMED_BELOW_THRESHOLD: `Templates require at least ${SNOMED_PUBLISH_THRESHOLD}% SNOMED coverage before publishing.`,
   MOHS_HISTOLOGY_SOURCE:  'A Mohs stage question takes its default histology from a question that no longer exists or is not a choice question.',
+  DEMO_CHECKLIST_COPY:    'A checklist with demonstration wording cannot be copied until a pathologist has reviewed it.',
 };
 
 /** Batch 463b: a template whose Mohs stage question names a missing or
@@ -398,6 +401,8 @@ export async function saveDraft(template: EditorTemplate): Promise<SaveDraftResu
   // PS-63 (Batch 329): drafting is limited to Template Author (Admin inherits).
   const author = await currentActor();
   if (!author || !(await (await authz()).enforce('config:protocol:draft')).allowed) throw governanceError('NOT_TEMPLATE_AUTHOR');
+  // Batch 755a: a first save of a copy whose source is a demonstration checklist is refused (whatever the screen allowed).
+  if (!registryEntry(template.id) && checklistCopyRefusal(template.copiedFromId)) throw governanceError('DEMO_CHECKLIST_COPY');
 
   // â”€â”€ MOCK â”€â”€
   const ts = now();
@@ -923,35 +928,17 @@ export async function validateTerminologyCodes(
 // plus variants: Stage 0's AI assignment picks one per specimen, the way
 // CAP_TO_REPORT picks a Report Template in TemplateRoutingService.ts.
 type SeedLoader = () => Promise<{ default: unknown }>;
+// Batch 754: the 19 demonstration checklists (demoChecklists.ts) load from demoChecklistLoaders.ts, and only in builds
+// that carry them: a customer build (mode "server") leaves them, and their files, out.
 const SEED_TEMPLATE_LOADERS: Record<string, SeedLoader> = {
-  breast_invasive:            () => import('../../data/templates/generic/breast_invasive.json'),
-  breast_dcis_resection:      () => import('../../data/templates/generic/breast_dcis_resection.json'),
-  lung_adeno:                 () => import('../../data/templates/generic/lung_adeno.json'),
-  prostate_needle_biopsy:     () => import('../../data/templates/generic/prostate_needle_biopsy.json'),
-  colon_resection:            () => import('../../data/templates/generic/colon_resection.json'),
-  skin_melanoma_bx:           () => import('../../data/templates/generic/skin_melanoma_bx.json'),
-  // Alias: the internal protocol id for the same generic melanoma template.
-  skin_invasive_melanoma_biopsy: () => import('../../data/templates/generic/skin_melanoma_bx.json'),
-  prostate_resection:         () => import('../../data/templates/generic/prostate_resection.json'),
-  lung_resection:             () => import('../../data/templates/generic/lung_resection.json'),
-  kidney_resection:           () => import('../../data/templates/generic/kidney_resection.json'),
-  kidney_biopsy:              () => import('../../data/templates/generic/kidney_biopsy.json'),
-  wilms_resection:            () => import('../../data/templates/generic/wilms_resection.json'),
-  wilms_biopsy:               () => import('../../data/templates/generic/wilms_biopsy.json'),
+  // The mode is written in literally (not DEMO_CHECKLISTS_IN_BUILD) so the bundler can drop the branch and its files.
+  ...(import.meta.env.MODE !== 'server' ? DEMO_CHECKLIST_LOADERS : {}),
   autopsy_gross_examination:  () => import('../../data/templates/Autopsy/autopsy_gross_examination.json'),
   // Batch 463: PathScribe's own Mohs synoptic (labs copy and customise it like any other).
   mohs_micrographic_surgery:  () => import('../../data/templates/generic/mohs_micrographic_surgery.json'),
   // Batch 465: PathScribe's head and neck synoptics.
   oral_cavity_resection:      () => import('../../data/templates/generic/oral_cavity_resection.json'),
   neck_dissection:            () => import('../../data/templates/generic/neck_dissection.json'),
-  // UK generic templates
-  breast_surgical_excision:          () => import('../../data/templates/generic/breast_surgical_excision.json'),
-  colorectal_resection_b:            () => import('../../data/templates/generic/colorectal_resection_b.json'),
-  colorectal_local_excision:         () => import('../../data/templates/generic/colorectal_local_excision.json'),
-  colorectal_further_investigations: () => import('../../data/templates/generic/colorectal_further_investigations.json'),
-  prostate_biopsy:                   () => import('../../data/templates/generic/prostate_biopsy.json'),
-  prostate_radical_prostatectomy:    () => import('../../data/templates/generic/prostate_radical_prostatectomy.json'),
-  prostate_turp_enucleation:         () => import('../../data/templates/generic/prostate_turp_enucleation.json'),
   // Grossing and cytology templates
   grossing_standard_tissue:    () => import('../../data/templates/Grossing/grossing_standard_tissue.json'),
   grossing_fluid_cytology:     () => import('../../data/templates/Grossing/grossing_fluid_cytology.json'),

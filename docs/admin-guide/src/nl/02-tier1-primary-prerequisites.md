@@ -174,6 +174,9 @@ Welke contactvelden verplicht zijn, komt uit [Verplichte velden](#screen-field_r
 | ID ontvangende faciliteit (MSH-6) | Tekst | Optioneel | De code van het ontvangende systeem. | Leeg |
 | Overschrijving uitgaand kanaal | Tekst | Optioneel | Een ander engine-kanaal voor deze faciliteit. | Leeg |
 | Eén gecombineerde PDF per casus verzenden | Ja/nee-schakelaar | Optioneel | Alleen Uitvoerend laboratorium. | Uit |
+| Verzending van de anatomische kaart: Anatomische kaart verzenden | Keuze: Uit, Alleen tekst, Tekst en afbeeldingsbestand | Optioneel | Alleen Uitvoerend laboratorium (batch 751). Bij een Assist-casus plaatst PathScribe de anatomische kaart nooit in het verslag. Deze instelling stuurt haar met de synoptische gegevens naar het laboratoriumsysteem: de bevindingen op de kaart als tekstregels en, met een bestand, de kaart die bij het afronden uit de definitieve antwoorden wordt getekend. Apart opgeslagen met `config:organ-map-delivery:manage` en vastgelegd. Een mislukte verzending houdt het afronden nooit tegen; ze verschijnt in de uitgaande wachtrij, met opnieuw proberen. | Uit |
+| Verzending van de anatomische kaart: Bestandsindeling | Keuze: PNG-afbeelding, PDF-document | Optioneel | Getoond bij Tekst en afbeeldingsbestand. | PNG-afbeelding |
+| Verzending van de anatomische kaart: Bestemming van de bestanden | Tekst | Verplicht bij Tekst en afbeeldingsbestand | Een map, een SFTP-adres of een kanaal van de interface-engine. Nooit een gebruikersnaam of wachtwoord. Bestandsnamen bevatten het accessienummer, het kaarttype en het tijdstip, nooit een patiëntnaam. | Leeg |
 
 #### Editorvenster: tabblad Identificatieformaten
 

@@ -30,6 +30,11 @@
 // logic above is a first-launch-only default, not something that
 // fights the user's own manual placement afterward.
 //
+// Batch 750 (Pete, S10 item 5): in Chrome and Edge, once window placement has been allowed, a remembered position on
+// a screen that is no longer there moves to the primary screen (services/windowPlacement/windowPlacement.ts); without
+// that permission the remembered coordinates are used as they are. The Save position page (pages/WindowPositionPage)
+// records a position on purpose with saveCompanionGeometry.
+//
 // IMPORTANT: openCompanion() must be called directly from a user gesture
 // (a click handler), not after an await/setTimeout/etc -- both
 // getScreenDetails()'s permission prompt and window.open() itself
@@ -37,6 +42,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { getWorkstationJson, setWorkstationJson } from '@/utils/workstationSettings';
+import { geometryUsable, placeOnScreens, type ScreenArea, type WindowGeometry } from '@/services/windowPlacement/windowPlacement';
 import { useRef, useState, useCallback, useEffect } from 'react';
 
 export type CompanionLaunchResult = 'window' | 'blocked';
@@ -69,29 +75,44 @@ export interface UseCompanionWindowResult {
   isWindowOpen: boolean;
 }
 
-interface WindowGeometry {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
-
 function storageKeyFor(windowName: string) {
   return `ps-companion-window-geometry-${windowName}`;
 }
 
 function loadGeometry(windowName: string): WindowGeometry | null {
-  const parsed = getWorkstationJson<WindowGeometry | null>(storageKeyFor(windowName), null);
-  if (
-    !parsed ||
-    typeof parsed.left !== 'number' || typeof parsed.top !== 'number' ||
-    typeof parsed.width !== 'number' || typeof parsed.height !== 'number'
-  ) return null;
-  return parsed;
+  const parsed = getWorkstationJson<unknown>(storageKeyFor(windowName), null);
+  return geometryUsable(parsed) ? parsed : null;
 }
 
 function saveGeometry(windowName: string, g: WindowGeometry) {
   setWorkstationJson(storageKeyFor(windowName), g);
+}
+
+/** Batch 750: records where a companion window should open on this workstation (the Save position page). */
+export function saveCompanionGeometry(windowName: string, g: WindowGeometry): boolean {
+  if (!geometryUsable(g)) return false;
+  saveGeometry(windowName, g);
+  return true;
+}
+
+/** Batch 750: asks Chrome or Edge for window placement (a prompt the first time), from a click, so later openings can
+ *  check the saved screen is still there. Does nothing in browsers without it. */
+export function requestScreenPlacement(): void {
+  if (!('getScreenDetails' in window)) return;
+  void (window as unknown as { getScreenDetails(): Promise<unknown> }).getScreenDetails().catch(() => { /* refused: saved coordinates are used as they are */ });
+}
+
+/** The screens, only when the person has already allowed window placement (no prompt is raised here). */
+async function screensIfAllowed(): Promise<ScreenArea[]> {
+  if (!('getScreenDetails' in window) || !navigator.permissions?.query) return [];
+  try {
+    const status = await navigator.permissions.query({ name: 'window-management' as PermissionName });
+    if (status.state !== 'granted') return [];
+    const details = await (window as unknown as { getScreenDetails(): Promise<{ screens: { availLeft: number; availTop: number; availWidth: number; availHeight: number; isPrimary: boolean }[] }> }).getScreenDetails();
+    return details.screens.map(s => ({ left: s.availLeft, top: s.availTop, width: s.availWidth, height: s.availHeight, isPrimary: s.isPrimary }));
+  } catch {
+    return []; // an older browser that names the permission differently, or refuses: keep the saved coordinates
+  }
 }
 
 export function useCompanionWindow(options: UseCompanionWindowOptions): UseCompanionWindowResult {
@@ -127,10 +148,11 @@ export function useCompanionWindow(options: UseCompanionWindowOptions): UseCompa
     const remembered = loadGeometry(options.windowName);
 
     if (remembered) {
-      left = remembered.left;
-      top = remembered.top;
-      width = remembered.width;
-      height = remembered.height;
+      const placed = placeOnScreens(remembered, await screensIfAllowed());
+      left = placed.left;
+      top = placed.top;
+      width = placed.width;
+      height = placed.height;
     } else {
       // No remembered position yet -- try to find a real second screen
       // via the Window Management API for a sensible first-launch default.

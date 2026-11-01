@@ -1,3 +1,5 @@
+**Batch 755b (part 1):** the secure-message fallback sender is the fictional Dr. Imogen Hartley (PATH-UK-001), not Paul Carter.
+
 # components/AppShell/
 
 ## Files

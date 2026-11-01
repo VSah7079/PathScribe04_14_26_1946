@@ -126,6 +126,6 @@ describe('the first screen (PS-486, Batch 527)', () => {
     const { inspectManifest } = await import('../../../scripts/check-production-bundle.mjs');
     expect(inspectManifest({
       a: { src: 'src/pages/MockEMRPage.tsx' }, b: { src: 'src/services/cases/mockCaseService.ts' }, c: { src: 'src/pages/LoginPage.tsx' },
-    })).toEqual({ demoTools: ['src/pages/MockEMRPage.tsx'], mockModules: ['src/services/cases/mockCaseService.ts'] });
+    })).toEqual({ demoTools: ['src/pages/MockEMRPage.tsx'], demoChecklists: [], mockModules: ['src/services/cases/mockCaseService.ts'] });
   });
 });

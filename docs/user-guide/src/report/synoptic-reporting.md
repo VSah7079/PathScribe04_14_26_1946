@@ -279,6 +279,7 @@ Several small items in the **Codes** window (Code Manager):
 ## Organ map and Mohs stages
 
 - The organ map panel says **Click a sector to go to its question.** Choose **Remove from report** to take the picture out of the report.
+- **On an Assist case** your laboratory system writes the report, so the map is a working aid only: it is drawn from your answers and clicking it jumps to the question, but there is no **Insert into report**. The panel says "Your laboratory system writes this report." in its place, and the map never holds up finalising, Mohs included. If your laboratory has asked for the map to be sent to its laboratory system, the panel also shows a quiet line once the case is finalised: "Map file sent to the laboratory system at (time)." Nothing else changes for you, and you are never asked to choose.
 - For Mohs surgery, the stage table has a row per sector with a **Tumour at margin** tick box (its screen-reader name is "Tumour at margin: (sector)"), a **Blocks cut** box, **Add stage N**, **Remove stage N** and **Mark stage clear**. The number of stages is limited.
 
 ## Tips and Best Practices

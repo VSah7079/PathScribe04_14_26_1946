@@ -4237,6 +4237,10 @@
         "description": "Alle nicht zugewiesenen Fälle auf einmal nach den Regeln zuweisen. Protokolliert.",
         "label": "Nicht zugewiesene Fälle jetzt zuweisen"
       },
+      "caseSlideImageOpen": {
+        "description": "Einen Objektträger aus seiner Referenzvorschau in der eigenen digitalen Pathologie-Anwendung des Labors in einem separaten Fenster öffnen. PathScribe öffnet nur die Adresse; die Anmeldung übernimmt die andere Anwendung. Protokolliert: wer, welcher Objektträger, wann.",
+        "label": "Einen Objektträger in der digitalen Pathologie-Anwendung des Labors öffnen"
+      },
       "caseTeamManage": {
         "description": "Personen im Team eines Falls (Fallteam) hinzufügen oder entfernen, einschließlich des primären Pathologen. Ein Zytotechniker kann keine Pathologenfunktion übernehmen.",
         "label": "Fallteam ändern"
@@ -4592,6 +4596,10 @@
       "configOrganMapBindingsManage": {
         "description": "Festlegen, welche Fragen der eigenen Synoptik-Vorlagen des Labors und welche Antworten die Organkarten speisen und welche allgemeinen Randfragen der Vorlagen die Karten berechnen. Protokolliert.",
         "label": "Synoptik-Fragen Organkarten zuordnen"
+      },
+      "configOrganMapDeliveryManage": {
+        "description": "Festlegen, ob das Laborsystem eines ausführenden Labors bei Assist-Fällen die anatomische Karte erhält: aus, nur Text oder Text und eine Bilddatei an ein Ziel. Änderungen werden protokolliert.",
+        "label": "Übermittlung der anatomischen Karte an das Laborsystem einstellen"
       },
       "configOrganMapSchemeManage": {
         "description": "Farben, Muster, Legendentexte und Schwellenwerte der Organkarten (Abstand für knappe Brustränder; Regeln für befallene Ränder beim malignen Polypen und beim rektalen CRM; Regeln für befallene und knappe Mundhöhlenränder; Regeln für befallene Parenchym- und Weichgewebsränder der Niere) für das Unternehmen, eine Rechtsordnung oder eine Einrichtung ändern. Protokolliert.",
@@ -5036,6 +5044,10 @@
       "platformCrossTenantCasesView": {
         "description": "Zugriff des PathScribe-Supports auf einen Fall außerhalb der eigenen Organisation. Jedes Öffnen wird im Audit-Log protokolliert.",
         "label": "Fälle anderer Organisationen öffnen (Support)"
+      },
+      "platformDemoChecklistsRemove": {
+        "description": "Die 19 Demonstrations-Checklisten (gekennzeichnet mit „Demo-Wortlaut“) aus der Synoptik-Bibliothek einer Kundenorganisation entfernen (sie werden archiviert). Nur ForMedrixAI-Support. Protokolliert.",
+        "label": "Demonstrations-Checklisten entfernen"
       },
       "platformGoverningBodiesManage": {
         "description": "Festlegen, welche Inhalte der Fachgesellschaften (CAP, RCPath, ICCR, RCPA) in die synoptische Bibliothek der Plattform übernommen werden.",
@@ -10111,6 +10123,34 @@
       "tue": "Di",
       "wed": "Mi"
     }
+  },
+  "demoChecklists": {
+    "cancel": "Abbrechen",
+    "check": "Prüfen, was entfernt würde",
+    "confirmYes": "Entfernen",
+    "confirm_one": "{{count}} Checkliste aus der Bibliothek dieser Organisation entfernen?",
+    "confirm_other": "{{count}} Checklisten aus der Bibliothek dieser Organisation entfernen?",
+    "copyRefusedBack": "Zurück zur Synoptik-Bibliothek",
+    "copyRefusedBody": "{{name}} enthält Demonstrations-Wortlaut, den noch kein Pathologe geprüft hat. Sie kann daher weder kopiert noch als Ausgangspunkt einer neuen Version verwendet werden. Beginnen Sie neu, mit einer PathScribe-eigenen Checkliste oder mit einem Protokoll, für das Ihr Labor eine Lizenz hat (Protokoll hochladen).",
+    "copyRefusedShort": "Eine Checkliste mit Demonstrations-Wortlaut kann erst kopiert werden, wenn ein Pathologe sie geprüft hat.",
+    "copyRefusedTitle": "Diese Checkliste kann nicht kopiert werden",
+    "demoBuildNote": "Auf der Demonstrationsseite gehört die Bibliothek zu diesem Browser; ein Entfernen hier gilt bis zum vollständigen Zurücksetzen für alle Demo-Organisationen. Auf dem Server eines Kunden gilt es nur für diese Organisation.",
+    "failed_one": "{{count}} konnte nicht entfernt werden: {{names}}",
+    "failed_other": "{{count}} konnten nicht entfernt werden: {{names}}",
+    "inLibrary_one": "{{count}} Demonstrations-Checkliste wird in dieser Bibliothek angeboten.",
+    "inLibrary_other": "{{count}} Demonstrations-Checklisten werden in dieser Bibliothek angeboten.",
+    "intro": "Die 19 mit „Demo-Wortlaut“ gekennzeichneten Checklisten dienen nur Demonstrationen und werden keinem Kunden angeboten. Wenn Sie sie aus der Bibliothek dieser Organisation entfernen, werden sie archiviert: Sie werden für neue Befunde nicht mehr angeboten, und ein bereits damit erstellter Befund lässt sich weiter öffnen.",
+    "noneLeft": "In dieser Bibliothek wird keine Demonstrations-Checkliste angeboten.",
+    "notPermitted": "Nur der ForMedrixAI-Support kann die Demonstrations-Checklisten entfernen.",
+    "pickerNote": "Checklisten mit dem Kennzeichen „Demo-Wortlaut“ können nicht als Ausgangspunkt dienen.",
+    "remove": "Demonstrations-Checklisten entfernen",
+    "removed_one": "{{count}} Checkliste entfernt.",
+    "removed_other": "{{count}} Checklisten entfernt.",
+    "title": "Demonstrations-Checklisten",
+    "wordingTag": "Demo-Wortlaut",
+    "wordingTagHint": "Demonstrations-Wortlaut, den noch kein Pathologe geprüft hat. Er kann nicht in Ihre eigenen Checklisten kopiert werden.",
+    "working": "Wird bearbeitet …",
+    "wouldRemove": "Würde entfernen: {{names}}"
   },
   "demoResetTab": {
     "disabled": {
@@ -17156,6 +17196,9 @@
         "yes": "Vorhanden"
       }
     },
+    "delivery": {
+      "nothingShown": "Auf der Karte ist nichts darzustellen."
+    },
     "derived": {
       "invasiveMarginsIncomplete": "{{synoptic}}: Ein invasives Karzinom ist erfasst, aber diese Ränder sind nicht angegeben: {{margins}}.",
       "invasiveMarginsPrompt": "Trotzdem abzeichnen?",
@@ -17388,8 +17431,10 @@
     },
     "panel": {
       "empty": "Beantworten Sie die Fragen im Abschnitt „Anatomische Karte“ des Synoptik-Befunds, um die Karte zu sehen.",
+      "fileSent": "Kartendatei um {{time}} an das Laborsystem gesendet.",
       "insert": "In den Befund einfügen",
       "insertTitle": "Diese Karte in Druckfarben in den Befund setzen. Sie ist eine Momentaufnahme: Spätere Antwortänderungen ändern sie erst, wenn Sie sie erneut einfügen.",
+      "lisOwnsReport": "Ihr Laborsystem erstellt diesen Befund.",
       "noBinding": "Dieser Synoptik-Befund hat keine Kartenfragen. Ein Administrator kann eigene Fragen unter Konfiguration → Organkarten zuordnen.",
       "remove": "Aus dem Befund entfernen",
       "sectorHint": "Klicken Sie auf einen Sektor, um zu seiner Frage zu gelangen.",
@@ -17405,6 +17450,7 @@
       "title": "Anatomische Karte",
       "toast": {
         "inserted": "Karte in den Befund eingefügt.",
+        "lisOwnsReport": "Ihr Laborsystem erstellt diesen Befund; die Karte wird daher nicht eingefügt.",
         "locked": "Der Befund ist freigegeben; die Karte kann nur über eine Änderung geändert werden.",
         "noImage": "Die Karte konnte nicht als Bild für den Befund erstellt werden. Bitte versuchen Sie es erneut.",
         "notPermitted": "Sie sind nicht berechtigt, die Karte in den Befund zu setzen.",
@@ -17606,6 +17652,35 @@
       "rectalResection": "Rektumresektion — zirkumferenzieller Rand, peritoneale Umschlagfalte und distaler Rand",
       "renalResection": "Nierenresektion — Lage, pT-Ausdehnung und Ränder"
     }
+  },
+  "organMapDelivery": {
+    "destinationHint": "Ein Ordner, eine SFTP-Adresse oder ein Kanal der Schnittstellen-Engine, wie Ihr Schnittstellenteam ihn eingerichtet hat. Nie ein Benutzername oder Passwort: Die Anmeldung liegt bei der Schnittstellen-Engine. Dateinamen enthalten die Eingangsnummer, die Kartenart und die Uhrzeit, nie einen Patientennamen.",
+    "destinationLabel": "Ziel für die Dateien",
+    "failureNote": "Eine fehlgeschlagene Übermittlung hält das Abschließen nie auf und wird dem Pathologen nicht angezeigt. Sie erscheint in der ausgehenden Warteschlange und kann dort erneut gesendet werden.",
+    "formatLabel": "Dateiformat",
+    "formats": {
+      "pdf": "PDF-Dokument",
+      "png": "PNG-Bild"
+    },
+    "intro": "Bei einem Assist-Fall erstellt Ihr Laborsystem den Befund; PathScribe fügt die anatomische Karte daher nie ein. Wählen Sie, ob die Karte mit den synoptischen Daten an dieses System gesendet wird. Sie wird beim Abschließen aus den endgültigen Antworten der Checkliste gezeichnet; sie ist eine Befundabbildung, kein Patientenbild.",
+    "modeLabel": "anatomische Karte senden",
+    "modes": {
+      "off": "Aus",
+      "text": "Nur Text",
+      "textAndFile": "Text und Bilddatei"
+    },
+    "problems": {
+      "destinationCredentials": "Entfernen Sie Benutzername und Passwort aus dem Ziel; die Anmeldung liegt bei der Schnittstellen-Engine.",
+      "destinationRequired": "Geben Sie an, wohin die Dateien gehen sollen.",
+      "destinationTooLong": "Das Ziel ist zu lang (höchstens 300 Zeichen).",
+      "notPermitted": "Sie haben keine Berechtigung, die Übermittlung der anatomischen Karte zu ändern.",
+      "saveFailed": "Die Einstellung wurde nicht gespeichert. Bitte versuchen Sie es erneut.",
+      "unknownFormat": "Wählen Sie ein Dateiformat.",
+      "unknownMode": "Wählen Sie, wie die Karte gesendet wird."
+    },
+    "save": "Übermittlung der anatomischen Karte speichern",
+    "saved": "Übermittlung der anatomischen Karte gespeichert.",
+    "title": "Übermittlung der anatomischen Karte"
   },
   "organMapsSection": {
     "bindings": {
@@ -19873,42 +19948,6 @@
       "usedBy": "Verwendet von"
     },
     "title": "Protokollverzeichnis"
-  },
-  "protocolEditor": {
-    "addQuestion": "Frage hinzufügen",
-    "addSection": "Abschnitt hinzufügen",
-    "backToConfiguration": "Zurück zur Konfiguration",
-    "choiceOptionsHint": "Die Bearbeitung der Auswahloptionen kann als Nächstes hinzugefügt werden — die Struktur ist bereit.",
-    "lifecycle": {
-      "archived": "Archiviert",
-      "draft": "Entwurf",
-      "published": "Veröffentlicht",
-      "validated": "Validiert"
-    },
-    "meta": {
-      "lifecycle": "Lebenszyklus",
-      "source": "Quelle",
-      "version": "Version"
-    },
-    "notFound": "Protokoll nicht gefunden.",
-    "question": {
-      "newText": "Neue Frage"
-    },
-    "questionType": {
-      "boolean": "Ja/Nein",
-      "choice": "Auswahl",
-      "number": "Zahl",
-      "text": "Text"
-    },
-    "required": "Erforderlich",
-    "saveProtocol": "Protokoll speichern",
-    "section": {
-      "newTitle": "Neuer Abschnitt"
-    },
-    "source": {
-      "custom": "Benutzerdefiniert"
-    },
-    "title": "Protokolleditor: {{name}}"
   },
   "protocolShared": {
     "buildModal": {
@@ -23652,6 +23691,53 @@
       "loadedOnScanner": "Im Scanner geladen",
       "scanned": "Gescannt"
     }
+  },
+  "slideImage": {
+    "loading": "Objektträgerbild wird geladen…",
+    "message": {
+      "blocked": "Ihr Browser hat das Objektträgerfenster blockiert. Erlauben Sie Pop-ups für PathScribe: Wählen Sie das Symbol für blockierte Pop-ups am Ende der Adressleiste, erlauben Sie Pop-ups dieser Website immer und wählen Sie den Objektträger dann erneut.",
+      "noAddress": "Es ist keine Viewer-Adresse festgelegt. Wenden Sie sich an Ihre Administration.",
+      "notPermitted": "Sie haben keine Berechtigung, Objektträgerbilder zu öffnen."
+    },
+    "openLabel": "Objektträger öffnen",
+    "openTitle": "Objektträger {{slide}} in der digitalen Pathologie-Anwendung des Labors öffnen",
+    "referenceNote": "Referenzvorschau. Nicht für die Diagnose.",
+    "state": {
+      "available": "Bild vorhanden",
+      "failedImageQuality": "Bildqualität nicht bestanden",
+      "noImageYet": "Noch kein Bild",
+      "queued": "In der Warteschlange",
+      "scanFailed": "Scan fehlgeschlagen",
+      "scanning": "Wird gescannt"
+    },
+    "thumbAlt": "Referenzvorschau von Objektträger {{slide}}"
+  },
+  "slideImageSettings": {
+    "addFacility": "Einrichtung mit eigenem System hinzufügen…",
+    "deploymentDefault": "Leer: Die Adresse der Bereitstellung wird verwendet ({{address}})",
+    "description": "PathScribe hat keinen eigenen Objektträger-Viewer. Es zeigt eine kleine, unveränderte Referenzvorschau des Objektträgers aus Ihrem Scanner oder Bildsystem und öffnet den Objektträger in der digitalen Pathologie-Anwendung Ihres Labors in einem eigenen Fenster.",
+    "facilitiesHint": "Füllen Sie diese Felder nur für eine Einrichtung mit eigenem Scanner oder eigener digitaler Pathologie-Anwendung aus. Leer: Die Adresse des Labors wird verwendet.",
+    "facilitiesTitle": "Einrichtungen mit eigenem System",
+    "facilityFieldLabel": "{{facility}}: {{field}}",
+    "fields": {
+      "thumbnailUrlTemplate": "Adresse des Vorschaubilds",
+      "viewerUrlTemplate": "Viewer-Adresse"
+    },
+    "labTitle": "Labor",
+    "noDeploymentDefault": "Leer bedeutet keine Adresse: Die Bereitstellung legt keine fest.",
+    "placeholdersHint": "Adressen beginnen mit https://. Verwenden Sie {{slidePlaceholder}} für die Objektträgerkennung und {{accessionPlaceholder}} für die Eingangsnummer des Falls. Setzen Sie nie einen Patientennamen, einen Benutzernamen oder ein Passwort in eine Adresse: Die Anmeldung ist Sache der anderen Anwendung.",
+    "problemLine": "{{field}}: {{problem}}",
+    "problems": {
+      "credentials": "darf keinen Benutzernamen und kein Passwort enthalten",
+      "noSlidePlaceholder": "muss {{slidePlaceholder}} enthalten",
+      "notHttps": "muss eine vollständige https://-Adresse sein",
+      "notPermitted": "Sie haben keine Berechtigung, die Einstellungen für Objektträgerbilder zu ändern.",
+      "unknownPlaceholder": "verwendet einen anderen Platzhalter als {{slidePlaceholder}} oder {{accessionPlaceholder}}"
+    },
+    "removeFacility": "Entfernen",
+    "save": "Einstellungen für Objektträgerbilder speichern",
+    "saved": "Gespeichert",
+    "title": "Objektträgerbilder"
   },
   "slideLabelLayoutEditor": {
     "description": "Die bedruckbare Fläche des Objektträgers, die Modulgröße des Barcodes und die Texthöhe. Diese Werte bestimmen jetzt Punktgröße und Textposition des gedruckten Objektträgeretiketts.",
@@ -27653,6 +27739,20 @@
     "localOnlyDev": "Nur lokale Sprache (aktives Sprachmodell nicht verfügbar — API-Schlüssel des Anbieters prüfen)",
     "noValidatedModel": "Kein validiertes Sprachmodell konfiguriert, oder der API-Schlüssel des Anbieters ist nicht festgelegt"
   },
+  "windowPosition": {
+    "close": "Schließen",
+    "failed": "Die Position konnte nicht gespeichert werden. Vergrößern Sie das Fenster und versuchen Sie es erneut.",
+    "instructions": "Schieben Sie dieses Fenster dorthin, wo Objektträgerbilder an diesem Arbeitsplatz geöffnet werden sollen, und passen Sie die Größe an. Wählen Sie dann Position speichern.",
+    "save": "Position speichern",
+    "saved": "Position für diesen Arbeitsplatz gespeichert. Sie können dieses Fenster schließen.",
+    "screensHint": "Erlauben Sie PathScribe in Chrome und Edge, Fenster auf allen Bildschirmen zu verwalten, wenn der Browser fragt, damit das Fenster auf dem richtigen Bildschirm erscheint. Ist dieser Bildschirm später nicht angeschlossen, öffnet sich das Fenster auf dem Hauptbildschirm.",
+    "setPosition": "Position festlegen…",
+    "setPositionTitle": "Öffnet das Fenster für Objektträgerbilder, damit Sie es dorthin schieben können, wo Objektträger an diesem Arbeitsplatz geöffnet werden sollen",
+    "unknownWindow": "Diese Seite legt die Position eines PathScribe-Fensters fest. Öffnen Sie sie über das Arbeitsplatzmenü.",
+    "windows": {
+      "slideImage": "Fenster für Objektträgerbilder"
+    }
+  },
   "worklistDp": {
     "readiness": {
       "error": "{{ready}}/{{total}} Fehler",
@@ -28143,12 +28243,6 @@
     "noCaseSpecified": "Kein Fall angegeben.",
     "slideSurfacePlaceholder": "[ Reale WSI-Objektträgerfläche — Schwenken/Zoomen würde hier dargestellt ]",
     "specimenLabel": "Probe {{specimenLabel}}"
-  },
-  "wsiViewerLaunch": {
-    "blockedError": "Popup blockiert — bitte Popups für diese Website zulassen und erneut versuchen",
-    "launchLabel": "Im Viewer öffnen",
-    "launchTitle": "Dieses Präparat im konfigurierten WSI-Viewer öffnen",
-    "selectVendorTitle": "WSI-Viewer auswählen"
   },
   "wsiViewerVendorSection": {
     "actions": {

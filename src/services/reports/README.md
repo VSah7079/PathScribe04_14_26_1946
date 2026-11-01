@@ -1,3 +1,5 @@
+**Batch 753:** `mockAmendmentService.ts`: S26-4404's demo amendment keeps the case's answers as first signed (`S26_4404_BIOPSY_ANSWERS_BEFORE_AMENDMENT`), so it shows the 4 corrected answers rather than every answer; its reason is in plain words; `AMENDMENT_VERSION` 8.
+
 **Batch 742:** `surgicalReportLabels.ts` sends four more labels (`imagesTitle`, `imageUnavailable`, `documentAttached`, `documentAttachedNoCaption`) for images placed in report sections.
 
 **Batch 738:** `synopticReviewEntries.ts` (new): what the Review before finalising window shows, with the template's question labels and option labels instead of stored ids (moved out of `useSignOutWorkflow.ts`). Test: `synopticReviewEntries.test.ts`.
@@ -381,3 +383,7 @@ Batch 616 (part A, PS-483): `httpReportServices.ts` (amendments, informal review
 ## Batch 728
 
 - `dispatchPreliminaryCaseInstances.ts` and `mockReportVersionService.ts`: no result message for a research case (the final and amended paths go through `resolveDispatchOrganisation`).
+
+## Batch 751
+
+`dispatchAssistSynopticResult.ts`: with the performing lab's organ map delivery on, each Assist result carries `organMap` (the lines, and the file's name and SHA-256) and the lines in `fullPayloadText`; the file follows as its own `LIS_SYNC` message of kind `organ_map` (`dispatchOrganMapFile`), retried by `rebuildOrganMapFileMessage`, audited, never touching the result's outcome. `isWorkupMessage`: map files and the case PDF are not workup versions. `dispatchAssistSynopticResultDeps.ts`: the setting, the drawing (`drawOrganMapFile`: PNG, or a one-page PDF) and the audit. `organMapDeliveryDemoQueue.ts` (new): the demo's delivered and failed map files, the mock queue's starting data. Test: `dispatchAssistOrganMap.test.ts`.

@@ -18,11 +18,11 @@ import { loadOrganMapContext } from './organMapLive';
 import { resolveOrganMap } from './resolveProstateMap';
 import { renderOrganMapSvg } from './organMapDrawing';
 import { organMapLabelsFor, type Translate } from './organMapLabels';
-import { organMapReportFigures, type OrganMapFigure, type OrganMapFigureVersion, type OrganMapReportFigure } from './organMapFigures';
+import { lisOwnsReport, organMapReportFigures, type OrganMapFigure, type OrganMapFigureVersion, type OrganMapReportFigure } from './organMapFigures';
 import { isAutoReportMap } from './organMapTypes';
 import { mohsReportWords, mohsStagesDisplay } from '../templates/mohsStages';
 
-type CaseLike = Pick<Case, 'synopticReports' | 'specimens' | 'order' | 'organMapFigures'>;
+type CaseLike = Pick<Case, 'synopticReports' | 'specimens' | 'order' | 'organMapFigures' | 'reportingMode'>;
 
 export interface AutoOrganMapFigure {
   instanceId: string; mapType: OrganMapFigure['mapType']; svg: string; pngDataUrl?: string; fingerprint: string;
@@ -33,6 +33,8 @@ export interface AutoOrganMapFigure {
 /** The automatic maps of a case, drawn now (only synoptics whose map is part of the report and has data). */
 export async function autoOrganMapFigures(caseData: CaseLike | null | undefined, t: Translate): Promise<AutoOrganMapFigure[]> {
   const out: AutoOrganMapFigure[] = [];
+  // Batch 751: the LIS writes an Assist case's report; no map is drawn into it, Mohs included.
+  if (lisOwnsReport(caseData)) return out;
   for (const instance of caseData?.synopticReports ?? []) {
     const context = await loadOrganMapContext({ templateId: instance.templateId, facilityId: caseData?.order?.facilityId ?? null }).catch(() => null);
     if (!context?.binding || !isAutoReportMap(context.binding.mapType)) continue;
@@ -67,6 +69,7 @@ export async function reportFiguresWithAuto(caseData: CaseLike & Pick<Case, 'syn
   }));
   const byInstance = new Map(auto.map(a => [a.instanceId, a]));
   return organMapReportFigures({
+    reportingMode: caseData?.reportingMode,
     synopticReports: caseData?.synopticReports,
     organMapFigures: [...(caseData?.organMapFigures ?? []).filter(f => !autoIds.has(f.instanceId)), ...asFigures],
   }).map(f => {

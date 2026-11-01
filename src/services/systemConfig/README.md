@@ -27,3 +27,7 @@ The system configuration service here now have an API-server version, `http<Name
 ## Batch 623 (PS-130)
 
 `permitEnterpriseConfigPatch` also checks `config:code-systems:manage` when a change carries `terminologyLicences`.
+
+## Batch 750
+
+`permitEnterpriseConfigPatch` also checks `config:vendor-integrations:manage` when the patch changes `slideImages`.

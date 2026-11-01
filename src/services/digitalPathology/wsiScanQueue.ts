@@ -126,6 +126,7 @@ export function stainUnloaded(stain: StainOrder, batch: Pick<WsiScanBatch, 'batc
   return {
     ...stain,
     distributionStatus: ok ? 'Scanned' : 'In Scanning Queue',
+    lastScanOutcome: ok ? 'scanned' : slide.scanStatus === 'completed' ? 'imageQcFailed' : slide.scanStatus === 'failed' ? 'scanFailed' : 'notScanned',
     wsiScanBatchId: ok ? stain.wsiScanBatchId : undefined,
     distributionEvents: [...(stain.distributionEvents ?? []), event('unloaded_from_scanner', techUserId,
       ok ? `unloaded from scan batch ${batch.batchBarcode}: scanned` : `unloaded from scan batch ${batch.batchBarcode}: ${why}; back in the scanning queue`, at)],

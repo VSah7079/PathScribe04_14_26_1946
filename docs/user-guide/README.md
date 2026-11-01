@@ -1,3 +1,5 @@
+**Batch 754:** `coverage-ignore.json`: the entries for the deleted, unreachable Protocol Editor removed.
+
 **Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
 
 **Batch 723:** `img/home-overview.png` replaced with a current capture (1,600 px wide); `home-pubmed.png` stays as the close-up.
@@ -72,3 +74,11 @@
 ## Batch 733
 
 - Batch 733: `add-on-orders/index.md` and `workstations/microtomy.md` (one flag, one answer, destructive cutting). Rebuilt.
+
+## Batch 750
+
+- Batch 750: `wsi-viewer/index.md` rewritten as **Slide Images** (reference preview, image states, opening the laboratory's application, Set position; the demonstration page kept as a short section); links in `cytology/screening-case.md`, `report/microscopic-and-material.md`, `batch-management/wsi-scan.md`; `coverage-ignore.json` (the preview's screen-reader text). Rebuilt.
+
+## Batch 751
+
+- Batch 751: `report/synoptic-reporting.md` (Organ map and Mohs stages: the map on an Assist case, and the map-file line). Rebuilt.

@@ -55,6 +55,16 @@ describe('the slide record through load and unload', () => {
     expect(qc.distributionEvents?.[qc.distributionEvents.length - 1]?.detail).toBe('unloaded from scan batch WSI-1: image QC failed: Out-of-focus; back in the scanning queue');
     expect(stainUnloaded(loaded, batch, { ...base, scanStatus: 'pending' }, 'tech', '2026-10-02T11:00:00Z').distributionStatus).toBe('In Scanning Queue');
   });
+
+  it('records what the unload found, for the slide image state (Batch 750)', () => {
+    const at = '2026-10-02T11:00:00Z';
+    const loaded = stainLoaded(digital('st1'), batch, '1', 'tech', '2026-10-02T10:00:00Z');
+    const base = { slidePosition: '1', caseId: 'C1', specimenId: 'sp1' };
+    expect(stainUnloaded(loaded, batch, { ...base, scanStatus: 'completed', qcPassed: true }, 'tech', at).lastScanOutcome).toBe('scanned');
+    expect(stainUnloaded(loaded, batch, { ...base, scanStatus: 'completed', qcPassed: false }, 'tech', at).lastScanOutcome).toBe('imageQcFailed');
+    expect(stainUnloaded(loaded, batch, { ...base, scanStatus: 'failed' }, 'tech', at).lastScanOutcome).toBe('scanFailed');
+    expect(stainUnloaded(loaded, batch, { ...base, scanStatus: 'pending' }, 'tech', at).lastScanOutcome).toBe('notScanned');
+  });
 });
 
 describe('batch progress and actions', () => {

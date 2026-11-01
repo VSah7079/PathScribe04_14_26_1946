@@ -174,6 +174,9 @@ Which contact fields are required comes from [Field Requirements](#screen-field_
 | Receiving Facility ID (MSH-6) | Text | Optional | The receiving system's code. | Blank |
 | Outbound Channel Override | Text | Optional | A different engine channel for this facility. | Blank |
 | Send one combined PDF per case | Yes/No switch | Optional | Performing Lab only. | Off |
+| Organ map delivery: Send the organ map | Choice: Off, Text only, Text and image file | Optional | Performing Lab only (Batch 751). On an Assist case PathScribe never places the organ map in the report. This sends it to the laboratory system with the synoptic data: the map's findings as text lines, and with a file the map drawn at finalising from the final answers. Saved on its own with `config:organ-map-delivery:manage` and audited. A failed delivery never holds up finalising; it appears in the outbound queue, with retry. | Off |
+| Organ map delivery: File format | Choice: PNG image, PDF document | Optional | Shown for Text and image file. | PNG image |
+| Organ map delivery: Destination for the files | Text | Required for Text and image file | A folder, an SFTP address or an interface engine channel. Never a user name or password. File names carry the accession, the map type and the time, never a patient name. | Blank |
 
 #### Editor window: Identifier Formats tab
 

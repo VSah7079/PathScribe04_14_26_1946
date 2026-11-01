@@ -291,3 +291,7 @@ The CSMS QA confirmation now says whether the CSMS message is being sent (Verifi
 ## Batch 640
 
 The Recall needed detail uses the lab administrator's wording for the case's country and the screen language when one is saved, and the country's own windows (Batch 640).
+
+## Batch 750
+
+`CytologyScreeningPage.tsx`: in whole-slide-image mode the bar shows the slide's reference preview (`SlideImagePreview`) instead of the launch button; 1,527 lines (was 1,536).

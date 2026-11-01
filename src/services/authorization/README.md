@@ -1,3 +1,5 @@
+**Batch 754:** `demoChecklistCapabilities.ts` (new): `platform:demo-checklists:remove` (platformOnly, requires `config:protocol:retire`), checked in `templates/demoChecklistRemoval.ts`.
+
 **Batch 742:** `caseAttachmentCapabilities.ts` (new): `case:attachment:upload`, `case:attachment:link`, `case:attachment:unlink`, seeded with `report:case-images:attach` to every role with case access (`capabilitySeeds.ts`, `REPORT_IMAGES`).
 
 **Batch 741:** `cytologyPrepCapabilities.ts`: `material:specimen:divide`, `material:aliquot-status:update`; seeds `SPECIMEN_DIVIDE`, `ALIQUOT_STATUS`.
@@ -617,3 +619,11 @@ New capabilities `batch:manifest:seal`, `batch:carrier:advance`, `station:scan-m
 ## Batch 731
 
 - `materialLifecycleCapabilities.ts` (new): `material:end-state:record`, `material:reembed:request`, `material:reembed:complete`. Seeds `MATERIAL_END_STATE` (Microtome or Slide Distribution screen), `REEMBED_REQUEST` (Pathologist, Fellow, Resident), `REEMBED_COMPLETE` (Embedding screen).
+
+## Batch 750
+
+`slideImageCapabilities.ts` (new): `case:slide-image:open` (open a slide in the laboratory's own digital pathology application), checked in `digitalPathology/slideImageOpen.ts`; seeded with `REPORT_IMAGES` for every role with case access.
+
+## Batch 751
+
+`organMapDeliveryCapabilities.ts` (new): `config:organ-map-delivery:manage`, checked in `facilities/mockFacilityService.ts` (`setOrganMapDelivery`); a configuration capability (Admin, Lab Director).

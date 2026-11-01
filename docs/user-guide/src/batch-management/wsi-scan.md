@@ -20,7 +20,7 @@ status: Draft
 
 **Intended users.** Histotechnologists, cytotechnologists and molecular technologists, and laboratory managers. Loading, sending and unloading are separate permissions, checked against the scanner's laboratory. Administrators can open the screen but do not have those permissions unless they are added to their role.
 
-**Where it fits.** The [Slide Distribution](help:workstations/slide-distribution) workstation decides where each slide goes: to a pathologist's desk, or Digital. A slide routed to Digital appears here. After scanning, images can be opened in the [WSI viewer](help:wsi-viewer).
+**Where it fits.** The [Slide Distribution](help:workstations/slide-distribution) workstation decides where each slide goes: to a pathologist's desk, or Digital. A slide routed to Digital appears here. After scanning, each slide shows a reference preview and opens in the laboratory's own digital pathology application (see [Slide Images](help:wsi-viewer)).
 
 !!! note "Demonstration data today"
     Scanner traffic goes through the interface engine. In this version the scanner is simulated, so sending a batch does not drive a real machine, and the progress of the slides comes from the demonstration. The scanners listed come from the Equipment register.
@@ -152,7 +152,7 @@ None.
 
 ### Downstream workflow
 
-- [WSI Viewer](help:wsi-viewer): opening scanned images.
+- [Slide Images](help:wsi-viewer): the slide's reference preview, its image state, and opening it in the laboratory's digital pathology application.
 - [Batch Management](help:batch-management): the module page.
 
 ## Troubleshooting

@@ -163,14 +163,14 @@ const SEED_MESSAGES: Message[] = [
   { id: 'm15', senderId: 'u16', senderName: 'Supply Room',      recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'Reagents',        body: 'Order confirmed.',         timestamp: new Date('2026-02-06'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'Supply Room',      senderId: 'u16', text: 'Order confirmed.',         timestamp: new Date('2026-02-06') }] },
   { id: 'm16', senderId: 'u17', senderName: 'Dr. Lee',          recipientId: 'PATH-001', recipientName: 'Dr. Sarah Johnson', subject: 'Dermpath Query',  body: 'Need second opinion.',     timestamp: new Date('2026-02-05'), isUrgent: false, isRead: true, isDeleted: false, thread: [{ sender: 'Dr. Lee',          senderId: 'u17', text: 'Need second opinion.',     timestamp: new Date('2026-02-05') }] },
 
-  // ─── Paul Carter (PATH-UK-001) — MFT UK Demo Messages ────────────────────
+  // ─── Imogen Hartley (PATH-UK-001) — MFT UK Demo Messages ────────────────────
 
   {
     id: 'uk-m1',
     senderId: 'mft-oncology',
     senderName: 'Dr. Helen Marsden',
     recipientId: 'PATH-UK-001',
-    recipientName: 'Dr. Paul Carter',
+    recipientName: 'Dr. Imogen Hartley',
     subject: 'KRAS Result — Hartley, William — Oncology notified',
     body: 'Paul, just to confirm I have reviewed the KRAS mutation result for MFT26-8801. The tumour is KRAS G12D mutant. Patient has been listed for discussion at the colorectal MDT on Wednesday at 14:00. Could you confirm the mesorectal lymph node status before then? Many thanks.',
     caseNumber: 'MFT26-8801-CR-RES',
@@ -193,7 +193,7 @@ const SEED_MESSAGES: Message[] = [
     senderId: 'mft-surgery',
     senderName: 'Mr. James Whitfield',
     recipientId: 'PATH-UK-001',
-    recipientName: 'Dr. Paul Carter',
+    recipientName: 'Dr. Imogen Hartley',
     subject: 'URGENT — Blackwood, Edward — Tumour perforation query',
     body: 'Paul, we have had a look at the operative findings for Mr Blackwood (MFT26-8806). The sigmoid was perforated intraoperatively — I need to know whether the perforation is through tumour or through normal bowel wall as this will significantly affect staging and adjuvant treatment planning. Please treat as STAT. Thank you.',
     caseNumber: 'MFT26-8806-CR-STAT',
@@ -216,7 +216,7 @@ const SEED_MESSAGES: Message[] = [
     senderId: 'mft-urology',
     senderName: 'Mr. David Whitmore',
     recipientId: 'PATH-UK-001',
-    recipientName: 'Dr. Paul Carter',
+    recipientName: 'Dr. Imogen Hartley',
     subject: 'Barrowclough — PSMA IHC positive — Urology MDT Friday 09:00',
     body: 'Hi Paul, many thanks for the PSMA immunohistochemistry result on Mr Barrowclough (MFT26-8802). The positive result is very helpful. We are planning to discuss at the urology MDT this Friday at 09:00 — are you able to attend in person or by Teams? We may need your input on the Gleason grading.',
     caseNumber: 'MFT26-8802-PR-BX',
@@ -232,7 +232,7 @@ const SEED_MESSAGES: Message[] = [
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
       },
       {
-        sender: 'Dr. Paul Carter',
+        sender: 'Dr. Imogen Hartley',
         senderId: 'PATH-UK-001',
         text: 'David, happy to join by Teams. I will have the full Gleason breakdown ready by Thursday afternoon. Paul.',
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1),
@@ -245,7 +245,7 @@ const SEED_MESSAGES: Message[] = [
     senderId: 'mft-gastro',
     senderName: 'Dr. James Whitfield',
     recipientId: 'PATH-UK-001',
-    recipientName: 'Dr. Paul Carter',
+    recipientName: 'Dr. Imogen Hartley',
     subject: 'Second opinion request — Ashworth, Margaret — TEMS rectal polyp',
     body: 'Paul, I would value your opinion on the TEMS excision for Mrs Ashworth (MFT26-8803). The lesion is at the anterior wall below the peritoneal reflection. My concern is whether this represents a pT1 with clear deep margin or whether there is involvement of the muscularis propria. I have requested a second opinion flag on the system. Thank you.',
     caseNumber: 'MFT26-8803-CR-LOC',
@@ -261,7 +261,7 @@ const SEED_MESSAGES: Message[] = [
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5),
       },
       {
-        sender: 'Dr. Paul Carter',
+        sender: 'Dr. Imogen Hartley',
         senderId: 'PATH-UK-001',
         text: 'James, I will review the slides this afternoon and add my opinion to the report. I will message you directly once done.',
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4),
@@ -274,7 +274,7 @@ const SEED_MESSAGES: Message[] = [
     senderId: 'mft-urology-2',
     senderName: 'Mr. David Whitmore',
     recipientId: 'PATH-UK-001',
-    recipientName: 'Dr. Paul Carter',
+    recipientName: 'Dr. Imogen Hartley',
     subject: 'Pemberton — Positive surgical margin — Urology MDT Friday',
     body: 'Paul, I have been alerted to the positive surgical margin flag on Mr Pemberton\'s radical prostatectomy (MFT26-8804). Can you let me know the location and extent of the positive margin when your report is finalised? This will be critical for the adjuvant radiotherapy discussion at Friday\'s MDT.',
     caseNumber: 'MFT26-8804-PR-RP',
@@ -297,7 +297,7 @@ const SEED_MESSAGES: Message[] = [
     senderId: 'mft-qa',
     senderName: 'Dr. Sarah Okafor',
     recipientId: 'PATH-UK-001',
-    recipientName: 'Dr. Paul Carter',
+    recipientName: 'Dr. Imogen Hartley',
     subject: 'Informal case review — Hollingsworth, Patricia — Right hemicolectomy',
     body: 'Paul, I have completed my informal review of the right hemicolectomy for Mrs Hollingsworth (MFT26-8805). Overall I agree with the reporting. One point worth noting — the apical lymph node has a focus of extranodal extension which I feel should be explicitly mentioned in the final report. Happy to discuss. I have linked the case below for reference.',
     caseNumber: 'MFT26-8805-CR-FIN',
@@ -313,7 +313,7 @@ const SEED_MESSAGES: Message[] = [
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1.5),
       },
       {
-        sender: 'Dr. Paul Carter',
+        sender: 'Dr. Imogen Hartley',
         senderId: 'PATH-UK-001',
         text: 'Sarah, thank you — good spot. I will add a comment on the extranodal extension to the final report before sign-off. Paul.',
         timestamp: new Date(Date.now() - 1000 * 60 * 40),
@@ -326,7 +326,7 @@ const SEED_MESSAGES: Message[] = [
     senderId: 'mft-qasystem',
     senderName: 'PathScribe QA',
     recipientId: 'PATH-UK-001',
-    recipientName: 'Dr. Paul Carter',
+    recipientName: 'Dr. Imogen Hartley',
     subject: 'QA review request — Hartley, William — Anterior resection',
     body: 'A peer QA review has been requested for case MFT26-8801 (Hartley, William — anterior resection). Please review the synoptic report and complete the QA checklist: (1) Dataset completeness, (2) pTNM staging accuracy, (3) Margin assessment, (4) Lymph node yield adequacy. Target completion: prior to Wednesday MDT. Click the case link to open the report.',
     caseNumber: 'MFT26-8801-CR-RES',
@@ -342,7 +342,7 @@ const SEED_MESSAGES: Message[] = [
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4),
       },
       {
-        sender: 'Dr. Paul Carter',
+        sender: 'Dr. Imogen Hartley',
         senderId: 'PATH-UK-001',
         text: 'Reviewed. Dataset complete, pTNM staging confirmed T3 N1 M0. Proximal and distal margins clear. Lymph node yield 18 nodes — adequate per RCPath guidelines. No concerns.',
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
@@ -361,7 +361,7 @@ const SEED_MESSAGES: Message[] = [
   senderId: 'mft-admin', // FIX: Added missing required property
   senderName: 'MFT Laboratory Admin',
   recipientId: 'PATH-UK-001',
-  recipientName: 'Dr. Paul Carter',
+  recipientName: 'Dr. Imogen Hartley',
   subject: `Pool case available — Right hemicolectomy emergency resection`,
   // Use backticks to safely handle apostrophes like "patient's" or "Carter's"
   body: `Dr. Carter, a STAT pool case has been added to the histopathology queue — MFT26-8809, Dorothy Whitworth, right hemicolectomy emergency resection. This case has not yet been assigned. Please accept from the pool if you are able to report today.`,
@@ -495,7 +495,7 @@ const SEED_MESSAGES: Message[] = [
 // ─── Storage ──────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'pathscribe_messages';
-const MESSAGES_VERSION = '7'; // bumped: added Amber seed messages
+const MESSAGES_VERSION = '8'; // bumped (Batch 755b): the Manchester pathologist is the fictional Dr. Imogen Hartley. 7: added Amber seed messages
 const VERSION_KEY = 'pathscribe_messages_version';
 
 const load = (): Message[] => {

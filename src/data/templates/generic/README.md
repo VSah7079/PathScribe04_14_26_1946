@@ -103,7 +103,7 @@ Seven templates mark their lymph node counts `nodeCount: true` (free text that t
 
 The files keep their original formatting (2-space indent; the five that escape the em dash still do).
 
-**Not changed (known, deliberate):** about 1,500 "Field N" / "Option N" placeholder labels remain across 19 of these templates. They are the generic wording that stands in until a CAP/RCPath content licence is in place (`docs/product/FEATURE_OVERVIEW.md`, corrected in Batch 496); Batch 490 filled margins, grade and TNM only.
+**Not changed (known, deliberate):** about 1,500 (fewer since Batches 738 and 753) "Field N" / "Option N" placeholder labels remain across 19 of these templates. They are the generic wording that stands in until a CAP/RCPath content licence is in place (`docs/product/FEATURE_OVERVIEW.md`, corrected in Batch 496); Batch 490 filled margins, grade and TNM only.
 
 ---
 *See [data/README.md](../../README.md) for the full verification notes covering the templates across `data/templates/` (written when there were 27; there are 31 now).*
@@ -111,3 +111,25 @@ The files keep their original formatting (2-space indent; the five that escape t
 ## Batch 738 (Pete, Oct 30, 2026): colon resection wording
 
 `colon_resection.json`: every remaining placeholder ("Option 1…", "Category A", "Margin Status A") replaced with PathScribe-authored wording using standard nomenclature (WHO tumour types, AJCC 8th edition categories); **not CAP text**, per the licensing note in `services/templates/templateService.ts` (Pete chose PathScribe's own wording). Questions that only apply in some cases are shown only then (`visibleWhen`): mesorectal envelope for an anterior or abdominoperineal resection, rectal location for a rectal or rectosigmoid tumour, submucosal depth for a submucosal tumour, closest-margin distances when the margins are negative, involved margins when positive, nodes with tumour when nodes are positive, deposit count when deposits are present, distant sites for pM1. Optional now: site not specified, site cannot be determined, budding score, dysplasia margins, TNM descriptors, pT suffix, ancillary studies, comments. The unused trailing pT and pN options were removed. Option ids are unchanged, so stored answers keep their meaning. The other 18 generic templates still carry placeholder options.
+
+## Batch 753 (Pete, Oct 31, 2026): prostate needle biopsy and radical prostatectomy wording
+
+`prostate_needle_biopsy.json` and `prostate_radical_prostatectomy.json`: every placeholder section title, question and answer ("Option 1…", "Field 2", "Category A", "Overall Grade A", "Secondary Finding A", "Reference Code A") replaced with **PathScribe-authored wording**, written for Video 9. Pete's condition: no exposure to CAP or RCPath copyright. So the text is PathScribe's own plain wording built on standard nomenclature that no protocol owns: ISUP/WHO Grade Groups and Gleason patterns, WHO tumour type names, TNM category codes (pT2, pT3a, pN0). No CAP or RCPath question text, answer text, notes, explanations or instructions were copied. The question set and order these files kept through the earlier licensing clean-up (see the note in `services/templates/templateService.ts`) were kept again so stored answers keep their meaning; option ids are unchanged except where a list was shortened.
+
+- Needle biopsy (US spelling): sites as Right side, Left side, Midline or transition zone, Targeted lesion, Site not stated; the four histologic type questions became dropdowns (they were text boxes carrying options); the overall Grade Group lists for systematic and targeted biopsies have six answers (eleven unused placeholders removed, and the targeted one became a dropdown); the two "cannot be determined" boxes became optional tick boxes (they were required text boxes); Case summary and Comments are optional.
+- Radical prostatectomy (UK spelling, `en-GB`): questions shown only when they apply (`visibleWhen`): the side of the seminal vesicles and lymph nodes when received, the other tumour type when Other is ticked, the Gleason patterns and score when grading applies, the extent and location of extraprostatic extension when present, and the positive-margin details when the margin is positive. Grade Group stays shown and required. Three required questions no longer carry the note "Optional".
+- Tests: `services/templates/prostateChecklistWording.test.ts` (no placeholder left, distinct answers, and every answer the Video 9 cases carry is one the checklist offers).
+
+The other 16 generic templates with placeholder options still carry them.
+
+## Batch 755a (Pete, Oct 31, 2026): plain names and the "Demo wording" tag
+
+The `name` of every file here changed from "Generic Template — …" to a plain name: Breast, invasive carcinoma (resection); Breast, ductal carcinoma in situ (resection); Breast surgical excision; Colon resection; Colorectal resection (UK layout); Colorectal local excision; Colorectal further investigations; Kidney resection; Kidney biopsy; Lung adenocarcinoma; Lung resection; Prostate needle biopsy; Prostate biopsy (UK layout); Prostate resection; Radical prostatectomy; Prostate, transurethral resection or enucleation; Skin melanoma biopsy; Wilms tumor resection; Wilms tumor biopsy. On screen each shows a "Demo wording" tag and none can be copied, until a pathologist has reviewed its wording (`docs/architecture/DEMO_CHECKLISTS.md`). Ids, questions and answers are unchanged.
+
+## Batch 755b part 1 (Pete, Nov 1, 2026): breast invasive and the two UK-layout checklists
+
+PathScribe's own wording, not CAP or RCPath text. `breast_invasive.json` (US spelling) and `colorectal_resection_b.json` / `prostate_biopsy.json` (UK spelling; "Colorectal resection (UK layout)", "Prostate biopsy (UK layout)") have no placeholder questions or answers left; option ids are kept, and follow-up questions show only when their answer applies. Made with `scratchpad/b755/breast.py` and `uk.py` during the batch (not kept in the repo). Pinned by `services/templates/checklistWording755b.test.ts`.
+
+## Batch 755b part 2 (Pete, Nov 1, 2026): eight more checklists; five off the case list
+
+PathScribe's own wording, not CAP or RCPath text, for `breast_dcis_resection.json`, `lung_adeno.json`, `kidney_resection.json`, `lung_resection.json`, `skin_melanoma_bx.json`, `prostate_resection.json` (US spelling) and `colorectal_local_excision.json`, `colorectal_further_investigations.json` (UK). Option ids kept; option lists that had a meaningless length (lung tumour focality's 13, lung type's 41) were shortened, and the demo answers that pointed past the end (S26-4403's `stage_category_a_opt_12`) fixed. Still placeholder, and so left off the case checklist list (`offeredOnCasePicker()`): `breast_surgical_excision`, `kidney_biopsy`, `prostate_turp_enucleation`, `wilms_resection`, `wilms_biopsy`.

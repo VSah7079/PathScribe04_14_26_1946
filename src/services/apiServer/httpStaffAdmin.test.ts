@@ -96,10 +96,11 @@ describe('http facility service', () => {
     await s.setPrintSettings('f1', { printDeliveryConfig: undefined } as never);
     await s.findOrCreateByAssigningAuthority('AUTH', 'Name', 'note');
     await s.setDirectDevicePrinting('f1', true);
-    expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => `${call(f, i).method} ${call(f, i).url.replace('https://api.test', '')}`)).toEqual([
+    await s.setOrganMapDelivery('f1', { mode: 'text', fileFormat: 'png', destination: '' });
+    expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => `${call(f, i).method} ${call(f, i).url.replace('https://api.test', '')}`)).toEqual([
       'GET /api/facilities/facility/get-all', 'GET /api/facilities/facility/get-by-id?id=f1', 'POST /api/facilities/facility/add', 'POST /api/facilities/facility/update', 'POST /api/facilities/facility/deactivate',
       'POST /api/facilities/facility/reactivate', 'POST /api/facilities/facility/verify', 'POST /api/facilities/facility/set-print-settings', 'POST /api/facilities/facility/find-or-create-by-assigning-authority',
-      'POST /api/facilities/facility/set-direct-device-printing',
+      'POST /api/facilities/facility/set-direct-device-printing', 'POST /api/facilities/facility/set-organ-map-delivery',
     ]);
     expect(JSON.parse(call(f, 8).body as string)).toEqual({ assigningAuthority: 'AUTH', name: 'Name', note: 'note' });
   });

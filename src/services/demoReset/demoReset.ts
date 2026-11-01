@@ -364,6 +364,7 @@ export const SETTINGS_KEYS = [
   // before adding: WSI viewer vendors, Image Management System
   // vendors, and Gross/Macro Imaging & Telepathology vendors.
   'wsiViewerVendorDictionary', 'imageManagementSystemVendorDictionary', 'grossImagingVendorDictionary',
+  'slide_previews', // Batch 750: slide previews the interface delivered (digitalPathology/mockSlidePreviewService.ts)
   // Real, per the Automated Cytopathology QC Assignment Engine — the
   // admin-configurable rule set itself. Has real, international seed
   // data (7 real rules) — confirmed safe to reset, same pattern as

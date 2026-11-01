@@ -4237,6 +4237,10 @@
         "description": "배정 규칙에 따라 모든 미배정 케이스를 한 번에 재배정합니다. 감사 기록됩니다.",
         "label": "미배정 케이스 즉시 배정"
       },
+      "caseSlideImageOpen": {
+        "description": "참조용 미리 보기에서 슬라이드를 검사실 자체 디지털 병리 애플리케이션의 별도 창으로 엽니다. PathScribe는 주소만 열며 로그인은 해당 애플리케이션이 처리합니다. 누가, 어떤 슬라이드를, 언제 열었는지 감사 기록됩니다.",
+        "label": "검사실의 디지털 병리 애플리케이션에서 슬라이드 열기"
+      },
       "caseTeamManage": {
         "description": "증례 팀(증례 팀 화면)에 사람을 추가하거나 제거하며, 주 병리의사 지정도 포함합니다. 세포병리사는 병리의사 역할에 배정될 수 없습니다.",
         "label": "증례 팀 변경"
@@ -4592,6 +4596,10 @@
       "configOrganMapBindingsManage": {
         "description": "검사실 자체 시놉틱 템플릿의 어떤 질문과 답변이 장기 지도에 쓰일지, 그리고 지도가 템플릿의 어떤 일반 절제연 질문을 계산할지 선택합니다. 감사 기록됨.",
         "label": "시놉틱 질문을 장기 지도에 연결"
+      },
+      "configOrganMapDeliveryManage": {
+        "description": "수행 검사실의 검사실 시스템이 Assist 케이스에서 해부학적 지도를 받을지 선택합니다. 끔, 텍스트만, 또는 텍스트와 대상 위치로 보내는 이미지 파일 중에서 고릅니다. 변경 사항은 감사 로그에 기록됩니다.",
+        "label": "검사실 시스템으로 해부학적 지도 전송 설정"
       },
       "configOrganMapSchemeManage": {
         "description": "기업, 관할 지역 또는 기관 단위로 장기 지도의 색상, 패턴, 범례 문구와 기준값(유방 근접 절제연 거리, 악성 용종 및 직장 CRM 절제연 침범 기준, 구강 절제연 침범 및 근접 기준, 신장 실질 및 연부조직 절제연 침범 기준)을 변경합니다. 감사 기록됩니다.",
@@ -5036,6 +5044,10 @@
       "platformCrossTenantCasesView": {
         "description": "사용자 소속 기관 밖의 케이스에 대한 PathScribe 지원 접근입니다. 열 때마다 감사 로그에 기록됩니다.",
         "label": "다른 기관의 케이스 열기(지원)"
+      },
+      "platformDemoChecklistsRemove": {
+        "description": "고객 기관의 시놉틱 라이브러리에서 “시연용 문구” 표시가 있는 19개의 시연용 체크리스트를 제거합니다(보관 처리). ForMedrixAI 지원팀 전용. 감사 기록됨.",
+        "label": "시연용 체크리스트 제거"
       },
       "platformGoverningBodiesManage": {
         "description": "플랫폼 시놉틱 라이브러리에 동기화할 관리 기관(CAP, RCPath, ICCR, RCPA) 콘텐츠를 선택합니다.",
@@ -10111,6 +10123,34 @@
       "tue": "화",
       "wed": "수"
     }
+  },
+  "demoChecklists": {
+    "cancel": "취소",
+    "check": "제거될 항목 확인",
+    "confirmYes": "제거",
+    "confirm_one": "이 기관의 라이브러리에서 체크리스트 {{count}}개를 제거할까요?",
+    "confirm_other": "이 기관의 라이브러리에서 체크리스트 {{count}}개를 제거할까요?",
+    "copyRefusedBack": "시놉틱 라이브러리로 돌아가기",
+    "copyRefusedBody": "{{name}}에는 아직 병리의사가 검토하지 않은 시연용 문구가 있어 복사하거나 새 버전의 시작점으로 사용할 수 없습니다. 처음부터 만들거나, PathScribe 자체 체크리스트 또는 검사실이 사용 허가를 받은 프로토콜(프로토콜 업로드)에서 시작하십시오.",
+    "copyRefusedShort": "시연용 문구가 있는 체크리스트는 병리의사가 검토하기 전까지 복사할 수 없습니다.",
+    "copyRefusedTitle": "이 체크리스트는 복사할 수 없습니다",
+    "demoBuildNote": "시연 사이트에서는 라이브러리가 이 브라우저에 속하므로, 여기서 제거하면 전체 초기화 전까지 모든 시연 기관에 적용됩니다. 고객 서버에서는 해당 기관에만 적용됩니다.",
+    "failed_one": "{{count}}개를 제거하지 못했습니다: {{names}}",
+    "failed_other": "{{count}}개를 제거하지 못했습니다: {{names}}",
+    "inLibrary_one": "이 라이브러리에 시연용 체크리스트 {{count}}개가 제공되고 있습니다.",
+    "inLibrary_other": "이 라이브러리에 시연용 체크리스트 {{count}}개가 제공되고 있습니다.",
+    "intro": "“시연용 문구” 표시가 있는 19개의 체크리스트는 시연 전용이며 고객에게 제공되지 않습니다. 이 기관의 라이브러리에서 제거하면 보관 처리됩니다. 새 보고서에는 더 이상 제공되지 않으며, 이미 작성된 보고서는 계속 열 수 있습니다.",
+    "noneLeft": "이 라이브러리에 제공되는 시연용 체크리스트가 없습니다.",
+    "notPermitted": "ForMedrixAI 지원팀만 시연용 체크리스트를 제거할 수 있습니다.",
+    "pickerNote": "“시연용 문구” 표시가 있는 체크리스트는 시작점으로 사용할 수 없습니다.",
+    "remove": "시연용 체크리스트 제거",
+    "removed_one": "체크리스트 {{count}}개를 제거했습니다.",
+    "removed_other": "체크리스트 {{count}}개를 제거했습니다.",
+    "title": "시연용 체크리스트",
+    "wordingTag": "시연용 문구",
+    "wordingTagHint": "아직 병리의사가 검토하지 않은 시연용 문구입니다. 기관의 자체 체크리스트로 복사할 수 없습니다.",
+    "working": "처리 중…",
+    "wouldRemove": "제거 대상: {{names}}"
   },
   "demoResetTab": {
     "disabled": {
@@ -17156,6 +17196,9 @@
         "yes": "있음"
       }
     },
+    "delivery": {
+      "nothingShown": "지도에 표시할 내용이 없습니다."
+    },
     "derived": {
       "invasiveMarginsIncomplete": "{{synoptic}}: 침윤성 암종이 기록되었으나 다음 절제연이 보고되지 않았습니다: {{margins}}.",
       "invasiveMarginsPrompt": "그래도 서명하시겠습니까?",
@@ -17388,8 +17431,10 @@
     },
     "panel": {
       "empty": "시놉틱의 해부학적 지도 항목 질문에 답하면 지도가 표시됩니다.",
+      "fileSent": "{{time}}에 지도 파일을 검사실 시스템으로 보냈습니다.",
       "insert": "보고서에 삽입",
       "insertTitle": "이 지도를 인쇄 색상으로 보고서에 넣습니다. 스냅샷이므로 이후 답변을 바꿔도 다시 삽입할 때까지 바뀌지 않습니다.",
+      "lisOwnsReport": "이 보고서는 검사실 시스템에서 작성합니다.",
       "noBinding": "이 시놉틱에는 지도 질문이 없습니다. 관리자가 구성 → 장기 지도에서 자체 질문을 연결할 수 있습니다.",
       "remove": "보고서에서 제거",
       "sectorHint": "구역을 클릭하면 해당 질문으로 이동합니다.",
@@ -17405,6 +17450,7 @@
       "title": "해부학적 지도",
       "toast": {
         "inserted": "지도를 보고서에 삽입했습니다.",
+        "lisOwnsReport": "이 보고서는 검사실 시스템에서 작성하므로 지도를 넣지 않습니다.",
         "locked": "보고서가 서명되었습니다. 지도는 수정 보고로만 바꿀 수 있습니다.",
         "noImage": "보고서용 그림으로 지도를 만들 수 없습니다. 다시 시도하세요.",
         "notPermitted": "지도를 보고서에 넣을 권한이 없습니다.",
@@ -17606,6 +17652,35 @@
       "rectalResection": "직장 절제 — 환상 절제연, 복막반전부와 원위 절제연",
       "renalResection": "신장 절제 — 위치, pT 범위와 절제연"
     }
+  },
+  "organMapDelivery": {
+    "destinationHint": "인터페이스 팀이 설정한 폴더, SFTP 주소 또는 인터페이스 엔진 채널입니다. 사용자 이름이나 비밀번호는 넣지 마십시오. 로그인은 인터페이스 엔진이 담당합니다. 파일 이름에는 접수 번호, 지도 종류, 시간이 들어가며 환자 이름은 들어가지 않습니다.",
+    "destinationLabel": "파일 전송 대상",
+    "failureNote": "전송이 실패해도 완료를 막지 않으며 병리의에게 표시되지 않습니다. 실패한 전송은 발신 대기열에 나타나며 그곳에서 다시 시도할 수 있습니다.",
+    "formatLabel": "파일 형식",
+    "formats": {
+      "pdf": "PDF 문서",
+      "png": "PNG 이미지"
+    },
+    "intro": "Assist 케이스에서는 검사실 시스템이 보고서를 작성하므로 PathScribe는 해부학적 지도를 보고서에 넣지 않습니다. 지도를 시놉틱 데이터와 함께 그 시스템으로 보낼지 선택하십시오. 지도는 케이스를 완료할 때 체크리스트의 최종 답변으로 그려지며, 환자 이미지가 아니라 보고서 그림입니다.",
+    "modeLabel": "해부학적 지도 보내기",
+    "modes": {
+      "off": "끔",
+      "text": "텍스트만",
+      "textAndFile": "텍스트와 이미지 파일"
+    },
+    "problems": {
+      "destinationCredentials": "대상 위치에서 사용자 이름과 비밀번호를 빼십시오. 로그인은 인터페이스 엔진이 담당합니다.",
+      "destinationRequired": "파일을 보낼 위치를 입력하십시오.",
+      "destinationTooLong": "대상 위치가 너무 깁니다(최대 300자).",
+      "notPermitted": "해부학적 지도 전송을 변경할 권한이 없습니다.",
+      "saveFailed": "설정이 저장되지 않았습니다. 다시 시도하십시오.",
+      "unknownFormat": "파일 형식을 선택하십시오.",
+      "unknownMode": "지도를 보낼 방식을 선택하십시오."
+    },
+    "save": "해부학적 지도 전송 저장",
+    "saved": "해부학적 지도 전송이 저장되었습니다.",
+    "title": "해부학적 지도 전송"
   },
   "organMapsSection": {
     "bindings": {
@@ -19873,42 +19948,6 @@
       "usedBy": "사용처"
     },
     "title": "프로토콜 사전"
-  },
-  "protocolEditor": {
-    "addQuestion": "질문 추가",
-    "addSection": "섹션 추가",
-    "backToConfiguration": "구성으로 돌아가기",
-    "choiceOptionsHint": "선택 옵션 편집은 다음 단계로 추가할 수 있습니다 — 구조가 준비되었습니다.",
-    "lifecycle": {
-      "archived": "보관됨",
-      "draft": "초안",
-      "published": "게시됨",
-      "validated": "검증됨"
-    },
-    "meta": {
-      "lifecycle": "수명 주기",
-      "source": "출처",
-      "version": "버전"
-    },
-    "notFound": "프로토콜을 찾을 수 없습니다.",
-    "question": {
-      "newText": "새 질문"
-    },
-    "questionType": {
-      "boolean": "예/아니오",
-      "choice": "선택",
-      "number": "숫자",
-      "text": "텍스트"
-    },
-    "required": "필수",
-    "saveProtocol": "프로토콜 저장",
-    "section": {
-      "newTitle": "새 섹션"
-    },
-    "source": {
-      "custom": "사용자 지정"
-    },
-    "title": "프로토콜 편집기: {{name}}"
   },
   "protocolShared": {
     "buildModal": {
@@ -23652,6 +23691,53 @@
       "loadedOnScanner": "스캐너에 장착됨",
       "scanned": "스캔 완료"
     }
+  },
+  "slideImage": {
+    "loading": "슬라이드 이미지를 불러오는 중…",
+    "message": {
+      "blocked": "브라우저가 슬라이드 창을 차단했습니다. PathScribe의 팝업을 허용하십시오. 주소 표시줄 끝의 차단된 팝업 아이콘을 선택하고 이 사이트의 팝업을 항상 허용하도록 선택한 다음 슬라이드를 다시 선택하십시오.",
+      "noAddress": "뷰어 주소가 설정되어 있지 않습니다. 관리자에게 문의하십시오.",
+      "notPermitted": "슬라이드 이미지를 열 권한이 없습니다."
+    },
+    "openLabel": "슬라이드 열기",
+    "openTitle": "검사실의 디지털 병리 애플리케이션에서 슬라이드 {{slide}} 열기",
+    "referenceNote": "참고용 미리 보기입니다. 진단용이 아닙니다.",
+    "state": {
+      "available": "이미지 있음",
+      "failedImageQuality": "이미지 품질 불합격",
+      "noImageYet": "아직 이미지 없음",
+      "queued": "대기 중",
+      "scanFailed": "스캔 실패",
+      "scanning": "스캔 중"
+    },
+    "thumbAlt": "슬라이드 {{slide}}의 참고용 미리 보기"
+  },
+  "slideImageSettings": {
+    "addFacility": "자체 시스템이 있는 기관 추가…",
+    "deploymentDefault": "비워 두면 배포 주소를 사용합니다: {{address}}",
+    "description": "PathScribe에는 슬라이드 뷰어가 없습니다. 스캐너나 이미지 시스템에서 받은 슬라이드의 작은 참고용 미리 보기를 변경 없이 표시하고, 검사실의 디지털 병리 애플리케이션에서 슬라이드를 별도의 창으로 엽니다.",
+    "facilitiesHint": "자체 스캐너나 디지털 병리 애플리케이션이 있는 기관에만 입력하십시오. 비워 두면 검사실 주소를 사용합니다.",
+    "facilitiesTitle": "자체 시스템이 있는 기관",
+    "facilityFieldLabel": "{{facility}}: {{field}}",
+    "fields": {
+      "thumbnailUrlTemplate": "미리 보기 이미지 주소",
+      "viewerUrlTemplate": "뷰어 주소"
+    },
+    "labTitle": "검사실",
+    "noDeploymentDefault": "비워 두면 주소가 없습니다. 배포에서 설정한 주소가 없습니다.",
+    "placeholdersHint": "주소는 https://로 시작합니다. 슬라이드 식별자에는 {{slidePlaceholder}}, 케이스 접수 번호에는 {{accessionPlaceholder}}를 사용하십시오. 주소에 환자 이름, 사용자 이름 또는 비밀번호를 넣지 마십시오. 로그인은 다른 애플리케이션이 담당합니다.",
+    "problemLine": "{{field}}: {{problem}}",
+    "problems": {
+      "credentials": "사용자 이름이나 비밀번호를 포함하면 안 됩니다",
+      "noSlidePlaceholder": "{{slidePlaceholder}}를 포함해야 합니다",
+      "notHttps": "전체 https:// 주소여야 합니다",
+      "notPermitted": "슬라이드 이미지 설정을 변경할 권한이 없습니다.",
+      "unknownPlaceholder": "{{slidePlaceholder}} 또는 {{accessionPlaceholder}} 이외의 자리 표시자를 사용합니다"
+    },
+    "removeFacility": "제거",
+    "save": "슬라이드 이미지 설정 저장",
+    "saved": "저장됨",
+    "title": "슬라이드 이미지"
   },
   "slideLabelLayoutEditor": {
     "description": "슬라이드의 인쇄 가능 면, 바코드 모듈 크기, 글자 높이입니다. 이 값이 이제 인쇄되는 슬라이드 라벨의 도트 크기와 글자 위치를 결정합니다.",
@@ -27653,6 +27739,20 @@
     "localOnlyDev": "로컬 음성만 (활성 음성 모델을 사용할 수 없음 — 공급자 API 키를 확인하세요)",
     "noValidatedModel": "검증된 음성 모델이 구성되지 않았거나 공급자 API 키가 설정되지 않았습니다"
   },
+  "windowPosition": {
+    "close": "닫기",
+    "failed": "위치를 저장하지 못했습니다. 창을 더 크게 만든 다음 다시 시도하십시오.",
+    "instructions": "이 워크스테이션에서 슬라이드 이미지가 열릴 위치로 이 창을 옮기고 크기를 조정하십시오. 그런 다음 위치 저장을 선택하십시오.",
+    "save": "위치 저장",
+    "saved": "이 워크스테이션의 위치가 저장되었습니다. 이 창을 닫아도 됩니다.",
+    "screensHint": "Chrome과 Edge에서 브라우저가 요청하면 PathScribe가 모든 디스플레이의 창을 관리하도록 허용하십시오. 그래야 창이 올바른 화면에 다시 열립니다. 나중에 해당 화면이 연결되어 있지 않으면 창은 기본 화면에 열립니다.",
+    "setPosition": "위치 설정…",
+    "setPositionTitle": "이 워크스테이션에서 슬라이드가 열릴 위치로 옮길 수 있도록 슬라이드 이미지 창을 엽니다",
+    "unknownWindow": "이 페이지는 PathScribe 창의 위치를 설정합니다. 워크스테이션 메뉴에서 여십시오.",
+    "windows": {
+      "slideImage": "슬라이드 이미지 창"
+    }
+  },
   "worklistDp": {
     "readiness": {
       "error": "{{ready}}/{{total}} 오류",
@@ -28143,12 +28243,6 @@
     "noCaseSpecified": "지정된 증례가 없습니다.",
     "slideSurfacePlaceholder": "[ 실제 WSI 슬라이드 영역 — 이동/확대가 여기에 표시됩니다 ]",
     "specimenLabel": "검체 {{specimenLabel}}"
-  },
-  "wsiViewerLaunch": {
-    "blockedError": "팝업이 차단되었습니다 — 이 사이트의 팝업을 허용하고 다시 시도하세요",
-    "launchLabel": "뷰어에서 열기",
-    "launchTitle": "구성된 WSI 뷰어에서 이 슬라이드 열기",
-    "selectVendorTitle": "WSI 뷰어 선택"
   },
   "wsiViewerVendorSection": {
     "actions": {

@@ -1,3 +1,9 @@
+**Batch 755b (part 1):** `AppShell/AppShell.tsx`: the secure-message sender for PATH-UK-001 is Dr. Imogen Hartley's demo address.
+
+**Batch 755a:** `Synoptic/DemoWordingTag.tsx` (new), shown beside a demonstration checklist's name; `Config/Protocols/DemoChecklistCopyRefused.tsx` (new), shown instead of the editor when a copy would start from one.
+
+**Batch 754:** `Config/Protocols/DemoChecklistRemovalCard.tsx` (new). **Corrected:** the note below that `src/protocols/` and `src/types/ProtocolDefinition.ts` were deleted was wrong; the files were still in the working copy (no `DELETED_FILES.txt` entry). They are deleted now, with the `protocolEditor.*` text in the six languages and their entries in `docs/user-guide/coverage-ignore.json`.
+
 **Batch 747:** `Config/System/DemoDisplayTokensCard.tsx` (+ `.css`, new): the Demo display tokens card on the Demo Reset tab (`DemoResetTab.tsx`).
 
 **Batch 745:** `Autopsy/AutopsyAuthorizationCompletionForm.tsx`: the verbal order's time in the reader's date and time format.
@@ -1104,3 +1110,11 @@ Config/System/DisplayProfilesSection: time limit X and the Stations view.
 ## Batch 732
 
 Batch 732: `Workstation/BlockPieceMapPanel.tsx` (new); Equipment large-format flag.
+
+## Batch 750
+
+`SlideImage/SlideImagePreview.tsx` (new): a slide's reference preview and open action. `Config/System/SlideImageSettingsCard.tsx` (new). `NavBar/NavBarScanStation.tsx`: Set position for the slide image window.
+
+## Batch 751
+
+`OrganMap/OrganMapPanel.tsx` (the Assist note and the map-file line); `FacilityDictionary/FacilityOutboundDocumentsSection.tsx` and `OrganMapDeliverySetting.tsx` (new).

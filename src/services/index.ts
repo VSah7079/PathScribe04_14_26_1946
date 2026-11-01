@@ -722,6 +722,7 @@ export { deliveryExceptions } from './delivery/deliveryRetries';
 export { parseRetryDelays, retrySettingsProblem, DEFAULT_RETRY_DELAYS_MINUTES } from './delivery/deliveryRetryPolicy';
 export { dpVendorService } from './digitalPathology/dpVendorServiceInstance';
 export { wsiViewerVendorService } from './digitalPathology/wsiViewerVendorServiceInstance';
+export { slidePreviewService } from './digitalPathology/slidePreviewServiceInstance'; // Batch 750
 export { draftCacheService } from './drafts/draftCacheInstance';
 export { displayProfileService } from './facilityOpsDashboard/displayProfileServiceInstance';
 export { grossImagingVendorService } from './imageAssociation/grossImagingVendorServiceInstance';

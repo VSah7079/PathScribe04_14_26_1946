@@ -40,6 +40,8 @@ import { useSelectableScanStations } from '@/hooks/useSelectableScanStations';
 import { useTouchLayout } from '@/hooks/useTouchLayout';
 import { TOUCH_LAYOUT_MODES } from '@/utils/touch/touchLayout';
 import { scanStationService, actionRegistryService, workstationGroupService, actionGroupService } from '@/services';
+import { useCompanionWindow } from '@/hooks/useCompanionWindow';
+import { SLIDE_IMAGE_WINDOW_NAME } from '@/services/digitalPathology/slideImages';
 
 
 export function NavBarScanStation() {
@@ -52,6 +54,12 @@ export function NavBarScanStation() {
   const touch = useTouchLayout();
   // PS-128 (Batch 437): through the unsaved-changes guard.
   const navigate = useGuardedNavigate();
+  // Batch 750 (S10): set where the slide image window opens on this workstation (pages/WindowPositionPage).
+  const slideWindow = useCompanionWindow({ windowName: SLIDE_IMAGE_WINDOW_NAME, preferredWidth: 1400, preferredHeight: 900, closeOnUnmount: false });
+  const [slideWindowBlocked, setSlideWindowBlocked] = useState(false);
+  const setSlideWindowPosition = () => {
+    void slideWindow.openCompanion(`/window-position?window=${SLIDE_IMAGE_WINDOW_NAME}`).then(r => setSlideWindowBlocked(r === 'blocked'));
+  };
   // Real fix, per PS-289's own comment thread — the one piece its own
   // addendum named and never actually delivered: "dedicatedPageRoute"
   // was captured by the admin CRUD screen but nothing ever consumed
@@ -189,6 +197,11 @@ export function NavBarScanStation() {
             ))}
           </div>
           <div className="ps-navbar-station-menu-title" role="status">{t(touch.active ? 'touchLayout.nowOn' : 'touchLayout.nowOff')}</div>
+          <div className="ps-navbar-station-menu-title">{t('windowPosition.windows.slideImage')}</div>
+          <button type="button" className="ps-navbar-station-menu-item" onClick={setSlideWindowPosition} title={t('windowPosition.setPositionTitle')}>
+            {t('windowPosition.setPosition')}
+          </button>
+          {slideWindowBlocked && <div className="ps-navbar-station-menu-title" role="alert">{t('slideImage.message.blocked')}</div>}
         </div>
       )}
     </div>

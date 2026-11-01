@@ -54,9 +54,9 @@ import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
-import { PROTOCOL_REGISTRY } from './protocolShared';
-import { saveDraft, submitForReview, getTemplate, canCurrentUserDraftTemplates } from '../../../services/templates/templateService';
-import { bumpVersion, prepareProtocolCopy, findProtocolNameConflict, editorUrlAfterSave, type ProtocolCopyKind } from '@/services/templates/protocolLifecycle';
+import { PROTOCOL_REGISTRY } from './protocolShared'; import { useEditorStartingTemplate } from '@/hooks/useEditorStartingTemplate'; import { DemoChecklistCopyRefused } from './DemoChecklistCopyRefused';
+import { saveDraft, submitForReview, canCurrentUserDraftTemplates } from '../../../services/templates/templateService';
+import { bumpVersion, findProtocolNameConflict, editorUrlAfterSave, type ProtocolCopyKind } from '@/services/templates/protocolLifecycle';
 import { formatDateTime } from '@/utils/formatDate';
 import { TerminologyAlertBanner } from './TerminologyAlertBanner';
 import { useTerminologyAlerts } from '../../../hooks/useTerminologyAlerts';
@@ -928,32 +928,7 @@ const SynopticEditor: React.FC = () => {
   const backTarget   = fromSection === 'review' ? '/configuration?tab=protocols&section=review' : '/configuration?tab=protocols';
   const isNew        = !templateId || templateId === 'new';
 
-  const [template, setTemplate]           = useState<EditorTemplate>(blankTemplate);
-  const [templateLoading, setTemplateLoading] = useState(!isNew);
-  const [registryEntry, setRegistryEntry] = useState<import('./protocolShared').Protocol | null>(null);
-
-  React.useEffect(() => {
-    if (isNew || !templateId) return;
-    setTemplateLoading(true);
-    // A copy is a new protocol: the source's review state/notes don't apply to it.
-    const entry = copyKind ? null : PROTOCOL_REGISTRY.find(p => p.id === templateId) ?? null;
-    setRegistryEntry(entry);
-    // Duplicate / New Version: the editor opens a COPY with a new id; the
-    // source is never edited. What changes on the copy (name, version,
-    // lineage) is decided in services/templates/protocolLifecycle.ts.
-    const asCopy = (loaded: EditorTemplate) =>
-      copyKind ? prepareProtocolCopy(loaded, copyKind, { copyName: name => t('common.copyOfName', { name }), newId: uid }) : loaded;
-    getTemplate(templateId)
-      .then(detail => setTemplate(asCopy(detail.template)))
-      .catch(() => {
-        const source = PROTOCOL_REGISTRY.find(p => p.id === templateId);
-        if (source) {
-          setTemplate(asCopy({ id: source.id, name: source.name, source: source.source, version: source.version, category: source.category, sections: [blankSection()] }));
-        }
-      })
-      .finally(() => setTemplateLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateId, isNew, copyKind]);
+  const { template, setTemplate, templateLoading, registryEntry, copyRefused, sourceName } = useEditorStartingTemplate(templateId, isNew, copyKind, { blankTemplate, blankSection, newId: uid });
 
   const [showPreview, setShowPreview]             = useState(false);
   const [isDirty, setIsDirty]                     = useState(false);
@@ -976,7 +951,7 @@ const SynopticEditor: React.FC = () => {
   const saveFailureMessage = (err: any, fallbackKey: string) =>
     err?.code === 'NOT_TEMPLATE_AUTHOR' ? t('synopticEditor.errors.notTemplateAuthor')
       // Batch 463b: refused by templateService (a Mohs question's default-histology source is missing or not a choice question).
-      : err?.code === 'MOHS_HISTOLOGY_SOURCE' ? t('synopticEditor.errors.mohsHistologySource')
+      : err?.code === 'MOHS_HISTOLOGY_SOURCE' ? t('synopticEditor.errors.mohsHistologySource') : err?.code === 'DEMO_CHECKLIST_COPY' ? t('demoChecklists.copyRefusedShort')
       : (err?.message ?? t(fallbackKey));
 
   const guardedNavigate = (target: string) => { if (isDirty) { setPendingNavTarget(target); setShowDiscardConfirm(true); } else { navigate(target); } };
@@ -1046,6 +1021,7 @@ const SynopticEditor: React.FC = () => {
     { label: `SNOMED ≥ ${SNOMED_PUBLISH_THRESHOLD}%`, ok: cov.snomed >= SNOMED_PUBLISH_THRESHOLD },
   ];
 
+  if (copyRefused) return <DemoChecklistCopyRefused name={sourceName} onBack={() => navigate(backTarget)} />;
   if (templateLoading) {
     return (
       <div className="ps-syned-loading-screen">

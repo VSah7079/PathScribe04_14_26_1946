@@ -761,7 +761,7 @@ Unlocks: None.
 ## Digital pathology and WSI scanner integration and viewer settings {#ch4-digital-pathology}
 Breadcrumb: Home > Configuration > System
 
-This part covers what PathScribe offers for digital pathology today. Be exact about the extent. There are two pieces. First, the vendor dictionaries on [Vendor Integrations](#screen-vendor_integrations), which are lists of names and web addresses. Second, the slide-scanning queue on [Batch Management](#screen-batch-management), which sends a scan manifest to the interface engine and takes a status back. **Not built:** a vendor-specific scanner driver or a vendor connector. No screen configures a scanner other than naming it as Equipment of kind "Slide scanner" on [Equipment](#screen-equipment). The image viewer launch is described under Vendor Integrations. The mock viewer page is a demonstration only.
+This part covers what PathScribe offers for digital pathology today. Be exact about the extent. There are two pieces. First, the vendor dictionaries on [Vendor Integrations](#screen-vendor_integrations), which are lists of names and web addresses. Second, the slide-scanning queue on [Batch Management](#screen-batch-management), which sends a scan manifest to the interface engine and takes a status back. **Not built:** a vendor-specific scanner driver or a vendor connector. No screen configures a scanner other than naming it as Equipment of kind "Slide scanner" on [Equipment](#screen-equipment). PathScribe has no slide viewer: a scanned slide shows its scanner's preview and opens in the laboratory's own digital pathology application, set up under **Slide images** in Vendor Integrations (Batch 750). The mock viewer page is a demonstration only.
 
 ### Vendor Integrations {#screen-vendor_integrations}
 Breadcrumb: Home > Configuration > System > Lab Materials & Workflows > Vendor Integrations
@@ -771,9 +771,9 @@ Breadcrumb: Home > Configuration > System > Lab Materials & Workflows > Vendor I
 **1. Navigation:** Configuration tab **System** > group **Lab Materials & Workflows**
 **2. Maintenance item:** Vendor Integrations (four categories in a left-hand list: Digital Pathology / AI, WSI Viewers, Image Management Systems, Gross / Macro Imaging & Telepathology)
 
-**3. Business purpose and scope.** One screen holds four dictionaries of external products. Each is a list with **Add**, **Edit**, **Deactivate / Reactivate** and a **Show inactive** switch. Entries are never deleted. The lists are reference data: pick-lists and links that other parts of PathScribe read. The Digital Pathology / AI, Image Management Systems and Gross / Macro Imaging lists are names and settings that are recorded and shown; the product contains no vendor-specific connector that acts on them. Only the WSI Viewers list has a working use: its **Launch URL Template** is opened from a case by the **Launch in Viewer** button.
+**3. Business purpose and scope.** One screen holds four dictionaries of external products. Each is a list with **Add**, **Edit**, **Deactivate / Reactivate** and a **Show inactive** switch. Entries are never deleted. The lists are reference data: pick-lists and links that other parts of PathScribe read. The Digital Pathology / AI, Image Management Systems and Gross / Macro Imaging lists are names and settings that are recorded and shown; the product contains no vendor-specific connector that acts on them. Only the WSI Viewers category has a working use: its **Slide images** settings give the address that opens a slide in the laboratory's digital pathology application and the address of the slide's preview, and its list's **Launch URL Template** is used when no viewer address is set there.
 
-**4. Prerequisites and dependencies.** None other than the person's access. Add a WSI viewer here before slides can be opened in an external viewer; scanner hardware is a separate list (Equipment).
+**4. Prerequisites and dependencies.** None other than the person's access. Set the Slide images viewer address (or a WSI viewer with a launch template) before slides can be opened in the laboratory's application; scanner hardware is a separate list (Equipment).
 
 Setup step: Tier 3, step 9
 Requires: None.
@@ -802,10 +802,20 @@ The demonstration data holds six entries: Paige Prostate, Ibex Prostate Detect, 
 | Field Name | Data Type / Format | Required/Optional | Description & Business Logic | System Default |
 |---|---|---|---|---|
 | Name (Vendor / Product Name) | Text | Required | Save is disabled when empty. | None |
-| Launch URL Template | Web address containing the token `{{wsiUniqueId}}` | Optional | PathScribe replaces the token with the slide's unique id and opens the result in a companion window. A warning shows when the text lacks the token. An entry with no template shows "no URL configured" and cannot launch. | Blank |
+| Launch URL Template | Web address containing the token `{{wsiUniqueId}}` | Optional | PathScribe replaces the token with the slide's identifier. Used only when no Slide images viewer address is set: the first active entry with a usable https address opens the slide. A warning shows when the text lacks the token. | Blank |
 | Show inactive | Switch | Optional | | Off |
 
-All demonstration entries have a blank template except `[DEMO ONLY] Sample WSI Viewer`, which points at an example.com address and is not a real viewer.
+All demonstration entries have a blank template (the example.com demonstration entry was removed in Batch 750).
+
+#### Slide images (WSI Viewers, above the list)
+
+| Field Name | Data Type / Format | Required/Optional | Description & Business Logic | System Default |
+|---|---|---|---|---|
+| Viewer address | https web address containing `{{slideId}}`, optionally `{{accession}}` | Optional | Opens the slide in the laboratory's own digital pathology application, in a separate window that remembers its place on each workstation. No user name, password or patient name may be in it; sign-in belongs to that application. Opening is audited and needs `case:slide-image:open`. | The deployment's `VITE_SLIDE_VIEWER_URL_TEMPLATE`, if set |
+| Preview image address | https web address containing `{{slideId}}`, optionally `{{accession}}` | Optional | The slide's preview from the scanner or image system, shown unchanged with "Reference preview. Not for diagnosis." once the slide is scanned. Add its host to the security policy (img-src). | The deployment's `VITE_SLIDE_THUMBNAIL_URL_TEMPLATE`, if set |
+| Facilities with their own system | A facility, then the same two addresses | Optional | For a facility with its own scanner or application; blank uses the laboratory's address. | None |
+
+Saving needs `config:vendor-integrations:manage`. A user without a viewer address set sees "No viewer address is set. Ask your administrator." when opening a slide. Each workstation chooses where the slide window opens from the workstation menu (Slide image window, Set position).
 
 #### Image Management Systems (add and edit window)
 

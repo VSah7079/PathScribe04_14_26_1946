@@ -1,3 +1,13 @@
+**Batch 755b (part 2):** `templates/demoChecklists.ts` adds `DEMO_CHECKLISTS_HIDDEN_FROM_CASE_PICKER` and `offeredOnCasePicker()`; demo cases in `cases/` agree with the reworded lung, kidney, melanoma, local excision and prostatectomy checklists.
+
+**Batch 755b (part 1):** demo seeds: the Manchester pathologist PATH-UK-001 is the fictional Dr. Imogen Hartley across cases, notes, messages and quality records; `users/` adds Paul Carter's own record (UK-ADV-001); `auth/demo/demoAccounts.ts` maps his sign-in there and adds Dr. Hartley's.
+
+**Batch 755a:** `templates/demoChecklists.ts` gains `showsDemoWordingTag()` and `checklistCopyRefusal()`; `templates/protocolLifecycle.ts` drops Duplicate / New Version for demo checklists and adds `copySourceCandidates()`; `templates/templateService.ts` refuses saving a copy of one (`DEMO_CHECKLIST_COPY`); demo case names, the autopsy checklist on A26-4665/4666 and reworded findings in `cases/`.
+
+**Batch 754:** the demonstration checklists are left out of customer builds and can be removed from a customer organisation's library (`templates/demoChecklists.ts`, `templates/demoChecklistRemoval.ts`; capability `platform:demo-checklists:remove`). See `docs/architecture/DEMO_CHECKLISTS.md`.
+
+**Batch 753:** the prostate needle biopsy and radical prostatectomy checklists in PathScribe's own wording (not CAP or RCPath text), and the Video 9 prostate cases answered in step with their maps. See `data/templates/generic/README.md` and `services/cases/README.md`.
+
 **Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
 
 **Batch 721:** `accessioning/resolveAccessionPanels.ts` (Accession panel layout rule); see its README.
@@ -2233,3 +2243,19 @@ Batch 746: S7 molecular seed: `cases/demoMolecularCases.ts`, `molecular/molecula
 ## Batch 747
 
 Batch 747: S8 wall displays: `facilityOpsDashboard/caseFacility.ts` (the facility fix), `cases/demoWallVolumeCases.ts`, `batches/wallDisplayDemoBatches.ts`, display profiles, `demoReset/demoDisplayTokens.ts`, scanner runs, patients.
+
+## Batch 748
+
+Batch 748: S9 and S11 seed: `cases/demoBlockTypeCases.ts`, S26-4630's retention hold, the Checkout tray in `batches/wallDisplayDemoBatches.ts`, patients.
+
+## Batch 749
+
+Batch 749: S5 and S4 seed: `cases/demoCytologyVolumeCases.ts`, Northside Clinic's screening strategy, two AI reads, patients.
+
+## Batch 750
+
+Batch 750: slide images (no viewer in PathScribe): `digitalPathology/slideImages.ts`, `slideImageOpen.ts`, the slide preview service (`slidePreviewService`), `windowPlacement/` (new), `authorization/slideImageCapabilities.ts`, the S26-5404 seed.
+
+## Batch 751
+
+Batch 751: organ maps on Assist cases (spec section 12): `organMapping/organMapDelivery*.ts`, the Assist rule in `organMapping/organMapFigures.ts`, the `organ_map` LIS message in `reports/dispatchAssistSynopticResult.ts`, `facilities` (`setOrganMapDelivery`), `authorization/organMapDeliveryCapabilities.ts`, `documentRendering/imagePdf.ts`, the S15 seed cases.

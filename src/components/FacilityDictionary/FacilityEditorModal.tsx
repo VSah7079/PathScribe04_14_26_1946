@@ -39,7 +39,7 @@ import { resolveFieldRequirements, isFieldRequired, type ResolvedFieldRequiremen
 import { checkFacilityForm } from "@/services/facilities/facilityFormChecks";
 import { formatList } from "@/utils/formatList";
 import IdentifierFormatsTab from "./IdentifierFormatsTab";
-import { FacilityPrintingTab } from "./FacilityPrintingTab";
+import { FacilityPrintingTab } from "./FacilityPrintingTab"; import { FacilityOutboundDocumentsSection } from "./FacilityOutboundDocumentsSection";
 import { FacilitySecureMessagingTab } from "./FacilitySecureMessagingTab";
 import type { PlaceOfServiceCode } from "../../types/billing/PlaceOfServiceCode";
 import { JURISDICTION_LABELS, type Jurisdiction } from "../../types/systemConfig";
@@ -962,16 +962,8 @@ const FacilityEditorModalBody: React.FC<FacilityEditorModalProps> = ({
 
               {/* Batch 427 (Pete: the setting belongs to the testing facility): whether this lab's LIS
                   takes one PDF per accession. Only a performing lab's setting is used. */}
-              {hasRole('performing_lab') && (
-                <>
-                  <div className="cem-section">{t('facilityEditorModal.lis.outboundDocuments')}</div>
-                  <label className="ps-fem-check">
-                    <input type="checkbox" checked={!!form.consolidateOutboundPdfs}
-                      onChange={e => set("consolidateOutboundPdfs", e.target.checked)} />
-                    {t('facilityEditorModal.lis.consolidateOutboundPdfs')}
-                  </label>
-                  <p className="cem-note">{t('facilityEditorModal.lis.consolidateOutboundPdfsNote')}</p>
-                </>
+              {hasRole('performing_lab') && ( /* Batch 751: and its organ map delivery (FacilityOutboundDocumentsSection.tsx) */
+                <FacilityOutboundDocumentsSection consolidateOutboundPdfs={!!form.consolidateOutboundPdfs} onConsolidateChange={v => set("consolidateOutboundPdfs", v)} facility={facility} />
               )}
             </div>
           )}

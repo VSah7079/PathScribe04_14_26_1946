@@ -1,3 +1,7 @@
+**Batch 749:** `demoCytologyPatients.ts`: PAT-CYT-032 to 042 (cases/demoCytologyVolumeCases.ts).
+
+**Batch 748:** `demoSurgicalPatients.ts`: PAT-B5401 to B5403 (the block-type cases).
+
 **Batch 747:** `demoSurgicalPatients.ts`: PAT-W5301 to W5341 and PAT-W2101 to W2106 (the wall-volume cases).
 
 **Batch 746:** `demoSurgicalPatients.ts`: PAT-M5201 to M5216 (the molecular cases).

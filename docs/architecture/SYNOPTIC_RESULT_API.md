@@ -106,6 +106,10 @@ It contains:
 
 The wording follows the report's language (`surgicalReportPdf.workup*`). A combined case PDF uses `workups: [...]`, each item drawn the same way, one after another in a single document.
 
+## 4a. The organ map (Batch 751)
+
+When the performing lab's Organ map delivery is on (Facility → LIS Integration), an Assist message also carries `organMap: { generatedFrom: "synoptic answers", mapType, lines, file? }` and the lines at the end of `fullPayloadText`; with Text and image file, the file follows as an `LIS_SYNC` message of kind `organ_map` and the result's `organMap.file` names it. Open item 12.8(a) of the Lab Workflow spec: the message could carry a file reference already (it carried `workupPdf` and `header.pdf_document_id`), so no format change was needed. Details: `ORGAN_MAPPING_API.md`, "Assist cases".
+
 ## 5. Inbound: order numbers on the Assist intake (PS-331)
 
 The webhook JSON takes two optional fields, `placerOrderNumber` and `fillerOrderNumber`. The HL7 reader takes ORC-2/ORC-3, or OBR-2/OBR-3 if those are missing. The case's order keeps them.

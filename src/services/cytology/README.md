@@ -1,3 +1,5 @@
+**Batch 749:** `mockFacilityCytologyScreeningStrategyOverrideService.ts`: Northside Clinic (c3) screens with primary HPV and reflex cytology (demo seed, S5), `SEED_VERSION` 6.
+
 **Batch 740:** `cellBlockHandoff.ts` (new): which bench takes what, the cell block hand-off scans and `handOffCellBlock` (`cytology:cell-block:hand-off`, audited), `newCellBlockFrom`. Test: `cellBlockHandoff.test.ts`.
 
 **Batch 739:** `computeCytologyPrepSuggestions.ts`: two cytospins for a CSF or a fluid of 5 mL or less (`CYTOSPIN_MAX_VOLUME_ML`, `isCsfSpecimen`). Test: `fluidDecisions739.test.ts`.
@@ -1875,7 +1877,7 @@ A later case matches when any of its specimens was collected or received inside 
 ## Batch 456 — Sign-in lockout, password screening, demo seeds
 
 Seeded reviews that named the wrong person are corrected (seed version 11):
-- PATH-UK-001 is Paul Carter (Manchester), not "Dr. Priya Shah", who is the Fenwick requesting clinician. The Fenwick primary screen (and S26-9101's diagnosis) now belong to Fenwick's cytopathologist, PATH-FW-001, Dr. Eleanor Hughes (not a sign-in).
+- PATH-UK-001 is the Manchester demo pathologist (since Batch 755b the fictional Dr. Imogen Hartley), not "Dr. Priya Shah", who is the Fenwick requesting clinician. The Fenwick primary screen (and S26-9101's diagnosis) now belong to Fenwick's cytopathologist, PATH-FW-001, Dr. Eleanor Hughes (not a sign-in).
 - PATH-US-002 is Dr. J. Mark Tuthill, not "Dr. Rachel Kim". The S26-5007 high-risk rescreen is now Dr. Sarah Johnson's.
 - CT-QC-001 was no one. The S26-5002 and S26-5006 random rescreens are now Nadia Rahman's.
 

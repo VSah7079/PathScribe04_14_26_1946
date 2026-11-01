@@ -24,11 +24,8 @@
 // data inconsistency, an accurate reflection of these being real
 // companies with two genuinely different real roles.
 //
-// Plus one additional demo entry with a real, working (synthetic)
-// template — same real "for demo, why not synthetic" reasoning per
-// direct guidance on the SNOMED severity mapping dictionary — so
-// "Launch in Viewer" is genuinely clickable and demoable out of the
-// box, never mistaken for a real vendor.
+// Batch 750: the demo entry with an example.com address was removed;
+// the slide image address (slideImages.ts) is where a slide opens.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { IWsiViewerVendorService, WsiViewerVendorEntry, NewWsiViewerVendorEntry } from './IWsiViewerVendorService';
@@ -65,11 +62,9 @@ const SEED: WsiViewerVendorEntry[] = [
   { id: 'wsi-viewer-pathai-pathos', name: 'PathAI PathOS', launchUrlTemplate: '', active: true, isSystem: true, sortOrder: 5 },
   { id: 'wsi-viewer-proscia-concentriq', name: 'Proscia Concentriq', launchUrlTemplate: '', active: true, isSystem: true, sortOrder: 6 },
   { id: 'wsi-viewer-philips-intellisite', name: 'Philips IntelliSite', launchUrlTemplate: '', active: true, isSystem: true, sortOrder: 7 },
-  // Real, per direct guidance's own "for demo, why not synthetic"
-  // reasoning — a real, working (obviously fake) launch target so
-  // sales can click "Launch in Viewer" and see something happen,
-  // before a real customer's own real viewer URL is configured.
-  { id: 'wsi-viewer-demo', name: '[DEMO ONLY] Sample WSI Viewer', launchUrlTemplate: 'https://example.com/demo-wsi-viewer?slideId={{wsiUniqueId}}', active: true, isSystem: true, sortOrder: 8 },
+  // Batch 750: the "[DEMO ONLY] Sample WSI Viewer" entry (an example.com address, not a viewer) is gone. The demo opens
+  // slides in the standalone demonstration page (tools/demo-slide-viewer/) through the slide image address
+  // (slideImages.ts: Configuration, or VITE_SLIDE_VIEWER_URL_TEMPLATE), which comes before this list.
 ];
 
 const load = (): WsiViewerVendorEntry[] => storageGet(STORAGE_KEY, SEED);

@@ -5972,7 +5972,7 @@ const SynopticReportPage: React.FC = () => {
                   loading={organMap.loading}
                   payload={organMap.payload}
                   figureState={organMap.figureState}
-                  busy={organMap.busy}
+                  busy={organMap.busy} fileSentAt={organMap.fileSentAt}
                   caseId={caseData?.id}
                   facilityId={caseData?.order?.facilityId ?? null}
                   marginInk={collectMarginInk(caseData?.specimens)}

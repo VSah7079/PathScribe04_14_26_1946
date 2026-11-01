@@ -62,6 +62,8 @@ export const RUNTIME_SETTINGS = {
   VITE_ERROR_MONITORING_ENV:         { kind: 'text',     about: 'The deployment name shown with each crash report, e.g. "hospital-a-prod". Monitoring stays off without it (PS-469)' },
   VITE_ENHANCEMENT_EMAIL:            { kind: 'text',     about: 'Where enhancement requests are sent' },
   VITE_ENHANCEMENT_REQUEST_URL:      { kind: 'endpoint',  about: 'Where enhancement requests are delivered (the ForMedrixAI website address). The default for Configuration > System > Feedback, which an administrator can override. https only; add its origin to the security policy (connect-src)' },
+  VITE_SLIDE_VIEWER_URL_TEMPLATE:    { kind: 'text',     about: 'Batch 750: the address that opens the laboratory\'s digital pathology application on a slide: https, with {{slideId}} and optionally {{accession}}. The default for Configuration > System > Vendor Integrations > WSI Viewers > Slide images' },
+  VITE_SLIDE_THUMBNAIL_URL_TEMPLATE: { kind: 'text',     about: 'Batch 750: the address of a slide\'s preview image from the scanner or image system: https, with {{slideId}} and optionally {{accession}}. Add its origin to the security policy (img-src)' },
   VITE_BIOMETRIC_SIGN_IN:            { kind: 'text',     about: 'Biometric sign-in for this deployment ("false" turns it off whatever the lab policy says)', fromServer: true },
   VITE_REGULATORY_PROFILE:           { kind: 'text',     about: 'Regulatory profile: "documentation" (default; no confidence figures, no score-driven sign-out holds) or "clinical_support" (reserved until regulatory review)', fromServer: true },
   VITE_VOICE_ENABLED:                { kind: 'text',     about: 'Voice commands ("true" or "false")', fromServer: true },

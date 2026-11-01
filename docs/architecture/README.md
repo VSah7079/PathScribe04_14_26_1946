@@ -1,3 +1,7 @@
+**Batch 755a:** `DEMO_CHECKLISTS.md` section 0: plain names, the "Demo wording" tag, the copy refusal and the rule for taking the tag off.
+
+**Batch 754:** `DEMO_CHECKLISTS.md` (new): the 19 demonstration checklists are left out of customer builds (the build check fails if one slips in) and can be removed from a customer organisation's library (in the app, or with `scripts/remove-demo-checklists.mjs` against the API server: endpoint contract, Planned). `AUTHORIZATION_API.md`: `platform:demo-checklists:remove`.
+
 **Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
 
 - `PASSWORD_RESET_REQUEST_API.md` (Batch 711): "Ask my administrator to reset my password" on the demo sign-in screen; SSO deployments do not use it; the server contract (anonymous POST, throttling, administrator notification by messaging).
@@ -553,3 +557,9 @@ Batch 734: `AUTHORIZATION_API.md`, `config:direct-device-printing:manage`.
 ## Batch 733
 
 Batch 733: `CASE_WORKFLOWS_API.md`, one flag per block and group answers.
+## Batch 750
+
+Batch 750: `SLIDE_IMAGES.md` (new): no viewer in PathScribe; the slide image settings and which address applies, the image states, the slide preview contract (`POST /api/digital-pathology/slide-previews/get-for-slide`), opening a slide (`case:slide-image:open`, audit event Slide Image Opened), the remembered window and window placement, the security policy's img-src. `AUTHORIZATION_API.md` gains `case:slide-image:open`.
+## Batch 751
+
+Batch 751: `ORGAN_MAPPING_API.md` ("Assist cases": no map in an Assist report; organ map delivery to the laboratory system, the `organ_map` LIS message, the setting's route and `config:organ-map-delivery:manage`), `SYNOPTIC_RESULT_API.md` (4a, the map in the Assist result), `AUTHORIZATION_API.md`.

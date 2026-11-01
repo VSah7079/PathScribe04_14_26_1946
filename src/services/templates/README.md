@@ -1,3 +1,13 @@
+**Batch 755b (part 2):** `demoChecklists.ts`: `DEMO_CHECKLISTS_HIDDEN_FROM_CASE_PICKER` and `offeredOnCasePicker()` (the case picker leaves out the TEST forms and the five unused demo checklists). `checklistWording755b.test.ts` covers all eleven checklists reworded in 755b.
+
+**Batch 755b (part 1):** `checklistWording755b.test.ts` (new): breast invasive and the two UK-layout checklists have no placeholder wording, every demo answer is one they offer, and no demo data names Paul Carter as a clinician. `nodeCountText.test.ts` follows the new breast wording.
+
+**Batch 755a:** plain names for the 19 demonstration checklists (their files and `demoChecklistRegistry.ts`), the **Demo wording** tag (`demoChecklists.showsDemoWordingTag()`), and no copies: `checklistCopyRefusal()`, `protocolLifecycle.protocolActions()` (no Duplicate / New Version) and `copySourceCandidates()` (Build / Customise), `templateService.saveDraft` refuses the first save of such a copy (`DEMO_CHECKLIST_COPY`). The tag comes off only when a pathologist has reviewed the wording: the file's `source` becomes `PathScribe` and the id leaves `DEMO_CHECKLIST_IDS`. Test: `demoWording.test.ts` (new).
+
+**Batch 754:** the 19 demonstration checklists ("Generic Template") are kept out of customer areas. `demoChecklists.ts` (the list, pinned against the files; the removal plan; the audit text), `demoChecklistLoaders.ts` and `demoChecklistRegistry.ts` (their loaders and Synoptic Library entries, moved out of `templateService.ts` and `protocolShared.tsx` so a customer build, mode `server`, drops them and their files), `demoChecklistRemoval.ts` and `demoChecklistRemovalDeps.ts` (ForMedrixAI support archives them for an organisation; `platform:demo-checklists:remove`). Tests: `demoChecklists.test.ts`; `templateService.seeds.test.ts` reads both loader files. See `docs/architecture/DEMO_CHECKLISTS.md`.
+
+**Batch 753:** `prostateChecklistWording.test.ts` (new): the prostate needle biopsy and radical prostatectomy checklists carry no placeholder wording, and the Video 9 cases answer only what they offer.
+
 # services/templates/
 
 Synoptic template LIBRARY MANAGEMENT ONLY, post-July-2026 split — seeds the CAP/RCPath-derived generic JSON templates into editorStore.

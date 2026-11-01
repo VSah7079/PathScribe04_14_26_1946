@@ -1,3 +1,17 @@
+Batch 754 (Pete, Oct 31, 2026: keep CAP- and RCPath-derived content out of customer areas): an old, unused protocol editor and its registry of "CAP …" protocols, imported by nothing in the app (the Synoptic Editor replaced them).
+
+src/protocols/ProtocolEditor.tsx
+src/protocols/protocolRegistry.ts
+src/protocols/protocolChangeSummary.ts
+src/protocols/README.md
+src/types/ProtocolDefinition.ts
+
+Batch 750 (Pete, Oct 31, 2026: no slide viewer in PathScribe): the launch button is replaced by the slide's reference preview (src/components/SlideImage/SlideImagePreview.tsx, src/services/digitalPathology/slideImages.ts).
+
+src/pages/SynopticReportPage/components/WsiViewerLaunchButton.tsx
+src/utils/buildWsiViewerLaunchUrl.ts
+src/utils/buildWsiViewerLaunchUrl.test.ts
+
 Batch 742 (Pete, Case Image & File Attachments, Release 1, Oct 30, 2026): the Attach images window is replaced by the Attachments window (src/components/CaseAttachments/CaseAttachmentsModal.tsx, src/hooks/useCaseAttachments.ts).
 
 src/components/ReportImages/AttachReportImagesModal.tsx

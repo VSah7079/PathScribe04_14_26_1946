@@ -174,6 +174,9 @@ Los campos de contacto obligatorios proceden de la página **Facility editor** d
 | Identificador del centro receptor (MSH-6) | Texto | Opcional | El código del sistema receptor. | En blanco |
 | Anulación del canal de salida | Texto | Opcional | Un canal distinto del motor para este centro. | En blanco |
 | Enviar un único PDF combinado por caso | Interruptor Sí/No | Opcional | Solo Laboratorio ejecutor. | Desactivado |
+| Envío del mapa anatómico: Enviar el mapa anatómico | Opción: Desactivado, Solo texto, Texto y archivo de imagen | Opcional | Solo Laboratorio ejecutor (lote 751). En un caso Assist, PathScribe nunca incluye el mapa anatómico en el informe. Este ajuste lo envía al sistema de laboratorio con los datos sinópticos: los hallazgos del mapa como líneas de texto y, con archivo, el mapa dibujado al finalizar a partir de las respuestas definitivas. Se guarda aparte con `config:organ-map-delivery:manage` y queda registrado. Un envío fallido nunca impide finalizar; aparece en la cola de salida, con reintento. | Desactivado |
+| Envío del mapa anatómico: Formato del archivo | Opción: Imagen PNG, Documento PDF | Opcional | Se muestra con Texto y archivo de imagen. | Imagen PNG |
+| Envío del mapa anatómico: Destino de los archivos | Texto | Obligatorio con Texto y archivo de imagen | Una carpeta, una dirección SFTP o un canal del motor de interfaces. Nunca un nombre de usuario ni una contraseña. Los nombres de archivo llevan el número de registro, el tipo de mapa y la hora, nunca el nombre de un paciente. | En blanco |
 
 #### Ventana del editor: pestaña Formatos de identificadores
 

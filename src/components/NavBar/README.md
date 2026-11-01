@@ -85,3 +85,7 @@ Deployment settings here are read through `appEnv()` (`services/runtimeConfig/`)
 - A **My exports** button (download icon) with a badge counting exports ready to download, shown only with the API server (`hooks/useMyExports.ts`, `useReadyExportCount`).
 
 **Batch 713:** `NavBarScanStation.tsx` lists only the stations the signed-in user may use (`hooks/useSelectableScanStations.ts`). If the station stored on this computer belongs to a facility the user may not use, the button reads "No station", the menu says why and offers "Clear this terminal's fixed station", and scans are not recorded against it. `ScanStationPrompt.tsx` (in `components/`) has the same list and asks again, with a note, in that case.
+
+## Batch 750
+
+`NavBarScanStation.tsx`: the workstation menu gains **Slide image window → Set position…**, which opens the slide image window at `/window-position` to save where it opens on this workstation.

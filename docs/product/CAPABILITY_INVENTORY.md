@@ -4929,13 +4929,13 @@ Paths are relative to /home/claude/work. "Demo" means the feature runs on browse
 - Status: Built (Demo) — real vendor feeds need the interface engine (Planned).
 - Sources: src/services/digitalPathology/README.md; DpVendorDictionarySection.tsx; recordAiHumanConcordance.ts
 
-### WSI viewer vendor dictionary and launch button
-- What it does: Admin list of launchable viewers with a URL template; the stain barcode is substituted. Launch button appears on a stain chip once Coverslipped or Ready for Review. No DICOMweb, no vendor credentials; real templates ship empty.
-- Workflow: Admin enters template in System > Vendor Integrations > WSI Viewers; user clicks the chip.
-- Roles/permissions: config:vendor-integrations:manage.
-- Settings: launchUrlTemplate.
-- Status: Built (Demo) — needs a customer URL.
-- Sources: src/services/digitalPathology/README.md; buildWsiViewerLaunchUrl.ts; WsiViewerLaunchButton.tsx
+### Slide images: reference preview and opening the lab's digital pathology application (Batch 750; replaces the WSI viewer launch button)
+- What it does: A scanned slide shows the scanner's own preview, unchanged, marked "Reference preview. Not for diagnosis."; selecting it opens the slide in the laboratory's digital pathology application in a remembered window. Image states: No image yet, Queued, Scanning, Scan failed, Failed image quality. PathScribe has no viewer and does no image processing.
+- Workflow: Admin sets the viewer and preview addresses in System > Vendor Integrations > WSI Viewers > Slide images (lab and per facility); user selects the preview in the block and stain window or on the cytology screening bar; the workstation menu's Set position… saves where the window opens.
+- Roles/permissions: config:vendor-integrations:manage (settings); case:slide-image:open (opening, audited).
+- Settings: slideImages (viewer and preview templates with {{slideId}} and {{accession}}); VITE_SLIDE_VIEWER_URL_TEMPLATE, VITE_SLIDE_THUMBNAIL_URL_TEMPLATE; the WSI Viewers list's launchUrlTemplate as a fallback.
+- Status: Partial (Demo) — previews from the interface engine Planned; the preview host must be added to the security policy by hand.
+- Sources: docs/architecture/SLIDE_IMAGES.md; slideImages.ts; slideImageOpen.ts; SlideImagePreview.tsx
 
 ### Machine verification of AI-suggested codes
 - What it does: Before the Add Code panel shows an AI-suggested SNOMED, ICD-10, ICD-11, ICD-O or LOINC code it must exactly match a real terminology result (fails closed, 5 s timeout, positives cached, network failures never cached). CPT is checked against the curated table. The practitioner still decides.

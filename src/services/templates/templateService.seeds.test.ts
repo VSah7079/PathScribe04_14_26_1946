@@ -3,7 +3,9 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-const SOURCE = readFileSync(join(process.cwd(), 'src/services/templates/templateService.ts'), 'utf8');
+const SOURCE = readFileSync(join(process.cwd(), 'src/services/templates/templateService.ts'), 'utf8')
+  // Batch 754: the demonstration checklists' loaders moved to their own file.
+  + readFileSync(join(process.cwd(), 'src/services/templates/demoChecklistLoaders.ts'), 'utf8');
 
 beforeAll(() => {
   const store: Record<string, string> = {};

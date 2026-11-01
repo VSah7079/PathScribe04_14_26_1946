@@ -1,3 +1,13 @@
+**Batch 755b (part 2):** eight more generic checklists reworded; their demo cases agree with them; `offeredOnCasePicker()` hides the five unused demo checklists from the case picker.
+
+**Batch 755b (part 1):** breast invasive and UK-layout checklist wording (`data/templates/generic/`), Manchester demo cases in real words, PATH-UK-001 fictional (Dr. Imogen Hartley) and Paul Carter's own record (UK-ADV-001).
+
+**Batch 755a:** plain checklist names with a **Demo wording** tag; demo checklists can't be copied (screens and `templateService.saveDraft`); the autopsy checklist on A26-4665/4666; S26-4404, MFT26-8804 and MFT26-8802 findings reworded. Split on touch: `TemplatePicker.tsx` out of `RightSynopticPanel.tsx`, `useEditorStartingTemplate.ts` out of `SynopticEditor.tsx`.
+
+**Batch 754:** the 19 demonstration checklists never reach a customer: a customer build leaves them out (and its check fails if one is in it), and ForMedrixAI support can remove them from an organisation's library. The unused `src/protocols/` editor and its "CAP …" registry are deleted. See `docs/architecture/DEMO_CHECKLISTS.md`.
+
+**Batch 753:** the prostate needle biopsy and radical prostatectomy checklists in PathScribe's own wording (not CAP or RCPath text), and the Video 9 prostate cases answered in step with their maps. See `data/templates/generic/README.md` and `services/cases/README.md`.
+
 **Batch 725:** the in-app User Guide page scrolls (contents list and article each have their own scroll area). Styles only. See `src/i18n/README.md`.
 
 **Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
@@ -207,3 +217,19 @@ Batch 746: S7 molecular seed (`services/cases/demoMolecularCases.ts`, `services/
 ## Batch 747
 
 Batch 747: S8 wall displays (the facility fix in `services/facilityOpsDashboard/caseFacility.ts`, the wall-volume seed, the demo display tokens card on the Demo Reset tab).
+
+## Batch 748
+
+Batch 748: S9 and S11 seed (`services/cases/demoBlockTypeCases.ts`, a retention hold, a Checkout batch).
+
+## Batch 749
+
+Batch 749: S5 and S4 cytology seed (`services/cases/demoCytologyVolumeCases.ts`).
+
+## Batch 750
+
+Batch 750: slide images (seed row S10). PathScribe has no slide viewer: a slide shows its scanner's reference preview and opens in the laboratory's own digital pathology application, in a remembered window (`services/digitalPathology/slideImages.ts`, `components/SlideImage/`, `hooks/useSlideImage.ts`, `pages/WindowPositionPage/`, `services/windowPlacement/`).
+
+## Batch 751
+
+Batch 751: the organ map on Assist cases is a working aid only, and a lab can have it delivered to its laboratory system as text and a PNG or PDF file (Lab Workflow spec section 12); seed row S15.

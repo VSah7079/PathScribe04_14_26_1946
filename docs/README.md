@@ -1,3 +1,15 @@
+**Batch 755b (part 2):** `product/SLIDE_IMAGE_DEMO.md` section 10 (upload done; Vercel values still to set, by the development team), `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`, `DEMO_SEED_DATA.md`, handover rows.
+
+**Batch 755b (part 1):** `product/DEMO_SEED_DATA.md` (S13 adds Dr. Imogen Hartley; S15), `product/DEMO_GUIDE.md` (the Manchester pathologist), `GUIDE_UPDATES.md` and `FEATURE_OVERVIEW.md`.
+
+**Batch 755a:** `architecture/DEMO_CHECKLISTS.md` (names, tag, copy refusal, when the tag comes off), `product/DEMO_SEED_DATA.md` (S6, S15), `product/DEMO_GUIDE.md` (Videos 4 and 9), Admin Guide chapter 6 in six languages.
+
+**Batch 754:** `architecture/DEMO_CHECKLISTS.md` (new): the demonstration checklists kept out of customer areas (customer builds, removal per organisation, the Planned endpoint and its script); `product/GUIDE_UPDATES.md` and `FEATURE_OVERVIEW.md`; the handover note.
+
+**Batch 753:** the prostate needle biopsy and radical prostatectomy checklists in PathScribe's own wording (seed row S15 done; `product/DEMO_SEED_DATA.md`, `product/DEMO_GUIDE.md`); the handover note's placeholder row updated.
+
+**Batch 752:** `developer/HANDOVER_FIRST_RELEASE.md` updated for Oct 31: test figures, new open items (front end, server, decisions), what changed in Batches 699 to 751 (section 9), and the demo's slide images hosted in Cloudflare R2 (section 10). `product/SLIDE_IMAGE_DEMO.md` gains the one-script route (`scripts/Setup-PathScribeSlideDemo.ps1`) and the record of the demo set-up. Documentation and a helper script only.
+
 **Batch 725:** the in-app User Guide page scrolls (contents list and article each have their own scroll area). Styles only. See `src/i18n/README.md`.
 
 **Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
@@ -421,3 +433,19 @@ Batch 746: `product/DEMO_SEED_DATA.md` (S7 done), `product/DEMO_GUIDE.md` (Video
 ## Batch 747
 
 Batch 747: `product/DEMO_SEED_DATA.md` (S8 done, findings), `product/DEMO_GUIDE.md` (Video 6), `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md` (wall display access).
+
+## Batch 748
+
+Batch 748: `product/DEMO_SEED_DATA.md` (S9 and S11 done), `product/DEMO_GUIDE.md` (Video 7 and block types), `product/GUIDE_UPDATES.md`.
+
+## Batch 749
+
+Batch 749: `product/DEMO_SEED_DATA.md` (S4 and S5 done), `product/DEMO_GUIDE.md` (Video 3), `product/GUIDE_UPDATES.md`.
+
+## Batch 750
+
+Batch 750: `architecture/SLIDE_IMAGES.md` and `product/SLIDE_IMAGE_DEMO.md` (new); `product/GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`, `CAPABILITY_INVENTORY.md`, `DEMO_SEED_DATA.md` (S10), `DEMO_GUIDE.md` (Video 7 steps 17 and 18); the User Guide's Slide Images article and the Admin Guide's digital pathology section.
+
+## Batch 751
+
+Batch 751: `architecture/ORGAN_MAPPING_API.md` (Assist cases), `architecture/SYNOPTIC_RESULT_API.md` (4a), `architecture/AUTHORIZATION_API.md`; `product/GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`, `DEMO_SEED_DATA.md` (S15), `DEMO_GUIDE.md` (Video 9); the User and Admin Guides.

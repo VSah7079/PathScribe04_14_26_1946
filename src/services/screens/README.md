@@ -176,3 +176,7 @@ New `ScreenId` `autopsyDashboards` (`screen:autopsy-dashboards:open`), in the Qu
 ## Batch 728
 
 - `configSectionAccess.ts`: `research_cases` needs `config:research-cases:manage` or `config:batch-purposes:manage`.
+
+## Batch 750
+
+`routeGating.guard.test.ts`: `/window-position` listed as open on purpose (Save position for a window; no patient data).

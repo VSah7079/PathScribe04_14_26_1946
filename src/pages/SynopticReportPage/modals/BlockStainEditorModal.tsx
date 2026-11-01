@@ -17,7 +17,7 @@ import { stainTypeService, molecularTargetService, cassetteColorService, blockCa
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { GrossingFieldNote, RequiredMark } from '@/components/Grossing/GrossingFieldNote';
 import { formatDateTime } from '@/utils/formatDate';
-import { WsiViewerLaunchButton } from '../components/WsiViewerLaunchButton';
+import { SlideImagePreview } from '@/components/SlideImage/SlideImagePreview'; import type { SlideScanFields } from '@/services/digitalPathology/slideImages';
 import type { StainType } from '@/services/stains/IStainService';
 import type { MaterialComment } from '@/types/case/MaterialComment';
 import CameraCaptureControl from '@/components/GrossingHardware/CameraCaptureControl';
@@ -103,8 +103,8 @@ const RESTAIN_REASONS = [
 // look-alike that could drift out of sync with this one over time.
 export const StainMultiSelect: React.FC<{
   stainTypes: StainType[];
-  stains: { id: string; stainName: string; status: string; lisRequestStatus?: 'pending' | 'confirmed' | 'rejected'; selectedTargets?: MolecularTarget[]; displayId?: string }[];
-  onChange: (stains: { id: string; stainName: string; status: string; lisRequestStatus?: 'pending' | 'confirmed' | 'rejected'; selectedTargets?: MolecularTarget[]; displayId?: string }[]) => void;
+  stains: ({ id: string; stainName: string; status: string; lisRequestStatus?: 'pending' | 'confirmed' | 'rejected'; selectedTargets?: MolecularTarget[]; displayId?: string } & SlideScanFields)[];
+  onChange: (stains: ({ id: string; stainName: string; status: string; lisRequestStatus?: 'pending' | 'confirmed' | 'rejected'; selectedTargets?: MolecularTarget[]; displayId?: string } & SlideScanFields)[]) => void;
   masterTargets: MolecularTarget[];
   /** Real feature, per direct feedback: "I was trying to Add a
    *  Unstained slide, but did not see it in the drop down list."
@@ -191,7 +191,7 @@ export const StainMultiSelect: React.FC<{
               {s.lisRequestStatus === 'rejected' && (
                 <span title={t('blockStainEditorModal.stainMultiSelect.lisRejectedTitle')} className="ps-blockstain-lis-icon ps-blockstain-lis-icon--rejected">⚠</span>
               )}
-              <WsiViewerLaunchButton status={s.status} displayId={s.displayId} />
+              <SlideImagePreview slideDisplayId={s.displayId} scan={s} />
               <button type="button" onClick={() => remove(s.id)} className="ps-protocol-stainselect-chip-remove">×</button>
             </span>
           ))}
@@ -1222,8 +1222,8 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                             a Stain identifier for clarity"): s.displayId
                             is the real, already-generated slide
                             identifier (slideIdentifier(), the same real
-                            id WsiViewerLaunchButton routes a scan launch
-                            to) — it existed on this record already but
+                            id SlideImagePreview opens a slide image
+                            with) — it existed on this record already but
                             was never actually shown anywhere a person
                             reads, only used internally for that launch
                             URL. With more than one stain on a block

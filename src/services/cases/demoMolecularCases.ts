@@ -91,7 +91,7 @@ export const molecularDemoAddOnId = (spec: Pick<MolecularDemoCaseSpec, 'id' | 'a
 function lungSynoptic(spec: MolecularDemoCaseSpec) {
   const specimenId = molecularDemoSpecimenId(spec.id);
   return [{
-    instanceId: `${specimenId}_lung_adeno_demo`, specimenId, templateId: 'lung_adeno', templateName: 'Generic Template — Lung Adeno',
+    instanceId: `${specimenId}_lung_adeno_demo`, specimenId, templateId: 'lung_adeno', templateName: 'Lung adenocarcinoma',
     status: 'draft',
     answers: {
       histologic_type: 'histologic_type_opt_3', histologic_grade: 'histologic_grade_opt_2',

@@ -2,6 +2,7 @@
 // Batch 616 (PS-484): the API server's version of IFacilityService (contract:
 // STAFF_ADMIN_API.md §4). `add` and `update` never carry the print settings
 // (setPrintSettings has its own call and permission, config:print-settings:manage).
+import type { OrganMapDeliverySettings } from '../organMapping/organMapDeliveryRules';
 import type { ApiHttpClient } from '../apiServer/apiHttpClient';
 import { buildHttpService, methodPath, queryString, result } from '../apiServer/httpServiceKit';
 import type { Facility, IFacilityService } from './IFacilityService';
@@ -22,5 +23,6 @@ export const createHttpFacilityService = (client: ApiHttpClient): IFacilityServi
     verify: result('POST', () => route('verify'), { body: (id: Args<'verify'>[0]) => ({ id }) }),
     setPrintSettings: result('POST', () => route('setPrintSettings'), { body: (id: string, s: FacilityReportPrintSettings) => ({ id, settings: s }) }),
     setDirectDevicePrinting: result('POST', () => route('setDirectDevicePrinting'), { body: (id: string, allowed: boolean) => ({ id, allowed }) }),
+    setOrganMapDelivery: result('POST', () => route('setOrganMapDelivery'), { body: (id: string, settings: OrganMapDeliverySettings) => ({ id, settings }) }),
     findOrCreateByAssigningAuthority: result('POST', () => route('findOrCreateByAssigningAuthority'), { body: (assigningAuthority: string, name: string, note?: string) => ({ assigningAuthority, name, note }) }),
   });

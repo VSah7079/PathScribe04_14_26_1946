@@ -1,0 +1,17 @@
+/* Batch 750: a slide's reference preview (SlideImagePreview.tsx). Shown inside a stain chip and on the cytology
+   screening bar, so it is small and sits in the line. */
+.ps-slide-image { display: inline-flex; align-items: center; gap: 4px; margin-inline-start: 5px; flex-wrap: wrap; }
+.ps-slide-image__thumb-btn {
+  padding: 0; border: 1px solid rgba(96, 165, 250, 0.45); border-radius: 4px; background: #0f172a; cursor: pointer; line-height: 0;
+}
+.ps-slide-image__thumb-btn:hover, .ps-slide-image__thumb-btn:focus-visible { border-color: #93c5fd; outline: 2px solid rgba(147, 197, 253, 0.5); }
+/* The image is shown as delivered: scaled to fit, never cropped. */
+.ps-slide-image__thumb { inline-size: 56px; block-size: 40px; object-fit: contain; border-radius: 3px; }
+.ps-slide-image__open-btn {
+  font-size: 10px; color: #93c5fd; background: rgba(96, 165, 250, 0.15); border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 999px; padding: 1px 6px; cursor: pointer;
+}
+.ps-slide-image__state { font-size: 10px; color: #94a3b8; border: 1px solid #334155; border-radius: 999px; padding: 1px 6px; }
+.ps-slide-image__state--warn { color: #fbbf24; border-color: rgba(251, 191, 36, 0.5); }
+.ps-slide-image__note { font-size: 9px; color: #94a3b8; font-style: italic; }
+.ps-slide-image__message { font-size: 11px; color: #f87171; max-inline-size: 320px; line-height: 1.3; }

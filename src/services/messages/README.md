@@ -1,3 +1,5 @@
+**Batch 755b (part 1):** the Manchester demo messages go to the fictional Dr. Imogen Hartley (PATH-UK-001); MESSAGES_VERSION 8.
+
 **Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
 
 # services/messages/

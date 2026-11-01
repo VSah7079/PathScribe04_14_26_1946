@@ -1,6 +1,6 @@
 {
   "id": "colorectal_resection_b",
-  "name": "Generic Template \u2014 Colorectal Resection B",
+  "name": "Colorectal resection (UK layout)",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "COLORECTAL",
@@ -12,7 +12,7 @@
       "fields": [
         {
           "id": "specimen_type",
-          "label": "Type of Specimen",
+          "label": "Type of specimen",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -21,70 +21,70 @@
           "options": [
             {
               "id": "specimen_type_opt_1",
-              "label": "Option 1",
+              "label": "Ileocaecal resection",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "specimen_type_opt_2",
-              "label": "Option 2",
+              "label": "Appendicectomy",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "specimen_type_opt_3",
-              "label": "Option 3",
+              "label": "Right hemicolectomy",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "specimen_type_opt_4",
-              "label": "Option 4",
+              "label": "Extended right hemicolectomy",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "specimen_type_opt_5",
-              "label": "Option 5",
+              "label": "Transverse colectomy",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "specimen_type_opt_6",
-              "label": "Option 6",
+              "label": "Left hemicolectomy",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "specimen_type_opt_7",
-              "label": "Option 7",
+              "label": "Sigmoid colectomy",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "specimen_type_opt_8",
-              "label": "Option 8",
+              "label": "Anterior resection",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "specimen_type_opt_9",
-              "label": "Option 9",
+              "label": "Abdominoperineal excision",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "specimen_type_opt_10",
-              "label": "Option 10",
+              "label": "Other (describe in a comment)",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "tumour_site",
-          "label": "Finding Site",
+          "label": "Tumour site",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -93,75 +93,75 @@
           "options": [
             {
               "id": "tumour_site_opt_1",
-              "label": "Option 1",
+              "label": "Caecum",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_site_opt_2",
-              "label": "Option 2",
+              "label": "Ascending colon",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_site_opt_3",
-              "label": "Option 3",
+              "label": "Hepatic flexure",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_site_opt_4",
-              "label": "Option 4",
+              "label": "Transverse colon",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_site_opt_5",
-              "label": "Option 5",
+              "label": "Splenic flexure",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_site_opt_6",
-              "label": "Option 6",
+              "label": "Descending colon",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_site_opt_7",
-              "label": "Option 7",
+              "label": "Sigmoid colon",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_site_opt_8",
-              "label": "Option 8",
+              "label": "Rectum",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_site_opt_9",
-              "label": "Option 9",
+              "label": "Rectosigmoid junction",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "maximum_tumour_diameter_mm",
-          "label": "Maximum Size (mm)",
+          "label": "Maximum tumour diameter (mm)",
           "type": "text",
           "required": true,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "distance_to_nearer_longitudinal_margin_mm",
-          "label": "Field 4",
+          "label": "Distance to the nearer longitudinal margin (mm)",
           "type": "text",
           "required": true,
           "core": true,
@@ -172,7 +172,7 @@
         },
         {
           "id": "tumour_perforation",
-          "label": "Field 5",
+          "label": "Tumour perforation",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -181,13 +181,13 @@
           "options": [
             {
               "id": "tumour_perforation_opt_1",
-              "label": "Option 1",
+              "label": "Yes",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_perforation_opt_2",
-              "label": "Option 2",
+              "label": "No",
               "snomed": "",
               "icd": ""
             }
@@ -198,11 +198,11 @@
     },
     {
       "id": "rectal_tumour",
-      "title": "Additional Findings (Subset)",
+      "title": "Rectal tumours only",
       "fields": [
         {
           "id": "relation_to_peritoneal_reflection",
-          "label": "Field 1",
+          "label": "Tumour and the peritoneal reflection",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -211,19 +211,19 @@
           "options": [
             {
               "id": "relation_to_peritoneal_reflection_opt_1",
-              "label": "Option 1",
+              "label": "Above the reflection",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "relation_to_peritoneal_reflection_opt_2",
-              "label": "Option 2",
+              "label": "At the reflection (straddling it)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "relation_to_peritoneal_reflection_opt_3",
-              "label": "Option 3",
+              "label": "Below the reflection",
               "snomed": "",
               "icd": ""
             }
@@ -232,7 +232,7 @@
         },
         {
           "id": "plane_of_mesorectal_excision",
-          "label": "Field 2",
+          "label": "Plane of mesorectal excision",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -241,19 +241,19 @@
           "options": [
             {
               "id": "plane_of_mesorectal_excision_opt_1",
-              "label": "Option 1",
+              "label": "Mesorectal plane (good)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "plane_of_mesorectal_excision_opt_2",
-              "label": "Option 2",
+              "label": "Intramesorectal plane",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "plane_of_mesorectal_excision_opt_3",
-              "label": "Option 3",
+              "label": "Muscularis propria plane (poor)",
               "snomed": "",
               "icd": ""
             }
@@ -262,7 +262,7 @@
         },
         {
           "id": "plane_of_sphincter_resection",
-          "label": "Field 3",
+          "label": "Plane of excision around the sphincters (abdominoperineal excision)",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -271,28 +271,35 @@
           "options": [
             {
               "id": "plane_of_sphincter_resection_opt_1",
-              "label": "Option 1",
+              "label": "Outside the levators (extralevator)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "plane_of_sphincter_resection_opt_2",
-              "label": "Option 2",
+              "label": "Sphincteric plane",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "plane_of_sphincter_resection_opt_3",
-              "label": "Option 3",
+              "label": "Within the sphincters or submucosa",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "specimen_type",
+            "answerId": "",
+            "answerIds": [
+              "specimen_type_opt_9"
+            ]
+          }
         },
         {
           "id": "distance_from_dentate_line_mm",
-          "label": "Field 4",
+          "label": "Distance of tumour from the dentate line (mm)",
           "type": "text",
           "required": false,
           "core": true,
@@ -305,11 +312,11 @@
     },
     {
       "id": "tumour_pathology",
-      "title": "Findings",
+      "title": "Tumour",
       "fields": [
         {
           "id": "tumour_type",
-          "label": "Finding Type",
+          "label": "Tumour type",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -318,22 +325,22 @@
           "options": [
             {
               "id": "tumour_type_opt_1",
-              "label": "Option 1",
+              "label": "Adenocarcinoma",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_type_opt_2",
-              "label": "Option 2",
+              "label": "Other type (describe in a comment)",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "differentiation",
-          "label": "Differentiation",
+          "label": "Differentiation (grade)",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -342,28 +349,28 @@
           "options": [
             {
               "id": "differentiation_opt_1",
-              "label": "Well differentiated",
+              "label": "Low grade (well or moderately differentiated)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "differentiation_opt_2",
-              "label": "Moderately differentiated",
+              "label": "High grade (poorly differentiated)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "differentiation_opt_3",
-              "label": "Poorly differentiated",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "local_invasion",
-          "label": "Local Involvement",
+          "label": "Local invasion",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -417,7 +424,7 @@
         },
         {
           "id": "max_distance_beyond_muscularis_propria_mm",
-          "label": "Field 4",
+          "label": "Maximum spread beyond the muscularis propria (mm)",
           "type": "text",
           "required": false,
           "core": true,
@@ -428,7 +435,7 @@
         },
         {
           "id": "tumour_regression_score",
-          "label": "Field 5",
+          "label": "Response to treatment before surgery",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -437,25 +444,25 @@
           "options": [
             {
               "id": "tumour_regression_score_opt_1",
-              "label": "TRG1 \u2014 complete response, no viable tumour cells",
+              "label": "TRG1 — complete response, no viable tumour cells",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_regression_score_opt_2",
-              "label": "TRG2 \u2014 moderate response, rare residual tumour cells amid fibrosis",
+              "label": "TRG2 — moderate response, rare residual tumour cells amid fibrosis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_regression_score_opt_3",
-              "label": "TRG3 \u2014 minimal response, residual tumour outgrowing fibrosis",
+              "label": "TRG3 — minimal response, residual tumour outgrowing fibrosis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "tumour_regression_score_opt_4",
-              "label": "TRG4/5 \u2014 poor or no response, extensive residual tumour with little or no fibrosis",
+              "label": "TRG4/5 — poor or no response, extensive residual tumour with little or no fibrosis",
               "snomed": "",
               "icd": ""
             },
@@ -466,7 +473,7 @@
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": ""
         }
       ]
     },
@@ -476,7 +483,7 @@
       "fields": [
         {
           "id": "longitudinal_margin_involvement",
-          "label": "Field 1",
+          "label": "Longitudinal (proximal and distal) margins",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -508,11 +515,11 @@
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "circumferential_margin_involvement",
-          "label": "Field 2",
+          "label": "Circumferential (non-peritonealised) margin",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -544,22 +551,22 @@
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "distance_to_crm_mm",
-          "label": "Field 3",
+          "label": "Distance of tumour from the circumferential margin (mm)",
           "type": "text",
           "required": true,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "doughnuts_involved",
-          "label": "Field 4",
+          "label": "Anastomotic doughnuts",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -585,36 +592,36 @@
     },
     {
       "id": "lymph_nodes",
-      "title": "Regional Nodes",
+      "title": "Lymph nodes",
       "fields": [
         {
           "id": "total_lymph_nodes_examined",
-          "label": "Total Number Examined",
+          "label": "Lymph nodes examined",
           "type": "text",
           "required": true,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional",
+          "note": "",
           "nodeCount": true
         },
         {
           "id": "total_lymph_nodes_involved",
-          "label": "Total Number Positive",
+          "label": "Lymph nodes involved",
           "type": "text",
           "required": true,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional",
+          "note": "",
           "nodeCount": true,
           "notMoreThan": "total_lymph_nodes_examined"
         },
         {
           "id": "highest_node_involved",
-          "label": "Field 3",
+          "label": "Highest (apical) node",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -623,13 +630,13 @@
           "options": [
             {
               "id": "highest_node_involved_opt_1",
-              "label": "Option 1",
+              "label": "Not involved",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "highest_node_involved_opt_2",
-              "label": "Option 2",
+              "label": "Involved",
               "snomed": "",
               "icd": ""
             }
@@ -638,7 +645,7 @@
         },
         {
           "id": "number_of_tumour_deposits",
-          "label": "Number of Additional Deposits",
+          "label": "Tumour deposits",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -647,58 +654,58 @@
           "options": [
             {
               "id": "number_of_tumour_deposits_opt_1",
-              "label": "Option 1",
+              "label": "None",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "number_of_tumour_deposits_opt_2",
-              "label": "Option 2",
+              "label": "1",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "number_of_tumour_deposits_opt_3",
-              "label": "Option 3",
+              "label": "2",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "number_of_tumour_deposits_opt_4",
-              "label": "Option 4",
+              "label": "3",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "number_of_tumour_deposits_opt_5",
-              "label": "Option 5",
+              "label": "4",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "number_of_tumour_deposits_opt_6",
-              "label": "Option 6",
+              "label": "5",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "number_of_tumour_deposits_opt_7",
-              "label": "Option 7",
+              "label": "More than 5",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": ""
         }
       ]
     },
     {
       "id": "vascular_invasion",
-      "title": "Secondary Involvement",
+      "title": "Venous, lymphatic and perineural invasion",
       "fields": [
         {
           "id": "venous_invasion",
-          "label": "Vascular Involvement",
+          "label": "Venous invasion",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -707,19 +714,19 @@
           "options": [
             {
               "id": "venous_invasion_opt_1",
-              "label": "Option 1",
+              "label": "Not identified",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "venous_invasion_opt_2",
-              "label": "Option 2",
+              "label": "Intramural only",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "venous_invasion_opt_3",
-              "label": "Option 3",
+              "label": "Extramural",
               "snomed": "",
               "icd": ""
             }
@@ -728,7 +735,7 @@
         },
         {
           "id": "lymphatic_invasion",
-          "label": "Lymphatic Involvement",
+          "label": "Lymphatic invasion",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -737,19 +744,19 @@
           "options": [
             {
               "id": "lymphatic_invasion_opt_1",
-              "label": "Option 1",
+              "label": "Not identified",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "lymphatic_invasion_opt_2",
-              "label": "Option 2",
+              "label": "Present",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "lymphatic_invasion_opt_3",
-              "label": "Option 3",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -758,7 +765,7 @@
         },
         {
           "id": "perineural_invasion",
-          "label": "Perineural Involvement",
+          "label": "Perineural invasion",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -767,19 +774,19 @@
           "options": [
             {
               "id": "perineural_invasion_opt_1",
-              "label": "Option 1",
+              "label": "Not identified",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "perineural_invasion_opt_2",
-              "label": "Option 2",
+              "label": "Present",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "perineural_invasion_opt_3",
-              "label": "Option 3",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -790,11 +797,11 @@
     },
     {
       "id": "metastatic_disease",
-      "title": "Distant Involvement",
+      "title": "Distant metastasis",
       "fields": [
         {
           "id": "confirmed_distant_metastasis",
-          "label": "Field 1",
+          "label": "Distant metastasis in this specimen",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -814,28 +821,35 @@
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "metastasis_sites",
-          "label": "Field 2",
+          "label": "Sites of distant metastasis",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "confirmed_distant_metastasis",
+            "answerId": "",
+            "answerIds": [
+              "confirmed_distant_metastasis_opt_2"
+            ]
+          }
         }
       ]
     },
     {
       "id": "separate_abnormalities",
-      "title": "Additional Findings",
+      "title": "Other findings",
       "fields": [
         {
           "id": "separate_abnormalities_present",
-          "label": "Field 1",
+          "label": "Other abnormalities",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -844,13 +858,13 @@
           "options": [
             {
               "id": "separate_abnormalities_present_opt_1",
-              "label": "Option 1",
+              "label": "None",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "separate_abnormalities_present_opt_2",
-              "label": "Option 2",
+              "label": "Present",
               "snomed": "",
               "icd": ""
             }
@@ -859,7 +873,7 @@
         },
         {
           "id": "separate_abnormalities_type",
-          "label": "Field 2",
+          "label": "Which abnormalities",
           "type": "checkboxes",
           "required": false,
           "core": true,
@@ -868,40 +882,47 @@
           "options": [
             {
               "id": "separate_abnormalities_type_opt_1",
-              "label": "Option 1",
+              "label": "Polyp(s)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "separate_abnormalities_type_opt_2",
-              "label": "Option 2",
+              "label": "A second carcinoma (report it separately)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "separate_abnormalities_type_opt_3",
-              "label": "Option 3",
+              "label": "Ulcerative colitis",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "separate_abnormalities_type_opt_4",
-              "label": "Option 4",
+              "label": "Crohn disease",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "separate_abnormalities_present",
+            "answerId": "",
+            "answerIds": [
+              "separate_abnormalities_present_opt_2"
+            ]
+          }
         }
       ]
     },
     {
       "id": "resection_status_tnm",
-      "title": "Resection Status and Stage Summary",
+      "title": "Resection and stage",
       "fields": [
         {
           "id": "resection_status",
-          "label": "Resection Status",
+          "label": "Resection status",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -910,28 +931,28 @@
           "options": [
             {
               "id": "resection_status_opt_1",
-              "label": "R0 \u2014 complete resection, margins clear",
+              "label": "R0 — complete resection, margins clear",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "resection_status_opt_2",
-              "label": "R1 \u2014 incomplete resection, microscopic residual tumour",
+              "label": "R1 — incomplete resection, microscopic residual tumour",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "resection_status_opt_3",
-              "label": "R2 \u2014 incomplete resection, macroscopic residual tumour",
+              "label": "R2 — incomplete resection, macroscopic residual tumour",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "t_stage",
-          "label": "Category A",
+          "label": "pT (yp after treatment before surgery)",
           "type": "text",
           "required": true,
           "core": true,
@@ -939,11 +960,11 @@
           "icd": "",
           "options": [],
           "reportingRole": "pT",
-          "note": "Optional"
+          "note": "For example \"pT3\" or \"ypT3\""
         },
         {
           "id": "n_stage",
-          "label": "Category B",
+          "label": "pN",
           "type": "text",
           "required": true,
           "core": true,
@@ -951,11 +972,11 @@
           "icd": "",
           "options": [],
           "reportingRole": "pN",
-          "note": "Optional"
+          "note": "For example \"pN0\" or \"ypN1b\""
         },
         {
           "id": "m_stage",
-          "label": "Category C",
+          "label": "pM (only when confirmed in this specimen)",
           "type": "text",
           "required": false,
           "core": true,
@@ -969,11 +990,11 @@
     },
     {
       "id": "molecular_block",
-      "title": "Ancillary Block Information",
+      "title": "Block for further testing",
       "fields": [
         {
           "id": "block_index",
-          "label": "Block Index",
+          "label": "Block key",
           "type": "text",
           "required": false,
           "core": true,
@@ -984,7 +1005,7 @@
         },
         {
           "id": "representative_molecular_block",
-          "label": "Representative Block (identifier)",
+          "label": "Best block for further testing",
           "type": "text",
           "required": false,
           "core": true,
@@ -995,7 +1016,7 @@
         },
         {
           "id": "carcinoma_content_percent",
-          "label": "Finding Content (%)",
+          "label": "Tumour content of that block (%)",
           "type": "text",
           "required": false,
           "core": true,
@@ -1008,11 +1029,11 @@
     },
     {
       "id": "snomed_codes",
-      "title": "Reference Codes",
+      "title": "SNOMED CT codes",
       "fields": [
         {
           "id": "snomed_t_code",
-          "label": "Reference Code A",
+          "label": "SNOMED CT topography code",
           "type": "text",
           "required": false,
           "core": true,
@@ -1023,7 +1044,7 @@
         },
         {
           "id": "snomed_m_code",
-          "label": "Reference Code B",
+          "label": "SNOMED CT morphology code",
           "type": "text",
           "required": false,
           "core": true,
@@ -1210,7 +1231,7 @@
       "fields": [
         {
           "id": "comments",
-          "label": "Comment(s)",
+          "label": "Comments",
           "type": "text",
           "required": false,
           "core": true,

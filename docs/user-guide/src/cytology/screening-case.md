@@ -134,7 +134,7 @@ The form is headed "Record a New CISOE-A Review", or "Edit Your CISOE-A Review" 
 | Team | Opens the case team window. |
 | Delegate | Opens the delegate window. |
 | Req. Review | Opens the request-review window to ask a colleague to look at the case. |
-| WSI viewer | Appears only when your laboratory scans slides. Opens the whole-slide viewer for the specimen. |
+| Slide preview | Appears only when your laboratory screens on whole-slide images: a small reference preview ("Reference preview. Not for diagnosis."), or **Open slide**. Selecting it opens the slide in your laboratory's digital pathology application (see [Slide Images](help:wsi-viewer)). |
 
 **Other buttons**
 
@@ -360,7 +360,7 @@ SFCC is not a separate set of categories: it is the Bethesda list shown with Fre
 
 - [Sign-out and release](help:report/sign-out-and-release) for how a signed report is released.
 - [Case team](help:report/case-team) and [Case flags](help:case-flags) for the Team and Flags windows.
-- [WSI viewer](help:wsi-viewer) for the whole-slide image.
+- [Slide Images](help:wsi-viewer): the slide's reference preview and opening it in your laboratory's digital pathology application.
 - [Quality](help:quality), for follow-up tracking and QA reports, including the cytology QC compliance report.
 - [Messaging](help:messaging), for the "Ask a colleague" message.
 
@@ -374,7 +374,7 @@ SFCC is not a separate set of categories: it is the Bethesda list shown with Fre
 | **Set as Final** is greyed out | The review needs a pathologist, and you are not one; or you lack the permission to choose the final diagnosis. |
 | **Sign Out** is greyed out | No final diagnosis chosen, the review is not one you may sign, or you lack the sign-out permission. The row above names the reasons. |
 | No **Synoptic** or **ROSE** button | These are for Non-GYN specimens (ROSE), and for a pathologist or an advanced-certified CT at a laboratory not using CISOE-A (Synoptic). |
-| No **WSI viewer** button | Your laboratory does not scan slides, or the specimen is not scanned. |
+| No slide preview | Your laboratory does not screen this case on whole-slide images. |
 | No Mandatory QC choice to remove | Only a flagged specimen has **Remove Flag**; otherwise **Flag High-Risk QC** is offered. |
 | The HPV card says "No co-test on record." | No co-test was ordered, or its result has not arrived from the platform. |
 | English error messages on the CISOE-A form | The range and completeness messages from the score check are shown in English in every language. |

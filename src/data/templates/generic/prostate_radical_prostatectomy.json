@@ -1,6 +1,6 @@
 {
   "id": "prostate_radical_prostatectomy",
-  "name": "Generic Template \u2014 Prostate Radical Prostatectomy",
+  "name": "Radical prostatectomy",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "PROSTATE",
@@ -8,11 +8,11 @@
   "sections": [
     {
       "id": "clinical_information",
-      "title": "Clinical Information",
+      "title": "Clinical information",
       "fields": [
         {
           "id": "pre_biopsy_psa",
-          "label": "Pre-Procedure Marker Value",
+          "label": "Pre-operative PSA (ng/mL)",
           "type": "text",
           "required": false,
           "core": true,
@@ -23,7 +23,7 @@
         },
         {
           "id": "pre_biopsy_psa_availability",
-          "label": "Pre-Procedure Marker Availability",
+          "label": "Pre-operative PSA on the request",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -32,13 +32,13 @@
           "options": [
             {
               "id": "pre_biopsy_psa_availability_opt_1",
-              "label": "Option 1",
+              "label": "Given",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "pre_biopsy_psa_availability_opt_2",
-              "label": "Option 2",
+              "label": "Not given",
               "snomed": "",
               "icd": ""
             }
@@ -53,7 +53,7 @@
       "fields": [
         {
           "id": "specimen_weight_g",
-          "label": "Specimen Weight (g)",
+          "label": "Prostate weight (g)",
           "type": "text",
           "required": false,
           "core": true,
@@ -64,7 +64,7 @@
         },
         {
           "id": "seminal_vesicles_present",
-          "label": "Field 2",
+          "label": "Seminal vesicles received",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -73,13 +73,13 @@
           "options": [
             {
               "id": "seminal_vesicles_present_opt_1",
-              "label": "Option 1",
+              "label": "Yes",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "seminal_vesicles_present_opt_2",
-              "label": "Option 2",
+              "label": "No",
               "snomed": "",
               "icd": ""
             }
@@ -88,7 +88,7 @@
         },
         {
           "id": "seminal_vesicle_laterality",
-          "label": "Field 3",
+          "label": "Seminal vesicles received: side",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -97,34 +97,41 @@
           "options": [
             {
               "id": "seminal_vesicle_laterality_opt_1",
-              "label": "Option 1",
+              "label": "Right",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "seminal_vesicle_laterality_opt_2",
-              "label": "Option 2",
+              "label": "Left",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "seminal_vesicle_laterality_opt_3",
-              "label": "Option 3",
+              "label": "Both",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "seminal_vesicle_laterality_opt_4",
-              "label": "Option 4",
+              "label": "Side cannot be told",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "seminal_vesicles_present",
+            "answerId": "",
+            "answerIds": [
+              "seminal_vesicles_present_opt_1"
+            ]
+          }
         },
         {
           "id": "lymph_nodes_present",
-          "label": "Field 4",
+          "label": "Lymph nodes received",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -133,13 +140,13 @@
           "options": [
             {
               "id": "lymph_nodes_present_opt_1",
-              "label": "Option 1",
+              "label": "Yes",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "lymph_nodes_present_opt_2",
-              "label": "Option 2",
+              "label": "No",
               "snomed": "",
               "icd": ""
             }
@@ -148,7 +155,7 @@
         },
         {
           "id": "lymph_nodes_laterality",
-          "label": "Field 5",
+          "label": "Lymph nodes received: side",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -157,40 +164,47 @@
           "options": [
             {
               "id": "lymph_nodes_laterality_opt_1",
-              "label": "Option 1",
+              "label": "Right",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "lymph_nodes_laterality_opt_2",
-              "label": "Option 2",
+              "label": "Left",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "lymph_nodes_laterality_opt_3",
-              "label": "Option 3",
+              "label": "Both",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "lymph_nodes_laterality_opt_4",
-              "label": "Option 4",
+              "label": "Side not stated",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "lymph_nodes_present",
+            "answerId": "",
+            "answerIds": [
+              "lymph_nodes_present_opt_1"
+            ]
+          }
         }
       ]
     },
     {
       "id": "tumour_pathology",
-      "title": "Findings",
+      "title": "Tumour type and location",
       "fields": [
         {
           "id": "histological_tumour_type",
-          "label": "Type",
+          "label": "Tumour type",
           "type": "checkboxes",
           "required": true,
           "core": true,
@@ -199,31 +213,31 @@
           "options": [
             {
               "id": "histological_tumour_type_opt_1",
-              "label": "Option 1",
+              "label": "Acinar adenocarcinoma",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histological_tumour_type_opt_2",
-              "label": "Option 2",
+              "label": "Ductal adenocarcinoma",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histological_tumour_type_opt_3",
-              "label": "Option 3",
+              "label": "Intraductal carcinoma",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histological_tumour_type_opt_4",
-              "label": "Option 4",
+              "label": "Neuroendocrine carcinoma (small cell or other)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histological_tumour_type_opt_5",
-              "label": "Option 5",
+              "label": "Other type",
               "snomed": "",
               "icd": ""
             }
@@ -232,18 +246,25 @@
         },
         {
           "id": "histological_tumour_type_other_specify",
-          "label": "Type \u2014 Other (specify)",
+          "label": "Other tumour type: describe",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "histological_tumour_type",
+            "answerId": "",
+            "answerIds": [
+              "histological_tumour_type_opt_5"
+            ]
+          }
         },
         {
           "id": "location_dominant_tumour",
-          "label": "Field 3",
+          "label": "Where the main tumour is",
           "type": "text",
           "required": false,
           "core": true,
@@ -256,11 +277,11 @@
     },
     {
       "id": "grading",
-      "title": "Grade Summary",
+      "title": "Gleason grade",
       "fields": [
         {
           "id": "gleason_applicable",
-          "label": "Score Applicable",
+          "label": "Gleason grading applies",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -269,13 +290,13 @@
           "options": [
             {
               "id": "gleason_applicable_opt_1",
-              "label": "Option 1",
+              "label": "Yes",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "gleason_applicable_opt_2",
-              "label": "Option 2",
+              "label": "No (for example after hormone or radiation treatment)",
               "snomed": "",
               "icd": ""
             }
@@ -284,7 +305,7 @@
         },
         {
           "id": "primary_gleason_grade",
-          "label": "Primary Grade",
+          "label": "Most extensive pattern",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -322,11 +343,18 @@
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "gleason_applicable",
+            "answerId": "",
+            "answerIds": [
+              "gleason_applicable_opt_1"
+            ]
+          }
         },
         {
           "id": "secondary_gleason_grade",
-          "label": "Secondary Grade",
+          "label": "Second most extensive pattern",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -364,11 +392,18 @@
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "gleason_applicable",
+            "answerId": "",
+            "answerIds": [
+              "gleason_applicable_opt_1"
+            ]
+          }
         },
         {
           "id": "tertiary_gleason_grade",
-          "label": "Tertiary Grade",
+          "label": "Higher third pattern, if present",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -400,11 +435,18 @@
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "gleason_applicable",
+            "answerId": "",
+            "answerIds": [
+              "gleason_applicable_opt_1"
+            ]
+          }
         },
         {
           "id": "gleason_score_total",
-          "label": "Score \u2014 Total",
+          "label": "Gleason score",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -460,7 +502,14 @@
               "icd": ""
             }
           ],
-          "note": ""
+          "note": "",
+          "visibleWhen": {
+            "fieldId": "gleason_applicable",
+            "answerId": "",
+            "answerIds": [
+              "gleason_applicable_opt_1"
+            ]
+          }
         },
         {
           "id": "grade_group",
@@ -473,7 +522,7 @@
           "options": [
             {
               "id": "grade_group_opt_1",
-              "label": "Grade Group 1 (Gleason ≤6)",
+              "label": "Grade Group 1 (score 6 or less)",
               "snomed": "",
               "icd": ""
             },
@@ -491,13 +540,13 @@
             },
             {
               "id": "grade_group_opt_4",
-              "label": "Grade Group 4 (8)",
+              "label": "Grade Group 4 (score 8)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "grade_group_opt_5",
-              "label": "Grade Group 5 (9–10)",
+              "label": "Grade Group 5 (score 9 or 10)",
               "snomed": "",
               "icd": ""
             },
@@ -512,7 +561,7 @@
         },
         {
           "id": "invasive_cribriform_intraductal",
-          "label": "Secondary Pattern Present",
+          "label": "Cribriform pattern or intraductal carcinoma",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -521,13 +570,13 @@
           "options": [
             {
               "id": "invasive_cribriform_intraductal_opt_1",
-              "label": "Option 1",
+              "label": "Not seen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "invasive_cribriform_intraductal_opt_2",
-              "label": "Option 2",
+              "label": "Present",
               "snomed": "",
               "icd": ""
             }
@@ -538,11 +587,11 @@
     },
     {
       "id": "local_extension",
-      "title": "Extension",
+      "title": "Spread beyond the prostate",
       "fields": [
         {
           "id": "extraprostatic_extension",
-          "label": "Extension Beyond Organ",
+          "label": "Extraprostatic extension",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -551,19 +600,19 @@
           "options": [
             {
               "id": "extraprostatic_extension_opt_1",
-              "label": "Option 1",
+              "label": "Not seen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "extraprostatic_extension_opt_2",
-              "label": "Option 2",
+              "label": "Present",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "extraprostatic_extension_opt_3",
-              "label": "Option 3",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -572,18 +621,25 @@
         },
         {
           "id": "extraprostatic_extension_location",
-          "label": "Field 2",
+          "label": "Extraprostatic extension: where",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "extraprostatic_extension",
+            "answerId": "",
+            "answerIds": [
+              "extraprostatic_extension_opt_2"
+            ]
+          }
         },
         {
           "id": "extraprostatic_extension_extent",
-          "label": "Field 3",
+          "label": "Extraprostatic extension: how much",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -592,28 +648,35 @@
           "options": [
             {
               "id": "extraprostatic_extension_extent_opt_1",
-              "label": "Option 1",
+              "label": "Focal (a few glands outside the prostate)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "extraprostatic_extension_extent_opt_2",
-              "label": "Option 2",
+              "label": "Non-focal (more than a few glands)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "extraprostatic_extension_extent_opt_3",
-              "label": "Option 3",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "extraprostatic_extension",
+            "answerId": "",
+            "answerIds": [
+              "extraprostatic_extension_opt_2"
+            ]
+          }
         },
         {
           "id": "bladder_neck_involvement",
-          "label": "Field 4",
+          "label": "Bladder neck invasion (microscopic)",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -622,19 +685,19 @@
           "options": [
             {
               "id": "bladder_neck_involvement_opt_1",
-              "label": "Option 1",
+              "label": "Not seen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "bladder_neck_involvement_opt_2",
-              "label": "Option 2",
+              "label": "Present",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "bladder_neck_involvement_opt_3",
-              "label": "Option 3",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             }
@@ -643,7 +706,7 @@
         },
         {
           "id": "seminal_vesicle_involvement",
-          "label": "Field 5",
+          "label": "Seminal vesicle invasion",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -652,19 +715,19 @@
           "options": [
             {
               "id": "seminal_vesicle_involvement_opt_1",
-              "label": "Option 1",
+              "label": "Not seen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "seminal_vesicle_involvement_opt_2",
-              "label": "Option 2",
+              "label": "Present",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "seminal_vesicle_involvement_opt_3",
-              "label": "Option 3",
+              "label": "Not applicable (not received)",
               "snomed": "",
               "icd": ""
             }
@@ -679,7 +742,7 @@
       "fields": [
         {
           "id": "margin_status",
-          "label": "Margin Status",
+          "label": "Surgical margins",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -705,11 +768,11 @@
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "margin_extent",
-          "label": "Margin Extent",
+          "label": "Positive margin: extent",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -735,11 +798,18 @@
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "margin_status",
+            "answerId": "",
+            "answerIds": [
+              "margin_status_opt_2"
+            ]
+          }
         },
         {
           "id": "margin_location",
-          "label": "Margin Location",
+          "label": "Positive margin: location",
           "type": "checkboxes",
           "required": false,
           "core": true,
@@ -771,11 +841,18 @@
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "margin_status",
+            "answerId": "",
+            "answerIds": [
+              "margin_status_opt_2"
+            ]
+          }
         },
         {
           "id": "circumferential_margin_type",
-          "label": "Field 4",
+          "label": "Positive margin: type",
           "type": "checkboxes",
           "required": false,
           "core": true,
@@ -784,45 +861,59 @@
           "options": [
             {
               "id": "circumferential_margin_type_opt_1",
-              "label": "Option 1",
+              "label": "Within the prostate (capsular incision)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "circumferential_margin_type_opt_2",
-              "label": "Option 2",
+              "label": "Outside the prostate",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "circumferential_margin_type_opt_3",
-              "label": "Option 3",
+              "label": "Cannot be told",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "margin_status",
+            "answerId": "",
+            "answerIds": [
+              "margin_status_opt_2"
+            ]
+          }
         },
         {
           "id": "circumferential_margin_location",
-          "label": "Field 5",
+          "label": "Positive margin: length and pattern at the margin",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "margin_status",
+            "answerId": "",
+            "answerIds": [
+              "margin_status_opt_2"
+            ]
+          }
         }
       ]
     },
     {
       "id": "vascular_invasion",
-      "title": "Secondary Involvement",
+      "title": "Lymphovascular invasion",
       "fields": [
         {
           "id": "lymphovascular_invasion",
-          "label": "Lymphatic/Vascular Involvement",
+          "label": "Lymphovascular invasion",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -831,28 +922,28 @@
           "options": [
             {
               "id": "lymphovascular_invasion_opt_1",
-              "label": "Option 1",
+              "label": "Not seen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "lymphovascular_invasion_opt_2",
-              "label": "Option 2",
+              "label": "Present",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": ""
         }
       ]
     },
     {
       "id": "lymph_node_assessment",
-      "title": "Regional Nodes",
+      "title": "Lymph nodes",
       "fields": [
         {
           "id": "number_lymph_nodes_examined",
-          "label": "Number of Lymph Nodes Examined",
+          "label": "Lymph nodes examined",
           "type": "text",
           "required": false,
           "core": true,
@@ -864,7 +955,7 @@
         },
         {
           "id": "number_positive_lymph_nodes",
-          "label": "Number of Positive Lymph Nodes",
+          "label": "Lymph nodes with metastasis",
           "type": "text",
           "required": false,
           "core": true,
@@ -877,7 +968,7 @@
         },
         {
           "id": "max_dimension_largest_deposit_mm",
-          "label": "Field 3",
+          "label": "Largest metastatic deposit (mm)",
           "type": "text",
           "required": false,
           "core": true,
@@ -890,11 +981,11 @@
     },
     {
       "id": "tnm_stage",
-      "title": "Stage Summary",
+      "title": "Pathological stage (TNM)",
       "fields": [
         {
           "id": "t_category",
-          "label": "Category A",
+          "label": "pT category",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -933,11 +1024,11 @@
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "n_category",
-          "label": "Category B",
+          "label": "pN category",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -970,11 +1061,11 @@
     },
     {
       "id": "molecular_block",
-      "title": "Ancillary Block Information",
+      "title": "Block for further testing",
       "fields": [
         {
           "id": "representative_molecular_block",
-          "label": "Representative Block (identifier)",
+          "label": "Best block for further testing",
           "type": "text",
           "required": false,
           "core": true,
@@ -985,7 +1076,7 @@
         },
         {
           "id": "molecular_block_tumour_content",
-          "label": "Content of Representative Block",
+          "label": "Tumour content of that block",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -994,55 +1085,55 @@
           "options": [
             {
               "id": "molecular_block_tumour_content_opt_1",
-              "label": "Option 1",
+              "label": "Under 10%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_2",
-              "label": "Option 2",
+              "label": "10 to 19%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_3",
-              "label": "Option 3",
+              "label": "20 to 29%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_4",
-              "label": "Option 4",
+              "label": "30 to 39%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_5",
-              "label": "Option 5",
+              "label": "40 to 49%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_6",
-              "label": "Option 6",
+              "label": "50 to 59%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_7",
-              "label": "Option 7",
+              "label": "60 to 69%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_8",
-              "label": "Option 8",
+              "label": "70% or more",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_9",
-              "label": "Option 9",
+              "label": "Not assessed",
               "snomed": "",
               "icd": ""
             }
@@ -1053,11 +1144,11 @@
     },
     {
       "id": "snomed_codes",
-      "title": "Reference Codes",
+      "title": "SNOMED CT codes",
       "fields": [
         {
           "id": "snomed_t_code",
-          "label": "Reference Code A",
+          "label": "Topography (T) code",
           "type": "text",
           "required": false,
           "core": true,
@@ -1068,7 +1159,7 @@
         },
         {
           "id": "snomed_m_code",
-          "label": "Reference Code B",
+          "label": "Morphology (M) code",
           "type": "text",
           "required": false,
           "core": true,
@@ -1946,7 +2037,7 @@
       "fields": [
         {
           "id": "comments",
-          "label": "Comment(s)",
+          "label": "Comments",
           "type": "text",
           "required": false,
           "core": true,

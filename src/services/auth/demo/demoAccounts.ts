@@ -26,11 +26,11 @@
 //   "superadmin"        → PathScribe platform support: every tenant
 //
 // Batch 371 (Pete): Superadmin is reserved for ForMedrixAI support staff.
-// Kept as superadmin: Pete Nimmo (both emails), System Admin, Paul Carter,
+// Kept as superadmin: Pete Nimmo (both emails), System Admin, Paul Carter (UK workflow adviser, Batch 755b: his own id),
 // Amber Fehrs-Battey, Bronwyn Prior and Rossana Babakhani. Everyone else
 // signs in with the hospital role their staff record gives them, so they
 // see the product the way their own staff would: Dr. Sarah Johnson,
-// Dr. Oliver Pemberton and Dr. J. Mark Tuthill as pathologists.
+// Dr. Oliver Pemberton, Dr. J. Mark Tuthill and (Batch 755b) Dr. Imogen Hartley as pathologists.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { VoiceProfileId } from '../../../constants/voiceProfiles';
@@ -57,8 +57,11 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
     password: { iterations: 600000, salt: 'MYdQ+CXRlWPlRMf3BCtBJw==', hash: 'RK2gCXwbvxTXiKBSK/Xf7e3maqiIjVGYVzWK2l4ECzg=' } },
   { email: 'admin@pathscribe.ai', id: 'u3', name: 'System Admin', role: 'superadmin', initials: 'SA', voiceProfile: 'EN-US',
     password: { iterations: 600000, salt: 'wPPBq65tJV9Fa5fBQZMCnw==', hash: '0S/9fhTFW88UHfuToglZj88thYz4cOxRYkKDkyYHceY=' } },
-  { email: 'paul.carter@mft.nhs.uk', id: 'PATH-UK-001', name: 'Paul Carter', role: 'superadmin', initials: 'PC', voiceProfile: 'EN-GB',
+  { email: 'paul.carter@mft.nhs.uk', id: 'UK-ADV-001', name: 'Paul Carter', role: 'superadmin', initials: 'PC', voiceProfile: 'EN-GB',
     password: { iterations: 600000, salt: 'XVUGeEa6qL+qyCwiHMIpnA==', hash: 'ZOgtCeIdbYxAxy1gHCEnPIU62Lh9wRTHoMQxOcWblIo=' } },
+  // Batch 755b: the Manchester demo pathologist (fictional), so a UK demonstration can sign in to her worklist.
+  { email: 'imogen.hartley@demo.pathscribe.ai', id: 'PATH-UK-001', name: 'Dr. Imogen Hartley', role: 'pathologist', initials: 'IH', voiceProfile: 'EN-GB',
+    password: { iterations: 600000, salt: '6Ghn2H3XAnso9Hojtep+uQ==', hash: 'RfZsXaUmDiV3bh30LzqWm/vs8HyAfslLow1MehMvrUA=' } },
   { email: 'bronwyn.prior@mft.nhs.uk', id: 'PATH-UK-003', name: 'Bronwyn Prior', role: 'superadmin', initials: 'BP', voiceProfile: 'EN-GB',
     password: { iterations: 600000, salt: 'JOwlIjqHtjj0AS8PS8wztw==', hash: '6flaOlFocCYfeUlHPkNGdJFkCMfhFXiyNRNFGPtLk10=' } },
   { email: 'oliver.pemberton@mft.nhs.uk', id: 'PATH-UK-002', name: 'Dr. Oliver Pemberton', role: 'pathologist', initials: 'OP', voiceProfile: 'EN-GB',

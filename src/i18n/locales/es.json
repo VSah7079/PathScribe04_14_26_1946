@@ -4293,6 +4293,10 @@
         "description": "Reasignar de una vez todos los casos sin asignar según las reglas de asignación. Auditado.",
         "label": "Asignar ahora los casos sin asignar"
       },
+      "caseSlideImageOpen": {
+        "description": "Abrir una preparación desde su vista previa de referencia en la aplicación de patología digital propia del laboratorio, en una ventana aparte. PathScribe solo abre la dirección; la otra aplicación gestiona el inicio de sesión. Auditado: quién, qué preparación y cuándo.",
+        "label": "Abrir una preparación en la aplicación de patología digital del laboratorio"
+      },
       "caseTeamManage": {
         "description": "Añadir o quitar personas del equipo de un caso (Equipo del caso), incluido quién es su patólogo principal. Un citotécnico no puede ocupar un puesto de patólogo.",
         "label": "Cambiar el equipo de un caso"
@@ -4648,6 +4652,10 @@
       "configOrganMapBindingsManage": {
         "description": "Elegir qué preguntas de las plantillas sinópticas propias de un laboratorio, y qué respuestas, alimentan los mapas de órganos, y cuáles de las preguntas genéricas de margen de las plantillas calculan los mapas. Auditado.",
         "label": "Vincular preguntas sinópticas a mapas de órganos"
+      },
+      "configOrganMapDeliveryManage": {
+        "description": "Elegir si el sistema de laboratorio de un laboratorio ejecutor recibe el mapa anatómico en los casos Assist: desactivado, solo texto, o texto y un archivo de imagen enviado a un destino. Los cambios quedan registrados.",
+        "label": "Configurar el envío del mapa anatómico al sistema de laboratorio"
       },
       "configOrganMapSchemeManage": {
         "description": "Cambiar los colores, patrones, textos de leyenda y umbrales de los mapas de órganos (la distancia de margen cercano de mama; las reglas de margen afectado de pólipo maligno y de CRM rectal; las de margen afectado y cercano de cavidad oral; las de margen afectado de parénquima renal y de tejido blando) para la empresa, una jurisdicción o un centro. Auditado.",
@@ -5092,6 +5100,10 @@
       "platformCrossTenantCasesView": {
         "description": "Acceso de soporte de PathScribe a un caso fuera de la organización del usuario. Cada apertura de este tipo queda registrada en el registro de auditoría.",
         "label": "Abrir casos de otras organizaciones (soporte)"
+      },
+      "platformDemoChecklistsRemove": {
+        "description": "Retirar las 19 listas de comprobación de demostración (marcadas como «Texto de demostración») de la biblioteca sinóptica de una organización cliente (se archivan). Solo soporte de ForMedrixAI. Auditado.",
+        "label": "Retirar las listas de comprobación de demostración"
       },
       "platformGoverningBodiesManage": {
         "description": "Elegir el contenido de qué organismos reguladores (CAP, RCPath, ICCR, RCPA) se sincroniza con la biblioteca sinóptica de la plataforma.",
@@ -10223,6 +10235,38 @@
       "tue": "mar",
       "wed": "mié"
     }
+  },
+  "demoChecklists": {
+    "cancel": "Cancelar",
+    "check": "Ver qué se retiraría",
+    "confirmYes": "Retirar",
+    "confirm_many": "¿Retirar {{count}} listas de comprobación de la biblioteca de esta organización?",
+    "confirm_one": "¿Retirar {{count}} lista de comprobación de la biblioteca de esta organización?",
+    "confirm_other": "¿Retirar {{count}} listas de comprobación de la biblioteca de esta organización?",
+    "copyRefusedBack": "Volver a la biblioteca sinóptica",
+    "copyRefusedBody": "{{name}} tiene texto de demostración que ningún patólogo ha revisado todavía, por lo que no puede copiarse ni servir como punto de partida de una nueva versión. Empiece desde cero, desde una de las listas de comprobación propias de PathScribe o desde un protocolo que su laboratorio tenga licencia para usar (Cargar protocolo).",
+    "copyRefusedShort": "Una lista de comprobación con texto de demostración no se puede copiar hasta que un patólogo la haya revisado.",
+    "copyRefusedTitle": "Esta lista de comprobación no se puede copiar",
+    "demoBuildNote": "En el sitio de demostración la biblioteca pertenece a este navegador, así que retirarlas aquí afecta a todas las organizaciones de demostración hasta el restablecimiento completo. En el servidor de un cliente solo afecta a esa organización.",
+    "failed_many": "No se han podido retirar {{count}}: {{names}}",
+    "failed_one": "No se ha podido retirar {{count}}: {{names}}",
+    "failed_other": "No se han podido retirar {{count}}: {{names}}",
+    "inLibrary_many": "Esta biblioteca ofrece {{count}} listas de comprobación de demostración.",
+    "inLibrary_one": "Esta biblioteca ofrece {{count}} lista de comprobación de demostración.",
+    "inLibrary_other": "Esta biblioteca ofrece {{count}} listas de comprobación de demostración.",
+    "intro": "Las 19 listas de comprobación marcadas como «Texto de demostración» son solo para demostraciones y nunca se ofrecen a un cliente. Retirarlas de la biblioteca de esta organización las archiva: dejan de ofrecerse para nuevos informes, y un informe ya hecho con una de ellas sigue abriéndose.",
+    "noneLeft": "Esta biblioteca no ofrece ninguna lista de comprobación de demostración.",
+    "notPermitted": "Solo el soporte de ForMedrixAI puede retirar las listas de comprobación de demostración.",
+    "pickerNote": "Las listas de comprobación marcadas como «Texto de demostración» no pueden servir como punto de partida.",
+    "remove": "Retirar las listas de comprobación de demostración",
+    "removed_many": "Se han retirado {{count}} listas de comprobación.",
+    "removed_one": "Se ha retirado {{count}} lista de comprobación.",
+    "removed_other": "Se han retirado {{count}} listas de comprobación.",
+    "title": "Listas de comprobación de demostración",
+    "wordingTag": "Texto de demostración",
+    "wordingTagHint": "Texto de demostración que ningún patólogo ha revisado todavía. No puede copiarse en sus propias listas de comprobación.",
+    "working": "Procesando…",
+    "wouldRemove": "Se retirarían: {{names}}"
   },
   "demoResetTab": {
     "disabled": {
@@ -17369,6 +17413,9 @@
         "yes": "Presente"
       }
     },
+    "delivery": {
+      "nothingShown": "Nada que mostrar en el mapa."
+    },
     "derived": {
       "invasiveMarginsIncomplete": "{{synoptic}}: se ha registrado carcinoma invasivo, pero no se informa de estos márgenes: {{margins}}.",
       "invasiveMarginsPrompt": "¿Firmar de todos modos?",
@@ -17603,8 +17650,10 @@
     },
     "panel": {
       "empty": "Responda a las preguntas del mapa en el sinóptico (sección Mapa anatómico) para ver el mapa.",
+      "fileSent": "Archivo del mapa enviado al sistema de laboratorio a las {{time}}.",
       "insert": "Insertar en el informe",
       "insertTitle": "Coloca este mapa, con los colores de impresión, en el informe. Es una instantánea: los cambios posteriores en las respuestas no la modifican hasta que se vuelva a insertar.",
+      "lisOwnsReport": "Su sistema de laboratorio redacta este informe.",
       "noBinding": "Este sinóptico no tiene preguntas de mapa. Un administrador puede vincular sus propias preguntas en Configuración → Mapas de órganos.",
       "remove": "Quitar del informe",
       "sectorHint": "Haga clic en un sector para ir a su pregunta.",
@@ -17620,6 +17669,7 @@
       "title": "Mapa anatómico",
       "toast": {
         "inserted": "Mapa insertado en el informe.",
+        "lisOwnsReport": "Su sistema de laboratorio redacta este informe, por lo que el mapa no se incluye en él.",
         "locked": "El informe está firmado; el mapa solo puede cambiar mediante una modificación.",
         "noImage": "No se ha podido dibujar el mapa como imagen para el informe. Inténtelo de nuevo.",
         "notPermitted": "No tiene permiso para incluir el mapa en el informe.",
@@ -17821,6 +17871,35 @@
       "rectalResection": "Resección rectal — margen circunferencial, reflexión peritoneal y margen distal",
       "renalResection": "Resección renal — localización, extensión pT y márgenes"
     }
+  },
+  "organMapDelivery": {
+    "destinationHint": "Una carpeta, una dirección SFTP o un canal del motor de interfaces, tal como lo configuró su equipo de interfaces. Nunca un nombre de usuario ni una contraseña: el inicio de sesión lo gestiona el motor de interfaces. Los nombres de archivo llevan el número de registro, el tipo de mapa y la hora, nunca el nombre de un paciente.",
+    "destinationLabel": "Destino de los archivos",
+    "failureNote": "Un envío que falla nunca impide finalizar y no se muestra al patólogo. Aparece en la cola de salida, donde puede reintentarse.",
+    "formatLabel": "Formato del archivo",
+    "formats": {
+      "pdf": "Documento PDF",
+      "png": "Imagen PNG"
+    },
+    "intro": "En un caso Assist, su sistema de laboratorio redacta el informe, por lo que PathScribe nunca incluye en él el mapa anatómico. Elija si el mapa se envía a ese sistema con los datos sinópticos. Se dibuja a partir de las respuestas definitivas de la lista de verificación al finalizar el caso; es una figura del informe, no una imagen del paciente.",
+    "modeLabel": "Enviar el mapa anatómico",
+    "modes": {
+      "off": "Desactivado",
+      "text": "Solo texto",
+      "textAndFile": "Texto y archivo de imagen"
+    },
+    "problems": {
+      "destinationCredentials": "Quite el nombre de usuario y la contraseña del destino; el inicio de sesión lo gestiona el motor de interfaces.",
+      "destinationRequired": "Indique adónde deben ir los archivos.",
+      "destinationTooLong": "El destino es demasiado largo (300 caracteres como máximo).",
+      "notPermitted": "No tiene permiso para cambiar el envío del mapa anatómico.",
+      "saveFailed": "El ajuste no se ha guardado. Inténtelo de nuevo.",
+      "unknownFormat": "Elija un formato de archivo.",
+      "unknownMode": "Elija cómo se envía el mapa."
+    },
+    "save": "Guardar el envío del mapa anatómico",
+    "saved": "Envío del mapa anatómico guardado.",
+    "title": "Envío del mapa anatómico"
   },
   "organMapsSection": {
     "bindings": {
@@ -20120,42 +20199,6 @@
       "usedBy": "Usado por"
     },
     "title": "Diccionario de protocolos"
-  },
-  "protocolEditor": {
-    "addQuestion": "Añadir pregunta",
-    "addSection": "Añadir sección",
-    "backToConfiguration": "Volver a Configuración",
-    "choiceOptionsHint": "La edición de las opciones de respuesta se podrá añadir próximamente; la estructura ya está preparada.",
-    "lifecycle": {
-      "archived": "Archivado",
-      "draft": "Borrador",
-      "published": "Publicado",
-      "validated": "Validado"
-    },
-    "meta": {
-      "lifecycle": "Ciclo de vida",
-      "source": "Origen",
-      "version": "Versión"
-    },
-    "notFound": "Protocolo no encontrado.",
-    "question": {
-      "newText": "Nueva pregunta"
-    },
-    "questionType": {
-      "boolean": "Sí/No",
-      "choice": "Opción",
-      "number": "Número",
-      "text": "Texto"
-    },
-    "required": "Obligatorio",
-    "saveProtocol": "Guardar protocolo",
-    "section": {
-      "newTitle": "Nueva sección"
-    },
-    "source": {
-      "custom": "Personalizado"
-    },
-    "title": "Editor de protocolos: {{name}}"
   },
   "protocolShared": {
     "buildModal": {
@@ -23944,6 +23987,53 @@
       "loadedOnScanner": "Cargado en el escáner",
       "scanned": "Escaneado"
     }
+  },
+  "slideImage": {
+    "loading": "Cargando la imagen del portaobjetos…",
+    "message": {
+      "blocked": "Su navegador ha bloqueado la ventana del portaobjetos. Permita las ventanas emergentes para PathScribe: seleccione el icono de ventana bloqueada al final de la barra de direcciones, elija permitir siempre las ventanas emergentes de este sitio y vuelva a seleccionar el portaobjetos.",
+      "noAddress": "No se ha definido ninguna dirección de visor. Consulte a su administrador.",
+      "notPermitted": "No tiene permiso para abrir imágenes de portaobjetos."
+    },
+    "openLabel": "Abrir portaobjetos",
+    "openTitle": "Abrir el portaobjetos {{slide}} en la aplicación de patología digital del laboratorio",
+    "referenceNote": "Vista previa de referencia. No apta para diagnóstico.",
+    "state": {
+      "available": "Imagen disponible",
+      "failedImageQuality": "Calidad de imagen no superada",
+      "noImageYet": "Aún sin imagen",
+      "queued": "En cola",
+      "scanFailed": "Error de escaneo",
+      "scanning": "Escaneando"
+    },
+    "thumbAlt": "Vista previa de referencia del portaobjetos {{slide}}"
+  },
+  "slideImageSettings": {
+    "addFacility": "Añadir un centro con su propio sistema…",
+    "deploymentDefault": "En blanco se usa la dirección de la implantación: {{address}}",
+    "description": "PathScribe no tiene visor de portaobjetos. Muestra una pequeña vista previa de referencia del portaobjetos, sin modificar, procedente de su escáner o sistema de imágenes, y abre el portaobjetos en la aplicación de patología digital de su laboratorio, en una ventana aparte.",
+    "facilitiesHint": "Rellene estos campos solo para un centro con su propio escáner o aplicación de patología digital. En blanco se usa la dirección del laboratorio.",
+    "facilitiesTitle": "Centros con su propio sistema",
+    "facilityFieldLabel": "{{facility}}: {{field}}",
+    "fields": {
+      "thumbnailUrlTemplate": "Dirección de la imagen de vista previa",
+      "viewerUrlTemplate": "Dirección del visor"
+    },
+    "labTitle": "Laboratorio",
+    "noDeploymentDefault": "En blanco significa sin dirección: la implantación no define ninguna.",
+    "placeholdersHint": "Las direcciones empiezan por https://. Utilice {{slidePlaceholder}} para el identificador del portaobjetos y {{accessionPlaceholder}} para el número de registro del caso. No incluya nunca un nombre de paciente, un nombre de usuario ni una contraseña en una dirección: el inicio de sesión corresponde a la otra aplicación.",
+    "problemLine": "{{field}}: {{problem}}",
+    "problems": {
+      "credentials": "no debe contener un nombre de usuario ni una contraseña",
+      "noSlidePlaceholder": "debe contener {{slidePlaceholder}}",
+      "notHttps": "debe ser una dirección https:// completa",
+      "notPermitted": "No tiene permiso para cambiar la configuración de imágenes de portaobjetos.",
+      "unknownPlaceholder": "usa un marcador distinto de {{slidePlaceholder}} o {{accessionPlaceholder}}"
+    },
+    "removeFacility": "Quitar",
+    "save": "Guardar la configuración de imágenes de portaobjetos",
+    "saved": "Guardado",
+    "title": "Imágenes de portaobjetos"
   },
   "slideLabelLayoutEditor": {
     "description": "La cara imprimible del portaobjetos, el tamaño del módulo del código de barras y la altura del texto. Estos valores fijan ahora el tamaño de los puntos y la posición del texto en la etiqueta de portaobjetos que se imprime.",
@@ -27990,6 +28080,20 @@
     "localOnlyDev": "Solo voz local (el modelo de voz activo no está disponible: compruebe la clave de API de su proveedor)",
     "noValidatedModel": "No hay ningún modelo de voz validado configurado, o no está establecida la clave de API de su proveedor"
   },
+  "windowPosition": {
+    "close": "Cerrar",
+    "failed": "No se ha podido guardar la posición. Agrande la ventana e inténtelo de nuevo.",
+    "instructions": "Mueva esta ventana a donde deben abrirse las imágenes de portaobjetos en este puesto de trabajo y ajuste su tamaño. Después seleccione Guardar posición.",
+    "save": "Guardar posición",
+    "saved": "Posición guardada para este puesto de trabajo. Puede cerrar esta ventana.",
+    "screensHint": "En Chrome y Edge, permita que PathScribe gestione ventanas en todas sus pantallas cuando el navegador lo pida, para que la ventana vuelva a la pantalla correcta. Si más adelante esa pantalla no está conectada, la ventana se abre en la pantalla principal.",
+    "setPosition": "Definir posición…",
+    "setPositionTitle": "Abre la ventana de imágenes de portaobjetos para que pueda moverla a donde deben abrirse los portaobjetos en este puesto de trabajo",
+    "unknownWindow": "Esta página define la posición de una ventana de PathScribe. Ábrala desde el menú del puesto de trabajo.",
+    "windows": {
+      "slideImage": "Ventana de imágenes de portaobjetos"
+    }
+  },
   "worklistDp": {
     "readiness": {
       "error": "{{ready}}/{{total}} Error",
@@ -28486,12 +28590,6 @@
     "noCaseSpecified": "No se ha especificado ningún caso.",
     "slideSurfacePlaceholder": "[ Superficie real del portaobjetos WSI: aquí se mostraría el desplazamiento y el zoom ]",
     "specimenLabel": "Muestra {{specimenLabel}}"
-  },
-  "wsiViewerLaunch": {
-    "blockedError": "Ventana emergente bloqueada: permita las ventanas emergentes para este sitio e inténtelo de nuevo",
-    "launchLabel": "Abrir en el visor",
-    "launchTitle": "Abrir este portaobjetos en el visor WSI configurado",
-    "selectVendorTitle": "Seleccionar visor WSI"
   },
   "wsiViewerVendorSection": {
     "actions": {

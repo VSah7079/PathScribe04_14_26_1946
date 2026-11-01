@@ -1568,8 +1568,8 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav: hideNavRequested = false }
       {/* Secure Email Modal */}
       <SecureEmailModal
         isOpen={secureEmailOpen}
-        fromName={user?.name ?? 'Dr. Paul Carter'}
-        fromEmail={user?.id === 'PATH-UK-001' ? 'paul.carter@mft.nhs.uk' : 'pathscribe@hospital.org'}
+        fromName={user?.name ?? 'Dr. Imogen Hartley'}
+        fromEmail={user?.id === 'PATH-UK-001' ? 'imogen.hartley@demo.pathscribe.ai' : 'pathscribe@hospital.org'}
         prefillSubject={newSubject}
         prefillBody={newBody}
         onClose={() => setSecureEmailOpen(false)}

@@ -67,6 +67,11 @@ import { DEMO_SIGN_OUT_READY_CASE } from './demoSignOutReadyCase';
 import { DEMO_FLUID_CASES } from './demoFluidCases';
 import { DEMO_MOLECULAR_CASES } from './demoMolecularCases';
 import { DEMO_WALL_VOLUME_CASES } from './demoWallVolumeCases';
+import { DEMO_BLOCK_TYPE_CASES } from './demoBlockTypeCases';
+import { DEMO_CYTOLOGY_VOLUME_CASES } from './demoCytologyVolumeCases';
+import { DEMO_SLIDE_IMAGE_CASES } from './demoSlideImageCases';
+import { DEMO_ASSIST_MAP_CASE, DEMO_ASSIST_MAP_FAILED_CASE } from './demoAssistMapCase';
+import { DEMO_PROSTATECTOMY_MAP_CASE } from './demoProstatectomyMapCase';
 
 
 const DAY = 86_400_000;
@@ -109,6 +114,7 @@ const HPV_PENDING = { hpvCoTestOrdered: true, hpvResult: 'Pending' };
 // locationHistory is where it is (resolveMortuaryStorageOccupancy).
 const autopsyAcc = (n: string) => ({ accessionNumber: n, accessionPrefix: 'A', accessionYear: 2026, fullAccession: `A26-${n}` });
 const MORTUARY_TRAY_A = 'Mortuary Cooler 1 — Tray A';
+const AUTOPSY_CHECKLIST_NAME = 'Autopsy Gross Examination — Whole Body / Multi-Cavity';
 const MORTUARY_TRAY_B = 'Mortuary Cooler 1 — Tray B';
 const intoMortuary = (tray: string, days: number) =>
   ({ location: tray, workflowStage: 'Mortuary', action: 'Received', at: demoDaysAgo(days), source: 'PathScribe', performedByName: 'Mortuary attendant' });
@@ -219,7 +225,7 @@ export const DEMO_BASELINE_CASES: Case[] = [
     specimens: [{ id: 'S26-4610-SP-1', label: 'A', description: 'Left breast core needle biopsy', receivedAt: demoDaysAgo(1), collectedAt: demoDaysAgo(2), specimenFlags: [], collection: { bodySite: 'Breast', laterality: 'Left' } }],
     order: order({ requestingProvider: 'Dr. Robert Williams', orderingPhysicianId: 'ph1', clinicalIndication: 'BIRADS 4C mass, left breast 10 o\'clock.', receivedDate: demoDaysAgo(1), assignedTo: '2', assignedParticipationTypeId: 'primary' }),
     diagnostic: { grossDescription: 'Four cores, 0.8–1.6 cm, entirely submitted in A1.', microscopicDescription: 'Invasive carcinoma of no special type, Nottingham grade 2 on this sample. No lymphovascular invasion seen.', ancillaryStudies: 'ER, PR and HER2 to follow.' },
-    synopticReports: draftReport('S26-4610-SP-1', 'breast_invasive', 'Generic Template — Breast Invasive', 1),
+    synopticReports: draftReport('S26-4610-SP-1', 'breast_invasive', 'Breast, invasive carcinoma (resection)', 1),
     requiresCountersign: true,
     participants: [
       attending('PATH-001', 'Pete Nimmo', 1),
@@ -281,6 +287,11 @@ export const DEMO_BASELINE_CASES: Case[] = [
     diagnostic: { grossDescription: 'Three cores, entirely submitted.', microscopicDescription: 'Invasive carcinoma of no special type, grade 2.', ancillaryStudies: 'ER positive, PR positive, HER2 negative (1+).' },
     synopticReports: [],
     finalizedAt: demoDaysAgo(37), finalizedBy: 'PATH-001', releasedAt: demoDaysAgo(37),
+    // Batch 747 (seed row S9, "a retention hold"): the patient asked for the biopsy to be kept.
+    retentionHolds: [{
+      id: 'rh-demo-4630', reason: 'patient_requested_retention', active: true, setAt: demoDaysAgo(6), setByUserId: 'PATH-001', setByUserName: 'Pete Nimmo',
+      note: 'Patient asked by telephone for the biopsy blocks and slides to be kept for a second opinion before treatment.',
+    }],
   },
   {
     ...base('S26-4631', 'in-progress', 5),
@@ -292,7 +303,7 @@ export const DEMO_BASELINE_CASES: Case[] = [
     ],
     order: order({ requestingProvider: 'Dr. Michael Brown', orderingPhysicianId: 'ph1', clinicalIndication: 'Invasive carcinoma on core biopsy S26-4630. Mastectomy and sentinel node.', receivedDate: demoDaysAgo(5), assignedTo: 'PATH-001', assignedParticipationTypeId: 'primary' }),
     diagnostic: { grossDescription: 'Mastectomy 640 g with a 2.6 cm firm stellate mass in the upper outer quadrant, 1.1 cm from the deep margin.', microscopicDescription: '', ancillaryStudies: '' },
-    synopticReports: draftReport('S26-4631-SP-1', 'breast_invasive', 'Generic Template — Breast Invasive', 4),
+    synopticReports: draftReport('S26-4631-SP-1', 'breast_invasive', 'Breast, invasive carcinoma (resection)', 4),
     participants: [attending('PATH-001', 'Pete Nimmo', 5)],
   },
   {
@@ -516,7 +527,8 @@ export const DEMO_BASELINE_CASES: Case[] = [
     specimens: [{ ...body('4665', 0.5, 0.3, [intoMortuary(MORTUARY_TRAY_B, 0.3)]), specimenDictionaryEntryId: 'sp-autopsy-complete', organCodes: ['heart', 'right_lung', 'left_lung', 'liver'] }],
     order: order({ requestingProvider: 'County Medical Examiner', orderingPhysicianId: 'ph1', clinicalIndication: 'Found unresponsive at work; witnessed collapse. Medical Examiner has taken jurisdiction by telephone; the written order is to follow.', receivedDate: demoDaysAgo(0.3), assignedTo: 'PATH-SJ-001', assignedParticipationTypeId: 'primary' }),
     diagnostic: { grossDescription: '', microscopicDescription: '', ancillaryStudies: '' },
-    synopticReports: [],
+    // Batch 755a (seed row S6): PathScribe's own autopsy checklist, so the report page doesn't offer the demo list.
+    synopticReports: draftReport('A26-4665-SP-1', 'autopsy_gross_examination', AUTOPSY_CHECKLIST_NAME, 0.3),
     participants: [attending('PATH-SJ-001', 'Dr. Sarah Johnson', 0.3)],
     autopsy: {
       jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full', addenda: [], ancillaryHold: { active: false },
@@ -537,7 +549,8 @@ export const DEMO_BASELINE_CASES: Case[] = [
     specimens: [{ ...body('4666', 2.2, 2, [intoMortuary(MORTUARY_TRAY_B, 2)]), specimenDictionaryEntryId: 'sp-autopsy-complete', organCodes: ['heart', 'right_lung', 'left_lung', 'liver', 'right_kidney', 'left_kidney'] }],
     order: order({ requestingProvider: 'Dr. Olivia Hart', orderingPhysicianId: 'ph5', clinicalIndication: 'Inpatient death after a fall at home with a right hip fracture; rapid decline on day 3. Family requests autopsy to exclude pulmonary embolism; brain examination declined.', receivedDate: demoDaysAgo(2), assignedTo: 'PATH-SJ-001', assignedParticipationTypeId: 'primary' }),
     diagnostic: { grossDescription: '', microscopicDescription: '', ancillaryStudies: '' },
-    synopticReports: [],
+    // Batch 755a (seed row S6): the autopsy checklist, its body measurements matching the PAD's external examination.
+    synopticReports: [{ ...draftReport('A26-4666-SP-1', 'autopsy_gross_examination', AUTOPSY_CHECKLIST_NAME, 2)[0], answers: { body_weight_kg: 51, body_length_cm: 155 } }],
     participants: [attending('PATH-SJ-001', 'Dr. Sarah Johnson', 2)],
     orchSections: A4666_PAD_SECTIONS,
     autopsy: {
@@ -638,6 +651,13 @@ export const DEMO_BASELINE_CASES: Case[] = [
   ...DEMO_MOLECULAR_CASES,
   // Batch 747 (S8): a working day's histology at Desert Valley for the wall displays.
   ...DEMO_WALL_VOLUME_CASES,
+  // Batch 748 (S11): a multi-piece prostate block, a megablock, an exhausted block with an add-on waiting.
+  ...DEMO_BLOCK_TYPE_CASES,
+  // Batch 749 (S5, S4): Priya Desai's GYN tiles, and a breast FNA.
+  ...DEMO_CYTOLOGY_VOLUME_CASES,
+  // Batch 750 (S10): the case whose slides carry the slide viewer's demonstration images.
+  ...DEMO_SLIDE_IMAGE_CASES,
+  DEMO_ASSIST_MAP_CASE, DEMO_ASSIST_MAP_FAILED_CASE, DEMO_PROSTATECTOMY_MAP_CASE, // Batch 751 (S15): the Assist cases with a map (delivered, and failed)
 ] as any as Case[];
 
 /** Ids of every baseline case (tests and the demo guide). */

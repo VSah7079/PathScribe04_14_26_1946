@@ -8,6 +8,7 @@ import { lisSyncStateNeedsBadge } from '@/services/specimens/resolveSpecimenLisS
 import type { CaseComment } from '@/types/case/CaseComment';
 import { pressable } from '@/utils/a11y/pressable';
 import { VendorFieldsPanel } from '@/components/VendorFields/VendorFieldsPanel';
+import { DemoWordingTag } from '@/components/Synoptic/DemoWordingTag';
 
 interface SidebarProps {
   caseData: Case | null;
@@ -422,6 +423,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                               {inst.reportType === 'microscopic'
                                 ? ((inst as any).status === 'draft' ? t('sidebar.microscopic.draftUnsaved') : (inst as any).text?.trim() ? t('sidebar.microscopic.saved') : t('sidebar.microscopic.savedBlank'))
                                 : inst.templateName}
+                              {'templateId' in inst && <DemoWordingTag templateId={String(inst.templateId ?? '')} />}
                             </div>
                             {/* Batch 427: a combined workup names every part it covers. */}
                             {((inst as any).additionalSpecimenIds ?? []).length > 0 && (

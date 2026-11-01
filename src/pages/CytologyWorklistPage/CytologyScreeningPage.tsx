@@ -32,7 +32,8 @@ import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { Trans, useTranslation } from 'react-i18next';
 import RequestReviewModal from '@/components/RequestReview/RequestReviewModal';
 import EMRSidecarDrawer from '@/pages/SynopticReportPage/components/EMRSidecarDrawer';
-import { WsiViewerLaunchButton } from '@/pages/SynopticReportPage/components/WsiViewerLaunchButton';
+import { SlideImagePreview } from '@/components/SlideImage/SlideImagePreview';
+import { CYTOLOGY_WSI_SCAN } from '@/services/digitalPathology/slideImages';
 import CaseTeamModal from '@/pages/SynopticReportPage/modals/CaseTeamModal';
 import { DelegateModal } from '@/pages/Synoptic/Delegate/DelegateModal';
 import { VOICE_CONTEXT } from '@/constants/systemActions';
@@ -937,23 +938,13 @@ export default function CytologyScreeningPage() {
                 🔍 {t('cytologyScreening.requestReviewBtn')}
               </button>
               {instrumentationModality === 'wsi' && (
-                // Real, per direct guidance's own confirmed
-                // consolidation: reuses Surgical Pathology's own
-                // real, vendor-aware WsiViewerLaunchButton (now
-                // extended to also carry Cytology's own real, sticky
-                // window-positioning feature — see that component's
-                // own header) rather than a second, separate,
-                // hardcoded-mock-URL launch mechanism. status is
-                // hardcoded to a real, scannable value from that
-                // component's own SCANNABLE_STATUSES set — Cytology
-                // has no per-specimen granular status matching
-                // Surgical's own grossing/embedding pipeline, and this
-                // screen's own outer instrumentationModality check
-                // already gates real visibility correctly.
-                <WsiViewerLaunchButton
-                  status="Ready for Review"
-                  displayId={currentSpecimen?.id ?? caseData.id}
-                  windowName="PathScribeCytologyWsiViewer"
+                // Batch 750: the same reference preview and open action as a surgical slide (SlideImagePreview). Cytology
+                // has no per-slide scanner status; the WSI modality says the slide was imaged (CYTOLOGY_WSI_SCAN).
+                <SlideImagePreview
+                  slideDisplayId={currentSpecimen?.id ?? caseData.id}
+                  scan={CYTOLOGY_WSI_SCAN}
+                  caseId={caseData.id}
+                  accession={caseData.accession?.fullAccession ?? caseData.id}
                 />
               )}
               <span>{t('cytologyScreening.lmpLabel')}{isGynCytology && cytologyFieldRequired(cytologyRequirements, 'reviewLmp') && <span className="ps-conf-required"> *</span>}</span>

@@ -32,7 +32,9 @@ import type { TemplateApproval } from '../../../services/templates/templatePubli
 import { readLabSetting, saveLabSetting } from '../../../services/labSettings/labSettingsStore';
 import { pressable } from '@/utils/a11y/pressable';
 import { validateProtocolUpload, draftFromUpload, type ProtocolUploadResult } from '../../../services/templates/protocolUploadValidation';
-import { findProtocolNameConflict } from '../../../services/templates/protocolLifecycle';
+import { findProtocolNameConflict, copySourceCandidates } from '../../../services/templates/protocolLifecycle';
+import { isDemoChecklist, DEMO_CHECKLISTS_IN_BUILD } from '../../../services/templates/demoChecklists';
+import { DEMO_CHECKLIST_REGISTRY } from '../../../services/templates/demoChecklistRegistry';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -187,42 +189,9 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   // version number at the same time real licensed content replaces the
   // placeholder options, rather than tracking a separate status for the
   // interim period.
-  {
-    id: 'breast_invasive', name: 'Generic Template — Breast Invasive',
-    category: 'BREAST', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 47, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'breast_dcis_resection', name: 'Generic Template — Breast Dcis Resection',
-    category: 'BREAST', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 23, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'lung_adeno', name: 'Generic Template — Lung Adeno',
-    category: 'LUNG', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 39, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'prostate_needle_biopsy', name: 'Generic Template — Prostate Needle Biopsy',
-    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 35, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'colon_resection', name: 'Generic Template — Colon Resection',
-    category: 'COLON', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 52, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'skin_melanoma_bx', name: 'Generic Template — Skin Melanoma Bx',
-    category: 'SKIN', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
+  // Batch 754: the 19 demonstration checklists (services/templates/demoChecklistRegistry.ts); a customer build
+  // (mode "server") leaves them out. The mode is written in literally so the bundler drops them.
+  ...(import.meta.env.MODE !== 'server' ? DEMO_CHECKLIST_REGISTRY : []),
   // Batch 463: PathScribe's own Mohs synoptic (stage maps). Labs copy and customise it like any other.
   {
     id: 'mohs_micrographic_surgery', name: 'PathScribe — Mohs Micrographic Surgery',
@@ -245,89 +214,10 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
     lastModified: '2026-10-05', owner: 'System',
   },
   {
-    id: 'kidney_resection', name: 'Generic Template — Kidney Resection',
-    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    // Batch 466: 25 + the renal map questions ("Anatomical map (PathScribe)"); Batch 466b: + non-standard margins.
-    status: 'published', fields: 36, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'kidney_biopsy', name: 'Generic Template — Kidney Biopsy',
-    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 10, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'wilms_resection', name: 'Generic Template — Wilms Resection',
-    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 32, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'wilms_biopsy', name: 'Generic Template — Wilms Biopsy',
-    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 8, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
     id: 'autopsy_gross_examination', name: 'Autopsy Gross Examination — Whole Body / Multi-Cavity',
     category: 'AUTOPSY', version: '0.4.0-draft', source: 'Custom', type: 'Base template',
     status: 'in_review', fields: 98, snomedPct: 0, icdPct: 0,
     lastModified: '2026-09-13', owner: 'System',
-  },
-  {
-    id: 'prostate_resection', name: 'Generic Template — Prostate Resection',
-    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 33, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'lung_resection', name: 'Generic Template — Lung Resection',
-    category: 'LUNG', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'breast_surgical_excision', name: 'Generic Template — Breast Surgical Excision',
-    category: 'BREAST', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 99, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'colorectal_resection_b', name: 'Generic Template — Colorectal Resection B',
-    category: 'COLORECTAL', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 45, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'colorectal_local_excision', name: 'Generic Template — Colorectal Local Excision',
-    category: 'COLORECTAL', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 40, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'colorectal_further_investigations', name: 'Generic Template — Colorectal Further Investigations',
-    category: 'COLORECTAL', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 26, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'prostate_biopsy', name: 'Generic Template — Prostate Biopsy',
-    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 46, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'prostate_radical_prostatectomy', name: 'Generic Template — Prostate Radical Prostatectomy',
-    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 43, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'prostate_turp_enucleation', name: 'Generic Template — Prostate Turp Enucleation',
-    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
   },
   {
     id: 'liver_biopsy_medical', name: 'Liver Biopsy -- Medical (Native)',
@@ -455,6 +345,8 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
     }
   });
 }
+// Batch 754: a customer build (mode "server") lists none of the 19 demonstration checklists (services/templates/demoChecklists.ts).
+if (import.meta.env.MODE === 'server') PROTOCOL_REGISTRY = PROTOCOL_REGISTRY.filter(p => !isDemoChecklist(p.id));
 
 // ─── Registry subscriber ──────────────────────────────────────────────────────
 // Allows components to re-render when templateService mutates PROTOCOL_REGISTRY.
@@ -753,7 +645,7 @@ export const BuildCustomiseModal: React.FC<{
   const { t } = useTranslation();
   const [selectedTpl, setSelectedTpl] = React.useState<string | null>(null);
   const [search,      setSearch]      = React.useState('');
-  const publishedTemplates = PROTOCOL_REGISTRY.filter(p => p.status === 'published');
+  const publishedTemplates = copySourceCandidates(PROTOCOL_REGISTRY);
   const filtered = search.trim()
     ? publishedTemplates.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -800,6 +692,7 @@ export const BuildCustomiseModal: React.FC<{
           {/* Template picker */}
           <div>
             <div className="ps-pshare-section-label">{t('protocolShared.buildModal.existingTemplateLabel')}</div>
+            {DEMO_CHECKLISTS_IN_BUILD && <div className="ps-pshare-scratch-desc">{t('demoChecklists.pickerNote')}</div>}
 
             {/* Search */}
             <div className="ps-pshare-search-wrap">

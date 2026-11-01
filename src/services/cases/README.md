@@ -1,3 +1,15 @@
+**Batch 755b (part 2):** lung (S26-4403, S26-4491, S26-4493, HFHS26-1004; O26-0024 in the orchestrator seed), kidney (S26-4482), melanoma (S26-4420), local excision (MFT26-8803) and prostatectomy (MPA26-1003) cases: answers agree with the reworded checklists and their written findings; written findings in real words.
+
+**Batch 755b (part 1):** the breast demo cases answer "no special type" and carry real stage and DCIS text; MFT26-8801, MFT26-8805 and MFT26-8802 findings and answers agree with the UK-layout wording; PATH-UK-001 is the fictional Dr. Imogen Hartley; fictional patients' NHS numbers are in the NHS test range and their emails `@example.org`.
+
+**Batch 755a:** demo cases store the plain checklist names ("Colon resection", "Breast, invasive carcinoma (resection)"); A26-4665 and A26-4666 carry the `autopsy_gross_examination` checklist (`demoBaselineCases.ts`); S26-4404's gross description and ancillary studies and the MFT26-8802-PR-BX and MFT26-8804-PR-RP findings are in real words (`mockCaseService.ts`, MOCK_VERSION 73; amendments 9, orchestrator cases 8).
+
+**Batch 753:** `demoProstateBiopsyChecklist.ts` (new): S26-4404's checklist answers and suggestions, moved out of `mockCaseService.ts` (6,047 → 6,019 lines) and made to agree with its map (6 cores, 3 with carcinoma, highest score 3+4=7, greatest involvement 61 to 70%), plus the answers before its demo amendment. S26-4404's microscopic description in real words. `demoProstatectomyMapCase.ts`: S26-5407's whole checklist answered in step with its map (Grade Group 3, focal extraprostatic extension, positive posterolateral margin, pT3a pN0, 0 of 14 nodes). MFT26-8804-PR-RP's AI suggestions agree with its map. `MOCK_VERSION` 72.
+
+**Batch 749:** `demoCytologyVolumeCases.ts` (new, seed rows S5 and S4): Priya Desai's GYN tiles (S26-5501 to 5510) and a breast FNA (S26-5511); `MOCK_VERSION` 69. Test: `demoCytologyVolumeCases.test.ts`.
+
+**Batch 748:** `demoBlockTypeCases.ts` (new, seed row S11): a multi-piece prostate block pair with piece maps (S26-5401), a megablock with large-format slides (S26-5402), an exhausted block with a Ki-67 add-on waiting for re-embedding (S26-5403). `demoBaselineCases.ts`: S26-4630's retention hold (S9). `MOCK_VERSION` 68. Test: `demoBlockTypeCases.test.ts`.
+
 **Batch 747:** `demoWallVolumeCases.ts` (new): forty-one Desert Valley cases and six at Midwest Pathology, at the bench steps, not yet assigned to a pathologist, for the wall displays (seed row S8). In `DEMO_BASELINE_CASES`; `MOCK_VERSION` 67.
 
 **Batch 746:** `demoMolecularCases.ts` (new): the surgical cases behind the molecular seed (seed row S7): S26-5201 to 5209 lung with an EGFR mutation PCR add-on, S26-5211 to 5216 colorectal with a KRAS one; S26-5208, 5209 and 5216 resulted (the lung synoptics carry the EGFR result). In `DEMO_BASELINE_CASES`; `MOCK_VERSION` 66.
@@ -426,3 +438,11 @@ Batch 651 (audit gaps): `poolCaseActions.ts` writes "Pool case claimed / passed"
 - Batch 665: `collaboratorNotice` builds the message the new collaborator receives (an app notice sent through `messageService.send` after the team save; a failed send is reported and never undoes the add).
 
 Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): grossing-assignment warnings and match tags no longer include confidence or match percentages (matchPct stays on the match record).
+
+## Batch 750
+
+`demoSlideImageCases.ts` (new): S26-5404 (breast mastectomy with two sentinel nodes) for seed row S10; its slides Scanned, and C1-L2 Failed image quality. `demoBlockTypeCases.ts`: slide identifiers and scanner states on S26-5401..5403 (No image yet, Scanned, Scanning, Queued, Scan failed). `MOCK_VERSION` 70.
+
+## Batch 751
+
+Seed row S15: `demoAssistMapCase.ts` (new: S26-5405, an Assist rectal resection with the colon checklist fully answered and its rectal map, finalised, map file delivered; S26-5406, its map file delivery failed), `demoProstatectomyMapCase.ts` with `demoProstatectomyMapFigure.json` (new: S26-5407, Dr. Sarah Johnson's radical prostatectomy with the map already in its report, made by Insert into report). `mockCaseService.ts`: S26-4404 and S26-4463 are Orchestrator cases (Video 9 puts their maps in the report); `MOCK_VERSION` 71. `demoSignOutReadyCase.ts` exports its colon answers (`SIGN_OUT_READY_COLON_ANSWERS`).

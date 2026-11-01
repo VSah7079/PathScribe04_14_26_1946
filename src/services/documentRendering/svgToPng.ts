@@ -7,6 +7,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function svgToPngDataUrl(svg: string, scale = 4): Promise<string | undefined> {
+  return svgToImageDataUrl(svg, scale, 'image/png');
+}
+
+/** Batch 751: the same drawing as a JPEG on white (for a one-page PDF, documentRendering/imagePdf.ts). */
+export async function svgToJpegDataUrl(svg: string, scale = 4): Promise<string | undefined> {
+  return svgToImageDataUrl(svg, scale, 'image/jpeg');
+}
+
+async function svgToImageDataUrl(svg: string, scale: number, type: 'image/png' | 'image/jpeg'): Promise<string | undefined> {
   if (typeof document === 'undefined' || typeof Image === 'undefined') return undefined;
   const m = /width="(\d+(?:\.\d+)?)"\s+height="(\d+(?:\.\d+)?)"/.exec(svg);
   if (!m) return undefined;
@@ -20,8 +29,9 @@ export async function svgToPngDataUrl(svg: string, scale = 4): Promise<string | 
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext('2d');
     if (!ctx) return undefined;
+    if (type === 'image/jpeg') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h); }
     ctx.drawImage(img, 0, 0, w, h);
-    return canvas.toDataURL('image/png');
+    return canvas.toDataURL(type, type === 'image/jpeg' ? 0.92 : undefined);
   } catch {
     return undefined;
   }

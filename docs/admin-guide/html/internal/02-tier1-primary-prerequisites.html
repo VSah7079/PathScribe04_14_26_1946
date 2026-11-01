@@ -479,6 +479,24 @@
 <td>Performing Lab only.</td>
 <td>Off</td>
 </tr>
+<tr id="f-facility-dictionary-organ-map-delivery-send-the-organ-map"><td>Organ map delivery: Send the organ map</td>
+<td>Choice: Off, Text only, Text and image file</td>
+<td>Optional</td>
+<td>Performing Lab only (Batch 751). On an Assist case PathScribe never places the organ map in the report. This sends it to the laboratory system with the <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> data: the map's findings as text lines, and with a file the map drawn at finalising from the final answers. Saved on its own with <code>config:organ-map-delivery:manage</code> and audited. A failed delivery never holds up finalising; it appears in the <a class="term" href="99-glossary.html#g-outbound-queue" title="The list of messages and charges PathScribe has built and not yet sent, held, sent or failed.">outbound queue</a>, with retry.</td>
+<td>Off</td>
+</tr>
+<tr id="f-facility-dictionary-organ-map-delivery-file-format"><td>Organ map delivery: File format</td>
+<td>Choice: PNG image, PDF document</td>
+<td>Optional</td>
+<td>Shown for Text and image file.</td>
+<td>PNG image</td>
+</tr>
+<tr id="f-facility-dictionary-organ-map-delivery-destination-for-the-files"><td>Organ map delivery: Destination for the files</td>
+<td>Text</td>
+<td>Required for Text and image file</td>
+<td>A folder, an <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, a secure way of copying files to another system.">SFTP</a> address or an interface engine channel. Never a user name or password. File names carry the <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a>, the map type and the time, never a patient name.</td>
+<td>Blank</td>
+</tr>
 </tbody>
 </table>
 <h4>Editor window: Identifier Formats tab</h4>

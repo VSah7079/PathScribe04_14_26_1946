@@ -267,3 +267,8 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 ## Batch 715 — letters or numbers for labels
 
 `FacilityLabelStyleField.tsx` (+ `.css`) replaces the single "Specimen / Block Labeling" choice in `FacilityEditorModal.tsx` with three selectors (Specimens, Blocks, Slides: Letters or Numbers), a Preset menu holding the two old pairs, and a live example ("Specimen A · Block 1 · Slide L1"). On the Enterprise it sets the default; on a lab each level can be "Same as enterprise (value)". A warning shows when specimens and blocks both use letters or both use numbers. A new facility starts with no choice of its own (it follows its enterprise); a facility with the old preset opens with it as its own choice, so its labels do not change. The editor stores `labelStyle` and clears `specimenLabelStyle`. The change is audited in `pages/system/FacilityDictionaryPage.tsx`. `FacilityEditorModal.tsx` shrank (1,478 to 1,476 lines). Rules: `services/labeling/README.md`.
+
+## Batch 751
+
+- `FacilityOutboundDocumentsSection.tsx` (new): the LIS Integration tab's Outbound documents, moved out of `FacilityEditorModal.tsx` (1,469 lines, was 1,476): the combined-PDF switch and the organ map delivery.
+- `OrganMapDeliverySetting.tsx` (new): Organ map delivery (Off, Text only, Text and image file; format and destination), saved on its own with `config:organ-map-delivery:manage`.

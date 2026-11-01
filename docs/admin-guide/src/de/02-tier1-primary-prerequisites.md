@@ -174,6 +174,9 @@ Welche Kontaktfelder Pflicht sind, ergibt sich aus [Pflichtfelder](#screen-field
 | ID der empfangenden Einrichtung (MSH-6) | Text | Optional | Der Code des empfangenden Systems. | Leer |
 | Ausgangskanal-Überschreibung | Text | Optional | Ein anderer Engine-Kanal für diese Einrichtung. | Leer |
 | Ein kombiniertes PDF je Fall senden | Ja/Nein-Schalter | Optional | Nur Durchführendes Labor. | Aus |
+| Übermittlung der anatomischen Karte: Anatomische Karte senden | Auswahl: Aus, Nur Text, Text und Bilddatei | Optional | Nur Durchführendes Labor (Batch 751). Bei einem Assist-Fall fügt PathScribe die anatomische Karte nie in den Befund ein. Diese Einstellung sendet sie mit den synoptischen Daten an das Laborsystem: die Befunde der Karte als Textzeilen und, mit Datei, die Karte, beim Abschließen aus den endgültigen Antworten gezeichnet. Wird gesondert mit `config:organ-map-delivery:manage` gespeichert und protokolliert. Eine fehlgeschlagene Übermittlung hält das Abschließen nie auf; sie erscheint in der ausgehenden Warteschlange und kann erneut gesendet werden. | Aus |
+| Übermittlung der anatomischen Karte: Dateiformat | Auswahl: PNG-Bild, PDF-Dokument | Optional | Angezeigt bei Text und Bilddatei. | PNG-Bild |
+| Übermittlung der anatomischen Karte: Ziel für die Dateien | Text | Pflicht bei Text und Bilddatei | Ein Ordner, eine SFTP-Adresse oder ein Kanal der Schnittstellen-Engine. Nie ein Benutzername oder Passwort. Dateinamen enthalten die Eingangsnummer, die Kartenart und die Uhrzeit, nie einen Patientennamen. | Leer |
 
 #### Editorfenster: Reiter Kennungsformate
 

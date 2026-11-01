@@ -1,3 +1,7 @@
+**Batch 755a:** Synoptic Library: demonstration checklists show the "Demo wording" tag and offer no Duplicate or New Version; Build / Customise leaves them out (see `Protocols/`).
+
+**Batch 754:** `Protocols/`: the Demonstration checklists card (ForMedrixAI support), and the demonstration checklists left out of customer builds.
+
 **Batch 747:** `System/DemoDisplayTokensCard.tsx`: the Demo display tokens card on the Demo Reset tab.
 
 **Batch 737:** `System/StainingRacksPanel.tsx` (Equipment: staining racks that take large-format slides).

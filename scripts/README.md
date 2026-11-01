@@ -1,3 +1,9 @@
+**Batch 755b (part 2):** `Setup-PathScribeSlideDemo.ps1`: `-VercelScope <team>` for a demo project under another Vercel team, and a warning before `vercel link` would create a new project.
+
+**Batch 754:** `remove-demo-checklists.mjs` (new): removes the 19 demonstration checklists from one organisation's library on an API server (`--api`, `--organisation`; a dry run unless `--apply`; token from `PS_API_TOKEN`, never printed). The endpoint is Planned (`docs/architecture/DEMO_CHECKLISTS.md`). `check-production-bundle.mjs` now fails a customer build that contains any demonstration checklist (`DEMO_CHECKLIST_FILES`, read from the files).
+
+**Batch 752:** `Setup-PathScribeSlideDemo.ps1` (Windows PowerShell 5.1 or later) builds and publishes the slide images for the demo (seed row S10): it downloads two CAMELYON16 slides (CC0), converts them with libvips into previews and Deep Zoom tiles, makes the blurred copy, writes the licence notes and `viewer/manifest.json`, copies `tools/demo-slide-viewer/`, uploads it all to the Cloudflare R2 bucket, and sets `VITE_SLIDE_VIEWER_URL_TEMPLATE` and `VITE_SLIDE_THUMBNAIL_URL_TEMPLATE` in Vercel (Production). It asks for the R2 keys while it runs and stores no key or password. Needs the AWS CLI, libvips (the `vips-dev-x64-all` build, which has OpenSlide) and the Vercel CLI. Steps, switches and the set-up as done on Oct 31, 2026: `docs/product/SLIDE_IMAGE_DEMO.md`.
+
 **Batch 678:** `compliance/build_readiness_matrix.py` (Python 3, openpyxl) builds `docs/compliance-guide/PathScribe_Regulatory_Readiness_Matrix.xlsx` from `docs/compliance-guide/readiness/requirements.json`; it fails when an evidence path is missing.
 
 **Batch 666:** `translation-review-workbook.py` builds Korean as well (`fr,nl,de,es,ko`); `user-guide/build.py` fails when a screen route has no article (reasoned exceptions in `docs/user-guide/route-exemptions.json`) and accepts an article with no screen address (`routes: []`).

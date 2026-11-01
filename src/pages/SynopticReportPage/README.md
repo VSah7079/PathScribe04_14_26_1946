@@ -1,3 +1,7 @@
+**Batch 755b (part 2):** `components/RightSynopticPanel.tsx` filters the picker with `offeredOnCasePicker()` (1,750 lines, unchanged).
+
+**Batch 755a:** `components/TemplatePicker.tsx` (moved out of `RightSynopticPanel.tsx`, 1,853 → 1,750 lines); the checklist header, sidebar entry and picker show the "Demo wording" tag.
+
 **Batch 742:** the bottom bar's Attachments badge opens `components/CaseAttachments/CaseAttachmentsModal` (replacing the Batch 609 Attach images window), with the report layout's sections to place images in; the render payload carries `sectionImages` (`services/imageAssociation/reportSectionImages.ts`). 7,060 lines to 7,057.
 
 **Batch 739:** `modals/BlockStainEditorModal.tsx` and `modals/MaterialTrackingHistoryModal.tsx` show a decant's type in the reader's language (was the English `DECANT_TYPE_LABEL`).
@@ -709,3 +713,11 @@ The `FLAG_APPLY_STAT` action (Alt+S / voice "flag stat") now applies the STAT fl
 - Batch 681: `aiGovernance.css` (tint for unreviewed AI values, sign-out note).
 
 **Batch 715:** the report page's Add Block (`useSpecimenBlockManagement.handleAddBlock`) and Add Specimen follow the case's letters/numbers style (Add Block always used numbers before). `useSpecimenBlockManagement.ts` 1,716 to 1,712 lines; `SynopticReportPage.tsx` unchanged at 7,060.
+
+## Batch 750
+
+`modals/BlockStainEditorModal.tsx`: each slide chip shows its reference preview (`SlideImagePreview`) in place of the launch button; same line count (1,436). `components/WsiViewerLaunchButton.tsx` deleted.
+
+## Batch 751
+
+`hooks/useOrganMap.ts`: the Assist state (`lisOwnsReport`) and, on an Assist case, when the map file reached the laboratory system (`fileSentAt`, from the outbound LIS queue). `SynopticReportPage.tsx` passes it to the panel (same line count).

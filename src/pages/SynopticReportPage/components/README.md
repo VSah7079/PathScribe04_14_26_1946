@@ -1,3 +1,7 @@
+**Batch 755b (part 2):** `RightSynopticPanel.tsx` offers the picker only what `offeredOnCasePicker()` allows (no TEST forms, no unused demo checklists).
+
+**Batch 755a:** `TemplatePicker.tsx` (new file, moved unchanged out of `RightSynopticPanel.tsx`, now 1,750 lines): the "pick a checklist for this specimen" list, with the "Demo wording" tag; `RightSynopticPanel.tsx` header and `Sidebar.tsx` entry show the tag.
+
 **Batch 742:** `BottomActionBar.tsx`: the Attach images button is now the case's Attachments badge, "Attachments (n)" or "Add Attachments" (`useCaseAttachmentCount`).
 
 **Batch 650:** `BottomActionBar.tsx` draws Sign Out Case, Finalise / Finalise & Next and Request Amendment from `bottomBarVisibility` and calls `useBottomBarActionEvents`, so a command and its button can never disagree.
@@ -280,3 +284,7 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 - Batch 665: `RightSynopticPanel.tsx` calls `useSynopticEditField` (no line added; still 1,886 lines).
 
 Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): no AI confidence percentage is rendered by RightSynopticPanel (field badges are 'AI suggestion' / 'Check source' / Confirmed / Overridden, no colour tiers), HeaderBar (the AI chip carries no score), AddSynopticModal or NarrativeProvenanceNote, in either regulatory profile. The score stays in the data and drives only the internal review decision. Guard: services/aiGovernance/noConfidencePercent.test.tsx.
+
+## Batch 750
+
+`WsiViewerLaunchButton.tsx` (listed above) is deleted: the block and stain window shows `components/SlideImage/SlideImagePreview.tsx` instead (PathScribe has no viewer; the preview opens the laboratory's own application).

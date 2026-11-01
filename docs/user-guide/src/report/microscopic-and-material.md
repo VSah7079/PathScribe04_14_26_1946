@@ -442,7 +442,7 @@ If you are the person deciding, the notice lists **Requests waiting for your dec
 
 - Checklist answers and codes: [Synoptic Reporting](help:report/synoptic-reporting).
 - Review checks and sign-out: [Sign Out and Release](help:report/sign-out-and-release).
-- Slides for review: [WSI Viewer](help:wsi-viewer).
+- Slide previews and opening a slide in your laboratory's digital pathology application: [Slide Images](help:wsi-viewer).
 
 ## Troubleshooting
 

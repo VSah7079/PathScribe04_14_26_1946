@@ -4237,6 +4237,10 @@
         "description": "Reassign every unassigned case at once by the routing rules. Audited.",
         "label": "Route unassigned cases now"
       },
+      "caseSlideImageOpen": {
+        "description": "Open a slide from its reference preview in the laboratory's own digital pathology application, in a separate window. PathScribe only opens the address; the other application handles sign-in. Audited with who, which slide and when.",
+        "label": "Open a slide in the lab's digital pathology application"
+      },
       "caseTeamManage": {
         "description": "Add or remove people on a case's team (Case Team), including who its primary pathologist is. A cytotechnologist can't be put in a pathologist slot.",
         "label": "Change a case's team"
@@ -4592,6 +4596,10 @@
       "configOrganMapBindingsManage": {
         "description": "Choose which questions of a lab’s own synoptic templates, and which answers, feed the organ maps, and which of the templates’ generic margin questions the maps calculate. Audited.",
         "label": "Bind synoptic questions to organ maps"
+      },
+      "configOrganMapDeliveryManage": {
+        "description": "Choose whether a performing lab’s laboratory system receives the organ map on Assist cases: off, text only, or text and an image file sent to a destination. Changes are audited.",
+        "label": "Set organ map delivery to the laboratory system"
       },
       "configOrganMapSchemeManage": {
         "description": "Change the colours, patterns, legend wording and thresholds of the organ maps (the breast close-margin distance; the malignant-polyp and rectal CRM involved-margin rules; the oral cavity involved- and close-margin rules; the kidney parenchymal and soft tissue involved-margin rules) for the enterprise, a jurisdiction or a facility. Audited.",
@@ -5036,6 +5044,10 @@
       "platformCrossTenantCasesView": {
         "description": "PathScribe support access to a case outside the user's own organisation. Every such open is recorded in the audit log.",
         "label": "Open other organisations' cases (support)"
+      },
+      "platformDemoChecklistsRemove": {
+        "description": "Remove the 19 demonstration checklists (tagged “Demo wording”) from a customer organisation’s synoptic library (they are archived). ForMedrixAI support only. Audited.",
+        "label": "Remove the demonstration checklists"
       },
       "platformGoverningBodiesManage": {
         "description": "Choose which governing bodies' content (CAP, RCPath, ICCR, RCPA) syncs into the platform's synoptic library.",
@@ -10111,6 +10123,34 @@
       "tue": "Tue",
       "wed": "Wed"
     }
+  },
+  "demoChecklists": {
+    "cancel": "Cancel",
+    "check": "Check what would be removed",
+    "confirmYes": "Remove",
+    "confirm_one": "Remove {{count}} checklist from this organisation’s library?",
+    "confirm_other": "Remove {{count}} checklists from this organisation’s library?",
+    "copyRefusedBack": "Back to the Synoptic Library",
+    "copyRefusedBody": "{{name}} has demonstration wording that a pathologist has not yet reviewed, so it can’t be copied or used as the start of a new version. Start from scratch, from one of PathScribe’s own checklists, or from a protocol your laboratory is licensed to use (Upload Protocol).",
+    "copyRefusedShort": "A checklist with demonstration wording can’t be copied until a pathologist has reviewed it.",
+    "copyRefusedTitle": "This checklist can’t be copied",
+    "demoBuildNote": "On the demonstration site the library belongs to this browser, so a removal here applies to every demo organisation until Full Reset. On a customer’s server it applies to that organisation only.",
+    "failed_one": "{{count}} could not be removed: {{names}}",
+    "failed_other": "{{count}} could not be removed: {{names}}",
+    "inLibrary_one": "{{count}} demonstration checklist is offered in this library.",
+    "inLibrary_other": "{{count}} demonstration checklists are offered in this library.",
+    "intro": "The 19 checklists tagged “Demo wording” are for demonstrations only and are never offered to a customer. Removing them from this organisation’s library archives them: they are no longer offered for new reports, and a report already made with one still opens.",
+    "noneLeft": "No demonstration checklist is offered in this library.",
+    "notPermitted": "Only ForMedrixAI support can remove the demonstration checklists.",
+    "pickerNote": "Checklists tagged “Demo wording” can’t be used as a starting point.",
+    "remove": "Remove demonstration checklists",
+    "removed_one": "Removed {{count}} checklist.",
+    "removed_other": "Removed {{count}} checklists.",
+    "title": "Demonstration checklists",
+    "wordingTag": "Demo wording",
+    "wordingTagHint": "Demonstration wording that a pathologist has not yet reviewed. It cannot be copied into your own checklists.",
+    "working": "Working on it…",
+    "wouldRemove": "Would remove: {{names}}"
   },
   "demoResetTab": {
     "disabled": {
@@ -17156,6 +17196,9 @@
         "yes": "Present"
       }
     },
+    "delivery": {
+      "nothingShown": "Nothing to show on the map."
+    },
     "derived": {
       "invasiveMarginsIncomplete": "{{synoptic}}: invasive carcinoma is recorded, but these margins aren’t reported: {{margins}}.",
       "invasiveMarginsPrompt": "Sign out anyway?",
@@ -17388,8 +17431,10 @@
     },
     "panel": {
       "empty": "Answer the map questions in the synoptic (Anatomical map section) to see the map.",
+      "fileSent": "Map file sent to the laboratory system at {{time}}.",
       "insert": "Insert into report",
       "insertTitle": "Place this map, in print colours, in the report. It is a snapshot: later changes to the answers don't change it until you insert it again.",
+      "lisOwnsReport": "Your laboratory system writes this report.",
       "noBinding": "This synoptic has no map questions. An administrator can bind its own questions in Configuration → Organ maps.",
       "remove": "Remove from report",
       "sectorHint": "Click a sector to go to its question.",
@@ -17405,6 +17450,7 @@
       "title": "Anatomical map",
       "toast": {
         "inserted": "Map inserted into the report.",
+        "lisOwnsReport": "Your laboratory system writes this report, so the map is not placed in it.",
         "locked": "The report is signed out; the map can only change through an amendment.",
         "noImage": "The map couldn't be drawn as a picture for the report. Please try again.",
         "notPermitted": "You don't have permission to put the map in the report.",
@@ -17606,6 +17652,35 @@
       "rectalResection": "Rectal resection — circumferential margin, peritoneal reflection and distal margin",
       "renalResection": "Renal resection — location, pT extent and margins"
     }
+  },
+  "organMapDelivery": {
+    "destinationHint": "A folder, an SFTP address or an interface engine channel, as your interface team set it up. Never a user name or password: the interface engine holds the sign-in. File names carry the accession, the map type and the time, never a patient name.",
+    "destinationLabel": "Destination for the files",
+    "failureNote": "A delivery that fails never holds up finalising and is not shown to the pathologist. It appears in the outbound queue, where it can be retried.",
+    "formatLabel": "File format",
+    "formats": {
+      "pdf": "PDF document",
+      "png": "PNG image"
+    },
+    "intro": "On an Assist case your laboratory system writes the report, so PathScribe never places the organ map in it. Choose whether the map is sent to that system with the synoptic data. The map is drawn from the final checklist answers when the case is finalised; it is a report figure, not a patient image.",
+    "modeLabel": "Send the organ map",
+    "modes": {
+      "off": "Off",
+      "text": "Text only",
+      "textAndFile": "Text and image file"
+    },
+    "problems": {
+      "destinationCredentials": "Take the user name and password out of the destination; the interface engine holds the sign-in.",
+      "destinationRequired": "Enter where the files are to go.",
+      "destinationTooLong": "The destination is too long (300 characters at most).",
+      "notPermitted": "You don’t have permission to change the organ map delivery.",
+      "saveFailed": "The setting wasn’t saved. Please try again.",
+      "unknownFormat": "Choose a file format.",
+      "unknownMode": "Choose how the map is sent."
+    },
+    "save": "Save organ map delivery",
+    "saved": "Organ map delivery saved.",
+    "title": "Organ map delivery"
   },
   "organMapsSection": {
     "bindings": {
@@ -19873,42 +19948,6 @@
       "usedBy": "Used By"
     },
     "title": "Protocol Dictionary"
-  },
-  "protocolEditor": {
-    "addQuestion": "Add Question",
-    "addSection": "Add Section",
-    "backToConfiguration": "Back to Configuration",
-    "choiceOptionsHint": "Choice options editing can be added next — structure is ready.",
-    "lifecycle": {
-      "archived": "Archived",
-      "draft": "Draft",
-      "published": "Published",
-      "validated": "Validated"
-    },
-    "meta": {
-      "lifecycle": "Lifecycle",
-      "source": "Source",
-      "version": "Version"
-    },
-    "notFound": "Protocol not found.",
-    "question": {
-      "newText": "New question"
-    },
-    "questionType": {
-      "boolean": "Yes/No",
-      "choice": "Choice",
-      "number": "Number",
-      "text": "Text"
-    },
-    "required": "Required",
-    "saveProtocol": "Save Protocol",
-    "section": {
-      "newTitle": "New Section"
-    },
-    "source": {
-      "custom": "Custom"
-    },
-    "title": "Protocol Editor: {{name}}"
   },
   "protocolShared": {
     "buildModal": {
@@ -23652,6 +23691,53 @@
       "loadedOnScanner": "Loaded on scanner",
       "scanned": "Scanned"
     }
+  },
+  "slideImage": {
+    "loading": "Loading slide image…",
+    "message": {
+      "blocked": "Your browser blocked the slide window. Allow pop-ups for PathScribe: select the blocked pop-up icon at the end of the address bar, choose to always allow pop-ups from this site, then select the slide again.",
+      "noAddress": "No viewer address is set. Ask your administrator.",
+      "notPermitted": "You don’t have permission to open slide images."
+    },
+    "openLabel": "Open slide",
+    "openTitle": "Open slide {{slide}} in the laboratory’s digital pathology application",
+    "referenceNote": "Reference preview. Not for diagnosis.",
+    "state": {
+      "available": "Image available",
+      "failedImageQuality": "Failed image quality",
+      "noImageYet": "No image yet",
+      "queued": "Queued",
+      "scanFailed": "Scan failed",
+      "scanning": "Scanning"
+    },
+    "thumbAlt": "Reference preview of slide {{slide}}"
+  },
+  "slideImageSettings": {
+    "addFacility": "Add a facility with its own system…",
+    "deploymentDefault": "Blank uses the deployment’s address: {{address}}",
+    "description": "PathScribe has no slide viewer. It shows a small reference preview of a slide, unchanged, from your scanner or image system, and opens the slide in your laboratory’s own digital pathology application in a separate window.",
+    "facilitiesHint": "Fill these in only for a facility with its own scanner or digital pathology application. Blank uses the laboratory’s address.",
+    "facilitiesTitle": "Facilities with their own system",
+    "facilityFieldLabel": "{{facility}}: {{field}}",
+    "fields": {
+      "thumbnailUrlTemplate": "Preview image address",
+      "viewerUrlTemplate": "Viewer address"
+    },
+    "labTitle": "Laboratory",
+    "noDeploymentDefault": "Blank means no address: the deployment sets none.",
+    "placeholdersHint": "Addresses start with https://. Use {{slidePlaceholder}} for the slide identifier and {{accessionPlaceholder}} for the case accession. Never put a patient name, a user name or a password in an address: sign-in belongs to the other application.",
+    "problemLine": "{{field}}: {{problem}}",
+    "problems": {
+      "credentials": "must not contain a user name or password",
+      "noSlidePlaceholder": "must contain {{slidePlaceholder}}",
+      "notHttps": "must be a full https:// address",
+      "notPermitted": "You don’t have permission to change the slide image settings.",
+      "unknownPlaceholder": "uses a placeholder other than {{slidePlaceholder}} or {{accessionPlaceholder}}"
+    },
+    "removeFacility": "Remove",
+    "save": "Save slide image settings",
+    "saved": "Saved",
+    "title": "Slide images"
   },
   "slideLabelLayoutEditor": {
     "description": "The printable face of the slide, the barcode module size and the text height. These values now set the dot sizes and text position in the slide label that prints.",
@@ -27653,6 +27739,20 @@
     "localOnlyDev": "Voice Local only (active voice model unavailable — check its provider API key)",
     "noValidatedModel": "No validated voice model configured, or its provider API key isn't set"
   },
+  "windowPosition": {
+    "close": "Close",
+    "failed": "The position could not be saved. Make the window larger and try again.",
+    "instructions": "Move this window to where slide images should open on this workstation, and size it. Then select Save position.",
+    "save": "Save position",
+    "saved": "Position saved for this workstation. You can close this window.",
+    "screensHint": "In Chrome and Edge, allow PathScribe to manage windows on all your displays when the browser asks, so the window comes back on the right screen. If that screen is not connected later, the window opens on the main screen.",
+    "setPosition": "Set position…",
+    "setPositionTitle": "Opens the slide image window so you can move it to where slides should open on this workstation",
+    "unknownWindow": "This page sets the position of a PathScribe window. Open it from the workstation menu.",
+    "windows": {
+      "slideImage": "Slide image window"
+    }
+  },
   "worklistDp": {
     "readiness": {
       "error": "{{ready}}/{{total}} Error",
@@ -28143,12 +28243,6 @@
     "noCaseSpecified": "No case specified.",
     "slideSurfacePlaceholder": "[ Real WSI slide surface — pan/zoom would render here ]",
     "specimenLabel": "Specimen {{specimenLabel}}"
-  },
-  "wsiViewerLaunch": {
-    "blockedError": "Popup blocked — please allow popups for this site and try again",
-    "launchLabel": "Launch in Viewer",
-    "launchTitle": "Launch this slide in the configured WSI viewer",
-    "selectVendorTitle": "Select WSI viewer"
   },
   "wsiViewerVendorSection": {
     "actions": {

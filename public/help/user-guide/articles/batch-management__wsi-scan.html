@@ -2,7 +2,7 @@
 <h2 id="overview">Overview</h2>
 <p><strong>Purpose.</strong> Slide Scanning is the bench hand-off to the slide scanners. Slides that were routed to Digital wait in a scanning queue. You choose a scanner, tick the slides to put on it and load them as a scan batch. You then send the batch to the scanner and, when every slide has a result, unload it. Slides that scanned and passed image quality check are marked Scanned. The rest go back to the queue.</p>
 <p><strong>Intended users.</strong> Histotechnologists, cytotechnologists and molecular technologists, and laboratory managers. Loading, sending and unloading are separate permissions, checked against the scanner's laboratory. Administrators can open the screen but do not have those permissions unless they are added to their role.</p>
-<p><strong>Where it fits.</strong> The <a href="/help/workstations/slide-distribution">Slide Distribution</a> workstation decides where each slide goes: to a pathologist's desk, or Digital. A slide routed to Digital appears here. After scanning, images can be opened in the <a href="/help/wsi-viewer">WSI viewer</a>.</p>
+<p><strong>Where it fits.</strong> The <a href="/help/workstations/slide-distribution">Slide Distribution</a> workstation decides where each slide goes: to a pathologist's desk, or Digital. A slide routed to Digital appears here. After scanning, each slide shows a reference preview and opens in the laboratory's own digital pathology application (see <a href="/help/wsi-viewer">Slide Images</a>).</p>
 <div class="admonition note">
 <p class="admonition-title">Demonstration data today</p>
 <p>Scanner traffic goes through the interface engine. In this version the scanner is simulated, so sending a batch does not drive a real machine, and the progress of the slides comes from the demonstration. The scanners listed come from the Equipment register.</p>
@@ -213,7 +213,7 @@
 </ul>
 <h3 id="downstream-workflow">Downstream workflow</h3>
 <ul>
-<li><a href="/help/wsi-viewer">WSI Viewer</a>: opening scanned images.</li>
+<li><a href="/help/wsi-viewer">Slide Images</a>: the slide's reference preview, its image state, and opening it in the laboratory's digital pathology application.</li>
 <li><a href="/help/batch-management">Batch Management</a>: the module page.</li>
 </ul>
 <h2 id="troubleshooting">Troubleshooting</h2>

@@ -211,3 +211,7 @@ One test (`organMapDerived.test.ts`) types its payloads. No code change.
 - **`resolveRenalMap.ts`:** asks `renalAnatomy.ts` instead of building the letters inline. The pT guide is unchanged (both are pT4).
 - Tests in `renalMap.test.ts`: none, perinephric fat only, adrenal only, Gerota only, both with the vein and ureter, both sides, radical unchanged, and the pure function.
 
+
+## Batch 751
+
+Spec section 12 (Pete, Oct 31, 2026). Phase 1: on an Assist case (`lisOwnsReport`, `organMapFigures.ts`) the map is a working aid only: insert and remove are refused (`lisOwnsReport`), the report state is `lisOwnsReport` (the panel's note), and no figure goes into the PDF payload, a report version or the preview (`organMapReportFigures`, `organMapFiguresForVersion`, `organMapAutoFigures.ts`), Mohs included; `findStaleOrganMapFigures` ignores Assist cases. Phase 2: `organMapDeliveryRules.ts` (new: the facility setting Off / Text only / Text and image file, its check, the file name, the panel line's time; no imports, so the facility service can use it) and `organMapDelivery.ts` (new: the text lines and the file drawn for one workup, the drawing passed in). Tests: `organMapAssist.test.ts` (the rule, and the S15 cases' maps), `organMapDelivery.test.ts`.

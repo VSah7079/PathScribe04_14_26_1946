@@ -9,6 +9,8 @@
 //                             add-on orders the view adds itself)
 //   Staining and IHC          seven staining racks on the stainers (loaded, in process, completed, one run failed),
 //                             one STAT
+//   (Checkout)                a tray of two H&E slides going to the pathologist, so every one of the ten steps has an
+//                             open batch (seed row S9)
 //   Send-Out and Reference    seven referral batches to the three reference laboratories, one STAT, one with a
 //                             cold-chain excursion not yet acknowledged
 // and, at the second facility (Midwest Pathology Associates), a processor basket, two microtome racks and two staining
@@ -74,6 +76,15 @@ export function wallDisplayDemoBatches(now: number = Date.now()): Batch[] {
       processingNode: 'Staining', containerType: 'Staining Rack', protocol: 'H&E routine', stainingInstrumentStatus: STAINERS[i],
       items: items([c], 'slide', 12 + i * 22),
     }, 8 + i * 22)),
+    // Batch 747 (S9, "at least one open batch in each of the ten steps"): Checkout, the H&E slides of two molecular cases
+    // (cases/demoMolecularCases.ts) on a tray going to the pathologist.
+    batch('batch-wall-checkout-1', 'CONT-CHK-WALL-1', {
+      processingNode: 'Checkout', containerType: 'Ad-Hoc Batch', protocol: 'Slides to pathologist',
+      items: ['S26-5201', 'S26-5202'].map((acc, i) => ({
+        id: `bdi-wall-chk-${i + 1}`, materialType: 'slide' as const, displayId: `${acc}-A${i === 0 ? 1 : 2}-L1`, caseAccession: acc,
+        addedAt: minutesAgo(35 - i), addedByUserId: TECH.createdByUserId, addedByUserName: TECH.createdByUserName,
+      })),
+    }, 40),
     // The second facility.
     batch('batch-wall-mpa-proc-1', 'CONT-PRC-WALL-MPA-1', { processingNode: 'Processing', containerType: 'Tissue Processor Basket', protocol: 'Overnight routine', items: items(at('processing', 'mpa'), 'block', 100) }, 95),
     ...at('microtomy', 'mpa').map((c, i) => batch(`batch-wall-mpa-micro-${i + 1}`, `CONT-MIC-WALL-MPA-${i + 1}`, {

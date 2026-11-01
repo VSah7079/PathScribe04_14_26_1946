@@ -1,3 +1,7 @@
+**Batch 755b (part 2):** the case checklist picker uses `offeredOnCasePicker()`.
+
+**Batch 755a:** the case checklist panel shows the "Demo wording" tag; its checklist picker moved to `SynopticReportPage/components/TemplatePicker.tsx`.
+
 **Batch 744:** CytologyWorklistPage: patient names on the rows.
 
 **Batch 742:** SynopticReportPage and CytologyScreeningPage: the Attachments badge and window; ReportPreview: images inside their sections.
@@ -2069,3 +2073,11 @@ Batch 732: Grossing piece map; Add-On Orders pieces and level ranges; the piece 
 ## Batch 733
 
 Batch 733: Add-On Orders tracking, group answers; Microtome, one flag per block.
+
+## Batch 750
+
+`WindowPositionPage/` (new, `/window-position`): Save position for a remembered window (the slide image window). `SynopticReportPage/modals/BlockStainEditorModal.tsx` and `CytologyWorklistPage/CytologyScreeningPage.tsx` show the slide's reference preview (`components/SlideImage/`) instead of the launch button.
+
+## Batch 751
+
+`SynopticReportPage/hooks/useOrganMap.ts`: the Assist state and the map-file line.

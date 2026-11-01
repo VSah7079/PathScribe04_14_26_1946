@@ -40,7 +40,11 @@ const SEED_USERS: StaffUser[] = [
   { id: 'PATH-001',    firstName: 'Pete',    lastName: 'Nimmo',        credentials: 'FCAP', canViewOrchestration: true, email: 'pete.nimmo@pathscribe.ai', roles: ['Pathologist', 'Admin'], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' },
   { id: 'PATH-US-001', firstName: 'Amber',   lastName: 'Fehrs-Battey', credentials: 'MD, FCAP', canViewPediatric: false, canViewOrchestration: true, email: 'amber.fehrs-battey@mpa.org',  roles: ['Pathologist', 'Admin'], npi: '1234567900', license: 'MD-12360', phone: '313-555-2001', status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-MPA' },
   { id: 'PATH-US-002', firstName: 'J. Mark', lastName: 'Tuthill',      credentials: 'MD, FCAP', canViewPediatric: false,      email: 'mark.tuthill@hfhs.org',       roles: ['Pathologist'], npi: '1234567901', license: 'MD-12361', phone: '313-555-2002',   status: 'Active', voiceProfile: 'EN-US', organisationId: 'ORG-HFHS' },
-  { id: 'PATH-UK-001', firstName: 'Paul',    lastName: 'Carter',       credentials: 'MBChB, FRCPath', canViewOrchestration: true,      email: 'paul.carter@mft.nhs.uk',      roles: ['Pathologist'], npi: '',           license: 'GMC-12362', phone: '+44-161-555-2003', status: 'Active', voiceProfile: 'EN-GB', organisationId: 'ORG-MFT' },
+  { id: 'PATH-UK-001', firstName: 'Imogen',  lastName: 'Hartley',      credentials: 'MBChB, FRCPath', canViewOrchestration: true,      email: 'imogen.hartley@demo.pathscribe.ai',      roles: ['Pathologist'], npi: '',           license: '', phone: '+44-161-555-2003', status: 'Active', voiceProfile: 'EN-GB', organisationId: 'ORG-MFT' },
+  // Batch 755b (Pete, Nov 1, 2026): Paul Carter is not a physician; he advises on UK laboratory workflow. His own
+  // sign-in, separate from the Manchester demo pathologist (PATH-UK-001, the fictional Dr. Imogen Hartley), with no
+  // clinical credentials and no clinical role.
+  { id: 'UK-ADV-001', firstName: 'Paul', lastName: 'Carter', credentials: '', canViewOrchestration: true, email: 'paul.carter@mft.nhs.uk', roles: [], npi: '', license: '', phone: '', status: 'Active', voiceProfile: 'EN-GB', organisationId: 'ORG-MFT' },
   { id: 'PATH-UK-002', firstName: 'Oliver',  lastName: 'Pemberton',    credentials: 'MBChB, FRCPath',    email: 'oliver.pemberton@mft.nhs.uk', roles: ['Pathologist'], npi: '',           license: 'GMC-12363', phone: '+44-161-555-2004', status: 'Active', voiceProfile: 'EN-GB', organisationId: 'ORG-MFT' },
   // canViewOrchestration + roles including 'Admin' here deliberately —
   // login credential (AuthContext.tsx) sets her session role to genuine
@@ -75,7 +79,7 @@ const SEED_USERS: StaffUser[] = [
 ];
 
 // Increment USERS_VERSION whenever SEED_USERS is changed.
-const USERS_VERSION = '12'; // bumped: Batch 455 demo baseline (orchestrator access for CT-001, Sarah Johnson, Michelle Nimmo and Rossana Babakhani; James Okafor's demo email). (11: bumped: bench staff (ACC-001, HT-001, CT-001, MT-001) and Michelle Nimmo (PATH-MN-001), Batch 374. (10: Dr. Sarah Johnson, Batch 371.)
+const USERS_VERSION = '13'; // bumped (Batch 755b): PATH-UK-001 is the fictional Dr. Imogen Hartley; Paul Carter has his own non-clinical record (UK-ADV-001). 12: Batch 455 demo baseline (orchestrator access for CT-001, Sarah Johnson, Michelle Nimmo and Rossana Babakhani; James Okafor's demo email). (11: bumped: bench staff (ACC-001, HT-001, CT-001, MT-001) and Michelle Nimmo (PATH-MN-001), Batch 374. (10: Dr. Sarah Johnson, Batch 371.)
 const USERS_VERSION_KEY = 'pathscribe_users_version';
 if (dataStorage.getItem(USERS_VERSION_KEY) !== USERS_VERSION) {
   dataStorage.removeItem('pathscribe_mock_pathscribe_users');

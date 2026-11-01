@@ -35,6 +35,7 @@ import type { IAmendmentService } from './IAmendmentService';
 import { dataStorage } from '../browserData/dataStorage';
 import { authorizationService } from '../authorization/defaultAuthorizationService';
 import { enforceRevisionRelease, revisionReleaseRefusal } from './revisionReleaseCapability';
+import { S26_4404_BIOPSY_ANSWERS_BEFORE_AMENDMENT } from '../cases/demoProstateBiopsyChecklist';
 
 // Phase 3 helper — reused wherever the "here's what changed since the
 // last signed-out version" confirmation is built (SynopticReportPage's
@@ -60,7 +61,7 @@ export function diffAnswersForSummary(before: Record<string, unknown> | undefine
 }
 
 const STORAGE_KEY = 'amendment_records';
-const AMENDMENT_VERSION = '7';
+const AMENDMENT_VERSION = '9'; // Batch 755a: plain checklist names. 8 (Batch 753): S26-4404's original answers differ from today's only where the amendment corrected them
 const VERSION_KEY = 'pathscribe_mock_amendment_version';
 try {
   const storedVersion = dataStorage.getItem(VERSION_KEY);
@@ -76,7 +77,7 @@ const SEED_RECORDS: AmendmentRecord[] = [
     caseId: 'S26-4404',
     type: 'amendment',
     sequenceNumber: 1,
-    explanationOfChange: 'Highest Score and involvement count corrected following second pathologist review of stained slides — an additional positive unit was identified on re-examination, raising the overall grade.',
+    explanationOfChange: 'Highest Gleason score and the number of cores with carcinoma corrected after a second pathologist reviewed the stained slides: one more core with carcinoma was found, and the highest score rose from 3+3=6 to 3+4=7.',
     notification: { clinicianName: 'Dr. Anil Sharma', method: 'verbal_phone', notifiedAt: '2026-07-13T10:00:00.000Z' },
     body: '',
     initiatedAt: '2026-07-13T09:55:00.000Z',
@@ -86,20 +87,9 @@ const SEED_RECORDS: AmendmentRecord[] = [
       instanceId: 'S26-4404-SP-1_prostate_001',
       specimenId: 'S26-4404-SP-1',
       templateId: 'prostate_needle_biopsy',
-      templateName: 'Generic Template — Prostate Needle Biopsy',
+      templateName: 'Prostate needle biopsy',
       status: 'finalized',
-      answers: {
-        procedure: ['procedure_opt_1'],
-        positive_specimen_locations: ['positive_specimen_locations_opt_1'],
-        highest_gleason_score: 'highest_gleason_score_opt_1',
-        sites_with_highest_gleason: ['sites_with_highest_gleason_opt_1'],
-        total_number_of_cores: 12,
-        number_of_positive_cores: 3,
-        greatest_percentage_core_involvement: 'greatest_percentage_core_involvement_opt_7',
-        perineural_invasion: 'perineural_invasion_opt_2',
-        lymphatic_vascular_invasion: 'lymphatic_vascular_invasion_opt_1',
-        treatment_effect: ['treatment_effect_opt_1'],
-      },
+      answers: S26_4404_BIOPSY_ANSWERS_BEFORE_AMENDMENT, // Batch 753
     },
   },
   {
@@ -117,10 +107,10 @@ const SEED_RECORDS: AmendmentRecord[] = [
       instanceId: 'S26-4401-SP-1_breast_invasive_001',
       specimenId: 'S26-4401-SP-1',
       templateId: 'breast_invasive',
-      templateName: 'Generic Template — Breast Invasive',
+      templateName: 'Breast, invasive carcinoma (resection)',
       status: 'finalized',
       answers: {
-        histologic_type: 'histologic_type_opt_2',
+        histologic_type: 'histologic_type_opt_1',
         histologic_grade: 'Grade 2',
         tumor_size: '2.3 cm',
       },
@@ -154,13 +144,13 @@ const SEED_RECORDS: AmendmentRecord[] = [
       instanceId: 'S26-4401-SP-1_breast_invasive_001',
       specimenId: 'S26-4401-SP-1',
       templateId: 'breast_invasive',
-      templateName: 'Generic Template — Breast Invasive',
+      templateName: 'Breast, invasive carcinoma (resection)',
       status: 'finalized',
       answers: {
         procedure: 'procedure_opt_2',
         specimen_laterality: 'specimen_laterality_opt_2',
         tumor_site: ['tumor_site_opt_1'],
-        histologic_type: 'histologic_type_opt_2',
+        histologic_type: 'histologic_type_opt_1',
         histologic_grade: 'Grade 1',
         tumor_size: '1.8 cm',
         tumor_focality: 'tumor_focality_opt_1',
@@ -179,10 +169,10 @@ const SEED_RECORDS: AmendmentRecord[] = [
         extranodal_extension: 'extranodal_extension_opt_1',
         total_ln_examined: '1',
         sentinel_ln_examined: '1',
-        dcis: 'Secondary finding present, small extent',
-        tumor_extent: 'Confined to primary organ',
+        dcis: 'Present, intermediate nuclear grade, small extent',
+        tumor_extent: 'Confined to the breast',
         distant_metastasis: 'distant_metastasis_opt_1',
-        ptnm_classification: 'Category A: Level 2; Category B: Level 1 (micro)',
+        ptnm_classification: 'pT2 pN1mi',
       },
     },
   },
@@ -202,7 +192,7 @@ const SEED_RECORDS: AmendmentRecord[] = [
       instanceId: 'S26-4402-SP-1_colon_resection_001',
       specimenId: 'S26-4402-SP-1',
       templateId: 'colon_resection',
-      templateName: 'Generic Template — Colon Resection',
+      templateName: 'Colon resection',
       status: 'finalized',
       answers: {
         procedure: 'procedure_opt_4',

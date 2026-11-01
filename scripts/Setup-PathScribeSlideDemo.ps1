@@ -41,6 +41,10 @@
 .EXAMPLE
   # Only redo the Vercel part
   .\Setup-PathScribeSlideDemo.ps1 -RepoPath "C:\Dev\pathscribe-ai" -SkipImages -SkipUpload
+
+.EXAMPLE
+  # The Vercel part, for a demo project owned by another team of your login (see: vercel teams ls)
+  .\Setup-PathScribeSlideDemo.ps1 -RepoPath "C:\Dev\pathscribe-ai" -SkipImages -SkipUpload -VercelScope "formedrixai"
 #>
 [CmdletBinding()]
 param(
@@ -64,7 +68,10 @@ param(
   [string] $BreastLicenceUrl = '',
   [switch] $SkipImages,
   [switch] $SkipUpload,
-  [switch] $SkipVercel
+  [switch] $SkipVercel,
+  # Batch 755b: the Vercel team (scope) that owns the demo project, when your login has more than one
+  # (run "vercel teams ls" to see them). Empty = the CLI's current team.
+  [string] $VercelScope = ''
 )
 
 # 'Continue', not 'Stop': in Windows PowerShell 5.1 'Stop' turns any warning a program prints into a failure.
@@ -233,9 +240,12 @@ if (-not $SkipVercel) {
   Assert-Command 'vercel' 'Install the Vercel CLI: npm install -g vercel, then run: vercel login'
   Push-Location $RepoPath
   try {
+    $scopeArgs = @(); if ($VercelScope) { $scopeArgs = @('--scope', $VercelScope) }
     if (-not (Test-Path '.vercel\project.json')) {
-      Write-Host '  This folder is not linked to the Vercel project yet. Answer the questions to pick the PathScribe demo project.'
-      & vercel link
+      Write-Host '  This folder is not linked to the Vercel project yet. Choose the EXISTING PathScribe demo project.'
+      Write-Host '  If it says "No existing projects found ... Creating new project", press Ctrl+C: the demo is under another team.' -ForegroundColor Yellow
+      Write-Host '  Then run "vercel teams ls" and run this again with -VercelScope <team>, or set the two values on the Vercel website.' -ForegroundColor Yellow
+      & vercel link @scopeArgs
       if ($LASTEXITCODE -ne 0) { Stop-Script 'vercel link did not finish.' }
     }
     $vars = [ordered]@{
@@ -243,8 +253,8 @@ if (-not $SkipVercel) {
       'VITE_SLIDE_THUMBNAIL_URL_TEMPLATE' = "$PublicBase/previews/{{slideId}}.jpg"
     }
     foreach ($name in $vars.Keys) {
-      & vercel env rm $name production --yes 2>$null | Out-Null   # replace an earlier value, if any
-      $vars[$name] | & vercel env add $name production
+      & vercel env rm $name production --yes @scopeArgs 2>$null | Out-Null   # replace an earlier value, if any
+      $vars[$name] | & vercel env add $name production @scopeArgs
       if ($LASTEXITCODE -ne 0) { Stop-Script "Could not set $name." }
       Write-Done "$name = $($vars[$name])"
     }

@@ -1,3 +1,7 @@
+**Batch 755a:** `useEditorStartingTemplate.ts` (new): the synoptic editor's starting template (blank, the protocol, or a copy), moved out of `SynopticEditor.tsx`, with the demo-checklist copy refusal.
+
+**Batch 754:** `useDemoChecklistRemoval.ts` (new): the Synoptic Library's Demonstration checklists card (plan, dry run, removal; the rules are in `services/templates/demoChecklistRemoval.ts`).
+
 **Batch 743:** `useCaseAttachments.ts` passes the case's reporting mode to the report rule.
 
 **Batch 742:** `useCaseAttachments.ts` (new: the Attachments window's state; `useCaseAttachmentCount` for the badge), `useReportPlacements.ts` (new: the preview's placements and read links). `useCaseReportImages.ts` removed.
@@ -654,3 +658,8 @@ The Home footer's system status: one check when the page loads and one when the 
 ## Batch 731
 
 - `useItemEndState.ts` (new): an item's end-state history and recording (spec §10.5).
+
+## Batch 750
+
+- `useSlideImage.ts` (new): loads a slide's preview, its case's facility and the WSI Viewers list, and opens the slide in the laboratory's application (permission, remembered window, audit).
+- `useCompanionWindow.ts`: a remembered position on a screen that is gone moves to the primary screen (Chrome and Edge, once window placement is allowed; `services/windowPlacement/`); exports `saveCompanionGeometry` and `requestScreenPlacement`.

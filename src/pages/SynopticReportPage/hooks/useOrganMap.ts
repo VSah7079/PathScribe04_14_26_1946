@@ -17,7 +17,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TFunction } from 'i18next';
 import type { Case } from '@/types/case/Case';
-import { figureForInstance, insertOrganMapFigure, organMapFigureOutcomeKey, organMapReportState, removeOrganMapFigure, type OrganMapReportState } from '@/services/organMapping/organMapFigures';
+import { figureForInstance, insertOrganMapFigure, lisOwnsReport, organMapFigureOutcomeKey, organMapReportState, removeOrganMapFigure, type OrganMapReportState } from '@/services/organMapping/organMapFigures';
 import { loadOrganMapContext, organMapFigureDeps, type OrganMapContext } from '@/services/organMapping/organMapLive';
 import { organMapLabelsFor } from '@/services/organMapping/organMapLabels';
 import { renderOrganMapSvg } from '@/services/organMapping/organMapDrawing';
@@ -26,6 +26,8 @@ import type { OrganMapPayload } from '@/services/organMapping/organMapTypes';
 import { partGridRowsOf } from '@/services/templates/partGrid';
 import { svgToPngDataUrl } from '@/services/documentRendering/svgToPng';
 import type { ShowToast } from '@/pages/Synoptic/useSynopticToast';
+import { outboundLisSyncQueueService } from '@/services';
+import { organMapFileSentAt } from '@/services/organMapping/organMapDeliveryRules';
 
 interface Input {
   caseData: Case | null;
@@ -47,6 +49,8 @@ export interface OrganMapView {
   payload: OrganMapPayload | null;
   figureState: OrganMapReportState;
   busy: boolean;
+  /** Batch 751: on an Assist case, when the map file reached the laboratory system (delivery on, file sent). */
+  fileSentAt?: string;
   insert: () => Promise<void>;
   remove: () => Promise<void>;
 }
@@ -83,7 +87,20 @@ export function useOrganMap({ caseData, instanceId, open, user, t, reportT, show
     });
   }, [context, instance, templateId, instanceId, caseData?.specimens]);
 
-  const figureState = organMapReportState(payload?.mapType, figureForInstance(caseData, instanceId), payload?.fingerprint, caseData?.status, payload?.hasData ?? false);
+  // Batch 751: an Assist case's delivered map file, for the panel's quiet line (nothing shows a failure to the pathologist).
+  const [fileSentAt, setFileSentAt] = useState<string | undefined>(undefined);
+  const assist = lisOwnsReport(caseData);
+  const caseId = caseData?.id;
+  const caseStatus = caseData?.status;
+  useEffect(() => {
+    setFileSentAt(undefined);
+    if (!assist || !caseId || !instanceId) return;
+    let live = true;
+    void outboundLisSyncQueueService.getByCaseId(caseId).then(r => { if (live && r.ok) setFileSentAt(organMapFileSentAt(r.data, instanceId)); }).catch(() => undefined);
+    return () => { live = false; };
+  }, [assist, caseId, caseStatus, instanceId, open]);
+
+  const figureState = organMapReportState(payload?.mapType, figureForInstance(caseData, instanceId), payload?.fingerprint, caseData?.status, payload?.hasData ?? false, lisOwnsReport(caseData));
 
   const insert = useCallback(async () => {
     if (!caseData || !payload || !context || !user) return;
@@ -115,5 +132,5 @@ export function useOrganMap({ caseData, instanceId, open, user, t, reportT, show
     }
   }, [caseData, user, instanceId, onFiguresSaved, showToast, t]);
 
-  return { context, loading, payload, figureState, busy, insert, remove };
+  return { context, loading, payload, figureState, busy, fileSentAt, insert, remove };
 }

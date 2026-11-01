@@ -26,6 +26,7 @@ import type { OrganMapContext } from '@/services/organMapping/organMapLive';
 import type { OrganMapReportState } from '@/services/organMapping/organMapFigures';
 import type { OrganMapPayload } from '@/services/organMapping/organMapTypes';
 import { OrganMapSvg } from './OrganMapSvg';
+import { formatDateTime } from '@/utils/formatDate';
 
 interface Props {
   context: OrganMapContext | null;
@@ -35,6 +36,8 @@ interface Props {
   marginInk?: MarginInkEntry[];
   figureState: OrganMapReportState;
   busy: boolean;
+  /** Batch 751: when the map file reached the laboratory system (an Assist case, delivery on). */
+  fileSentAt?: string;
   caseId?: string;
   facilityId?: string | null;
   onSectorClick: (target: { id: string; jumpFieldId?: string }) => void;
@@ -42,8 +45,8 @@ interface Props {
   onRemove: () => void;
 }
 
-export const OrganMapPanel: React.FC<Props> = ({ context, loading, payload, figureState, busy, caseId, facilityId, marginInk, onSectorClick, onInsert, onRemove }) => {
-  const { t } = useTranslation();
+export const OrganMapPanel: React.FC<Props> = ({ context, loading, payload, figureState, busy, fileSentAt, caseId, facilityId, marginInk, onSectorClick, onInsert, onRemove }) => {
+  const { t, i18n } = useTranslation();
   const scheme = context?.scheme.scheme;
   const capContext = { caseId: caseId ?? null, facilityId: facilityId ?? null };
   return (
@@ -89,12 +92,15 @@ export const OrganMapPanel: React.FC<Props> = ({ context, loading, payload, figu
             </ul>
           )}
           <div className="ps-organmap-actions">
-            {figureState !== 'none' && (
+            {/* Batch 751: on an Assist case the laboratory system writes the report; the map is a working aid only. */}
+            {figureState === 'lisOwnsReport' && <p className="ps-organmap-note" role="status">{t('organMap.panel.lisOwnsReport')}</p>}
+            {figureState === 'lisOwnsReport' && fileSentAt && <p className="ps-organmap-note" role="status">{t('organMap.panel.fileSent', { time: formatDateTime(fileSentAt, i18n.language) })}</p>}
+            {figureState !== 'none' && figureState !== 'lisOwnsReport' && (
               <span className={`ps-organmap-state ps-organmap-state--${figureState}`} role="status">
                 {t(`organMap.panel.state.${figureState}`)}
               </span>
             )}
-            {figureState !== 'locked' && figureState !== 'auto' && figureState !== 'autoEmpty' && (
+            {figureState !== 'locked' && figureState !== 'auto' && figureState !== 'autoEmpty' && figureState !== 'lisOwnsReport' && (
               <>
                 <CapabilityButton
                   capability="report:organ-map:insert"

@@ -4237,6 +4237,10 @@
         "description": "Alle niet-toegewezen casussen in één keer volgens de regels toewijzen. Geauditeerd.",
         "label": "Niet-toegewezen casussen nu toewijzen"
       },
+      "caseSlideImageOpen": {
+        "description": "Een coupe vanuit de referentievoorbeeldweergave openen in de eigen digitale-pathologietoepassing van het laboratorium, in een apart venster. PathScribe opent alleen het adres; de andere toepassing regelt het aanmelden. Vastgelegd: wie, welke coupe, wanneer.",
+        "label": "Een coupe openen in de digitale-pathologietoepassing van het laboratorium"
+      },
       "caseTeamManage": {
         "description": "Personen toevoegen aan of verwijderen uit het team van een casus (Casusteam), inclusief de primaire patholoog. Een cytotechnoloog kan geen pathologenrol krijgen.",
         "label": "Casusteam wijzigen"
@@ -4592,6 +4596,10 @@
       "configOrganMapBindingsManage": {
         "description": "Kiezen welke vragen van de eigen synoptische sjablonen van het lab, en welke antwoorden, de orgaankaarten voeden, en welke algemene margevragen van de sjablonen de kaarten berekenen. Geaudit.",
         "label": "Synoptische vragen aan orgaankaarten koppelen"
+      },
+      "configOrganMapDeliveryManage": {
+        "description": "Kiezen of het laboratoriumsysteem van een uitvoerend laboratorium bij Assist-casussen de anatomische kaart ontvangt: uit, alleen tekst, of tekst en een afbeeldingsbestand naar een bestemming. Wijzigingen worden vastgelegd.",
+        "label": "Verzending van de anatomische kaart naar het laboratoriumsysteem instellen"
       },
       "configOrganMapSchemeManage": {
         "description": "De kleuren, patronen, legendateksten en drempels van de orgaankaarten wijzigen (afstand voor een krappe borstmarge; regels voor een aangetaste marge bij een maligne poliep en de rectale CRM; regels voor een aangetaste en krappe marge in de mondholte; regels voor een aangetaste parenchym- en wekedelenmarge van de nier) voor de organisatie, een rechtsgebied of een instelling. Geaudit.",
@@ -5036,6 +5044,10 @@
       "platformCrossTenantCasesView": {
         "description": "Toegang van PathScribe-ondersteuning tot een casus buiten de eigen organisatie. Elke opening wordt vastgelegd in het auditlogboek.",
         "label": "Casussen van andere organisaties openen (ondersteuning)"
+      },
+      "platformDemoChecklistsRemove": {
+        "description": "De 19 demonstratiechecklists (label ‘Demotekst’) uit de synoptische bibliotheek van een klantorganisatie verwijderen (ze worden gearchiveerd). Alleen ForMedrixAI-support. Wordt geaudit.",
+        "label": "De demonstratiechecklists verwijderen"
       },
       "platformGoverningBodiesManage": {
         "description": "Kiezen welke inhoud van beroepsorganisaties (CAP, RCPath, ICCR, RCPA) in de synoptische bibliotheek van het platform wordt gesynchroniseerd.",
@@ -10111,6 +10123,34 @@
       "tue": "di",
       "wed": "wo"
     }
+  },
+  "demoChecklists": {
+    "cancel": "Annuleren",
+    "check": "Bekijken wat er verwijderd zou worden",
+    "confirmYes": "Verwijderen",
+    "confirm_one": "{{count}} checklist uit de bibliotheek van deze organisatie verwijderen?",
+    "confirm_other": "{{count}} checklists uit de bibliotheek van deze organisatie verwijderen?",
+    "copyRefusedBack": "Terug naar de synoptische bibliotheek",
+    "copyRefusedBody": "{{name}} bevat demonstratietekst die nog geen patholoog heeft nagekeken. Daarom kan deze niet worden gekopieerd of als basis voor een nieuwe versie dienen. Begin vanaf nul, vanuit een eigen checklist van PathScribe of vanuit een protocol waarvoor uw laboratorium een licentie heeft (Protocol uploaden).",
+    "copyRefusedShort": "Een checklist met demonstratietekst kan pas worden gekopieerd nadat een patholoog die heeft nagekeken.",
+    "copyRefusedTitle": "Deze checklist kan niet worden gekopieerd",
+    "demoBuildNote": "Op de demonstratiesite hoort de bibliotheek bij deze browser, dus verwijderen geldt hier voor alle demo-organisaties tot een volledige reset. Op de server van een klant geldt het alleen voor die organisatie.",
+    "failed_one": "{{count}} kon niet worden verwijderd: {{names}}",
+    "failed_other": "{{count}} konden niet worden verwijderd: {{names}}",
+    "inLibrary_one": "{{count}} demonstratiechecklist wordt in deze bibliotheek aangeboden.",
+    "inLibrary_other": "{{count}} demonstratiechecklists worden in deze bibliotheek aangeboden.",
+    "intro": "De 19 checklists met het label ‘Demotekst’ zijn alleen voor demonstraties en worden nooit aan een klant aangeboden. Ze uit de bibliotheek van deze organisatie verwijderen archiveert ze: ze worden niet meer aangeboden voor nieuwe verslagen, en een verslag dat er al mee gemaakt is, blijft te openen.",
+    "noneLeft": "Er wordt geen demonstratiechecklist aangeboden in deze bibliotheek.",
+    "notPermitted": "Alleen ForMedrixAI-support kan de demonstratiechecklists verwijderen.",
+    "pickerNote": "Checklists met het label ‘Demotekst’ kunnen niet als vertrekpunt dienen.",
+    "remove": "Demonstratiechecklists verwijderen",
+    "removed_one": "{{count}} checklist verwijderd.",
+    "removed_other": "{{count}} checklists verwijderd.",
+    "title": "Demonstratiechecklists",
+    "wordingTag": "Demotekst",
+    "wordingTagHint": "Demonstratietekst die nog geen patholoog heeft nagekeken. Deze kan niet naar uw eigen checklists worden gekopieerd.",
+    "working": "Bezig…",
+    "wouldRemove": "Zou verwijderen: {{names}}"
   },
   "demoResetTab": {
     "disabled": {
@@ -17156,6 +17196,9 @@
         "yes": "Aanwezig"
       }
     },
+    "delivery": {
+      "nothingShown": "Niets te tonen op de kaart."
+    },
     "derived": {
       "invasiveMarginsIncomplete": "{{synoptic}}: invasief carcinoom is vastgelegd, maar deze marges zijn niet gerapporteerd: {{margins}}.",
       "invasiveMarginsPrompt": "Toch aftekenen?",
@@ -17388,8 +17431,10 @@
     },
     "panel": {
       "empty": "Beantwoord de vragen in de sectie Anatomische kaart van het synoptisch verslag om de kaart te zien.",
+      "fileSent": "Kaartbestand om {{time}} naar het laboratoriumsysteem verzonden.",
       "insert": "In verslag invoegen",
       "insertTitle": "Deze kaart in afdrukkleuren in het verslag plaatsen. Het is een momentopname: latere wijzigingen van de antwoorden veranderen haar pas als u haar opnieuw invoegt.",
+      "lisOwnsReport": "Uw laboratoriumsysteem stelt dit verslag op.",
       "noBinding": "Dit synoptisch verslag heeft geen kaartvragen. Een beheerder kan eigen vragen koppelen in Configuratie → Orgaankaarten.",
       "remove": "Uit verslag verwijderen",
       "sectorHint": "Klik op een sector om naar de bijbehorende vraag te gaan.",
@@ -17405,6 +17450,7 @@
       "title": "Anatomische kaart",
       "toast": {
         "inserted": "Kaart in het verslag ingevoegd.",
+        "lisOwnsReport": "Uw laboratoriumsysteem stelt dit verslag op; de kaart wordt er dus niet in geplaatst.",
         "locked": "Het verslag is afgetekend; de kaart kan alleen via een wijziging veranderen.",
         "noImage": "De kaart kon niet als afbeelding voor het verslag worden gemaakt. Probeer het opnieuw.",
         "notPermitted": "U hebt geen toestemming om de kaart in het verslag te plaatsen.",
@@ -17606,6 +17652,35 @@
       "rectalResection": "Rectumresectie — circumferentiële marge, peritoneale omslagplooi en distale marge",
       "renalResection": "Nierresectie — ligging, pT-uitbreiding en marges"
     }
+  },
+  "organMapDelivery": {
+    "destinationHint": "Een map, een SFTP-adres of een kanaal van de interface-engine, zoals uw interfaceteam het heeft ingesteld. Nooit een gebruikersnaam of wachtwoord: de interface-engine regelt het aanmelden. Bestandsnamen bevatten het accessienummer, het kaarttype en het tijdstip, nooit een patiëntnaam.",
+    "destinationLabel": "Bestemming van de bestanden",
+    "failureNote": "Een mislukte verzending houdt het afronden nooit tegen en wordt niet aan de patholoog getoond. Ze verschijnt in de uitgaande wachtrij, waar ze opnieuw kan worden geprobeerd.",
+    "formatLabel": "Bestandsindeling",
+    "formats": {
+      "pdf": "PDF-document",
+      "png": "PNG-afbeelding"
+    },
+    "intro": "Bij een Assist-casus stelt uw laboratoriumsysteem het verslag op; PathScribe plaatst de anatomische kaart er dus nooit in. Kies of de kaart met de synoptische gegevens naar dat systeem wordt gestuurd. De kaart wordt bij het afronden getekend op basis van de definitieve antwoorden van de checklist; het is een verslagfiguur, geen beeld van de patiënt.",
+    "modeLabel": "Orgaankaart verzenden",
+    "modes": {
+      "off": "Uit",
+      "text": "Alleen tekst",
+      "textAndFile": "Tekst en afbeeldingsbestand"
+    },
+    "problems": {
+      "destinationCredentials": "Haal de gebruikersnaam en het wachtwoord uit de bestemming; de interface-engine regelt het aanmelden.",
+      "destinationRequired": "Geef aan waar de bestanden naartoe moeten.",
+      "destinationTooLong": "De bestemming is te lang (maximaal 300 tekens).",
+      "notPermitted": "U hebt geen toestemming om de verzending van de anatomische kaart te wijzigen.",
+      "saveFailed": "De instelling is niet opgeslagen. Probeer het opnieuw.",
+      "unknownFormat": "Kies een bestandsindeling.",
+      "unknownMode": "Kies hoe de kaart wordt verzonden."
+    },
+    "save": "Verzending van de anatomische kaart opslaan",
+    "saved": "Verzending van de anatomische kaart opgeslagen.",
+    "title": "Verzending van de anatomische kaart"
   },
   "organMapsSection": {
     "bindings": {
@@ -19873,42 +19948,6 @@
       "usedBy": "Gebruikt door"
     },
     "title": "Protocolwoordenboek"
-  },
-  "protocolEditor": {
-    "addQuestion": "Vraag toevoegen",
-    "addSection": "Sectie toevoegen",
-    "backToConfiguration": "Terug naar configuratie",
-    "choiceOptionsHint": "Het bewerken van keuzeopties kan hierna worden toegevoegd — de structuur is klaar.",
-    "lifecycle": {
-      "archived": "Gearchiveerd",
-      "draft": "Concept",
-      "published": "Gepubliceerd",
-      "validated": "Gevalideerd"
-    },
-    "meta": {
-      "lifecycle": "Levenscyclus",
-      "source": "Bron",
-      "version": "Versie"
-    },
-    "notFound": "Protocol niet gevonden.",
-    "question": {
-      "newText": "Nieuwe vraag"
-    },
-    "questionType": {
-      "boolean": "Ja/Nee",
-      "choice": "Keuze",
-      "number": "Getal",
-      "text": "Tekst"
-    },
-    "required": "Verplicht",
-    "saveProtocol": "Protocol opslaan",
-    "section": {
-      "newTitle": "Nieuwe sectie"
-    },
-    "source": {
-      "custom": "Aangepast"
-    },
-    "title": "Protocol-editor: {{name}}"
   },
   "protocolShared": {
     "buildModal": {
@@ -23652,6 +23691,53 @@
       "loadedOnScanner": "Geladen op scanner",
       "scanned": "Gescand"
     }
+  },
+  "slideImage": {
+    "loading": "Beeld van het preparaat laden…",
+    "message": {
+      "blocked": "Uw browser heeft het venster van het preparaat geblokkeerd. Sta pop-ups toe voor PathScribe: kies het pictogram voor geblokkeerde pop-ups aan het einde van de adresbalk, sta pop-ups van deze site altijd toe en kies het preparaat daarna opnieuw.",
+      "noAddress": "Er is geen viewer-adres ingesteld. Vraag het uw beheerder.",
+      "notPermitted": "U hebt geen toestemming om beelden van preparaten te openen."
+    },
+    "openLabel": "Preparaat openen",
+    "openTitle": "Preparaat {{slide}} openen in de digitale-pathologietoepassing van het laboratorium",
+    "referenceNote": "Referentievoorbeeld. Niet voor diagnose.",
+    "state": {
+      "available": "Beeld beschikbaar",
+      "failedImageQuality": "Beeldkwaliteit afgekeurd",
+      "noImageYet": "Nog geen beeld",
+      "queued": "In de wachtrij",
+      "scanFailed": "Scan mislukt",
+      "scanning": "Wordt gescand"
+    },
+    "thumbAlt": "Referentievoorbeeld van preparaat {{slide}}"
+  },
+  "slideImageSettings": {
+    "addFacility": "Locatie met een eigen systeem toevoegen…",
+    "deploymentDefault": "Leeg: het adres van de installatie wordt gebruikt ({{address}})",
+    "description": "PathScribe heeft geen eigen viewer voor preparaten. Het toont een klein, ongewijzigd referentievoorbeeld van het preparaat uit uw scanner of beeldsysteem en opent het preparaat in de digitale-pathologietoepassing van uw laboratorium, in een apart venster.",
+    "facilitiesHint": "Vul deze velden alleen in voor een locatie met een eigen scanner of digitale-pathologietoepassing. Leeg: het adres van het laboratorium wordt gebruikt.",
+    "facilitiesTitle": "Locaties met een eigen systeem",
+    "facilityFieldLabel": "{{facility}}: {{field}}",
+    "fields": {
+      "thumbnailUrlTemplate": "Adres van de voorbeeldafbeelding",
+      "viewerUrlTemplate": "Viewer-adres"
+    },
+    "labTitle": "Laboratorium",
+    "noDeploymentDefault": "Leeg betekent geen adres: de installatie stelt er geen in.",
+    "placeholdersHint": "Adressen beginnen met https://. Gebruik {{slidePlaceholder}} voor de identificatie van het preparaat en {{accessionPlaceholder}} voor het accessienummer van de casus. Zet nooit een patiëntnaam, gebruikersnaam of wachtwoord in een adres: het aanmelden hoort bij de andere toepassing.",
+    "problemLine": "{{field}}: {{problem}}",
+    "problems": {
+      "credentials": "mag geen gebruikersnaam of wachtwoord bevatten",
+      "noSlidePlaceholder": "moet {{slidePlaceholder}} bevatten",
+      "notHttps": "moet een volledig https://-adres zijn",
+      "notPermitted": "U hebt geen toestemming om de instellingen voor beelden van preparaten te wijzigen.",
+      "unknownPlaceholder": "gebruikt een andere tijdelijke aanduiding dan {{slidePlaceholder}} of {{accessionPlaceholder}}"
+    },
+    "removeFacility": "Verwijderen",
+    "save": "Instellingen voor beelden van preparaten opslaan",
+    "saved": "Opgeslagen",
+    "title": "Beelden van preparaten"
   },
   "slideLabelLayoutEditor": {
     "description": "Het bedrukbare vlak van het objectglas, de modulegrootte van de barcode en de teksthoogte. Deze waarden bepalen nu de puntgrootte en tekstpositie van het afgedrukte etiket.",
@@ -27653,6 +27739,20 @@
     "localOnlyDev": "Alleen lokale spraak (actief spraakmodel niet beschikbaar — controleer de API-sleutel van de provider)",
     "noValidatedModel": "Geen gevalideerd spraakmodel geconfigureerd, of de API-sleutel van de provider is niet ingesteld"
   },
+  "windowPosition": {
+    "close": "Sluiten",
+    "failed": "De positie kon niet worden opgeslagen. Maak het venster groter en probeer het opnieuw.",
+    "instructions": "Verplaats dit venster naar de plek waar beelden van preparaten op deze werkplek moeten openen en pas de grootte aan. Kies daarna Positie opslaan.",
+    "save": "Positie opslaan",
+    "saved": "Positie opgeslagen voor deze werkplek. U kunt dit venster sluiten.",
+    "screensHint": "Sta PathScribe in Chrome en Edge toe om vensters op al uw schermen te beheren wanneer de browser erom vraagt, zodat het venster op het juiste scherm terugkomt. Is dat scherm later niet aangesloten, dan opent het venster op het hoofdscherm.",
+    "setPosition": "Positie instellen…",
+    "setPositionTitle": "Opent het venster voor beelden van preparaten, zodat u het kunt verplaatsen naar de plek waar preparaten op deze werkplek moeten openen",
+    "unknownWindow": "Deze pagina stelt de positie van een PathScribe-venster in. Open ze via het werkplekmenu.",
+    "windows": {
+      "slideImage": "Venster voor beelden van preparaten"
+    }
+  },
   "worklistDp": {
     "readiness": {
       "error": "{{ready}}/{{total}} Fout",
@@ -28143,12 +28243,6 @@
     "noCaseSpecified": "Geen dossier opgegeven.",
     "slideSurfacePlaceholder": "[ Echt WSI-objectglaasjevlak — pannen/zoomen zou hier worden weergegeven ]",
     "specimenLabel": "Preparaat {{specimenLabel}}"
-  },
-  "wsiViewerLaunch": {
-    "blockedError": "Pop-up geblokkeerd — sta pop-ups toe voor deze site en probeer het opnieuw",
-    "launchLabel": "Openen in viewer",
-    "launchTitle": "Dit preparaat openen in de geconfigureerde WSI-viewer",
-    "selectVendorTitle": "WSI-viewer selecteren"
   },
   "wsiViewerVendorSection": {
     "actions": {

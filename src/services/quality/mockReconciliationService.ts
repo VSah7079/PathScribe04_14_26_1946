@@ -21,7 +21,7 @@ import type { IReconciliationService } from './IReconciliationService';
 import { dataStorage } from '../browserData/dataStorage';
 
 const STORAGE_KEY = 'reconciliation_records';
-const RECONCILIATION_VERSION = '3'; // bumped: added real teaching-case seed data (Oliver Pemberton / Paul Carter)
+const RECONCILIATION_VERSION = '4'; // bumped (Batch 755b): the Manchester pathologist is the fictional Dr. Imogen Hartley. 3: added real teaching-case seed data (Oliver Pemberton / Imogen Hartley)
 const VERSION_KEY = 'pathscribe_mock_discordance_version';
 try {
   const storedVersion = dataStorage.getItem(VERSION_KEY);
@@ -92,7 +92,7 @@ const CONCORDANT_SEED: ReconciliationRecord[] = Array.from({ length: 130 }, (_, 
 });
 
 // Teaching-case seed — Oliver Pemberton (resident, PATH-UK-002) drafting,
-// Paul Carter (attending, PATH-UK-001) reconciling. Real Subspecialty ids
+// Imogen Hartley (attending, PATH-UK-001) reconciling. Real Subspecialty ids
 // ('breast', 'gi' — see services/subspecialties/mockSubspecialtyService.ts),
 // deliberately different concordance rates per subspecialty so the
 // per-subspecialty breakdown in My Contribution's teaching panel has a
@@ -114,7 +114,7 @@ const TEACHING_SEED: ReconciliationRecord[] = [
       comments: 'Permanent sections revealed a small focus of atypical ductal hyperplasia not represented in the frozen section tissue — sampling limitation, not a reading error.',
     } : {}),
     recordedAt: new Date(Date.now() - (30 + i * 3) * 86400000).toISOString(),
-    recordedBy: { userId: 'PATH-UK-001', userName: 'Paul Carter' },
+    recordedBy: { userId: 'PATH-UK-001', userName: 'Imogen Hartley' },
     draftedBy: { userId: 'PATH-UK-002', userName: 'Oliver Pemberton' },
     isTeachingCase: true,
     attendingFeedback: i === 21 ? 'Good frozen call given what was sampled — worth taking one extra level on borderline fibroepithelial lesions before signing out benign.' : undefined,
@@ -135,7 +135,7 @@ const TEACHING_SEED: ReconciliationRecord[] = [
       comments: 'Invasive component identified only on permanent deeper levels — frozen section tissue did not include the focus of invasion. Flagged for mandatory escalation given the staging implication.',
     } : {}),
     recordedAt: new Date(Date.now() - (20 + i * 4) * 86400000).toISOString(),
-    recordedBy: { userId: 'PATH-UK-001', userName: 'Paul Carter' },
+    recordedBy: { userId: 'PATH-UK-001', userName: 'Imogen Hartley' },
     draftedBy: { userId: 'PATH-UK-002', userName: 'Oliver Pemberton' },
     isTeachingCase: true,
     attendingFeedback: (i === 13 || i === 14) ? 'This is a classic teaching point on polypectomy/frozen limitations — invasive foci in villous adenomas are often deep and easy to miss on a single frozen level. Take multiple levels on any adenoma with high-grade dysplasia on frozen.' : undefined,

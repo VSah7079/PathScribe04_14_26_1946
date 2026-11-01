@@ -104,8 +104,15 @@ const SEED: FacilityCytologyScreeningStrategyOverride[] = [
     overrides: { screeningStrategy: 'primary_hpv_reflex' },
     createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
   },
+  {
+    // Batch 749 (seed row S5): a US client that screens with primary HPV and reflex cytology (an option US guidelines
+    // allow), so the demo's HPV Triage and Recall tiles have cases (cases/demoCytologyVolumeCases.ts).
+    id: 'fac-strategy-seed-northside', facilityId: 'c3',
+    overrides: { screeningStrategy: 'primary_hpv_reflex' },
+    createdAt: '2026-10-31T00:00:00.000Z', updatedAt: '2026-10-31T00:00:00.000Z',
+  },
 ];
-const SEED_VERSION = '5'; // bumped: real, new Northern Ireland facility (c-ni-lagan-valley) screening-strategy override added — primary_hpv_reflex, confirmed December 2023.
+const SEED_VERSION = '6'; // Batch 749: Northside Clinic (c3), primary HPV. 5: bumped: real, new Northern Ireland facility (c-ni-lagan-valley) screening-strategy override added — primary_hpv_reflex, confirmed December 2023.
 const SEED_VERSION_KEY = 'facilityCytologyScreeningStrategyOverrides_seed_version';
 if (storageGet<string | null>(SEED_VERSION_KEY, null) !== SEED_VERSION) {
   storageSet(STORAGE_KEY, SEED);

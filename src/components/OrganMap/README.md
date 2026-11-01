@@ -53,3 +53,7 @@ New test in `OrganMapPanel.test.tsx` for the PS-491 criterion: every patterned c
 ## Batch 610 (#9): ink colour beside margin names
 
 - `OrganMapPanel.tsx` takes `marginInk` and lists each margin that has a recorded ink under the legend, with its colour (`components/Common/MarginInkChip.tsx`). The synoptic form shows the same chip beside a margin field's label (`RightSynopticPanel.tsx`). Data: `services/grossing/marginInkLabels.ts` (latest ink on each margin recorded at grossing; an earlier colour is in the tooltip; a margin with no ink shows nothing).
+
+## Batch 751
+
+`OrganMapPanel.tsx`: on an Assist case (state `lisOwnsReport`) the note "Your laboratory system writes this report." replaces Insert and Remove, and the quiet line "Map file sent to the laboratory system at (time)." shows once the map file was sent.

@@ -131,6 +131,14 @@ export const DEMO_SURGICAL_PATIENTS: readonly DemoSurgicalPatient[] = [
   { id: 'PAT-W5339', organisationId: 'ENT-DEFAULT', mrn: '105339', firstName: 'Beatrix', lastName: 'Dunmore', dateOfBirth: '1972-09-25' },
   { id: 'PAT-W5340', organisationId: 'ENT-DEFAULT', mrn: '105340', firstName: 'Cassius', lastName: 'Ellsworth', dateOfBirth: '1965-10-02' },
   { id: 'PAT-W5341', organisationId: 'ENT-DEFAULT', mrn: '105341', firstName: 'Cordelia', lastName: 'Fairbanks', dateOfBirth: '1958-11-07' },
+  // Batch 748 (S11): the block-type cases (services/cases/demoBlockTypeCases.ts).
+  { id: 'PAT-B5401', organisationId: 'ENT-DEFAULT', mrn: '105401', firstName: 'Ambrose', lastName: 'Kilbride', dateOfBirth: '1959-06-12' },
+  { id: 'PAT-B5402', organisationId: 'ENT-DEFAULT', mrn: '105402', firstName: 'Clementine', lastName: 'Ashgrove', dateOfBirth: '1972-09-03' },
+  { id: 'PAT-B5404', organisationId: 'ENT-DEFAULT', mrn: '105404', firstName: 'Philippa', lastName: 'Hawthorne', dateOfBirth: '1968-04-27' }, // Batch 750 (S10)
+  { id: 'PAT-B5405', organisationId: 'ENT-DEFAULT', mrn: '105405', firstName: 'Cornelius', lastName: 'Wexford', dateOfBirth: '1961-11-08' }, // Batch 751 (S15)
+  { id: 'PAT-B5406', organisationId: 'ENT-DEFAULT', mrn: '105406', firstName: 'Rosalind', lastName: 'Ashcombe', dateOfBirth: '1957-02-19' }, // Batch 751 (S15)
+  { id: 'PAT-B5407', organisationId: 'ENT-DEFAULT', mrn: '105407', firstName: 'Harold', lastName: 'Brennick', dateOfBirth: '1962-07-03' }, // Batch 751 (S15)
+  { id: 'PAT-B5403', organisationId: 'ENT-DEFAULT', mrn: '105403', firstName: 'Bartholomew', lastName: 'Fenn', dateOfBirth: '1965-02-20' },
   { id: 'PAT-D670', organisationId: 'ENT-DEFAULT', mrn: '104670', firstName: 'Harold', lastName: 'Whitaker', dateOfBirth: '1959-01-22' },
   { id: 'PAT-D671', organisationId: 'ENT-DEFAULT', mrn: '104671', firstName: 'Doris', lastName: 'Kowalski', dateOfBirth: '1954-11-03' },
   { id: 'PAT-D672', organisationId: 'ENT-DEFAULT', mrn: '104672', firstName: 'Patricia', lastName: 'Lindqvist', dateOfBirth: '1965-07-09' },

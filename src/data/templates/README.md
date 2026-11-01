@@ -1,3 +1,11 @@
+**Batch 755b (part 2):** `generic/breast_dcis_resection.json`, `lung_adeno.json`, `kidney_resection.json`, `lung_resection.json`, `skin_melanoma_bx.json`, `colorectal_local_excision.json`, `colorectal_further_investigations.json`, `prostate_resection.json` in PathScribe's own wording.
+
+**Batch 755b (part 1):** `generic/breast_invasive.json`, `colorectal_resection_b.json` and `prostate_biopsy.json` in PathScribe's own wording.
+
+**Batch 755a:** the 19 generic checklists have plain names ("Colon resection", "Radical prostatectomy") and carry a "Demo wording" tag on screen until a pathologist has reviewed their wording. `Autopsy/autopsy_gross_examination.json` is attached to the Video 4 autopsy cases.
+
+**Batch 753:** `generic/prostate_needle_biopsy.json` and `generic/prostate_radical_prostatectomy.json`: PathScribe-authored wording, not CAP or RCPath text (see `generic/README.md`).
+
 **Batch 738:** `generic/colon_resection.json` wording (see `generic/README.md`).
 
 # data/templates/

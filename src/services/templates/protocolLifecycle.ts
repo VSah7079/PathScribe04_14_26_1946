@@ -25,6 +25,7 @@
 import type { EditorTemplate } from '@/components/Config/Protocols/SynopticEditor';
 import type { Protocol } from '@/components/Config/Protocols/protocolShared';
 import type { CopyNameFormatter } from '@/utils/duplicateEntry';
+import { checklistCopyRefusal } from './demoChecklists';
 
 export type VersionPart = 'major' | 'minor' | 'patch';
 
@@ -85,20 +86,28 @@ export interface ProtocolActions {
   restore: boolean;
 }
 
-/** Which row actions a protocol offers in its current state. */
-export function protocolActions(p: Pick<Protocol, 'status'>): ProtocolActions {
+/** Which row actions a protocol offers in its current state. Batch 755a: a demonstration checklist offers no
+ *  Duplicate or New Version (its wording is never copied until a pathologist has reviewed it). */
+export function protocolActions(p: Pick<Protocol, 'status'> & { id?: string }): ProtocolActions {
   const archived = p.status === 'archived';
   const published = p.status === 'published';
+  const copyable = !checklistCopyRefusal(p.id);
   return {
     view: published,
     openReviewer: !published && !archived,
     openEditor: !published && !archived,
-    duplicate: !archived,
+    duplicate: !archived && copyable,
     exportJson: true,
-    newVersion: published,
+    newVersion: published && copyable,
     archive: !archived,
     restore: archived,
   };
+}
+
+/** Batch 755a: the protocols Build / Customise offers as a starting point: published ones whose wording may be copied
+ *  (never a demonstration checklist). */
+export function copySourceCandidates<P extends Pick<Protocol, 'status' | 'id'>>(registry: readonly P[]): P[] {
+  return registry.filter(p => p.status === 'published' && !checklistCopyRefusal(p.id));
 }
 
 /** All Protocols status filter. "All" means every protocol still in use;

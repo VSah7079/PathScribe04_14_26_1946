@@ -2,6 +2,98 @@
 
 Every entry is written four ways (Pete, Oct 20, 2026): **for the practitioner** (plain language), **for the system administrator** (where and how to set it up), **for marketing** (positive), and **for FormedrixAI and partners** (the plain reality, including what is not built). Entries written before Batch 642 were rewritten into this form from their earlier text; the facts were carried over, and marketing and partner wording needs your review before it is used externally.
 
+## Batch 755b (part 2): Eight more checklists in real words; unused demo checklists off the case list (Pete, Nov 1, 2026)
+
+- **Practitioner:** The breast DCIS, lung adenocarcinoma, lung resection, kidney resection, skin melanoma, prostate resection, colorectal local excision and colorectal further investigations checklists read in plain clinical words. When you add a checklist to a case, five demonstration checklists no longer appear in the list.
+- **System administrator:** Nothing to set up. The five hidden checklists (breast surgical excision, kidney biopsy, prostate TURP or enucleation, Wilms tumor resection and biopsy) stay in the Synoptic Library with the Demo wording tag.
+- **Marketing:** Fourteen of PathScribe's checklists now read in plain clinical words, written by PathScribe.
+- **FormedrixAI/partners:** Built and tested. All are still "Demo wording" until a pathologist reviews them. The five hidden checklists keep placeholder wording. Real names in the demo data (hospitals, some staff and surgeons) are awaiting Pete's decision.
+- **User Guide / Admin Guide:** none. **Training:** none.
+
+## Batch 755b (part 1): Breast and UK checklists in real words; the Manchester demo pathologist is fictional (Pete, Nov 1, 2026)
+
+- **Practitioner:** The breast invasive carcinoma checklist and the two UK-layout checklists (colorectal resection and prostate biopsy) read in plain clinical words, with follow-up questions shown only when they apply (for example the involved margins only when a margin is involved). The Manchester demonstration cases' reports read in real words.
+- **System administrator:** Nothing to set up. A UK demonstration signs in as Dr. Imogen Hartley (imogen.hartley@demo.pathscribe.ai, the shared demo password), the fictional Manchester pathologist. Paul Carter, who advises on UK workflow, has his own sign-in without clinical credentials.
+- **Marketing:** PathScribe's breast and UK checklists are written by PathScribe in the terms UK and US pathologists use every day.
+- **FormedrixAI/partners:** Built and checked in the browser. Still "Demo wording" until a pathologist reviews them. Not done yet (Batch 755b continues): breast DCIS, lung adenocarcinoma, the other six checklists with demo cases, and hiding the five unused ones from the picker. The Manchester demo still names real hospitals (Wythenshawe Hospital, Manchester Royal Infirmary, North Manchester General) and the trust: Pete to decide. Other demo staff carry clinical credentials under what may be real people's names (see the batch notes).
+- **User Guide / Admin Guide:** none. **Training:** UK demonstrations sign in as Dr. Imogen Hartley.
+
+## Batch 755a: Plain checklist names, a "Demo wording" tag, and no copies of demo wording (Pete, Oct 31, 2026)
+
+- **Practitioner:** The demonstration checklists now have plain names ("Colon resection", "Prostate needle biopsy", "Radical prostatectomy") with a small grey **Demo wording** tag beside the name. The tag means a pathologist has not yet reviewed the wording. These checklists can't be copied: to build your own, start from scratch, from one of PathScribe's own checklists, or from a protocol your laboratory is licensed for. The autopsy demo cases open on PathScribe's autopsy gross examination checklist.
+- **System administrator:** Configuration → Synoptic Library: a tagged checklist has no **Duplicate** or **New Version**, and **Build / Customise → existing template** lists only checklists that may be copied, with a note saying why the others are missing. Opening a copy by address shows "This checklist can't be copied". The service refuses the save as well. No setting; the tag comes off a checklist only when ForMedrixAI records a pathologist's review of its wording (docs/architecture/DEMO_CHECKLISTS.md).
+- **Marketing:** Every checklist PathScribe ships says plainly where its wording stands, and nothing unreviewed can slip into a laboratory's own library.
+- **FormedrixAI/partners:** Built and checked in the browser. The tag also governs copying and customer builds (one flag). Not done: 16 checklists still carry placeholder answers (Batch 755b, breast invasive first); copies made before this batch keep the inherited wording untagged; the tag is not shown in every place a checklist name appears (the Sequencer, the pre-finalisation window and the AI report view show the name without it).
+- **User Guide:** the synoptic chapter's checklist names and a line on the tag. **Admin Guide:** chapter 6 (Synoptic Library) updated in six languages.
+- **Training:** point at the tag when opening a checklist in a demo; say a pathologist reviews the wording before it is offered for copying.
+- **Standards:** supports content provenance for CAP/ISO 15189 document control (who approved a protocol's wording).
+
+## Batch 754: The demonstration checklists never reach a customer (Pete, Oct 31, 2026)
+
+- **Practitioner:** Nothing changes on the demonstration site. At a customer site the 19 "Generic Template" checklists are not there; the lab uses its own checklists and PathScribe's own (Mohs, oral cavity, neck dissection, cytology, grossing, autopsy).
+- **System administrator:** A customer build (`npm run build:server`) leaves the 19 out, and its check fails the build if one is in it. For an organisation on a deployment that has them, ForMedrixAI support opens Configuration → Synoptic Library → All protocols → **Demonstration checklists**, checks what would be removed, and removes them (each is archived: not offered for new reports; a report already made with one still opens; audited). Against an API server: `scripts/remove-demo-checklists.mjs` (dry run unless `--apply`; Planned until the server offers the endpoint). Steps: `docs/architecture/DEMO_CHECKLISTS.md`.
+- **Marketing:** Every customer starts with a clean synoptic library: PathScribe's own checklists and the content the lab is licensed for.
+- **FormedrixAI/partners:** Built and checked: the customer build really drops the 19 files (built with `--mode server` and inspected), the removal in the browser (dry run, 19 archived, audit). Not built: the API endpoint the script calls; blocking an administrator from restoring an archived demonstration checklist; and copies a customer makes of these checklists keep the inherited question list, so copying them and removing the originals before go-live does not remove the risk (see `DEMO_CHECKLISTS.md`). The demo cases inside the mock services still name the checklists until the HTTP services replace the mocks (PS-539). Also deleted: an old, unused protocol editor whose registry was labelled "CAP …". Non-English text is machine translated.
+- **User Guide:** none. **Admin Guide:** none (the card is for ForMedrixAI support only; a support runbook entry is the right home).
+- **Training:** none.
+- **Standards:** none claimed.
+
+## Batch 753: The prostate checklists read in real words (seed row S15, Video 9) (Pete, Oct 31, 2026)
+
+- **Practitioner:** The prostate needle biopsy and radical prostatectomy checklists now use plain clinical wording instead of "Option 1", "Option 2". Questions that only matter sometimes appear only then: on a prostatectomy, the margin details show once a margin is positive, and the extension details once extraprostatic extension is present.
+- **System administrator:** Nothing to set up. A browser that used the demo before needs one Full Reset to load the corrected demo cases (S26-4404, S26-5407).
+- **Marketing:** PathScribe's prostate checklists speak the pathologist's language, from Grade Group to margins, and stay in step with the organ map they draw.
+- **FormedrixAI/partners:** The wording is PathScribe's own, written on standard nomenclature (ISUP Grade Groups, WHO tumour types, TNM codes); no CAP or RCPath text was copied (Pete's condition). The question set was inherited from the earlier, licence-cleaned templates, so counsel should confirm the position before the checklists are offered as content; they are not CAP- or RCPath-endorsed. Demo data corrected: S26-4404's summary answers disagreed with its map (12 cores and 3+3 against six cores and 3+4) and now agree; its demo amendment shows only the four corrected answers; S26-5407's whole checklist is answered; MFT26-8804's AI suggestions agree with its map. 16 other generic checklists still show placeholders, and three older demo cases (S26-4412, MFT26-8802-PR-BX, MPA26-1003-PRO) keep placeholder-style words in their descriptions. Checked with automated tests and in the browser (every checklist tab of S26-4404 and S26-5407: no placeholder on screen).
+- **User Guide:** none (the guide does not quote checklist answers). **Admin Guide:** none.
+- **Training:** Video 9 steps 1 to 8 can be recorded; run Full Reset before each take.
+- **Standards:** none claimed.
+
+## Batch 752: Slide images hosted for the demo, and the handover note brought up to date (Pete, Oct 31, 2026)
+
+- **Practitioner:** Nothing changes on screen yet. Once the security policy change below is made, the demo's slides S26-5404-B1-L1, C1-L1 and C1-L2 show real lymph node previews, and Open slide shows the slide on the demonstration page.
+- **System administrator:** The demo's images are in the Cloudflare R2 bucket `pathscribe-demo-slides`, public at `https://slides-demo.formedrix.ai`. Vercel (Production) holds `VITE_SLIDE_VIEWER_URL_TEMPLATE` and `VITE_SLIDE_THUMBNAIL_URL_TEMPLATE`; they survive every deploy, need a redeploy when changed, and must be added for Preview if preview builds should show slides. `scripts/Setup-PathScribeSlideDemo.ps1` rebuilds and uploads the images (it asks for an R2 token's keys and stores none). Steps: `SLIDE_IMAGE_DEMO.md`.
+- **Marketing:** The demo now shows real, openly licensed lymph node slides opening beside PathScribe, as a lab's own digital pathology application would.
+- **FormedrixAI/partners:** The previews stay blank on the demo until `https://slides-demo.formedrix.ai` is added to `img-src` (`deploy/security-headers/`, then regenerate `vercel.json`); that folder is not in Claude's working copy. Three of the five planned slides are hosted; the two breast slides wait for an image whose licence has been read. The script was written for Windows and run by Pete; Claude could not run PowerShell. The handover note (`docs/developer/HANDOVER_FIRST_RELEASE.md`) now lists Batches 699 to 751 and the new open items; its Jira counts are still those of Oct 26.
+- **User Guide:** none. **Admin Guide:** none (the Slide images settings are unchanged).
+- **Training:** none yet; Video 7 steps 17 and 18 use these images once the previews show.
+- **Standards:** none claimed.
+
+## Batch 751: The organ map on Assist cases, and delivering it to the laboratory system (seed row S15) (Pete, Oct 31, 2026)
+
+- **Practitioner:** On an Assist case your laboratory system writes the report, so the organ map is there to help you fill in the checklist: it is drawn from your answers and clicking it takes you to the question, but there is no Insert into report. The panel says "Your laboratory system writes this report." If your laboratory has turned on map delivery, a quiet line tells you when the map file was sent; you never have to do anything, and a problem with the delivery never stops you finalising.
+- **System administrator:** Facility editor → LIS Integration (performing lab) → **Organ map delivery**: Off (default), Text only, or Text and image file, with the file format (PNG or PDF) and the destination (a folder, an SFTP address or an interface engine channel; no user name or password). Saved on its own with the new permission `config:organ-map-delivery:manage` (Admin and Lab Director); every change, every delivery and every failure is audited. Failed deliveries appear in the outbound queue with retry, which draws the file again from the final answers. Configuration → System → Organ Maps still links each checklist to its map.
+- **Marketing:** The anatomical map works for every lab, including labs whose own system writes the report: the map can go to that system as text and a picture, with no extra step for the pathologist.
+- **FormedrixAI/partners:** Phase 1 (no map in an Assist report, Mohs included) and phase 2 (delivery) are built in the browser and tested; the file is drawn in the browser at finalising (PNG, or a one-page PDF holding a JPEG), so a release at the end of a release buffer with no page open queues the file as held until someone retries it. The API server must draw it itself (Planned). The result message already carried documents and document references, so no format change was needed (spec 12.8(a), answered). Real-site file formats are to be settled with the first customer; the regulatory adviser is to confirm the wording. The map is a report figure drawn from entered answers, not a medical image; no AI. The demo's Video 9 cases S26-4404 and S26-4463 became Orchestrator cases; the prostate checklists still carry placeholder answers outside the map section.
+- **User Guide:** Report: Synoptic reporting (Organ map and Mohs stages). **Admin Guide:** Facility editor, LIS Integration tab (six languages, published).
+- **Training:** open S26-5405 as Dr. Sarah Johnson and press Map; then, as the administrator, the Desert Valley facility's LIS Integration tab, and the failed map file of S26-5406 in the outbound queue.
+- **Standards:** none claimed.
+
+## Batch 750: Slide images: a reference preview and opening the lab's own digital pathology application (seed row S10) (Pete, Oct 31, 2026)
+
+- **Practitioner:** Each scanned slide in the block and stain window (and on a cytology case screened on whole-slide images) shows a small preview, marked "Reference preview. Not for diagnosis." Select it and the slide opens in your laboratory's own digital pathology application, in its own window that remembers where you put it. A slide without an image says where it is: No image yet, Queued, Scanning, Scan failed or Failed image quality. To choose where the slide window opens, use the workstation menu: **Slide image window → Set position…**, move the window, then **Save position**.
+- **System administrator:** Configuration → System → Lab Materials & Workflows → Vendor Integrations → WSI Viewers → **Slide images**: the viewer address (opens the slide in your digital pathology application) and the preview image address (from your scanner or image system), each an https template with `{{slideId}}` and, if wanted, `{{accession}}`; a facility with its own system gets its own pair. Blank uses the deployment's addresses (`VITE_SLIDE_VIEWER_URL_TEMPLATE`, `VITE_SLIDE_THUMBNAIL_URL_TEMPLATE`, also in Runtime settings). Saving needs `config:vendor-integrations:manage`. Opening a slide needs the new `case:slide-image:open` (seeded for every built-in role with case access, as report images are) and is written to the audit log (who, which slide, when; no patient name). Add the preview host to the site's security policy (img-src), or previews will not load.
+- **Marketing:** PathScribe works beside the digital pathology system the lab already has: a glance at the slide, one select to open it where it belongs.
+- **FormedrixAI/partners:** PathScribe has no slide viewer and does no image processing; the preview is shown as received. Built: the settings, the image states (from the scanner unload, now recorded on the slide), the open action with its capability and audit, the remembered window with a Save position page, and moving a saved window to the main screen when its screen has gone (Chrome and Edge, once the browser's window placement permission is given; other browsers reopen at the saved coordinates). Tested in headless Chromium only, on one virtual screen: the multi-monitor behaviour has not been seen on real hardware. Previews delivered by the interface engine are Planned (the service and its API contract exist; nothing sends them yet). The security policy's img-src is not yet generated from the preview address. The older WSI Viewers list still works as a fallback for the viewer address. Demo: five openly licensed images and a standalone demonstration page (tools/demo-slide-viewer) are prepared outside PathScribe (docs/product/SLIDE_IMAGE_DEMO.md); until they are hosted and the addresses set, demo slides show their states and "No viewer address is set." Keep clinical-use claims out of all material: the FDA question is open.
+- **User Guide:** Slide Images (help:wsi-viewer, rewritten), Cytology Screening Case, Report: microscopic and material, WSI Scan. **Admin Guide:** Digital pathology and Vendor Integrations (WSI Viewers, Slide images).
+- **Training:** open S26-5404 as Dr. Sarah Johnson, Edit a block, select a preview; show S26-5403 (Queued, Scan failed) and S26-5404 C1-L2 (Failed image quality); set the window position from the workstation menu.
+- **Standards:** none claimed.
+
+## Batch 749: Cytology demo data (seed rows S5 and S4) for Videos 3 and 2 (Pete, Oct 31, 2026)
+
+- **Practitioner:** After a Full Reset a cytotechnologist's worklist looks like a working day: cases to screen, a shared pool, HPV results awaited, a recall, and a case picked for peer review. One routine Pap is ready to screen from start to sign-out, with its AI read.
+- **System administrator:** Northside Clinic is set to primary HPV screening with reflex cytology (its facility cytology screening strategy override, demo seed), to show the HPV Triage and Recall lists. Change it back if you use the demo for co-testing only.
+- **Marketing:** Every cytology list populated, from routine screening to recall and peer review, ready to show.
+- **FormedrixAI/partners:** Demo data only, checked with automated tests against the worklist rules (screening eligibility by strategy, triage, recall, peer review) and in the browser. The AI reads are demonstration data.
+- **Standards:** none claimed.
+
+## Batch 748: Batching and block-type demo data (seed rows S9 and S11) (Pete, Oct 31, 2026)
+
+- **Practitioner:** After a Full Reset every step of Batch Management has work in it, a case has a retention hold, and three cases show the special blocks: prostate biopsies sharing cassettes with a piece map, a whole-mount megablock with large slides, and a used-up block whose new stain waits for the block to be re-embedded.
+- **System administrator:** Nothing to set. Full Reset brings it all back.
+- **Marketing:** Real-world block handling, from shared prostate cassettes to whole-mount sections, ready to show.
+- **FormedrixAI/partners:** Demo data only, checked with automated tests against the rules the benches use (piece maps, block type profiles, the exhausted-block rule and re-embedding) and opened in the browser. No new features.
+- **Standards:** none claimed.
+
 ## Batch 747: Wall display demo data (seed row S8) for Video 6, and wall views that now find their facility's work (Pete, Oct 31, 2026)
 
 - **Practitioner:** The lab's wall screens now show the lab's own batches, slides and add-on orders. Before this they showed almost nothing, because they couldn't match the work to the site. After a Full Reset the demo has a busy day at Desert Valley on every view, and a quieter second lab.

@@ -639,7 +639,7 @@ const reportMap = new Map<string, Report>(
 );
 reportMap.set('S23-9981', minimalReport);
 
-// ── MFT UK demo cases — Paul Carter (PATH-UK-001) ────────────────────────────
+// ── MFT UK demo cases — Imogen Hartley (PATH-UK-001) ────────────────────────────
 // Accession numbers match the caseNumber fields in mockMessageService.ts
 // so the case link button in the messaging drawer navigates correctly.
 

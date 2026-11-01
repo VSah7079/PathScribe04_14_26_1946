@@ -40,7 +40,7 @@ All are at Desert Valley (Metro General Hospital) unless noted.
 | Connor Whitlock | connor.whitlock@pathscribe.ai | Pathologists' Assistant | Grossing (home bench Grossing Station 1, Batch 738); PA on autopsy A26-4661 (open it through Search: it's on Pete's worklist, not his) |
 | Jordan Ellis | jordan.ellis@demo.pathscribe.ai | Admin (no clinical role) | Batch 738: the administrator in the demo videos (Configuration only) |
 | Michelle Nimmo | michelle.nimmo@ai.com | Pathologist and Admin | Configuration, Demo Reset |
-| Paul Carter / Dr. Oliver Pemberton | (UK, Manchester) | Attending / resident | UK countersign (MFT26-8802) |
+| Dr. Imogen Hartley (fictional; Batch 755b) / Dr. Oliver Pemberton | imogen.hartley@demo.pathscribe.ai (UK, Manchester) | Attending / resident | UK countersign (MFT26-8802) |
 
 ## Demo videos: seed data (Batch 738)
 
@@ -50,6 +50,48 @@ The seed rows for Pete's demo videos, their status and every id they use are in 
 - Labels print on every histology bench: the result says "Simulated … Nothing was printed." The demo uses GS1 internal-use GTIN 0299990000101.
 - Accession's received time is the computer's local time.
 - **Batch 744 (S14), fluids:** S26-5101 to S26-5108 (pleural, peritoneal, CSF, urine, bronchial washing, an EBUS lymph node FNA, a ThinPrep and a SurePath Pap), open cytology batches CONT-CYP-DEMO-TP, CONT-CYP-DEMO-SP, CONT-CYS-DEMO and CONT-CYI-DEMO, and two instrument orders. Sign in as Priya Desai (cytotechnologist): her Non-GYN / FNA Queue shows S26-5005, S26-5101, S26-5103 and S26-5106, and the ROSE tile both ROSE evaluations.
+
+## Video 3 (cytology): the cases (Batch 749)
+
+Sign in as **Priya Desai**. After a Full Reset the GYN tiles read My Worklist 5, Pool 4, QC / Rescreen 3, HPV Triage 1, and in the compliance row Recall Needed 1 and Peer Review 1.
+
+- **Step 7:** open **S26-5501** (Maribel Underwood): a ThinPrep Pap, routine screening, nothing abnormal before. The HPV card reads **Pending** (step 8).
+- **Step 9:** it is meant to be read as negative (NILM); the AI gallery read found no atypical cells, so at step 11 the concordance window can be answered **Agree**.
+- **Step 15:** sign out S26-5501 only.
+- Other cases to point at: S26-5503 (HPV positive after ASC-US, AI read ASC-US), S26-5510 (Northside Clinic, primary HPV, positive: reflex cytology), S26-5508 in HPV Triage (HPV not back), S26-5509 in Recall (self-collected swab positive: a clinician-collected sample is needed), S26-5507 in Peer Review.
+- **Video 2:** the Non-GYN / FNA Queue has a breast FNA, **S26-5511**, ready to screen, with the thyroid FNA S26-5005 and the EBUS FNA S26-5106.
+
+## Video 7 (batching) and the block types: the data (Batch 748)
+
+- **Step 2:** every stage tile on Batch Management has open batches after a Full Reset, Checkout included (CONT-CHK-WALL-1, two H&E slides on a tray to the pathologist).
+- **Step 8:** Pending Load lists about 190 printed blocks and slides not in any batch.
+- **Steps 5 to 7 on a batch already there:** CONT-STN-DEMO-RECON is reconciling, with a matched slide, a missing one and an unexpected scan.
+- **Retention:** S26-4630 carries a patient-requested retention hold (Retention Holds list); the disposal list has the items past retention.
+- **Block types** (Dr. Sarah Johnson, Orchestration Cases): **S26-5401** prostate biopsies in two multi-piece cassettes, each with its inked piece map (A1: parts A to C; D1: parts D to F); **S26-5402** a megablock with two large-format H&E slides; **S26-5403** block A1 used up, with a Ki-67 add-on waiting for the block to be re-embedded. The matrix block S26-4404-M1 is accepted at Embedding.
+
+**Batch 755b (Pete, Nov 1, 2026): the Manchester demo pathologist is fictional.** PATH-UK-001 is now **Dr. Imogen Hartley** (sign in as imogen.hartley@demo.pathscribe.ai, shared demo password). Paul Carter, who advises on UK workflow and is not a physician, signs in with his own email to his own record (UK-ADV-001), with no clinical credentials.
+
+## Video 9 (synoptic reporting and the organ map): the data (Batches 751, 753 and 755a)
+
+Sign in as **Dr. Sarah Johnson**. After a Full Reset:
+
+- **Checklist names (Batch 755a):** the checklists read **Prostate needle biopsy**, **Radical prostatectomy** and **Colon resection**, each with a grey **Demo wording** tag; S26-4404's written report (gross description and ancillary studies) is in real words.
+
+- **Steps 1 to 4:** **S26-4404** (prostate needle biopsy). Press **Map**: cores A to C (right side) Grade Group 2, D to F benign, the others not sampled. The checklist reads in real words (Batch 753): six cores, three with carcinoma, highest Gleason score 3+4=7. The case opens with a demo amendment in progress (the score corrected from 3+3 to 3+4); it changes nothing in the steps. Step 3 changes an answer, so run Full Reset before the next take.
+- **Steps 5 to 8:** use **S26-5407** (radical prostatectomy at Desert Valley; MFT26-8804 opens only for the Manchester pathologist). Its map is **already in the report** ("In the report"), so step 6 starts by changing an answer: the panel then says "Report image is out of date — insert again"; step 7 is **Insert again**. Step 8: the preview shows the map after the report body. Its whole checklist is answered in real words (Grade Group 3, focal extraprostatic extension, positive posterolateral margin, pT3a pN0, 0 of 14 nodes).
+- **Step 9:** **S26-4463** (Mohs): "Part of the report: drawn into it automatically"; stage 1 residual tumour at 12 and 1 o’clock and the deep margin, stage 2 clear.
+- **Step 10:** **S26-5405** (Assist, rectal resection, finalised). Press **Map**: the map works, and where Insert would be the panel says "Your laboratory system writes this report." and "Map file sent to the laboratory system at (time)." The demo lab sends the map as text and a PNG file (Facility → Desert Valley Medical Center → LIS Integration → Organ map delivery).
+- **Administrator view (optional):** the outbound queue shows S26-5406’s organ map file as failed ("The destination folder did not answer (demonstration)."), with retry; a retry draws the file again from the final answers.
+- **Do not say:** that the map file reached a real laboratory system (the destination is a demonstration address), or that the map is a medical image.
+
+## Video 7 steps 17 and 18 (slide images): the data (Batch 750)
+
+Before recording, the demonstration images must be hosted and the two addresses set (docs/product/SLIDE_IMAGE_DEMO.md): Configuration → System → Lab Materials & Workflows → Vendor Integrations → WSI Viewers → **Slide images**, or the deployment's `VITE_SLIDE_VIEWER_URL_TEMPLATE` and `VITE_SLIDE_THUMBNAIL_URL_TEMPLATE`. Set the slide window's position once from the workstation menu (**Slide image window → Set position…**, then **Save position**) on the recording computer.
+
+- Sign in as **Dr. Sarah Johnson** and open **S26-5404** (Philippa Hawthorne). Select **Edit** in the block row: each slide shows its reference preview with "Reference preview. Not for diagnosis."
+- **Step 17:** select the preview of **S26-5404-C1-L1** (sentinel node 2): the demonstration page opens in its own window, labelled "Demonstration only. Not for diagnosis.", with the image's source and licence.
+- **Step 18:** point at **S26-5404-C1-L2**: "Failed image quality" (the blurred copy, back in the scanning queue). Other states to point at: S26-5403 (Queued, Scan failed), S26-5402 A1-L2 (Scanning), S26-5401 (No image yet).
+- Say: PathScribe shows a reference preview and opens the lab's own digital pathology application. Do not say: that PathScribe views, analyses or diagnoses from slide images.
 
 ## Video 6 (wall monitors): the displays (Batch 747)
 
@@ -75,6 +117,8 @@ Sign in as **Daniel Kim** (Molecular Technologist) for steps 3 to 17; steps 1 an
 - **The report:** open **S26-5208** as Dr. Sarah Johnson: the Lung Adenocarcinoma synoptic reads **EGFR Mutation Status: Detected**, filled from the in-house test, and the ancillary studies line names the result.
 
 ## Video 4 (autopsy): the cases (Batch 745)
+
+Batch 755a: A26-4665 and A26-4666 open on PathScribe's own **Autopsy Gross Examination — Whole Body / Multi-Cavity** checklist, so steps 6 to 11 no longer show the list of demonstration checklists.
 
 Sign in as **Dr. Sarah Johnson**. The autopsy entry for step 2 is **Autopsy, Complete (Body)**. Steps 6 to 9 use **A26-4665** (temporary accession; the Medical Examiner's order was given verbally by Deputy Medical Examiner L. Moreno, the written order is pending, so the banner reads "Autopsy: temporary accession, written authorization pending"). In step 6 the case is on the Worklist under **Orchestration Cases**, then the **Autopsy** tab (autopsies are Orchestration cases; the LIS Cases view shows none). Steps 10 and 11 use **A26-4666** (PAD signed, body in Mortuary Cooler 1, Tray B; the family excluded the brain and refused retention). A26-4667 is a closed case with both reports signed; A26-4662 has an ancillary hold; A26-4663 is a Medical Examiner case with its written order on file.
 
@@ -137,7 +181,7 @@ The Video 8 script in "PathScribe Demo Video Production Requirements" was writte
 | Cell block from a decant (Kevin Brooks, Microtome) | S26-5005 (thyroid FNA): scan `S26-5005-CYT-001-AD2`, the cell block, H&E pending cut. |
 | Matrix block | S26-4404 (prostate biopsies): block M1 holds cores D, E and F. Report page → Material tab → Biopsy Arrays. |
 | Consult link | Sign in as Sarah: S26-4602 → Consult shows an active link to Dr. Miguel Ortega (Sonoran Dermatopathology Associates, fictional). The seeded link itself can't be opened (the address is shown only when a link is made); issue a new one to show the consultant's view. |
-| Supervision (FPPE) | Configuration → Staff → Credentialing Review → FPPE Assignments: Pete supervises all three: Oliver Pemberton (active, GI), Paul Carter (completed by case count) and Michelle Nimmo (graduated early). |
+| Supervision (FPPE) | Configuration → Staff → Credentialing Review → FPPE Assignments: Pete supervises all three: Oliver Pemberton (active, GI), Dr. Imogen Hartley (completed by case count) and Michelle Nimmo (graduated early). |
 
 ## Limits of the seeded data
 
@@ -207,7 +251,7 @@ The map's cancer data comes from the synoptic report: it is drawn from the synop
 4. Click a core on the map: the synoptic jumps to Core results.
 
 **Radical prostatectomy (sector map)**
-1. Open MFT26-8804 and press **Map**. The PI-RADS v2.1 sector map shows Grade Group 3 in the right peripheral zone, with extraprostatic extension and a positive margin outlined at the right posterolateral mid-gland.
+1. Open MFT26-8804 (signed in as its Manchester pathologist), or **S26-5407** as Dr. Sarah Johnson (Batch 751: the same map, already in its report), and press **Map**. The PI-RADS v2.1 sector map shows Grade Group 3 in the right peripheral zone, with extraprostatic extension and a positive margin outlined at the right posterolateral mid-gland.
 2. Press **Insert into report**, then change an answer (for example tick another tumour sector). The panel says "Report image is out of date — insert again".
 3. Print or preview the PDF: the map appears after the report body.
 
@@ -291,7 +335,7 @@ After sign-out, a late result doesn't change the report: the order reads "Arrive
 
 1. **Choosing a lab.** MO-2026-0467-02 (MFT26-8801-CR-RES, MSI by PCR, send-out) reads "Choose the reference lab before this order is sent." MSI by PCR has no approved lab, so the list offers every active reference lab. Choose one.
 2. **Reference lab result.** Press **Demo: reference lab → positive**. The order is sent in a referral batch of its own and its result comes straight back, so the row reads "Resulted" and names the referral batch. A real order reads "At the reference lab" while it waits.
-3. **The difference.** As Dr Paul Carter (the case's pathologist), open MFT26-8801's **Colorectal Further Investigations** synoptic: "Microsatellite instability (MSI) status" still says "Microsatellite stable (MSS)", with **Result differs** and "MSI-high (MSI-H)" beside it.
+3. **The difference.** As Dr. Imogen Hartley (the case's pathologist, imogen.hartley@demo.pathscribe.ai), open MFT26-8801's **Colorectal Further Investigations** synoptic: "Microsatellite instability (MSI) status" still says "Microsatellite stable (MSS)", with **Result differs** and "MSI-high (MSI-H)" beside it.
 4. **Sign-out warning.** Try to sign out the case: it asks first ("…differs from the MSI by PCR result…"). You may go on, or press **Use result**.
 5. **HER2.** MO-2026-0403-01 (S26-4401-BX-001, HER2 FISH, Summit): **Demo: reference lab → negative** fills the breast synoptic's HER2 ISH Status with "Non-amplified".
 6. **The plate.** After assigning the EGFR order (steps 1–2 above), open the plate from the queue: well A03 has a corner mark, its tooltip names the order, and clicking it lists the accession and order.

@@ -759,7 +759,7 @@ Unlocks: Keine.
 ## Digitale Pathologie, WSI-Scanner-Integration und Viewer-Einstellungen {#ch4-digital-pathology}
 Breadcrumb: Startseite > Konfiguration > System
 
-Dieser Teil behandelt, was PathScribe heute für die digitale Pathologie bietet. Beachten Sie den Umfang genau. Es gibt zwei Bestandteile. Erstens die Anbieterwörterbücher unter [Anbieterintegrationen](#screen-vendor_integrations), die Listen mit Namen und Webadressen sind. Zweitens die Warteschlange für das Scannen von Objektträgern in der [Chargenverwaltung](#screen-batch-management), die ein Scanverzeichnis an die Schnittstellen-Engine sendet und einen Status zurückerhält. **Nicht umgesetzt:** ein anbieterspezifischer Scannertreiber oder ein Anbieter-Connector. Kein Bildschirm konfiguriert einen Scanner, außer dass er unter [Geräte](#screen-equipment) als Gerät der Art „Objektträgerscanner“ benannt wird. Der Start des Bildviewers ist unter Anbieterintegrationen beschrieben. Die Seite des Mock-Viewers ist nur eine Demonstration.
+Dieser Teil behandelt, was PathScribe heute für die digitale Pathologie bietet. Beachten Sie den Umfang genau. Es gibt zwei Bestandteile. Erstens die Anbieterwörterbücher unter [Anbieterintegrationen](#screen-vendor_integrations), die Listen mit Namen und Webadressen sind. Zweitens die Warteschlange für das Scannen von Objektträgern in der [Chargenverwaltung](#screen-batch-management), die ein Scanverzeichnis an die Schnittstellen-Engine sendet und einen Status zurückerhält. **Nicht umgesetzt:** ein anbieterspezifischer Scannertreiber oder ein Anbieter-Connector. Kein Bildschirm konfiguriert einen Scanner, außer dass er unter [Geräte](#screen-equipment) als Gerät der Art „Objektträgerscanner“ benannt wird. PathScribe hat keinen Objektträger-Viewer: Ein gescannter Objektträger zeigt die Vorschau seines Scanners und öffnet sich in der digitalen Pathologie-Anwendung des Labors, eingerichtet unter **Objektträgerbilder** in den Anbieterintegrationen (Batch 750). Die Seite des Mock-Viewers ist nur eine Demonstration.
 
 ### Anbieterintegrationen {#screen-vendor_integrations}
 Breadcrumb: Startseite > Konfiguration > System > Labormaterialien & Arbeitsabläufe > Anbieterintegrationen
@@ -769,9 +769,9 @@ Breadcrumb: Startseite > Konfiguration > System > Labormaterialien & Arbeitsabl�
 **1. Navigation:** Konfigurationsreiter **System** > Gruppe **Labormaterialien & Arbeitsabläufe**
 **2. Wartungspunkt:** Anbieterintegrationen (vier Kategorien in einer Liste links: Digitale Pathologie / KI, WSI-Viewer, Bildverwaltungssysteme, Zuschnitt- / Makrobildgebung & Telepathologie)
 
-**3. Geschäftszweck und Geltungsbereich.** Ein Bildschirm enthält vier Wörterbücher externer Produkte. Jedes ist eine Liste mit **Hinzufügen**, **Bearbeiten**, **Deaktivieren / Reaktivieren** und einem Schalter **Inaktive anzeigen**. Einträge werden nie gelöscht. Die Listen sind Referenzdaten: Auswahllisten und Links, die andere Teile von PathScribe lesen. Die Listen Digitale Pathologie / KI, Bildverwaltungssysteme und Zuschnitt- / Makrobildgebung sind Namen und Einstellungen, die erfasst und angezeigt werden; das Produkt enthält keinen anbieterspezifischen Connector, der auf sie wirkt. Nur die Liste WSI-Viewer hat eine funktionierende Verwendung: Ihre **Start-URL-Vorlage** wird von einem Fall aus über die Schaltfläche **Im Viewer öffnen** geöffnet.
+**3. Geschäftszweck und Geltungsbereich.** Ein Bildschirm enthält vier Wörterbücher externer Produkte. Jedes ist eine Liste mit **Hinzufügen**, **Bearbeiten**, **Deaktivieren / Reaktivieren** und einem Schalter **Inaktive anzeigen**. Einträge werden nie gelöscht. Die Listen sind Referenzdaten: Auswahllisten und Links, die andere Teile von PathScribe lesen. Die Listen Digitale Pathologie / KI, Bildverwaltungssysteme und Zuschnitt- / Makrobildgebung sind Namen und Einstellungen, die erfasst und angezeigt werden; das Produkt enthält keinen anbieterspezifischen Connector, der auf sie wirkt. Nur die Kategorie WSI-Viewer hat eine funktionierende Verwendung: Ihre Einstellungen **Objektträgerbilder** geben die Adresse an, die einen Objektträger in der digitalen Pathologie-Anwendung des Labors öffnet, und die Adresse der Vorschau des Objektträgers; die **Start-URL-Vorlage** ihrer Liste wird verwendet, wenn dort keine Viewer-Adresse festgelegt ist.
 
-**4. Voraussetzungen und Abhängigkeiten.** Keine außer dem Zugriff der Person. Legen Sie hier einen WSI-Viewer an, bevor Objektträger in einem externen Viewer geöffnet werden können; Scanner-Hardware ist eine eigene Liste (Geräte).
+**4. Voraussetzungen und Abhängigkeiten.** Keine außer dem Zugriff der Person. Legen Sie die Viewer-Adresse unter Objektträgerbilder fest (oder einen WSI-Viewer mit Startvorlage), bevor Objektträger in der Anwendung des Labors geöffnet werden können; Scanner-Hardware ist eine eigene Liste (Geräte).
 
 Setup step: Tier 3, step 9
 Requires: Keine.
@@ -800,10 +800,20 @@ Die Demonstrationsdaten enthalten sechs Einträge: Paige Prostate, Ibex Prostate
 | Feldname | Datentyp / Format | Pflicht/Optional | Beschreibung und Geschäftslogik | Systemstandard |
 |---|---|---|---|---|
 | Name (Anbieter / Produktname) | Text | Pflicht | Speichern ist deaktiviert, wenn leer. | Keiner |
-| Start-URL-Vorlage | Webadresse mit dem Token `{{wsiUniqueId}}` | Optional | PathScribe ersetzt das Token durch die eindeutige ID des Objektträgers und öffnet das Ergebnis in einem Begleitfenster. Eine Warnung erscheint, wenn dem Text das Token fehlt. Ein Eintrag ohne Vorlage zeigt „keine URL konfiguriert“ und kann nicht gestartet werden. | Leer |
+| Start-URL-Vorlage | Webadresse mit dem Token `{{wsiUniqueId}}` | Optional | PathScribe ersetzt das Token durch die Kennung des Objektträgers. Nur verwendet, wenn unter Objektträgerbilder keine Viewer-Adresse festgelegt ist: Der erste aktive Eintrag mit einer verwendbaren https-Adresse öffnet den Objektträger. Eine Warnung erscheint, wenn dem Text das Token fehlt. | Leer |
 | Inaktive anzeigen | Schalter | Optional | | Aus |
 
-Alle Demonstrationseinträge haben eine leere Vorlage, außer `[DEMO ONLY] Sample WSI Viewer`, der auf eine Adresse bei example.com verweist und kein echter Viewer ist.
+Alle Demonstrationseinträge haben eine leere Vorlage (der Demonstrationseintrag mit example.com wurde in Batch 750 entfernt).
+
+#### Objektträgerbilder (WSI-Viewer, über der Liste)
+
+| Feldname | Datentyp / Format | Pflicht/Optional | Beschreibung und Geschäftslogik | Systemstandard |
+|---|---|---|---|---|
+| Viewer-Adresse | https-Webadresse mit `{{slideId}}`, optional `{{accession}}` | Optional | Öffnet den Objektträger in der digitalen Pathologie-Anwendung des Labors, in einem eigenen Fenster, das sich seinen Platz an jedem Arbeitsplatz merkt. Sie darf keinen Benutzernamen, kein Passwort und keinen Patientennamen enthalten; die Anmeldung ist Sache dieser Anwendung. Das Öffnen wird im Auditprotokoll erfasst und erfordert `case:slide-image:open`. | `VITE_SLIDE_VIEWER_URL_TEMPLATE` der Bereitstellung, falls gesetzt |
+| Adresse des Vorschaubilds | https-Webadresse mit `{{slideId}}`, optional `{{accession}}` | Optional | Die Vorschau des Objektträgers aus dem Scanner oder Bildsystem, unverändert angezeigt mit „Referenzvorschau. Nicht für die Diagnose.“, sobald der Objektträger gescannt ist. Fügen Sie ihren Host der Sicherheitsrichtlinie hinzu (img-src). | `VITE_SLIDE_THUMBNAIL_URL_TEMPLATE` der Bereitstellung, falls gesetzt |
+| Einrichtungen mit eigenem System | Eine Einrichtung, dann dieselben zwei Adressen | Optional | Für eine Einrichtung mit eigenem Scanner oder eigener Anwendung; leer: Die Adresse des Labors wird verwendet. | Keiner |
+
+Speichern erfordert `config:vendor-integrations:manage`. Ist keine Viewer-Adresse festgelegt, sieht der Benutzer beim Öffnen eines Objektträgers „Es ist keine Viewer-Adresse festgelegt. Wenden Sie sich an Ihre Administration.“. Jeder Arbeitsplatz legt im Arbeitsplatzmenü fest, wo sich das Objektträgerfenster öffnet (Fenster für Objektträgerbilder, Position festlegen).
 
 #### Bildverwaltungssysteme (Fenster Hinzufügen und Bearbeiten)
 

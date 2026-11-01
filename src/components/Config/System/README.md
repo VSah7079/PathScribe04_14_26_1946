@@ -1745,3 +1745,7 @@ Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): the AI instructions t
 ## Batch 732
 
 - Batch 732: Equipment window, "Takes large-format slides" for stainers and slide scanners (`EquipmentSection.css`, new).
+
+## Batch 750
+
+- `SlideImageSettingsCard.tsx` (new), at the top of the WSI Viewers section (`WsiViewerVendorDictionarySection.tsx`): the laboratory's viewer and preview addresses, and a facility's own; saved through the enterprise settings (`config:vendor-integrations:manage`). The section's inactive marker no longer joins text with a hard-coded dot.

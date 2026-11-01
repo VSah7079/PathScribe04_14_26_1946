@@ -23,7 +23,7 @@
 // Not to be confused with constants/systemActions.ts (ACTION_GROUPS): those
 // are the voice and keyboard commands, which are not access control.
 // ─────────────────────────────────────────────────────────────────────────────
-import { LOCKBOX_CAPABILITIES } from './lockboxCapabilities'; import { BATCH_CARRIER_CAPABILITIES } from './batchCarrierCapabilities'; import { LAB_WORKFLOW_REPORT_CAPABILITIES } from './labWorkflowReportCapabilities'; import { MATERIAL_LIFECYCLE_CAPABILITIES } from './materialLifecycleCapabilities'; import { PRINTING_POLICY_CAPABILITIES } from './printingPolicyCapabilities'; import { BENCH_REASON_CAPABILITIES } from './benchReasonCapabilities'; import { CYTOLOGY_PREP_CAPABILITIES } from './cytologyPrepCapabilities'; import { CASE_ATTACHMENT_CAPABILITIES } from './caseAttachmentCapabilities';
+import { LOCKBOX_CAPABILITIES } from './lockboxCapabilities'; import { BATCH_CARRIER_CAPABILITIES } from './batchCarrierCapabilities'; import { LAB_WORKFLOW_REPORT_CAPABILITIES } from './labWorkflowReportCapabilities'; import { MATERIAL_LIFECYCLE_CAPABILITIES } from './materialLifecycleCapabilities'; import { PRINTING_POLICY_CAPABILITIES } from './printingPolicyCapabilities'; import { BENCH_REASON_CAPABILITIES } from './benchReasonCapabilities'; import { CYTOLOGY_PREP_CAPABILITIES } from './cytologyPrepCapabilities'; import { CASE_ATTACHMENT_CAPABILITIES } from './caseAttachmentCapabilities'; import { SLIDE_IMAGE_CAPABILITIES } from './slideImageCapabilities'; import { ORGAN_MAP_DELIVERY_CAPABILITIES } from './organMapDeliveryCapabilities'; import { DEMO_CHECKLIST_CAPABILITIES } from './demoChecklistCapabilities';
 import { WORKFLOW_CAPABILITIES } from './workflowCapabilities'; import { INTRAOP_CAPABILITIES } from './intraopCapabilities'; import { MOLECULAR_CONTROL_RULES_CAPABILITIES } from './molecularControlRulesCapabilities';
 export type CapabilityRisk = 'high' | 'standard';
 export type CapabilityGroupId =
@@ -301,7 +301,7 @@ export const CAPABILITY_CATALOG = [
   // Batch 404 and 726: Batch Management's overrides and carriers at the workstations (batchCarrierCapabilities.ts).
   ...BATCH_CARRIER_CAPABILITIES,
   ...LAB_WORKFLOW_REPORT_CAPABILITIES, // Batch 730: lab workflow reports (labWorkflowReportCapabilities.ts).
-  ...MATERIAL_LIFECYCLE_CAPABILITIES, ...PRINTING_POLICY_CAPABILITIES, ...BENCH_REASON_CAPABILITIES, ...CYTOLOGY_PREP_CAPABILITIES, ...CASE_ATTACHMENT_CAPABILITIES, // Batch 731: end states and re-embedding; 734: direct printing; 736: bench reasons; 740: cytology preparation; 742: case attachments.
+  ...MATERIAL_LIFECYCLE_CAPABILITIES, ...PRINTING_POLICY_CAPABILITIES, ...BENCH_REASON_CAPABILITIES, ...CYTOLOGY_PREP_CAPABILITIES, ...CASE_ATTACHMENT_CAPABILITIES, ...SLIDE_IMAGE_CAPABILITIES, ...ORGAN_MAP_DELIVERY_CAPABILITIES, ...DEMO_CHECKLIST_CAPABILITIES, // Batch 754: removing the demonstration checklists. Batch 751: organ map delivery. Batch 750: opening a slide in the lab's own application. Batch 731: end states and re-embedding; 734: direct printing; 736: bench reasons; 740: cytology preparation; 742: case attachments.
   // Batch 432: recording where a referral batch is (in transit, delivered).
   { key: 'referral:transit-status:update', labelId: 'referralTransitStatusUpdate', group: 'casework', risk: 'high', requires: [] },
   // Batch 434 (Pete): WSI scan batches. Loading slides from the scanning queue

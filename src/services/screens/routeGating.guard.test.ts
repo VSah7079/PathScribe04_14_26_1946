@@ -20,6 +20,7 @@ const OPEN_ROUTES: Record<string, string> = {
   '/critical-alert/:token': 'critical-value acknowledgement link; the token is the check',
   '/or-suite-dashboard': 'station display on a wall screen (no sign-in by design)',
   '/facility-ops-dashboard': 'station display on a wall screen (no sign-in by design)',
+  '/window-position': 'Batch 750: Save position for a remembered window; holds no patient data, records only where the window sits',
   '/cytology-qc-queue': 'redirect to the Worklist view, which is gated',
   '/surgical-qa-worklist': 'redirect to the Worklist view, which is gated',
   '/case/:caseId/synoptic': 'case page: per-case access check (synopticLoader / resolveCaseAccessGate)',

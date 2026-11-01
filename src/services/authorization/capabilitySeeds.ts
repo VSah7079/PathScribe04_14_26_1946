@@ -201,7 +201,7 @@ const AUTOPSY_RELEASE = ['autopsy:body:release'];
 // print one before (the roles with case access, built-in and a hospital's own).
 const REPORT_PRINT = ['report:case-report:print'];
 // Batch 609 (PS-44): attaching images to a case report, for the same case-access roles.
-const REPORT_IMAGES = ['report:case-images:attach', 'case:attachment:upload', 'case:attachment:link', 'case:attachment:unlink']; // Batch 742: and the case's attachments, same roles
+const REPORT_IMAGES = ['report:case-images:attach', 'case:attachment:upload', 'case:attachment:link', 'case:attachment:unlink', 'case:slide-image:open']; // Batch 742: and the case's attachments, same roles; Batch 750: opening a slide in the lab's own application
 // Batch 613: related cases at sign-out are the signer's decision (Pathologist, Fellow); the Patient summary print is for the case-access roles that can read patient history.
 const RELATED_CASES = ['report:related-cases:attach'];
 const PATIENT_SUMMARY = ['patient:summary:print'];

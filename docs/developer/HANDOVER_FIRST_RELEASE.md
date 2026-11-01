@@ -2,6 +2,8 @@
 
 *Written October 26, 2026 (Batch 698), for the development team and the technical writers. Plain language; no programming needed to follow the status tables.*
 
+*Updated October 31, 2026 (Batches 752 to 754): section 3's figures, new rows in sections 4 and 7, section 9 (what changed in Batches 699 to 751) and section 10 (the demo's slide images, hosted in Cloudflare R2 since Oct 31). Rows added on Oct 31 are marked (Oct 31).*
+
 This replaces nothing and extends the older notes. Read it first; it points to the detail:
 
 | Older note | What it still covers |
@@ -42,8 +44,9 @@ Two related rules:
 
 | Measure | Value | Where it comes from |
 |---|---|---|
-| Latest batch | 698 (this note) | Batch changelog, `src/i18n/README.md` |
-| Automated tests (Batch 696 run) | 1,840 files passed, 4 skipped; 15,370 tests passed, 11 skipped | Full vitest run |
+| Latest batch | 752 (this update; 698 when first written) | Batch changelog, `src/i18n/README.md` |
+| Automated tests (Batch 751 run, Oct 31) | 1,939 files: 1,924 passed, 11 failed, 4 skipped; 16,156 tests: 16,112 passed, 11 failed, 33 skipped. The 11 failures are the same in every run since Batch 746: tests that read files kept outside Claude's working copy (`functions/`, `deploy/`, the CI and `e2e/` files) and the Firestore emulator tests. Confirm they pass in the full repository | Full vitest run |
+| Automated tests (Batch 696 run, Oct 26) | 1,840 files passed, 4 skipped; 15,370 tests passed, 11 skipped | Full vitest run |
 | Jira work items open (not Done) | 164 | Jira, Oct 26 (Tests and Test Executions excluded) |
 | of those: In Review | 93 (7 bugs, 53 stories, 33 tasks) | Waiting for Pete to verify and close |
 | of those: To Do | 70 (12 epics, 24 stories, 34 tasks) | See the work list |
@@ -54,7 +57,7 @@ Two related rules:
 | Regulatory Compliance Guide | 8 chapters, readiness matrix at Batch 678 | `docs/compliance-guide/` |
 | Intended Use Statement | Final Version with Coding Policy; rated against the code in the patent disclosure v3 | `docs/ip-and-legal/` and the disclosure |
 
-The Jira counts were read directly on October 26; they will have moved by the time you read this. Re-run the saved filter `project = PS AND statusCategory != Done` to refresh.
+The Jira counts were read directly on October 26 and were not re-read on October 31 (Jira updates are on hold); they will have moved by the time you read this. Re-run the saved filter `project = PS AND statusCategory != Done` to refresh.
 
 ## 4. Remaining work, by workstream
 
@@ -81,6 +84,15 @@ The work list holds every ticket. These tables show the shape. "Verify" means: o
 | Background template re-check on Save Draft in Orchestration mode | `GAP_REGISTER.md` A.3 | Product decision: build or leave Gross Complete as the check. |
 | Browser check of the omission rule for unconfirmed optional AI values (sign-out and Gross Complete) | none | Built in Batch 696 and earlier; not click-tested. Server contract in `docs/product/REGULATORY_PROFILE.md` is not built. |
 | Batch 696 screens (code provenance in the Codes window) | none | Tested by unit tests and captured on the demo with a stand-in AI reply; not tried against a real model. |
+| (Nov 1) Slide image addresses in the demo build | none | Open. Images uploaded and live at `https://slides-demo.formedrix.ai` (Nov 1). The two `VITE_SLIDE_*` variables still need setting on the demo project, which is not under Pete's Vercel login: the development team sets them (values in `docs/product/SLIDE_IMAGE_DEMO.md` section 10) and redeploys. |
+| (Oct 31) Allow the demo slide host in the security policy | none | Open. Add `https://slides-demo.formedrix.ai` to `img-src` in `deploy/security-headers/` and regenerate `vercel.json`; until then the slide previews stay blank (section 10). |
+| (Oct 31) Placeholder answers ("Option N") on the generic checklists | none | Colon (Batch 738) and the prostate needle biopsy and radical prostatectomy (Batch 753) now have PathScribe's own wording, not CAP or RCPath text. 16 other generic templates still have placeholders, and some older demo cases' descriptions use the scrubbed words ("Primary finding, usual type", "units"): S26-4412, MFT26-8802-PR-BX, MPA26-1003-PRO. |
+| (Oct 31) Demonstration checklists kept out of customer areas | none | Batch 754: `npm run build:server` leaves the 19 demonstration checklists out and fails if one is in it; ForMedrixAI support removes them per organisation in the app. Server side: `POST /api/templates/remove-demo-checklists` (contract in `docs/architecture/DEMO_CHECKLISTS.md`, used by `scripts/remove-demo-checklists.mjs`) is not built. |
+| (Oct 31) Demo checklist names, tag and copy refusal | none | Batch 755a: plain names with a "Demo wording" tag; no copy (Duplicate, New Version, Build from existing) may start from a tagged checklist, refused in `templateService.saveDraft` too; A26-4665/4666 carry the autopsy checklist; S26-4404, MFT26-8804 and MFT26-8802 findings reworded. Open (Batch 755b): rewording the other 16 checklists, breast invasive first; the server API must apply the same refusal when it saves a copy. |
+| (Nov 1) Real people and places in the demo data | none | Batch 755b part 1: the Manchester demo pathologist PATH-UK-001 is the fictional Dr. Imogen Hartley; Paul Carter (UK workflow adviser, not a physician) signs in to his own record UK-ADV-001. Open for Pete: real hospital and trust names in the Manchester demo (Wythenshawe Hospital, Manchester Royal Infirmary, North Manchester General, `mft.nhs.uk`), and demo staff with clinical credentials who may be real people (Bronwyn Prior and Dr. Oliver Pemberton at Manchester, Amber Fehrs-Battey with an NPI and licence, Dr. J. Mark Tuthill, Dr. Mani Menon as a requesting surgeon). |
+| (Oct 31) Slide image window on a real multi-monitor workstation | none | Batch 750 was tested in headless Chromium on one virtual screen only. |
+| (Oct 31) Station screens on a real iPad with a keyboard-wedge scanner, with gloves | none | Batch 735 was checked in desktop Chromium; `STATION_TOUCH.md` requires this before any material calls a screen touch-ready. |
+| (Oct 31) "Microtome" wording: screenshots and the other five languages | none | Batch 724 changed English only; the User Guide pictures and the Korean Admin Guide glossary still show "Microtomy". |
 
 ### 4.2 Server work (India team)
 
@@ -105,6 +117,13 @@ None of this exists in the repository. The browser side and the contract are don
 | BI reporting API | PS-787 | `BI_FEED_API.md` |
 | Live LIS fetch and legacy migration | PS-263, PS-264, PS-87 | `LIS_INGESTION_API.md` |
 | Live-update hosting: managed SignalR service or event subscriptions | PS-539 | Open decision (`GAP_REGISTER.md` A.9) |
+| (Oct 31) Station tracking: carriers, station scan events, the scan trail | none | `STATION_TRACKING_API.md`, `CASE_WORKFLOWS_API.md` (Batches 726 to 729) |
+| (Oct 31) BI feed for the Lab Workflow Reports; build and test the Power BI template (.pbit) from the written queries | PS-787 | `BI_FEED_API.md`, `docs/product/powerbi/` (Batch 730) |
+| (Oct 31) Server print routes honour each facility's direct-printing switch | none | Batch 734 notes |
+| (Oct 31) Store and return the Reason Dictionary codes on add-on exceptions, batch aborts, overrides and cold-chain records | none | `LAB_DICTIONARIES_API.md` §7 (Batch 736) |
+| (Oct 31) Accept the processor named in the instrument order, and run the HPV-aliquot data migration | none | `INTERFACE_TRANSACTIONS.md`, `CASE_WORKFLOWS_API.md` (Batch 739) |
+| (Oct 31) Case attachments: the storage adapter and its three endpoints (pre-signed uploads) | none | `services/caseAttachments/`, Batch 742 notes |
+| (Oct 31) Draw the organ map file on the server at release, and deliver it through the interface engine | none | `SYNOPTIC_RESULT_API.md` §4a, `ORGAN_MAPPING_API.md` (Batch 751). Today the browser draws it, so a release with no page open queues it as held |
 
 The six blockers in section 12 of the deployment readiness review are all server work. Pete's rule for the order: finish the front-end tickets, then the serverless and deployment-readiness work (PS-539), then the Actions list (PS-357) last.
 
@@ -126,6 +145,11 @@ The six blockers in section 12 of the deployment readiness review are all server
 | Replacement name for "CoPilot" mode | Oct 17 decision | Marketing and guides use a working name |
 | Seeded retention figures marked unverified (CAP, RCPA) | `GAP_REGISTER.md` A.9 | Flag stays |
 | Whether a read-only "documentation author" role is worth building (the technical writers hold Admin and Pathologist today) | Batch 697 | Writers can sign out demo cases |
+| (Oct 31) AI per slide from a digital pathology system: does a finished AI result open anything, and do its orders show in the discordance and stalled reports | Batch 750 | Questions raised on Oct 31; nothing built for them yet |
+| (Oct 31) Delete the old mock WSI Viewer page, and retire the WSI vendor dictionary now that Slide images replaces it | Batch 750 | Both stay in the code |
+| (Oct 31) "Approve Destructive Cutting" is still offered on a Block exhausted flag | Batch 733 | Stays offered |
+| (Oct 31) The Pending Intake wall tile lists every unbatched block and slide, so it is long | Batch 747 | Stays long |
+| (Oct 31) Organ map file formats for a real site | Batch 751 | Settle with the first customer (PNG or one-page PDF today) |
 
 ### 4.4 Outside parties: licences, vendors, people
 
@@ -190,6 +214,8 @@ From `KNOWN_GAPS.md`: `api/`, `api.zip` and raw logo source art stay out of the 
 - **Guides:** `python3 scripts/user-guide/build.py`; `python3 scripts/admin-guide/build.py --langs=en --publish`. Screenshots: `scripts/user-guide/capture.cjs` and `scripts/admin-guide/capture.mjs` (start the app with `npx vite --port 5179`).
 - **Server build:** `npm run build:server` leaves the demo accounts and mocks out and fails if they remain.
 - **Review tests:** [`../quality/PLAYWRIGHT_REVIEW_GUIDE.md`](../quality/PLAYWRIGHT_REVIEW_GUIDE.md).
+- **(Oct 31) Demo slide images:** hosted at `https://slides-demo.formedrix.ai` (Cloudflare R2), set in Vercel Production as `VITE_SLIDE_VIEWER_URL_TEMPLATE` and `VITE_SLIDE_THUMBNAIL_URL_TEMPLATE`. Rebuilt with `scripts/Setup-PathScribeSlideDemo.ps1`. Section 10.
+- **(Oct 31) Demo seed data for the videos:** rows S1 to S15 are in [`../product/DEMO_SEED_DATA.md`](../product/DEMO_SEED_DATA.md); an existing browser needs one **Full Reset** to load each new set.
 
 ## 8. What this note does not claim
 
@@ -198,3 +224,34 @@ From `KNOWN_GAPS.md`: `api/`, `api.zip` and raw logo source art stay out of the 
 - The Batch 696 and 697 changes have not been click-tested in a browser beyond the screenshots taken for the patent disclosure.
 - Server contracts exist for each area but have not been implemented, so they have not been proven against a real server.
 - Counts of capabilities, screens and translations elsewhere in the docs were not re-counted here.
+- (Oct 31) Batches 699 to 751 were checked with automated tests and in a headless browser, not on real lab hardware (printers, scanners, touch screens, several monitors). Section 9 was written from the batch changelog and `docs/product/GUIDE_UPDATES.md`, not re-checked screen by screen.
+- (Oct 31) The R2 upload and the Vercel settings in section 10 were done on Pete's computer with the script; Claude did not see the finished upload.
+
+## 9. What changed since this note was written (Batches 699 to 751, Oct 27 to 31)
+
+Detail for each batch: the changelog in `src/i18n/README.md` and the four-voice entries in `docs/product/GUIDE_UPDATES.md` (whose "FormedrixAI and partners" paragraph lists what is not built). Everything below runs in the demo build against the browser's mock services; the server side of each is a written contract or not yet written.
+
+| Area | Batches | What changed |
+|---|---|---|
+| AI wording and the Intended Use Statement | 699, 706 | The origin line under an AI-suggested code says "checked origin", never "verified". AI confidence percentages are removed from every clinical screen, with a guard test. |
+| Oct 28 feedback round | 700, 703 to 718 | Guides caught up to Batch 699; Worklist context and columns; stain origin tags; plain birth and LMP dates; Margin Exception Review moved to Quality & Compliance; shorter tile text; password reset request; downtime reason required; stations limited to the user's facilities; Clinical Indication provenance; letters or numbers for specimens, blocks and slides; feedback destination. |
+| Grossing and Accession | 720, 721 | A Grossing tile and bench tools, required marks, labels print on save; Accession in two columns on a wide window. |
+| User Guide | 722, 723, 725 | Home article line and paste box documented; Home picture replaced; the in-app guide scrolls. |
+| Wording | 724 | "Microtome", not "Microtomy", in English. |
+| Lab Workflow and Batch Management spec | 726 to 737 | Carriers at the workstations and every station scan recorded; add-ons, one time limit and a Stations view on the wall displays; research cases and batch purposes; matrix blocks at every bench, scan history, stopped work; Lab Workflow Reports, the reporting feed and a Power BI kit; the exhausted-block rule, item end states and lineage; megablocks and multi-piece blocks with piece maps; ad-hoc carriers move without asking; direct browser printing off unless a facility allows it; station screens by touch; bench reasons in the Reason Dictionary; add-ons on a matrix block. |
+| Cytology fluids and aliquots | 739 to 741 | Aliquots as their own type, ThinPrep and SurePath alike, a vendor-neutral processor, cytospin suggestions; a Cytology Preparation bench with a scanned cell block hand-off to histology; Divide specimen and aliquot tracking to Result back. |
+| Case attachments | 742, 743 | PDF, JPG and PNG attachments, with images printed inside their report section; on an Assist case attachments are references only. The storage adapter's server endpoints are not built. |
+| Demo seed data for the videos | 738, 744 to 749 | Seed rows S1 to S14 from Pete's "Demo Seed Data Requirements": a sign-out-ready colon case, surgical orders, simulated printers and preset stations, demo users per role, fluid and FNA cases, autopsy, molecular, wall display profiles, batches in every step, block types, GYN volume. |
+| Slide images | 750 | A reference preview on each slide and an **Open slide** action that opens the lab's own digital pathology application in a remembered window (capability `case:slide-image:open`, audited). PathScribe has no slide viewer. Demo images: section 10. |
+| Organ maps on Assist cases | 751 | On an Assist case the map is never placed in the report (the laboratory system writes it); a per-site setting (Off, Text only, Text and image file) sends the map to the laboratory system, with delivered and failed examples in the outbound queue. Seed row S15. |
+
+## 10. Demo hosting: slide images (Oct 31, 2026)
+
+Full steps and the record of what was set up: [`../product/SLIDE_IMAGE_DEMO.md`](../product/SLIDE_IMAGE_DEMO.md), sections "The quick way" and 10.
+
+- **Where the images are:** Cloudflare R2 bucket `pathscribe-demo-slides`, public at `https://slides-demo.formedrix.ai`. Three slides (S26-5404-B1-L1, C1-L1, C1-L2), from CAMELYON16 (CC0), with a licence note beside each preview. The two breast slides are not uploaded.
+- **How the demo finds them:** two Vercel environment variables, **Production only**: `VITE_SLIDE_VIEWER_URL_TEMPLATE` = `https://slides-demo.formedrix.ai/viewer/index.html?slide={{slideId}}` and `VITE_SLIDE_THUMBNAIL_URL_TEMPLATE` = `https://slides-demo.formedrix.ai/previews/{{slideId}}.jpg`.
+- **When Vercel is updated:** nothing to redo. The variables stay in the project's settings for every deploy. Don't remove or rename them. Add them for **Preview** too if preview builds should show slide images. They are read at build time, so a change needs a redeploy.
+- **Still to do:** add `https://slides-demo.formedrix.ai` to `img-src` in `deploy/security-headers/` and regenerate `vercel.json` (section 4.1); until then the previews are blank, though the demonstration page opens.
+- **To rebuild or add slides:** `scripts/Setup-PathScribeSlideDemo.ps1` (Windows). It asks for an R2 API token's keys while it runs and stores none. The images are not in the repository.
+- **For a customer:** the same two settings (or Configuration → WSI Viewers → Slide images) point at the site's own digital pathology application. The demo host is for demonstrations only.

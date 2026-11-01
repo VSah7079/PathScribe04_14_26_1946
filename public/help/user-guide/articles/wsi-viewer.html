@@ -1,22 +1,16 @@
-<h1 id="top">WSI Viewer</h1>
+<h1 id="top">Slide Images</h1>
 <h2 id="overview">Overview</h2>
-<p><strong>Purpose.</strong> The WSI Viewer page is a stand-in for the window in which a laboratory's whole-slide-image viewer would show a digital slide. It reads the case it is given and shows the accession, the patient and the specimen, and a grey box where the slide image would be. It is a <strong>demonstration page</strong>. It does not show a slide image, and it cannot zoom or pan.</p>
-<p><strong>Intended users.</strong> People demonstrating, testing or training on PathScribe. A pathologist or cytotechnologist who wants to open a real digital slide does not use this page; they use the <strong>Launch in Viewer</strong> button, which opens the laboratory's own viewer (see Alternative workflow).</p>
-<p><strong>Where it fits.</strong> Digital slides start at the <a href="/help/workstations/slide-distribution">Slide Distribution Station</a>, pass through <a href="/help/batch-management/wsi-scan">WSI Scan</a> in Batch Management, and are then read in a viewer. The viewer is a separate product that the laboratory connects through the Administrator Guide's vendor settings. PathScribe does not store or draw slide images itself.</p>
+<p><strong>Purpose.</strong> PathScribe has no slide viewer of its own. For a slide that has been scanned it shows a small <strong>reference preview</strong>: the picture your laboratory's scanner or image system made of the slide, shown as it arrived. Selecting the preview opens the slide in your laboratory's own digital pathology application, in a separate window that remembers where you put it. A slide without an image says where it is instead: <strong>No image yet</strong>, <strong>Queued</strong>, <strong>Scanning</strong>, <strong>Scan failed</strong> or <strong>Failed image quality</strong>.</p>
+<p><strong>Intended users.</strong> Pathologists in the block and stain window of a case, cytotechnologists screening cytology slides scanned as whole-slide images, and anyone who sets up a workstation.</p>
+<p><strong>Where it fits.</strong> Slides go from the <a href="/help/workstations/slide-distribution">Slide Distribution Station</a> to the scanner through <a href="/help/batch-management/wsi-scan">WSI Scan</a>. Once a slide is scanned, its preview appears beside it; the slide itself is read in your laboratory's digital pathology application, which has its own sign-in.</p>
 <div class="admonition warning">
-<p class="admonition-title">A demonstration page, not a viewer</p>
-<p>The page carries its own notice at the top: "Mock WSI viewer — no real image server exists in this environment. This is a real, honest placeholder for where a real digital pathology viewer would render this specimen's own real slide." Never use it to review a slide for a diagnosis. In a production installation the page is not present at all.</p>
+<p class="admonition-title">Reference preview. Not for diagnosis.</p>
+<p>Every preview carries this note. The preview is a small picture for recognising the slide. PathScribe does not change it in any way: no cropping, sharpening or analysis. Read the slide in your laboratory's digital pathology application.</p>
 </div>
 <h2 id="screen-tour">Screen Tour</h2>
-<figure class="ps-ug-figure"><img src="img/wsi-viewer-overview.png" alt="The WSI Viewer demonstration page with its notice, the case line and the placeholder slide surface"><figcaption>The WSI Viewer demonstration page with its notice, the case line and the placeholder slide surface</figcaption></figure>
+<figure class="ps-ug-figure"><img src="img/wsi-viewer-overview.png" alt="A slide in the block and stain window with its reference preview and the note Reference preview. Not for diagnosis."><figcaption>A slide in the block and stain window with its reference preview and the note Reference preview. Not for diagnosis.</figcaption></figure>
 
-<p>The page has no menu, toolbar or buttons. From the top it shows:</p>
-<ol>
-<li>A notice bar, with the text quoted above.</li>
-<li>A case line: the accession number in bold, then "— Specimen A" (the label of the case's first specimen), then the patient name.</li>
-<li>A large box reading "[ Real WSI slide surface — pan/zoom would render here ]". This is a placeholder. Nothing can be done in it.</li>
-</ol>
-<p>The page learns which case to show from the web address it is opened with (a case identifier added to the end). Nothing in the application's menus opens it that way today, so you reach it only by being given the address. Without a case it shows "No case specified."; with a case that cannot be found it shows "No case found for '…'."</p>
+<p>The preview sits beside each slide in the block and stain window of the <a href="/help/report">report</a> (select <strong>Edit</strong> in a block row), and on the bar of the <a href="/help/cytology/screening-case">Cytology Screening Case</a> when the case is screened on whole-slide images. While PathScribe looks up the slide it shows "Loading slide image…".</p>
 <h3 id="field-definitions">Field definitions</h3>
 <table>
 <thead>
@@ -27,29 +21,41 @@
 </thead>
 <tbody>
 <tr>
-<td>Notice bar</td>
-<td>States that this is a demonstration. Always shown.</td>
+<td>Reference preview</td>
+<td>The small picture of the slide from the scanner or image system. Its description for screen readers reads "Reference preview of slide" and the slide's identifier. Select it to open the slide.</td>
 </tr>
 <tr>
-<td>Accession</td>
-<td>The case's accession number.</td>
+<td>Reference preview. Not for diagnosis.</td>
+<td>The note shown beside every preview.</td>
 </tr>
 <tr>
-<td>Specimen</td>
-<td>The first specimen on the case. Other specimens are not shown, even when the case has several.</td>
+<td>Open slide</td>
+<td>Shown instead of a picture when the slide is scanned but no preview picture is available. Opens the slide.</td>
 </tr>
 <tr>
-<td>Patient name</td>
-<td>Shown last name first, then first name, as recorded on the case.</td>
+<td>No image yet</td>
+<td>The slide has not gone to a scanner.</td>
 </tr>
 <tr>
-<td>Slide surface</td>
-<td>A placeholder box. No image is loaded.</td>
+<td>Queued</td>
+<td>The slide is in the scanning queue.</td>
+</tr>
+<tr>
+<td>Scanning</td>
+<td>The slide is loaded on a scanner.</td>
+</tr>
+<tr>
+<td>Scan failed</td>
+<td>The scanner could not scan the slide; it is back in the scanning queue.</td>
+</tr>
+<tr>
+<td>Failed image quality</td>
+<td>The slide was scanned but the image failed the quality check; it is back in the scanning queue. The preview is still shown, so you can see the problem, and you can still open the slide.</td>
 </tr>
 </tbody>
 </table>
 <h3 id="toolbar">Toolbar</h3>
-<p>None. The page has no buttons.</p>
+<p>None. The preview is the only control.</p>
 <h3 id="icons-and-status-indicators">Icons and status indicators</h3>
 <table>
 <thead>
@@ -60,86 +66,81 @@
 </thead>
 <tbody>
 <tr>
-<td>Notice bar at the top</td>
-<td>The page is a demonstration.</td>
+<td>Grey label</td>
+<td>The slide's image state (No image yet, Queued, Scanning).</td>
 </tr>
 <tr>
-<td>"No case specified."</td>
-<td>The address has no case.</td>
+<td>Amber label</td>
+<td>Scan failed, or Failed image quality.</td>
 </tr>
 <tr>
-<td>"No case found for '…'."</td>
-<td>The case named in the address does not exist.</td>
-</tr>
-<tr>
-<td>Loading indicator</td>
-<td>The case is being looked up.</td>
+<td>Red message</td>
+<td>The slide could not be opened. The message says why (see Error recovery).</td>
 </tr>
 </tbody>
 </table>
 <h3 id="hotkeys">Hotkeys</h3>
-<p>None. This page has no keys or spoken commands of its own. F1 opens this help article.</p>
+<p>None of its own. Tab moves to the preview; Enter or Space opens the slide. F1 opens this help article.</p>
 <h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
 <h3 id="standard-workflow">Standard workflow</h3>
-<p>This is how to see the demonstration page, for trainers and testers only.</p>
 <ol>
-<li>Sign in on an installation that includes the demonstration tools. If your installation is a production one, the address opens the sign-in page or nothing at all; stop here.</li>
-<li>Open the address that was given to you for the viewer window, with the case named in it. The notice bar appears at once.</li>
-<li>Wait for the loading indicator to clear. The case line shows the accession, the first specimen and the patient name.</li>
-<li>Read the placeholder box. Close the window when you are done.</li>
+<li>Open the case in the <a href="/help/report">report</a> screen and select <strong>Edit</strong> in the block row. The block and stain window lists the slides on each block, each with its preview or image state.</li>
+<li>Find the slide by its identifier (for example S26-5404-B1-L1) and its preview.</li>
+<li>Select the preview. Your laboratory's digital pathology application opens in its own window on that slide. Sign in to it if it asks; that sign-in belongs to the other application, not to PathScribe.</li>
+<li>Select the next slide's preview. The same window moves to that slide.</li>
 </ol>
+<p>PathScribe records each opening in the audit log: who opened which slide, and when.</p>
 <h3 id="alternative-workflow">Alternative workflow</h3>
-<p>This is how a pathologist or cytotechnologist opens a real digital slide.</p>
+<p><strong>Setting where the slide window opens on this workstation.</strong></p>
 <ol>
-<li>Open the case in the <a href="/help/report">report</a> screen and select <strong>Edit</strong> in the block row. The block and stain window lists the slides on each block.</li>
-<li>Look for the <strong>Launch in Viewer</strong> button beside a slide. It appears only when the slide is Coverslipped or Ready for Review, and the laboratory has at least one active viewer set up. In cytology screening, the same button appears on a case worked in whole-slide-image mode (see <a href="/help/cytology/screening-case">Cytology Screening Case</a>).</li>
-<li>If the laboratory set up more than one viewer, choose the viewer in the small list beside the button.</li>
-<li>Select <strong>Launch in Viewer</strong>. The viewer opens in a separate window, on the slide named by the slide's identifier. PathScribe remembers where you put that window.</li>
-<li>If a small warning mark appears beside the button, hold the pointer over it to read the reason. If the browser says "Popup blocked — please allow popups for this site and try again", allow pop-ups for PathScribe and select the button again.</li>
+<li>Select the station button in the top bar (the pin with the station name). The workstation menu opens.</li>
+<li>Under <strong>Slide image window</strong>, select <strong>Set position…</strong>. The slide image window opens with instructions.</li>
+<li>Drag the window to the screen and place where slides should open, and size it.</li>
+<li>Select <strong>Save position</strong>. The window reads "Position saved for this workstation. You can close this window." Select <strong>Close</strong>.</li>
 </ol>
+<p>In Chrome and Edge the browser may ask whether PathScribe may manage windows on all your displays. Allow it: the window then comes back on the screen you chose, and if that screen is not connected later, it opens on the main screen. In other browsers the window opens at the saved place. The position also updates by itself when you move the slide window.</p>
 <h3 id="exception-handling">Exception handling</h3>
 <ol>
-<li><strong>The Launch in Viewer button is missing.</strong> The slide is not yet Coverslipped or Ready for Review, it has no identifier, or no viewer is active in the settings.</li>
-<li><strong>The warning mark says no launch address is configured.</strong> The viewer you chose has no address set. Ask your administrator to complete the vendor settings, or choose another viewer.</li>
-<li><strong>The address is missing its slide placeholder.</strong> The vendor's address was entered without the place where the slide identifier goes. The slide would not open on the right image, so PathScribe refuses to open it. Ask your administrator.</li>
-<li><strong>The demonstration viewer opens a sample page.</strong> One entry in the viewer list is marked as a demonstration. It opens a sample address, not your slide.</li>
+<li><strong>"No viewer address is set. Ask your administrator."</strong> Your laboratory has not set the address of its digital pathology application. Your administrator sets it in the Administrator Guide's slide image settings.</li>
+<li><strong>"You don't have permission to open slide images."</strong> Your role does not include opening slide images. Ask your administrator.</li>
+<li><strong>No preview picture, but Open slide.</strong> The scanner's preview could not be loaded. Open the slide with <strong>Open slide</strong>.</li>
+<li><strong>Failed image quality.</strong> The slide goes back for rescanning. The preview shows the failed image; do not rely on it.</li>
 </ol>
 <h3 id="error-recovery">Error recovery</h3>
 <ol>
-<li>If the page shows "No case specified.", the address is incomplete. Open it again from the instructions you were given.</li>
-<li>If it shows "No case found for '…'.", check the accession or case identifier in the address.</li>
-<li>If the window opens blank, check that pop-ups are allowed and close and reopen it.</li>
-<li>If the viewer opens at the wrong slide, close it, check the slide identifier on the slide list against the glass, and tell your administrator the vendor, the slide and the time.</li>
+<li><strong>"Your browser blocked the slide window."</strong> Select the blocked pop-up icon at the end of the address bar, choose to always allow pop-ups from PathScribe, then select the slide again.</li>
+<li><strong>The window opens on a screen you cannot see.</strong> Use <strong>Set position…</strong> in the workstation menu to place it again.</li>
+<li><strong>The application opens on the wrong slide.</strong> Close it, check the slide identifier against the glass, and tell your administrator the slide and the time.</li>
 </ol>
 <h2 id="tips-and-best-practices">Tips and Best Practices</h2>
 <h3 id="common-mistakes">Common mistakes</h3>
 <ul>
-<li>Treating the placeholder box as an image that has failed to load. It never contains an image.</li>
-<li>Expecting the demonstration page to appear in production. It does not.</li>
-<li>Choosing the demonstration viewer in the list when a real one is set up.</li>
-<li>Clicking <strong>Launch in Viewer</strong> repeatedly when a pop-up has been blocked. Allow pop-ups once.</li>
+<li>Treating the preview as the slide. It is a small picture for recognising the slide.</li>
+<li>Selecting the preview repeatedly when the pop-up was blocked. Allow pop-ups once.</li>
+<li>Moving the slide window to a screen that is often unplugged. Save its position on a screen that is always there.</li>
 </ul>
 <h3 id="efficiency-recommendations">Efficiency recommendations</h3>
 <ul>
-<li>Place the viewer window on the second monitor once. PathScribe remembers its position and size.</li>
-<li>Keep the viewer window open between slides of the same case.</li>
-<li>For training, show the real <strong>Launch in Viewer</strong> button on a demonstration case rather than this page.</li>
+<li>Place the slide window on the second monitor once with <strong>Set position…</strong>; every slide after that opens there.</li>
+<li>Keep the slide window open while you work through a case.</li>
 </ul>
 <h3 id="workflow-recommendations">Workflow recommendations</h3>
 <ul>
-<li>A trainer can use this page to show where a viewer window would sit beside PathScribe, and to show that the case line matches the case.</li>
-<li>Do not pass the page's web address to anyone who has no right to see the case; the page shows the patient's name.</li>
+<li>Check the image state before calling the scanning room: Queued and Scanning mean the slide is on its way.</li>
+<li>Report a <strong>Failed image quality</strong> slide that stays in the queue to the histology team.</li>
 </ul>
+<h3 id="the-demonstration-page">The demonstration page</h3>
+<p>Installations with the demonstration tools also have an older page at the address /wsi-viewer: a notice, a case line and a grey box where a slide would be. It shows no image and is not used to open slides; opened without a case it reads "No case specified.". In the demonstration installation, previews open a separate demonstration page labelled "demonstration only, not for diagnosis".</p>
 <h2 id="related-features">Related Features</h2>
 <h3 id="upstream-workflow">Upstream workflow</h3>
 <ul>
 <li><a href="/help/workstations/slide-distribution">Slide Distribution Station</a>: routes slides to a scanner.</li>
-<li><a href="/help/batch-management/wsi-scan">WSI Scan</a>: loads the scanner and records the scan.</li>
+<li><a href="/help/batch-management/wsi-scan">WSI Scan</a>: loads the scanner and records the scan, including the image quality check.</li>
 </ul>
 <h3 id="downstream-workflow">Downstream workflow</h3>
 <ul>
-<li><a href="/help/report">Report</a>: the pathologist reviews the slides and reports the case.</li>
-<li><a href="/help/cytology/screening-case">Cytology Screening Case</a>: screening of digital cytology slides.</li>
+<li><a href="/help/report">Report</a>: the pathologist reports the case.</li>
+<li><a href="/help/cytology/screening-case">Cytology Screening Case</a>: screening of cytology slides scanned as whole-slide images.</li>
 <li><a href="/help/demonstration-tools">Demonstration Tools</a>: the other demonstration pages.</li>
 </ul>
 <h2 id="troubleshooting">Troubleshooting</h2>
@@ -153,38 +154,37 @@
 </thead>
 <tbody>
 <tr>
-<td>The address shows the sign-in page</td>
-<td>You are not signed in, or this installation does not include the demonstration tools.</td>
+<td>No preview, only "No image yet"</td>
+<td>The slide has not been sent for scanning.</td>
 </tr>
 <tr>
-<td>"No case specified."</td>
-<td>The address has no case.</td>
+<td>"Queued" for a long time</td>
+<td>The slide is waiting in the scanning queue. Ask the scanning room.</td>
 </tr>
 <tr>
-<td>"No case found for '…'."</td>
-<td>The case does not exist.</td>
+<td>"Scan failed" or "Failed image quality"</td>
+<td>The slide is back in the queue for rescanning.</td>
 </tr>
 <tr>
-<td>Only the first specimen is shown</td>
-<td>The page shows the case's first specimen only.</td>
+<td>"No viewer address is set. Ask your administrator."</td>
+<td>The address of the laboratory's application is not set.</td>
 </tr>
 <tr>
-<td>I want to see the slide</td>
-<td>Use <strong>Launch in Viewer</strong> in the block and stain window, not this page.</td>
+<td>Nothing opens</td>
+<td>A pop-up was blocked.</td>
 </tr>
 <tr>
-<td>Launch in Viewer does nothing</td>
-<td>A pop-up was blocked, or the viewer has no address set.</td>
+<td>The application asks me to sign in</td>
+<td>That is the other application's own sign-in.</td>
 </tr>
 </tbody>
 </table>
 <h3 id="resolution-steps">Resolution steps</h3>
 <ol>
-<li>Check that you are signed in.</li>
-<li>Check the address and the case in it.</li>
 <li>Allow pop-ups for PathScribe.</li>
-<li>Choose another viewer from the list, if there is one.</li>
-<li>Ask your administrator to check the viewer's address in the settings.</li>
+<li>Check the slide's image state.</li>
+<li>Use <strong>Set position…</strong> if the window is out of sight.</li>
+<li>Ask your administrator to check the slide image settings.</li>
 </ol>
 <h3 id="when-to-contact-support">When to contact support</h3>
-<p>Contact your laboratory's PathScribe support when Launch in Viewer opens the wrong slide, or the viewer will not open although its address is set. Have the accession, the slide identifier, the viewer name and the time ready.</p>
+<p>Contact your laboratory's PathScribe support when a slide opens on the wrong image, or nothing opens although pop-ups are allowed and an address is set. Have the slide identifier and the time ready.</p>

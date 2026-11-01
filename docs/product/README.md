@@ -1,3 +1,13 @@
+**Batch 755b (part 2):** `SLIDE_IMAGE_DEMO.md` section 10, `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`, `DEMO_SEED_DATA.md`.
+
+**Batch 755b (part 1):** `DEMO_SEED_DATA.md`, `DEMO_GUIDE.md`, `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`: breast and UK-layout checklist wording; the fictional Manchester pathologist.
+
+**Batch 755a:** `DEMO_SEED_DATA.md` S6 and S15, `DEMO_GUIDE.md` Videos 4 and 9, `GUIDE_UPDATES.md` and `FEATURE_OVERVIEW.md` entries.
+
+**Batch 753:** `DEMO_SEED_DATA.md` row S15 done (the prostate checklists in real words); `DEMO_GUIDE.md` Video 9 notes updated; `GUIDE_UPDATES.md` entry.
+
+**Batch 752:** `SLIDE_IMAGE_DEMO.md`: "The quick way" (one PowerShell script for download, conversion, upload to R2 and the Vercel settings) and section 10, the demo as set up on Oct 31, 2026 (`slides-demo.formedrix.ai`, Production-only Vercel variables, the `img-src` change still to do). `GUIDE_UPDATES.md` entry.
+
 **Batch 725:** the in-app User Guide page scrolls (contents list and article each have their own scroll area). Styles only. See `src/i18n/README.md`.
 
 **Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
@@ -299,3 +309,19 @@ Batch 746: `DEMO_SEED_DATA.md`, `DEMO_GUIDE.md` (Video 5), `GUIDE_UPDATES.md`.
 ## Batch 747
 
 Batch 747: `DEMO_SEED_DATA.md`, `DEMO_GUIDE.md` (Video 6), `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`.
+
+## Batch 748
+
+Batch 748: `DEMO_SEED_DATA.md`, `DEMO_GUIDE.md` (Video 7, block types), `GUIDE_UPDATES.md`.
+
+## Batch 749
+
+Batch 749: `DEMO_SEED_DATA.md`, `DEMO_GUIDE.md` (Video 3), `GUIDE_UPDATES.md`.
+
+## Batch 750
+
+Batch 750: `SLIDE_IMAGE_DEMO.md` (new: preparing, hosting and connecting the five demonstration slide images and the standalone demonstration page), `DEMO_SEED_DATA.md` (S10), `DEMO_GUIDE.md` (Video 7 steps 17 and 18), `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md` (Slide images), `CAPABILITY_INVENTORY.md`.
+
+## Batch 751
+
+Batch 751: `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md` (organ map on Assist cases and delivery), `DEMO_SEED_DATA.md` (S15), `DEMO_GUIDE.md` (Video 9 and the prostatectomy note).

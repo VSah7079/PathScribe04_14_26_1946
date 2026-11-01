@@ -874,3 +874,7 @@ Batch 669: `embeddingOperations.ts` gains `hasOpenEmbeddingDiscrepancy`, `clearE
 ## Batch 733
 
 - Batch 733: `exhaustedBlockRules.ts` — one Block exhausted flag per block (`flagBlockExhaustedOnce`), the group answer (`openExhaustionFlags`, `unstainedSlidesForGroup`) and `destructiveCutAllowed` (only while tissue may remain).
+
+## Batch 750
+
+`buildWsiViewerLaunchUrl.ts` (listed above) is deleted; slide addresses are built by `services/digitalPathology/slideImages.ts`.

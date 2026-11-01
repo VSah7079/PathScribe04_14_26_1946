@@ -27,6 +27,7 @@
   "components/Search/CaseSearchBar.tsx::caseSearchBar.ariaLabel": "Screen-reader name of the case search box; the box itself is documented in Case Search Bar.",
   "components/Search/CaseSearchBar.tsx::caseSearchBar.placeholder": "Hint of the full-width variant, which no screen uses; the top bar shows the compact hint already documented.",
   "components/Search/Report/SynopticValueFilters.tsx::searchPage.synopticValues.remove": "Screen-reader name of the x that removes an answer filter; the control is a chip x already documented.",
+  "components/SlideImage/SlideImagePreview.tsx::slideImage.thumbAlt": "Description of the preview picture read by screen readers; the article names it under Reference preview.",
   "components/Worklist/PoolClaimModal.tsx::poolClaimModal.claimCaseLabel": "Variant of the claim window that no screen opens; every caller uses Claim & Continue.",
   "components/Worklist/PoolClaimModal.tsx::poolClaimModal.descMiddle2": "Fragment of an explanation sentence in the unused claim-window variant.",
   "components/Worklist/PoolClaimModal.tsx::poolClaimModal.viewReportPhrase": "Fragment of an explanation sentence in the unused claim-window variant.",
@@ -107,14 +108,5 @@
   "pages/SynopticReportPage/modals/SpecimenEditModal.tsx::specimenEditModal.fields.snomedTypePlaceholder": "Example text shown faintly inside an empty field; the field itself is documented in the article",
   "pages/SynopticReportPage/modals/SpecimenEditModal.tsx::specimenEditModal.grossPhoto.alt": "Alternative text for a photo thumbnail read aloud by screen readers; the Gross photos field is documented",
   "pages/WorklistPage/WorklistPage.tsx::worklistPage.tableRegionLabel": "Screen-reader name of the scrollable table region; not shown on screen.",
-  "pages/system/FacilityDictionaryPage.tsx::facilityDictionaryPage.loading": "Transient loading text on a configuration page covered by the Administrator Guide.",
-  "protocols/ProtocolEditor.tsx::a11y.fields.questionText": "Protocol Editor is not reachable: no route or button opens it in this version, so it is not documented until it is connected.",
-  "protocols/ProtocolEditor.tsx::a11y.fields.questionType": "Protocol Editor is not reachable: no route or button opens it in this version, so it is not documented until it is connected.",
-  "protocols/ProtocolEditor.tsx::protocolEditor.addQuestion": "Protocol Editor is not reachable: no route or button opens it in this version, so it is not documented until it is connected.",
-  "protocols/ProtocolEditor.tsx::protocolEditor.addSection": "Protocol Editor is not reachable: no route or button opens it in this version, so it is not documented until it is connected.",
-  "protocols/ProtocolEditor.tsx::protocolEditor.backToConfiguration": "Protocol Editor is not reachable: no route or button opens it in this version, so it is not documented until it is connected.",
-  "protocols/ProtocolEditor.tsx::protocolEditor.notFound": "Protocol Editor is not reachable: no route or button opens it in this version, so it is not documented until it is connected.",
-  "protocols/ProtocolEditor.tsx::protocolEditor.question.newText": "Protocol Editor is not reachable: no route or button opens it in this version, so it is not documented until it is connected.",
-  "protocols/ProtocolEditor.tsx::protocolEditor.saveProtocol": "Protocol Editor is not reachable: no route or button opens it in this version, so it is not documented until it is connected.",
-  "protocols/ProtocolEditor.tsx::protocolEditor.section.newTitle": "Protocol Editor is not reachable: no route or button opens it in this version, so it is not documented until it is connected."
+  "pages/system/FacilityDictionaryPage.tsx::facilityDictionaryPage.loading": "Transient loading text on a configuration page covered by the Administrator Guide."
 }

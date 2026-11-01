@@ -1,3 +1,5 @@
+**Batch 754:** `ProtocolDefinition.ts` deleted with the unused `src/protocols/` editor (`DELETED_FILES.txt`).
+
 **Batch 742:** `caseAttachments/CaseAttachment.ts` (new): a case attachment is a pointer (object key or permanent URL), never a file; Pete's `source_type` enum and the three accepted file types.
 
 **Batch 739:** `case/Material.ts` (aliquot decants), `case/MolecularOrderOutboundQueueEntry.ts` (processor on the instrument order).
@@ -407,3 +409,11 @@ See `services/aiIntegration/aiSuggestionRules.ts`, `services/coding/aiCodeSugges
 ## Batch 732
 
 - Batch 732: `case/blockPieces.ts` (new): `BlockType`, `SlideSize`, `BlockPiece`. `case/Specimen.ts`: `HistologyBlock.blockType` / `pieces`; `StainOrder.slideSize` / `sectionCount` / `levelCount` / `pieceIds`; `AddOnOrderException` and `AddOnOrderExceptionEvent` moved to `case/addOnOrderException.ts` (re-exported) so the file shrinks (1,840 lines). `case/MatrixBlock.ts`: a participant's `orientation`, `ink`, `exhaustedAt`.
+
+## Batch 750
+
+`case/Specimen.ts`: `StainOrder.lastScanOutcome` (what the last scanner unload found); the file shrank to 1,839 lines.
+
+## Batch 751
+
+`case/OutboundLisSyncQueueEntry.ts`: the organ map file message.

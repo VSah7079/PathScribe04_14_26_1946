@@ -1,3 +1,5 @@
+**Batch 748:** `wallDisplayDemoBatches.ts`: a Checkout tray (CONT-CHK-WALL-1), so every one of the ten steps has an open batch (seed row S9).
+
 **Batch 747:** `wallDisplayDemoBatches.ts` (new): the wall views' open batches (decal, processing, embedding, microtome, staining, referral, and the second facility's) and the scanner runs, from `cases/demoWallVolumeCases.ts`; added to stored batches when missing. `computePendingBatchQueue.ts` resolves a case's legacy tenant id to its facility (`facilityOpsDashboard/caseFacility.ts`).
 
 **Batch 744:** `batchDemoSeeds.ts`: open Liquid-Based Cytology Processing (ThinPrep and SurePath processors), Cytology Staining and Cytology Imaging batches with items (`LBC_DEMO_BATCH_BARCODES`).

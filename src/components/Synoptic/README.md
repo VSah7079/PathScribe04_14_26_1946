@@ -1,3 +1,5 @@
+**Batch 755a:** `DemoWordingTag.tsx` (new): the grey "Demo wording" tag beside a demonstration checklist's name (case checklist header and sidebar, the checklist picker, the Synoptic Library lists), with a tooltip; decided by `services/templates/demoChecklists.showsDemoWordingTag()`. Reuses `.ps-demo-data-badge`.
+
 # components/Synoptic/
 
 **Renamed this pass** (was `components/synoptic/` — lowercase, the only

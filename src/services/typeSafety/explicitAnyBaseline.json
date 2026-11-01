@@ -107,7 +107,6 @@
   "pages/SynopticReportPage/modals/FinalizeSynopticModal.tsx": 1,
   "pages/SynopticReportPage/resolveEmbeddedCoding.ts": 2,
   "pages/WorklistPage/WorklistPage.tsx": 11,
-  "protocols/ProtocolEditor.tsx": 1,
   "services/actionRegistry/mockActionRegistryService.ts": 4,
   "services/ai/AIProviderRegistry.ts": 1,
   "services/ai/providers/ChatCompletionsManagedProvider.ts": 1,

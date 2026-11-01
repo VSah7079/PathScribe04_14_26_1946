@@ -68,7 +68,7 @@ const SEED_ASSIGNMENTS: QaSupervisionAssignment[] = [
   // Completed via real threshold — proves the auto-completion path.
   {
     id: 'qa-supervision-seed-002', activityTypeId: FPPE_ACTIVITY_TYPE_ID,
-    superviseeUserId: 'PATH-UK-001', superviseeUserName: 'Paul Carter',
+    superviseeUserId: 'PATH-UK-001', superviseeUserName: 'Imogen Hartley',
     supervisorUserId: 'PATH-001', supervisorUserName: 'Pete Nimmo',
     startedAt: '2026-04-01T00:00:00.000Z',
     endCondition: { type: 'either', caseCountThreshold: 20, durationDaysThreshold: 90 },

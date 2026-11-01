@@ -1,6 +1,6 @@
 {
   "id": "lung_resection",
-  "name": "Generic Template — Lung Resection",
+  "name": "Lung resection",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "LUNG",
@@ -11,21 +11,27 @@
       "fields": [
         {
           "id": "synchronous_tumors",
-          "label": "Multiple Findings",
+          "label": "More than one tumor",
           "type": "dropdown",
           "required": false,
           "options": [
             {
               "id": "synchronous_tumors_opt_1",
-              "label": "Option 1"
+              "label": "No (a single tumor)",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "synchronous_tumors_opt_2",
-              "label": "Option 2"
+              "label": "Separate nodules of the same tumor",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "synchronous_tumors_opt_3",
-              "label": "Option 3"
+              "label": "Separate primary tumors (report each one separately)",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
@@ -37,67 +43,95 @@
           "options": [
             {
               "id": "procedure_opt_1",
-              "label": "Option 1"
+              "label": "Pneumonectomy",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_2",
-              "label": "Option 2"
+              "label": "Bilobectomy",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_3",
-              "label": "Option 3"
+              "label": "Lobectomy",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_4",
-              "label": "Option 4"
+              "label": "Wedge resection",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_5",
-              "label": "Option 5"
+              "label": "Segmentectomy",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_6",
-              "label": "Option 6"
+              "label": "Sleeve lobectomy",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_7",
-              "label": "Option 7"
+              "label": "Lymph node sampling",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_8",
-              "label": "Option 8"
+              "label": "Lymph node dissection",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_9",
-              "label": "Option 9"
+              "label": "Chest wall resection (with the lung)",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_10",
-              "label": "Option 10"
+              "label": "Other procedure",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_11",
-              "label": "Option 11"
+              "label": "Procedure not stated",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "specimen_laterality",
-          "label": "Specimen Laterality",
+          "label": "Side",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "specimen_laterality_opt_1",
-              "label": "Option 1"
+              "label": "Right",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "specimen_laterality_opt_2",
-              "label": "Option 2"
+              "label": "Left",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "specimen_laterality_opt_3",
-              "label": "Option 3"
+              "label": "Side not stated",
+              "snomed": "",
+              "icd": ""
             }
           ]
         }
@@ -105,332 +139,397 @@
     },
     {
       "id": "tumor",
-      "title": "Findings",
+      "title": "Tumor",
       "fields": [
         {
           "id": "tumor_focality",
-          "label": "Focality",
+          "label": "Number of tumors",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "tumor_focality_opt_1",
-              "label": "Option 1"
+              "label": "A single tumor",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_focality_opt_2",
-              "label": "Option 2"
+              "label": "Separate nodule(s) in the same lobe",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_focality_opt_3",
-              "label": "Option 3"
+              "label": "Separate nodule(s) in another lobe on the same side",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_focality_opt_4",
-              "label": "Option 4"
+              "label": "Separate nodule(s) in the other lung",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_focality_opt_5",
-              "label": "Option 5"
+              "label": "Multiple primary tumors",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_focality_opt_6",
-              "label": "Option 6"
+              "label": "Diffuse (pneumonic-type) growth",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_focality_opt_7",
-              "label": "Option 7"
+              "label": "Cannot be determined",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "tumor_site",
-          "label": "Finding Site",
+          "label": "Where the tumor is",
           "type": "checkboxes",
           "required": true,
           "options": [
             {
               "id": "tumor_site_opt_1",
-              "label": "Option 1"
+              "label": "Upper lobe",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_site_opt_2",
-              "label": "Option 2"
+              "label": "Middle lobe",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_site_opt_3",
-              "label": "Option 3"
+              "label": "Lower lobe",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_site_opt_4",
-              "label": "Option 4"
+              "label": "Lingula",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_site_opt_5",
-              "label": "Option 5"
+              "label": "Main bronchus",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_site_opt_6",
-              "label": "Option 6"
+              "label": "Hilum",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_site_opt_7",
-              "label": "Option 7"
+              "label": "Lobe not stated",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_site_opt_8",
-              "label": "Option 8"
+              "label": "Other (describe in a comment)",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "tumor_size_invasive_cm",
-          "label": "Tumor size invasive cm",
+          "label": "Size of the invasive part (cm)",
           "type": "text",
           "required": true,
-          "options": []
+          "options": [],
+          "note": "Leave out lepidic (non-invasive) growth"
         },
         {
           "id": "histologic_type",
-          "label": "Type",
+          "label": "Tumor type",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "histologic_type_opt_1",
-              "label": "Option 1"
+              "label": "Adenocarcinoma in situ",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_2",
-              "label": "Option 2"
+              "label": "Minimally invasive adenocarcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_3",
-              "label": "Option 3"
+              "label": "Invasive non-mucinous adenocarcinoma, lepidic predominant",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_4",
-              "label": "Option 4"
+              "label": "Invasive non-mucinous adenocarcinoma, acinar predominant",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_5",
-              "label": "Option 5"
+              "label": "Invasive non-mucinous adenocarcinoma, papillary predominant",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_6",
-              "label": "Option 6"
+              "label": "Invasive non-mucinous adenocarcinoma, micropapillary predominant",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_7",
-              "label": "Option 7"
+              "label": "Invasive non-mucinous adenocarcinoma, solid predominant",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_8",
-              "label": "Option 8"
+              "label": "Invasive mucinous adenocarcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_9",
-              "label": "Option 9"
+              "label": "Colloid adenocarcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_10",
-              "label": "Option 10"
+              "label": "Fetal adenocarcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_11",
-              "label": "Option 11"
+              "label": "Enteric-type adenocarcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_12",
-              "label": "Option 12"
+              "label": "Squamous cell carcinoma, keratinizing",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_13",
-              "label": "Option 13"
+              "label": "Squamous cell carcinoma, non-keratinizing",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_14",
-              "label": "Option 14"
+              "label": "Basaloid squamous cell carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_15",
-              "label": "Option 15"
+              "label": "Lymphoepithelial carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_16",
-              "label": "Option 16"
+              "label": "Large cell carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_17",
-              "label": "Option 17"
+              "label": "Adenosquamous carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_18",
-              "label": "Option 18"
+              "label": "Sarcomatoid carcinoma (pleomorphic, spindle or giant cell)",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_19",
-              "label": "Option 19"
+              "label": "Pulmonary blastoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_20",
-              "label": "Option 20"
+              "label": "Carcinosarcoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_21",
-              "label": "Option 21"
+              "label": "Typical carcinoid tumor",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_22",
-              "label": "Option 22"
+              "label": "Atypical carcinoid tumor",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_23",
-              "label": "Option 23"
+              "label": "Small cell carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_24",
-              "label": "Option 24"
+              "label": "Combined small cell carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_25",
-              "label": "Option 25"
+              "label": "Large cell neuroendocrine carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_26",
-              "label": "Option 26"
+              "label": "Mucoepidermoid carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_27",
-              "label": "Option 27"
+              "label": "Adenoid cystic carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_28",
-              "label": "Option 28"
+              "label": "NUT carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_29",
-              "label": "Option 29"
+              "label": "Non-small cell carcinoma, type cannot be determined",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_30",
-              "label": "Option 30"
-            },
-            {
-              "id": "histologic_type_opt_31",
-              "label": "Option 31"
-            },
-            {
-              "id": "histologic_type_opt_32",
-              "label": "Option 32"
-            },
-            {
-              "id": "histologic_type_opt_33",
-              "label": "Option 33"
-            },
-            {
-              "id": "histologic_type_opt_34",
-              "label": "Option 34"
-            },
-            {
-              "id": "histologic_type_opt_35",
-              "label": "Option 35"
-            },
-            {
-              "id": "histologic_type_opt_36",
-              "label": "Option 36"
-            },
-            {
-              "id": "histologic_type_opt_37",
-              "label": "Option 37"
-            },
-            {
-              "id": "histologic_type_opt_38",
-              "label": "Option 38"
-            },
-            {
-              "id": "histologic_type_opt_39",
-              "label": "Option 39"
+              "label": "Other type (describe in a comment)",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "histologic_grade",
-          "label": "Grade",
+          "label": "Grade (adenocarcinoma)",
           "type": "dropdown",
           "required": false,
           "options": [
             {
               "id": "histologic_grade_opt_1",
-              "label": "Grade 1 — adenocarcinoma, well differentiated (IASLC 2020)"
+              "label": "Grade 1 (well differentiated)",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_grade_opt_2",
-              "label": "Grade 2 — adenocarcinoma, moderately differentiated (IASLC 2020)"
+              "label": "Grade 2 (moderately differentiated)",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_grade_opt_3",
-              "label": "Grade 3 — adenocarcinoma, poorly differentiated (IASLC 2020)"
+              "label": "Grade 3 (poorly differentiated)",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_grade_opt_4",
-              "label": "Well differentiated"
-            },
-            {
-              "id": "histologic_grade_opt_5",
-              "label": "Moderately differentiated"
-            },
-            {
-              "id": "histologic_grade_opt_6",
-              "label": "Poorly differentiated"
-            },
-            {
-              "id": "histologic_grade_opt_7",
-              "label": "Cannot be assessed"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "stas",
-          "label": "Secondary Spread Pattern",
+          "label": "Spread through air spaces (STAS)",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "stas_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "stas_opt_2",
-              "label": "Option 2"
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "stas_opt_3",
-              "label": "Option 3"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "stas_opt_4",
-              "label": "Option 4"
+              "label": "Not applicable (not an adenocarcinoma)",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "visceral_pleura_invasion",
-          "label": "Adjacent Structure Involvement",
+          "label": "Visceral pleural invasion",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "visceral_pleura_invasion_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "visceral_pleura_invasion_opt_2",
-              "label": "Option 2"
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "visceral_pleura_invasion_opt_3",
-              "label": "Option 3"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             }
           ]
         }
@@ -442,7 +541,7 @@
       "fields": [
         {
           "id": "margin_status_invasive",
-          "label": "Margin Status A",
+          "label": "Invasive carcinoma: margins",
           "type": "dropdown",
           "required": true,
           "options": [
@@ -466,7 +565,7 @@
         },
         {
           "id": "margin_status_noninvasive",
-          "label": "Margin Status B",
+          "label": "Margins examined",
           "type": "checkboxes",
           "required": false,
           "options": [
@@ -504,31 +603,37 @@
     },
     {
       "id": "lymph_nodes",
-      "title": "Regional Nodes",
+      "title": "Lymph nodes",
       "fields": [
         {
           "id": "prior_ln_sampling",
-          "label": "Prior Node Sampling",
+          "label": "Lymph nodes sampled at an earlier procedure",
           "type": "dropdown",
           "required": false,
           "options": [
             {
               "id": "prior_ln_sampling_opt_1",
-              "label": "Option 1"
+              "label": "No",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "prior_ln_sampling_opt_2",
-              "label": "Option 2"
+              "label": "Not known",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "prior_ln_sampling_opt_3",
-              "label": "Option 3"
+              "label": "Yes (give the procedure in a comment)",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "regional_ln_status",
-          "label": "Regional Node Status",
+          "label": "Lymph node metastasis",
           "type": "dropdown",
           "required": true,
           "options": [
@@ -552,167 +657,196 @@
         },
         {
           "id": "ln_number_positive",
-          "label": "Number Positive",
+          "label": "Lymph nodes involved",
           "type": "numeric",
           "required": false,
           "options": [],
           "wholeNumber": true,
-          "notMoreThan": "ln_number_examined"
+          "notMoreThan": "ln_number_examined",
+          "visibleWhen": {
+            "fieldId": "regional_ln_status",
+            "answerId": "",
+            "answerIds": [
+              "regional_ln_status_opt_2"
+            ]
+          }
         },
         {
           "id": "ln_number_examined",
-          "label": "Number Examined",
+          "label": "Lymph nodes examined",
           "type": "numeric",
           "required": false,
           "options": [],
-          "wholeNumber": true
+          "wholeNumber": true,
+          "visibleWhen": {
+            "fieldId": "regional_ln_status",
+            "answerId": "",
+            "answerIds": [
+              "regional_ln_status_opt_1",
+              "regional_ln_status_opt_2",
+              "regional_ln_status_opt_3"
+            ]
+          }
         },
         {
           "id": "extranodal_extension",
-          "label": "Extranodal Extension",
+          "label": "Extranodal extension",
           "type": "dropdown",
           "required": false,
           "options": [
             {
               "id": "extranodal_extension_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "extranodal_extension_opt_2",
-              "label": "Option 2"
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "extranodal_extension_opt_3",
-              "label": "Option 3"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             }
-          ]
+          ],
+          "visibleWhen": {
+            "fieldId": "regional_ln_status",
+            "answerId": "",
+            "answerIds": [
+              "regional_ln_status_opt_2"
+            ]
+          }
         }
       ]
     },
     {
       "id": "staging",
-      "title": "Stage Summary",
+      "title": "Pathologic stage",
       "fields": [
         {
           "id": "tnm_modifiers",
-          "label": "Stage Modifiers",
+          "label": "Stage prefixes",
           "type": "checkboxes",
           "required": false,
           "options": [
             {
               "id": "tnm_modifiers_opt_1",
-              "label": "y — post-neoadjuvant therapy"
+              "label": "y (after treatment before surgery)"
             },
             {
               "id": "tnm_modifiers_opt_2",
-              "label": "r — recurrent tumour"
+              "label": "r (recurrence)"
             },
             {
               "id": "tnm_modifiers_opt_3",
-              "label": "m — multiple primary tumours"
+              "label": "m (multiple primary tumors)"
             }
           ]
         },
         {
           "id": "stage_category_a",
-          "label": "Category A",
+          "label": "pT (primary tumor)",
           "type": "dropdown",
           "required": true,
           "reportingRole": "pT",
           "options": [
             {
               "id": "stage_category_a_opt_1",
-              "label": "pT1a(mi) — minimally invasive adenocarcinoma"
+              "label": "pT1a(mi): minimally invasive adenocarcinoma"
             },
             {
               "id": "stage_category_a_opt_2",
-              "label": "pT1a — tumour ≤ 1 cm"
+              "label": "pT1a: 1 cm or less"
             },
             {
               "id": "stage_category_a_opt_3",
-              "label": "pT1b — tumour > 1 cm but ≤ 2 cm"
+              "label": "pT1b: more than 1 cm, up to 2 cm"
             },
             {
               "id": "stage_category_a_opt_4",
-              "label": "pT1c — tumour > 2 cm but ≤ 3 cm"
+              "label": "pT1c: more than 2 cm, up to 3 cm"
             },
             {
               "id": "stage_category_a_opt_5",
-              "label": "pT2a — tumour > 3 cm but ≤ 4 cm, or with visceral pleural invasion / main bronchus involvement"
+              "label": "pT2a: more than 3 cm, up to 4 cm, or visceral pleural or main bronchus involvement"
             },
             {
               "id": "stage_category_a_opt_6",
-              "label": "pT2b — tumour > 4 cm but ≤ 5 cm"
+              "label": "pT2b: more than 4 cm, up to 5 cm"
             },
             {
               "id": "stage_category_a_opt_7",
-              "label": "pT3 — tumour > 5 cm but ≤ 7 cm, or with chest wall/pericardial/phrenic nerve invasion, or separate nodule(s) in the same lobe"
+              "label": "pT3: more than 5 cm, up to 7 cm, or chest wall, pericardium or phrenic nerve invasion, or a separate nodule in the same lobe"
             },
             {
               "id": "stage_category_a_opt_8",
-              "label": "pT4 — tumour > 7 cm, or invading mediastinum/diaphragm/great vessels/trachea/esophagus/vertebral body/carina, or separate nodule(s) in a different ipsilateral lobe"
+              "label": "pT4: more than 7 cm, or invasion of mediastinum, diaphragm, great vessels, trachea, esophagus, vertebra or carina, or a separate nodule in another lobe on the same side"
             },
             {
               "id": "stage_category_a_opt_9",
-              "label": "pTX — primary tumour cannot be assessed"
+              "label": "pTX: cannot be assessed"
             }
           ]
         },
         {
           "id": "stage_category_b",
-          "label": "Category B",
+          "label": "pN (regional lymph nodes)",
           "type": "dropdown",
           "required": true,
           "reportingRole": "pN",
           "options": [
             {
               "id": "stage_category_b_opt_1",
-              "label": "pN0 — no regional lymph node metastasis"
+              "label": "pN0: no regional lymph node metastasis"
             },
             {
               "id": "stage_category_b_opt_2",
-              "label": "pN1 — metastasis in ipsilateral peribronchial and/or hilar nodes"
+              "label": "pN1: peribronchial or hilar nodes, same side"
             },
             {
               "id": "stage_category_b_opt_3",
-              "label": "pN2 — metastasis in ipsilateral mediastinal and/or subcarinal nodes"
+              "label": "pN2: mediastinal or subcarinal nodes, same side"
             },
             {
               "id": "stage_category_b_opt_4",
-              "label": "pN3 — metastasis in contralateral mediastinal/hilar nodes, or ipsilateral/contralateral scalene or supraclavicular nodes"
+              "label": "pN3: nodes on the other side, or scalene or supraclavicular nodes"
             },
             {
               "id": "stage_category_b_opt_5",
-              "label": "pNX — regional lymph nodes cannot be assessed"
+              "label": "pNX: cannot be assessed"
             }
           ]
         },
         {
           "id": "stage_category_c",
-          "label": "Category C",
+          "label": "pM (only when confirmed)",
           "type": "dropdown",
           "required": false,
           "reportingRole": "pM",
           "options": [
             {
               "id": "stage_category_c_opt_1",
-              "label": "pM1a — separate tumour nodule(s) in a contralateral lobe, pleural or pericardial nodules, or malignant pleural/pericardial effusion"
+              "label": "pM1a: nodule(s) in the other lung, pleural or pericardial nodules, or a malignant effusion"
             },
             {
               "id": "stage_category_c_opt_2",
-              "label": "pM1b — single extrathoracic metastasis"
+              "label": "pM1b: a single metastasis outside the chest"
             },
             {
               "id": "stage_category_c_opt_3",
-              "label": "pM1c — multiple extrathoracic metastases"
+              "label": "pM1c: several metastases outside the chest"
             },
             {
               "id": "stage_category_c_opt_4",
-              "label": "Not applicable (M status is determined clinically)"
+              "label": "Not applicable (M is set clinically)"
             },
             {
               "id": "stage_category_c_opt_5",
-              "label": "pMX — distant metastasis cannot be assessed"
+              "label": "pMX: not assessed"
             },
             {
               "id": "stage_category_c_opt_6",
@@ -724,57 +858,79 @@
     },
     {
       "id": "additional_findings",
-      "title": "Additional Findings",
+      "title": "Other findings",
       "fields": [
         {
           "id": "additional_findings",
-          "label": "Additional Findings",
+          "label": "Other findings in the lung",
           "type": "checkboxes",
           "required": false,
           "options": [
             {
               "id": "additional_findings_opt_1",
-              "label": "Option 1"
+              "label": "None",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_2",
-              "label": "Option 2"
+              "label": "Emphysema",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_3",
-              "label": "Option 3"
+              "label": "Interstitial fibrosis",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_4",
-              "label": "Option 4"
+              "label": "Organizing pneumonia",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_5",
-              "label": "Option 5"
+              "label": "Granulomas",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_6",
-              "label": "Option 6"
+              "label": "Atypical adenomatous hyperplasia",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_7",
-              "label": "Option 7"
+              "label": "Respiratory bronchiolitis",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_8",
-              "label": "Option 8"
+              "label": "Obstructive changes (pneumonia)",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_9",
-              "label": "Option 9"
+              "label": "Neuroendocrine cell hyperplasia",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_10",
-              "label": "Option 10"
+              "label": "Changes from earlier treatment",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_11",
-              "label": "Option 11"
+              "label": "Other (describe in a comment)",
+              "snomed": "",
+              "icd": ""
             }
           ]
         }

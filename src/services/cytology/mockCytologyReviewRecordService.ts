@@ -259,14 +259,14 @@ const SEED_REVIEWS: CytologyReviewRecord[] = [
 // flagged: "Last time this happened it was because the seed data
 // version hadn't been bumped."
 // Batch 456: three seeded reviews named someone other than the staff record
-// their id belongs to (PATH-UK-001 is Paul Carter at Manchester, not "Dr.
+// their id belongs to (PATH-UK-001 is Imogen Hartley at Manchester, not "Dr.
 // Priya Shah", who is the Fenwick requesting clinician; PATH-US-002 is Dr. J.
 // Mark Tuthill, not "Dr. Rachel Kim"), and CT-QC-001 is no one. Since only a
 // review's own author may edit it, those were attributed to the wrong person
 // or to no one. The Metro General rescreens are now Nadia Rahman's and Dr.
 // Sarah Johnson's (both can sign in); the Fenwick primary screen belongs to
 // Fenwick's own cytopathologist, PATH-FW-001 (not a sign-in).
-const SEED_VERSION = '11'; // 10 (Batch 455): demo baseline primary screens by CT-001 and CT-002. (9: real, new QA-comparison follow-up reviews added (qc_random_selection x2, qc_targeted_high_risk, pathologist_review) — the three real QA report types had zero real data to compare before this.)
+const SEED_VERSION = '12'; // 12 (Batch 755b): PATH-UK-001 renamed (fictional). 10 (Batch 455): demo baseline primary screens by CT-001 and CT-002. (9: real, new QA-comparison follow-up reviews added (qc_random_selection x2, qc_targeted_high_risk, pathologist_review) — the three real QA report types had zero real data to compare before this.)
 const SEED_VERSION_KEY = 'cytology_review_records_seed_version';
 if (storageGet<string | null>(SEED_VERSION_KEY, null) !== SEED_VERSION) {
   storageSet(STORAGE_KEY, SEED_REVIEWS);

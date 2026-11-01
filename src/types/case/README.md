@@ -178,3 +178,11 @@ See `services/digitalPathology/wsiScanQueue.ts`.
 ## Batch 732
 
 - Batch 732: `blockPieces.ts` (new) and `addOnOrderException.ts` (new, moved out of `Specimen.ts`); block type, piece map and slide fields on `Specimen.ts`; matrix participant orientation, ink and exhaustion on `MatrixBlock.ts`.
+
+## Batch 750
+
+`Specimen.ts`: `lastScanOutcome` on a slide (`scanned`, `scanFailed`, `imageQcFailed`, `notScanned`), set by `digitalPathology/wsiScanQueue.stainUnloaded`.
+
+## Batch 751
+
+`OutboundLisSyncQueueEntry`: kind `organ_map` and `organMapFile` (the file sent, its SHA-256, the map's fingerprint, the destination).

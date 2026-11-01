@@ -4,10 +4,12 @@ import type { ServiceResult } from '../types';
 import type { IOutboundLisSyncQueueService } from './IOutboundLisSyncQueueService';
 import type { OutboundLisSyncQueueEntry } from '@/types/case/OutboundLisSyncQueueEntry';
 import { auditService } from '../auditlog/auditServiceInstance';
+import { organMapDeliveryDemoQueue } from './organMapDeliveryDemoQueue';
 
 const KEY = 'outbound_lis_sync_queue_v1';
 
-const load    = (): OutboundLisSyncQueueEntry[] => storageGet<OutboundLisSyncQueueEntry[]>(KEY, []);
+// Batch 751 (seed row S15): the demo starts with one delivered and one failed organ map file.
+const load    = (): OutboundLisSyncQueueEntry[] => storageGet<OutboundLisSyncQueueEntry[]>(KEY, organMapDeliveryDemoQueue());
 const persist = (data: OutboundLisSyncQueueEntry[]) => storageSet(KEY, data);
 
 const delay = () => new Promise(r => setTimeout(r, 80));

@@ -92,3 +92,11 @@ Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): baselines lowered for
 ## Batch 732
 
 - Batch 732: `fileSizeBaseline.ts`: `types/case/Specimen.ts` lowered to 1,840.
+
+## Batch 750
+
+Baselines lowered: `CytologyScreeningPage.tsx` 1,528, `pathscribe.css` 28,539 (the launch button's styles removed), `types/case/Specimen.ts` 1,839.
+
+## Batch 751
+
+Baseline lowered: `FacilityEditorModal.tsx` 1,469 (the Outbound documents section moved to `FacilityOutboundDocumentsSection.tsx`).

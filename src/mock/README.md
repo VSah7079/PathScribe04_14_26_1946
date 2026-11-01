@@ -1,3 +1,5 @@
+**Batch 755b (part 1):** the Manchester report seeds name the fictional Dr. Imogen Hartley (PATH-UK-001).
+
 # src/mock/
 
 One file: `mockReports.ts` (1,103 lines) — one `FullReport` per

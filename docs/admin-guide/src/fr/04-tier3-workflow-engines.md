@@ -759,7 +759,7 @@ Unlocks: Aucun.
 ## Pathologie numérique, intégration des scanners WSI et paramètres du visualiseur {#ch4-digital-pathology}
 Breadcrumb: Accueil > Configuration > Système
 
-Cette partie couvre ce que PathScribe offre aujourd'hui pour la pathologie numérique. Soyez précis sur l'étendue. Il y a deux éléments. Premièrement, les dictionnaires de fournisseurs de [Intégrations fournisseurs](#screen-vendor_integrations), qui sont des listes de noms et d'adresses web. Deuxièmement, la file de numérisation des lames de [Gestion des lots](#screen-batch-management), qui envoie un manifeste de numérisation au moteur d'interfaces et en reçoit un statut en retour. **Non réalisé :** un pilote de scanner propre à un fournisseur ou un connecteur de fournisseur. Aucun écran ne configure un scanner autrement qu'en le nommant comme Équipement de type « Scanner de lames » dans [Équipements](#screen-equipment). Le lancement du visualiseur d'images est décrit sous Intégrations fournisseurs. La page de visualiseur simulé est une démonstration seulement.
+Cette partie couvre ce que PathScribe offre aujourd'hui pour la pathologie numérique. Soyez précis sur l'étendue. Il y a deux éléments. Premièrement, les dictionnaires de fournisseurs de [Intégrations fournisseurs](#screen-vendor_integrations), qui sont des listes de noms et d'adresses web. Deuxièmement, la file de numérisation des lames de [Gestion des lots](#screen-batch-management), qui envoie un manifeste de numérisation au moteur d'interfaces et en reçoit un statut en retour. **Non réalisé :** un pilote de scanner propre à un fournisseur ou un connecteur de fournisseur. Aucun écran ne configure un scanner autrement qu'en le nommant comme Équipement de type « Scanner de lames » dans [Équipements](#screen-equipment). PathScribe n'a pas de visionneuse de lames : une lame numérisée affiche l'aperçu de son scanner et s'ouvre dans l'application de pathologie numérique du laboratoire, configurée sous **Images des lames** dans Intégrations fournisseurs (lot 750). La page de visualiseur simulé est une démonstration seulement.
 
 ### Intégrations fournisseurs {#screen-vendor_integrations}
 Breadcrumb: Accueil > Configuration > Système > Matériel et flux de travail du laboratoire > Intégrations fournisseurs
@@ -769,9 +769,9 @@ Breadcrumb: Accueil > Configuration > Système > Matériel et flux de travail du
 **1. Navigation :** onglet Configuration **Système** > groupe **Matériel et flux de travail du laboratoire**
 **2. Élément de maintenance :** Intégrations fournisseurs (quatre catégories dans une liste à gauche : Pathologie numérique / IA, Visualiseurs WSI, Systèmes de gestion d'images, Imagerie macroscopique et télépathologie)
 
-**3. Objectif métier et périmètre.** Un seul écran contient quatre dictionnaires de produits externes. Chacun est une liste avec **Ajouter**, **Modifier**, **Désactiver / Réactiver** et un commutateur **Afficher les inactifs**. Les entrées ne sont jamais supprimées. Les listes sont des données de référence : des listes de choix et des liens que d'autres parties de PathScribe lisent. Les listes Pathologie numérique / IA, Systèmes de gestion d'images et Imagerie macroscopique sont des noms et des paramètres qui sont enregistrés et affichés ; le produit ne contient aucun connecteur propre à un fournisseur qui agisse sur eux. Seule la liste Visualiseurs WSI a un usage effectif : son **Modèle d'URL de lancement** est ouvert depuis un dossier par le bouton **Ouvrir dans le visualiseur**.
+**3. Objectif métier et périmètre.** Un seul écran contient quatre dictionnaires de produits externes. Chacun est une liste avec **Ajouter**, **Modifier**, **Désactiver / Réactiver** et un commutateur **Afficher les inactifs**. Les entrées ne sont jamais supprimées. Les listes sont des données de référence : des listes de choix et des liens que d'autres parties de PathScribe lisent. Les listes Pathologie numérique / IA, Systèmes de gestion d'images et Imagerie macroscopique sont des noms et des paramètres qui sont enregistrés et affichés ; le produit ne contient aucun connecteur propre à un fournisseur qui agisse sur eux. Seule la catégorie Visualiseurs WSI a un usage effectif : ses paramètres **Images des lames** donnent l'adresse qui ouvre une lame dans l'application de pathologie numérique du laboratoire et l'adresse de l'aperçu de la lame, et le **Modèle d'URL de lancement** de sa liste sert lorsqu'aucune adresse de visionneuse n'y est définie.
 
-**4. Prérequis et dépendances.** Aucun autre que l'accès de la personne. Ajoutez ici un visualiseur WSI avant que des lames puissent être ouvertes dans un visualiseur externe ; le matériel des scanners est une liste distincte (Équipements).
+**4. Prérequis et dépendances.** Aucun autre que l'accès de la personne. Définissez l'adresse de visionneuse des Images des lames (ou un visualiseur WSI avec un modèle de lancement) avant que des lames puissent être ouvertes dans l'application du laboratoire ; le matériel des scanners est une liste distincte (Équipements).
 
 Setup step: Tier 3, step 9
 Requires: Aucun, c'est un point de départ.
@@ -800,10 +800,20 @@ Les données de démonstration contiennent six entrées : Paige Prostate, Ibex P
 | Nom du champ | Type de données / format | Obligatoire/Facultatif | Description et logique métier | Valeur par défaut du système |
 |---|---|---|---|---|
 | Nom (fournisseur / nom du produit) | Texte | Obligatoire | Enregistrer est désactivé lorsque vide. | Aucun |
-| Modèle d'URL de lancement | Adresse web contenant le jeton `{{wsiUniqueId}}` | Facultatif | PathScribe remplace le jeton par l'identifiant unique de la lame et ouvre le résultat dans une fenêtre associée. Un avertissement s'affiche lorsque le texte ne contient pas le jeton. Une entrée sans modèle affiche « aucune URL configurée » et ne peut pas être lancée. | Vide |
+| Modèle d'URL de lancement | Adresse web contenant le jeton `{{wsiUniqueId}}` | Facultatif | PathScribe remplace le jeton par l'identifiant de la lame. Utilisé seulement lorsqu'aucune adresse de visionneuse n'est définie dans Images des lames : la première entrée active avec une adresse https utilisable ouvre la lame. Un avertissement s'affiche lorsque le texte ne contient pas le jeton. | Vide |
 | Afficher les inactifs | Commutateur | Facultatif | | Désactivé |
 
-Toutes les entrées de démonstration ont un modèle vide, sauf `[DEMO ONLY] Sample WSI Viewer`, qui pointe vers une adresse example.com et n'est pas un vrai visualiseur.
+Toutes les entrées de démonstration ont un modèle vide (l'entrée de démonstration example.com a été retirée au lot 750).
+
+#### Images des lames (Visualiseurs WSI, au-dessus de la liste)
+
+| Nom du champ | Type de données / format | Obligatoire/Facultatif | Description et logique métier | Valeur par défaut du système |
+|---|---|---|---|---|
+| Adresse de la visionneuse | Adresse web https contenant `{{slideId}}`, et facultativement `{{accession}}` | Facultatif | Ouvre la lame dans l'application de pathologie numérique du laboratoire, dans une fenêtre séparée qui garde sa place sur chaque poste de travail. Elle ne doit contenir ni nom d'utilisateur, ni mot de passe, ni nom de patient ; la connexion relève de cette application. L'ouverture est tracée dans le journal d'audit et exige `case:slide-image:open`. | La valeur `VITE_SLIDE_VIEWER_URL_TEMPLATE` du déploiement, si elle est définie |
+| Adresse de l'image d'aperçu | Adresse web https contenant `{{slideId}}`, et facultativement `{{accession}}` | Facultatif | L'aperçu de la lame fourni par le scanner ou le système d'images, affiché tel quel avec « Aperçu de référence. Pas pour le diagnostic. » une fois la lame numérisée. Ajoutez son hôte à la politique de sécurité (img-src). | La valeur `VITE_SLIDE_THUMBNAIL_URL_TEMPLATE` du déploiement, si elle est définie |
+| Établissements disposant de leur propre système | Un établissement, puis les deux mêmes adresses | Facultatif | Pour un établissement disposant de son propre scanner ou de sa propre application ; vide : l'adresse du laboratoire est utilisée. | Aucun |
+
+L'enregistrement exige `config:vendor-integrations:manage`. Sans adresse de visionneuse, l'utilisateur voit « Aucune adresse de visionneuse n'est définie. Adressez-vous à votre administrateur. » en ouvrant une lame. Chaque poste de travail choisit où s'ouvre la fenêtre des lames depuis le menu du poste de travail (Fenêtre des images de lames, Définir la position).
 
 #### Systèmes de gestion d'images (fenêtre d'ajout et de modification)
 

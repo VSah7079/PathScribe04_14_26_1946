@@ -105,18 +105,19 @@ describe('the seven templates (Breast, Breast DCIS, Colon, Colorectal ×2, Lung,
   });
   it('Breast: the entry checks block, with readable messages, when the counts disagree', () => {
     const sections = (breast as unknown as { sections: never[] }).sections;
-    const answers = { total_ln_examined: '3', number_ln_macrometastases: '2', number_ln_micrometastases: '2', number_ln_itc: 'some', sentinel_ln_examined: '4' };
+    // Batch 755b: the count questions show once the node status is answered (positive here).
+    const answers = { regional_ln_status: 'regional_ln_status_opt_2', total_ln_examined: '3', number_ln_macrometastases: '2', number_ln_micrometastases: '2', number_ln_itc: 'some', sentinel_ln_examined: '4' };
     const { blocking } = synopticEntryChecksFor('i1', sections, answers);
     const kinds = blocking.filter(b => ['fieldNotCount', 'fieldExceeds', 'fieldBelowSum'].includes(b.kind)).map(b => [b.kind, b.fieldId]);
     // ITC "some" isn't a count, so the sum is skipped (it can't be added up); the sentinel subset exceeds the total.
     expect(kinds).toEqual([['fieldNotCount', 'number_ln_itc'], ['fieldExceeds', 'sentinel_ln_examined']]);
     const msg = blocking.map(b => countBlockMessage(t, b));
-    expect(msg).toContain('synopticChecks.fieldNotCount{"field":"Number Positive (Category C)","value":"some"}');
+    expect(msg).toContain('synopticChecks.fieldNotCount{"field":"Nodes with isolated tumor cells only (0.2 mm or less)","value":"some"}');
 
     const fixed = synopticEntryChecksFor('i1', sections, { ...answers, number_ln_itc: '1', sentinel_ln_examined: '2' }).blocking;
     const below = fixed.find(b => b.kind === 'fieldBelowSum')!;
-    expect([below.fieldId, below.value, below.limit, below.limitLabel]).toEqual(['total_ln_examined', 3, 5, 'Number Positive (Category A) + Number Positive (Category B) + Number Positive (Category C)']);
-    expect(countBlockMessage(t, below)).toBe('synopticChecks.fieldBelowSum{"field":"Total Number Examined","value":3,"parts":"Number Positive (Category A) + Number Positive (Category B) + Number Positive (Category C)","sum":5}');
+    expect([below.fieldId, below.value, below.limit, below.limitLabel]).toEqual(['total_ln_examined', 3, 5, 'Nodes with macrometastasis (more than 2 mm) + Nodes with micrometastasis (more than 0.2 mm, up to 2 mm) + Nodes with isolated tumor cells only (0.2 mm or less)']);
+    expect(countBlockMessage(t, below)).toBe('synopticChecks.fieldBelowSum{"field":"Lymph nodes examined (total)","value":3,"parts":"Nodes with macrometastasis (more than 2 mm) + Nodes with micrometastasis (more than 0.2 mm, up to 2 mm) + Nodes with isolated tumor cells only (0.2 mm or less)","sum":5}');
 
     const good = { total_ln_examined: '12', number_ln_macrometastases: '2', number_ln_micrometastases: 'at least 1', number_ln_itc: '0', sentinel_ln_examined: '3' };
     expect(synopticEntryChecksFor('i1', sections, good).blocking.filter(b => ['fieldNotCount', 'fieldExceeds', 'fieldBelowSum'].includes(b.kind))).toEqual([]);

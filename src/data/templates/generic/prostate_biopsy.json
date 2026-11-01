@@ -1,6 +1,6 @@
 {
   "id": "prostate_biopsy",
-  "name": "Generic Template — Prostate Biopsy",
+  "name": "Prostate biopsy (UK layout)",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "PROSTATE",
@@ -8,11 +8,11 @@
   "sections": [
     {
       "id": "clinical_information",
-      "title": "Clinical Information",
+      "title": "Clinical information",
       "fields": [
         {
           "id": "pre_biopsy_psa",
-          "label": "Pre-Procedure Marker Value",
+          "label": "PSA before biopsy (ng/mL)",
           "type": "text",
           "required": false,
           "core": true,
@@ -23,7 +23,7 @@
         },
         {
           "id": "pre_biopsy_psa_availability",
-          "label": "Pre-Procedure Marker Availability",
+          "label": "PSA on the request",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -32,13 +32,13 @@
           "options": [
             {
               "id": "pre_biopsy_psa_availability_opt_1",
-              "label": "Option 1",
+              "label": "Given",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "pre_biopsy_psa_availability_opt_2",
-              "label": "Option 2",
+              "label": "Not given",
               "snomed": "",
               "icd": ""
             }
@@ -47,7 +47,7 @@
         },
         {
           "id": "pre_biopsy_mri",
-          "label": "Pre-Procedure Imaging",
+          "label": "MRI before biopsy (for example the PI-RADS score and site)",
           "type": "text",
           "required": false,
           "core": true,
@@ -64,7 +64,7 @@
       "fields": [
         {
           "id": "specimen_type",
-          "label": "Type of Specimen",
+          "label": "Type of biopsy",
           "type": "checkboxes",
           "required": true,
           "core": true,
@@ -73,25 +73,25 @@
           "options": [
             {
               "id": "specimen_type_opt_1",
-              "label": "Option 1",
+              "label": "Systematic transrectal biopsies",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "specimen_type_opt_2",
-              "label": "Option 2",
+              "label": "Systematic transperineal biopsies",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "specimen_type_opt_3",
-              "label": "Option 3",
+              "label": "Targeted biopsies (MRI or ultrasound)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "specimen_type_opt_4",
-              "label": "Option 4",
+              "label": "Other (describe)",
               "snomed": "",
               "icd": ""
             }
@@ -100,24 +100,31 @@
         },
         {
           "id": "specimen_type_other_specify",
-          "label": "Type of Specimen — Other (specify)",
+          "label": "Other type of biopsy: describe",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "specimen_type",
+            "answerId": "",
+            "answerIds": [
+              "specimen_type_opt_4"
+            ]
+          }
         }
       ]
     },
     {
       "id": "cores_systematic_right",
-      "title": "Unit Group A",
+      "title": "Systematic cores: right side",
       "fields": [
         {
           "id": "systematic_right_location",
-          "label": "Field 1",
+          "label": "Sites sampled",
           "type": "text",
           "required": false,
           "core": true,
@@ -128,7 +135,7 @@
         },
         {
           "id": "systematic_right_number_taken",
-          "label": "Field 2",
+          "label": "Cores taken (as stated on the request)",
           "type": "text",
           "required": false,
           "core": true,
@@ -139,7 +146,7 @@
         },
         {
           "id": "systematic_right_number_received",
-          "label": "Field 3",
+          "label": "Cores received",
           "type": "text",
           "required": false,
           "core": true,
@@ -150,18 +157,18 @@
         },
         {
           "id": "total_right_cores",
-          "label": "Field 4",
+          "label": "Right-sided cores (total)",
           "type": "text",
           "required": true,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "right_cores_involved",
-          "label": "Field 5",
+          "label": "Right-sided cores with carcinoma",
           "type": "text",
           "required": false,
           "core": true,
@@ -172,7 +179,7 @@
         },
         {
           "id": "location_involved_right_cores",
-          "label": "Field 6",
+          "label": "Where the involved right-sided cores are",
           "type": "text",
           "required": false,
           "core": true,
@@ -185,11 +192,11 @@
     },
     {
       "id": "cores_systematic_left",
-      "title": "Unit Group B",
+      "title": "Systematic cores: left side",
       "fields": [
         {
           "id": "systematic_left_location",
-          "label": "Field 1",
+          "label": "Sites sampled",
           "type": "text",
           "required": false,
           "core": true,
@@ -200,7 +207,7 @@
         },
         {
           "id": "systematic_left_number_taken",
-          "label": "Field 2",
+          "label": "Cores taken (as stated on the request)",
           "type": "text",
           "required": false,
           "core": true,
@@ -211,7 +218,7 @@
         },
         {
           "id": "systematic_left_number_received",
-          "label": "Field 3",
+          "label": "Cores received",
           "type": "text",
           "required": false,
           "core": true,
@@ -222,18 +229,18 @@
         },
         {
           "id": "total_left_cores",
-          "label": "Field 4",
+          "label": "Left-sided cores (total)",
           "type": "text",
           "required": true,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "left_cores_involved",
-          "label": "Field 5",
+          "label": "Left-sided cores with carcinoma",
           "type": "text",
           "required": false,
           "core": true,
@@ -244,7 +251,7 @@
         },
         {
           "id": "location_involved_left_cores",
-          "label": "Field 6",
+          "label": "Where the involved left-sided cores are",
           "type": "text",
           "required": false,
           "core": true,
@@ -257,11 +264,11 @@
     },
     {
       "id": "cores_targeted",
-      "title": "Unit Group C",
+      "title": "Targeted cores",
       "fields": [
         {
           "id": "target_location",
-          "label": "Field 1",
+          "label": "Target (MRI lesion) site",
           "type": "text",
           "required": false,
           "core": true,
@@ -272,7 +279,7 @@
         },
         {
           "id": "target_number_taken",
-          "label": "Field 2",
+          "label": "Cores taken (as stated on the request)",
           "type": "text",
           "required": false,
           "core": true,
@@ -283,7 +290,7 @@
         },
         {
           "id": "target_number_received",
-          "label": "Field 3",
+          "label": "Cores received",
           "type": "text",
           "required": false,
           "core": true,
@@ -294,7 +301,7 @@
         },
         {
           "id": "total_targeted_cores",
-          "label": "Field 4",
+          "label": "Targeted cores (total)",
           "type": "text",
           "required": false,
           "core": true,
@@ -305,7 +312,7 @@
         },
         {
           "id": "total_targeted_cores_involved",
-          "label": "Field 5",
+          "label": "Targeted cores with carcinoma",
           "type": "text",
           "required": false,
           "core": true,
@@ -318,33 +325,33 @@
     },
     {
       "id": "core_totals",
-      "title": "Unit Totals",
+      "title": "Core totals",
       "fields": [
         {
           "id": "total_systematic_cores",
-          "label": "Field 1",
+          "label": "Systematic cores (total)",
           "type": "text",
           "required": true,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "total_systematic_cores_involved",
-          "label": "Field 2",
+          "label": "Systematic cores with carcinoma",
           "type": "text",
           "required": true,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "total_other_cores",
-          "label": "Field 3",
+          "label": "Other cores (total)",
           "type": "text",
           "required": false,
           "core": true,
@@ -355,7 +362,7 @@
         },
         {
           "id": "total_other_cores_involved",
-          "label": "Field 4",
+          "label": "Other cores with carcinoma",
           "type": "text",
           "required": false,
           "core": true,
@@ -366,7 +373,7 @@
         },
         {
           "id": "location_involved_other_cores",
-          "label": "Field 5",
+          "label": "Where the involved other cores are",
           "type": "text",
           "required": false,
           "core": true,
@@ -379,11 +386,11 @@
     },
     {
       "id": "tumour_pathology",
-      "title": "Findings",
+      "title": "Tumour",
       "fields": [
         {
           "id": "histological_tumour_type",
-          "label": "Type",
+          "label": "Tumour type",
           "type": "checkboxes",
           "required": true,
           "core": true,
@@ -392,25 +399,25 @@
           "options": [
             {
               "id": "histological_tumour_type_opt_1",
-              "label": "Option 1",
+              "label": "Acinar adenocarcinoma",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histological_tumour_type_opt_2",
-              "label": "Option 2",
+              "label": "Ductal adenocarcinoma",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histological_tumour_type_opt_3",
-              "label": "Option 3",
+              "label": "Intraductal carcinoma",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "histological_tumour_type_opt_4",
-              "label": "Option 4",
+              "label": "Other type (describe)",
               "snomed": "",
               "icd": ""
             }
@@ -419,18 +426,25 @@
         },
         {
           "id": "histological_tumour_type_other_specify",
-          "label": "Type — Other (specify)",
+          "label": "Other tumour type: describe",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "histological_tumour_type",
+            "answerId": "",
+            "answerIds": [
+              "histological_tumour_type_opt_4"
+            ]
+          }
         },
         {
           "id": "longest_cancer_core_mm",
-          "label": "Field 3",
+          "label": "Longest length of carcinoma in one core (mm)",
           "type": "text",
           "required": true,
           "core": true,
@@ -441,7 +455,7 @@
         },
         {
           "id": "location_longest_cancer_core",
-          "label": "Field 4",
+          "label": "Core with the longest length of carcinoma",
           "type": "text",
           "required": false,
           "core": true,
@@ -452,7 +466,7 @@
         },
         {
           "id": "perineural_invasion",
-          "label": "Perineural Involvement",
+          "label": "Perineural invasion",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -461,22 +475,22 @@
           "options": [
             {
               "id": "perineural_invasion_opt_1",
-              "label": "Option 1",
+              "label": "Not seen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "perineural_invasion_opt_2",
-              "label": "Option 2",
+              "label": "Present",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": "Optional"
+          "note": ""
         },
         {
           "id": "extraprostatic_extension",
-          "label": "Extension Beyond Organ",
+          "label": "Extraprostatic extension",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -485,13 +499,13 @@
           "options": [
             {
               "id": "extraprostatic_extension_opt_1",
-              "label": "Option 1",
+              "label": "Not seen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "extraprostatic_extension_opt_2",
-              "label": "Option 2",
+              "label": "Present",
               "snomed": "",
               "icd": ""
             }
@@ -502,11 +516,11 @@
     },
     {
       "id": "grading",
-      "title": "Grade Summary",
+      "title": "Gleason grade",
       "fields": [
         {
           "id": "gleason_applicable",
-          "label": "Score Applicable",
+          "label": "Gleason grading applies",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -515,13 +529,13 @@
           "options": [
             {
               "id": "gleason_applicable_opt_1",
-              "label": "Option 1",
+              "label": "Yes",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "gleason_applicable_opt_2",
-              "label": "Option 2",
+              "label": "No (for example after hormone or radiation treatment)",
               "snomed": "",
               "icd": ""
             }
@@ -530,53 +544,144 @@
         },
         {
           "id": "primary_gleason_grade",
-          "label": "Primary Grade",
+          "label": "Most extensive pattern",
           "type": "dropdown",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [
-            { "id": "primary_gleason_grade_opt_1", "label": "Pattern 3", "snomed": "", "icd": "" },
-            { "id": "primary_gleason_grade_opt_2", "label": "Pattern 4", "snomed": "", "icd": "" },
-            { "id": "primary_gleason_grade_opt_3", "label": "Pattern 5", "snomed": "", "icd": "" },
-            { "id": "primary_gleason_grade_opt_4", "label": "Cannot be assessed", "snomed": "", "icd": "" }
+            {
+              "id": "primary_gleason_grade_opt_1",
+              "label": "Pattern 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "primary_gleason_grade_opt_2",
+              "label": "Pattern 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "primary_gleason_grade_opt_3",
+              "label": "Pattern 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "primary_gleason_grade_opt_4",
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
+            }
           ],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "gleason_applicable",
+            "answerId": "",
+            "answerIds": [
+              "gleason_applicable_opt_1"
+            ]
+          }
         },
         {
           "id": "secondary_gleason_grade",
-          "label": "Secondary Grade",
+          "label": "Highest other pattern",
           "type": "dropdown",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [
-            { "id": "secondary_gleason_grade_opt_1", "label": "Pattern 3", "snomed": "", "icd": "" },
-            { "id": "secondary_gleason_grade_opt_2", "label": "Pattern 4", "snomed": "", "icd": "" },
-            { "id": "secondary_gleason_grade_opt_3", "label": "Pattern 5", "snomed": "", "icd": "" },
-            { "id": "secondary_gleason_grade_opt_4", "label": "Cannot be assessed", "snomed": "", "icd": "" }
+            {
+              "id": "secondary_gleason_grade_opt_1",
+              "label": "Pattern 3",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "secondary_gleason_grade_opt_2",
+              "label": "Pattern 4",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "secondary_gleason_grade_opt_3",
+              "label": "Pattern 5",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "secondary_gleason_grade_opt_4",
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
+            }
           ],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "gleason_applicable",
+            "answerId": "",
+            "answerIds": [
+              "gleason_applicable_opt_1"
+            ]
+          }
         },
         {
           "id": "gleason_score_total",
-          "label": "Score — Total",
+          "label": "Gleason score",
           "type": "dropdown",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [
-            { "id": "gleason_score_total_opt_1", "label": "6 (3+3)", "snomed": "", "icd": "" },
-            { "id": "gleason_score_total_opt_2", "label": "7 (3+4)", "snomed": "", "icd": "" },
-            { "id": "gleason_score_total_opt_3", "label": "7 (4+3)", "snomed": "", "icd": "" },
-            { "id": "gleason_score_total_opt_4", "label": "8", "snomed": "", "icd": "" },
-            { "id": "gleason_score_total_opt_5", "label": "9", "snomed": "", "icd": "" },
-            { "id": "gleason_score_total_opt_6", "label": "10", "snomed": "", "icd": "" }
+            {
+              "id": "gleason_score_total_opt_1",
+              "label": "6 (3+3)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gleason_score_total_opt_2",
+              "label": "7 (3+4)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gleason_score_total_opt_3",
+              "label": "7 (4+3)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gleason_score_total_opt_4",
+              "label": "8",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gleason_score_total_opt_5",
+              "label": "9",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "gleason_score_total_opt_6",
+              "label": "10",
+              "snomed": "",
+              "icd": ""
+            }
           ],
-          "note": ""
+          "note": "",
+          "visibleWhen": {
+            "fieldId": "gleason_applicable",
+            "answerId": "",
+            "answerIds": [
+              "gleason_applicable_opt_1"
+            ]
+          }
         },
         {
           "id": "grade_group",
@@ -587,18 +692,48 @@
           "snomed": "",
           "icd": "",
           "options": [
-            { "id": "grade_group_opt_1", "label": "Grade Group 1 (Gleason ≤6)", "snomed": "", "icd": "" },
-            { "id": "grade_group_opt_2", "label": "Grade Group 2 (3+4=7)", "snomed": "", "icd": "" },
-            { "id": "grade_group_opt_3", "label": "Grade Group 3 (4+3=7)", "snomed": "", "icd": "" },
-            { "id": "grade_group_opt_4", "label": "Grade Group 4 (8)", "snomed": "", "icd": "" },
-            { "id": "grade_group_opt_5", "label": "Grade Group 5 (9–10)", "snomed": "", "icd": "" },
-            { "id": "grade_group_opt_6", "label": "Cannot be assessed", "snomed": "", "icd": "" }
+            {
+              "id": "grade_group_opt_1",
+              "label": "Grade Group 1 (Gleason ≤6)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "grade_group_opt_2",
+              "label": "Grade Group 2 (3+4=7)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "grade_group_opt_3",
+              "label": "Grade Group 3 (4+3=7)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "grade_group_opt_4",
+              "label": "Grade Group 4 (8)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "grade_group_opt_5",
+              "label": "Grade Group 5 (9–10)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "grade_group_opt_6",
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
+            }
           ],
           "note": ""
         },
         {
           "id": "percentage_gleason_pattern_4",
-          "label": "Percentage of Secondary Pattern",
+          "label": "Percentage of pattern 4",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -607,82 +742,90 @@
           "options": [
             {
               "id": "percentage_gleason_pattern_4_opt_1",
-              "label": "Option 1",
+              "label": "Less than 5%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "percentage_gleason_pattern_4_opt_2",
-              "label": "Option 2",
+              "label": "5%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "percentage_gleason_pattern_4_opt_3",
-              "label": "Option 3",
+              "label": "10%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "percentage_gleason_pattern_4_opt_4",
-              "label": "Option 4",
+              "label": "20%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "percentage_gleason_pattern_4_opt_5",
-              "label": "Option 5",
+              "label": "30%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "percentage_gleason_pattern_4_opt_6",
-              "label": "Option 6",
+              "label": "40%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "percentage_gleason_pattern_4_opt_7",
-              "label": "Option 7",
+              "label": "50%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "percentage_gleason_pattern_4_opt_8",
-              "label": "Option 8",
+              "label": "60%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "percentage_gleason_pattern_4_opt_9",
-              "label": "Option 9",
+              "label": "70%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "percentage_gleason_pattern_4_opt_10",
-              "label": "Option 10",
+              "label": "80%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "percentage_gleason_pattern_4_opt_11",
-              "label": "Option 11",
+              "label": "90%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "percentage_gleason_pattern_4_opt_12",
-              "label": "Option 12",
+              "label": "More than 90%",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": ""
+          "note": "",
+          "visibleWhen": {
+            "fieldId": "gleason_score_total",
+            "answerId": "",
+            "answerIds": [
+              "gleason_score_total_opt_2",
+              "gleason_score_total_opt_3"
+            ]
+          }
         },
         {
           "id": "invasive_cribriform_intraductal",
-          "label": "Secondary Pattern Present",
+          "label": "Cribriform pattern or intraductal carcinoma",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -691,13 +834,13 @@
           "options": [
             {
               "id": "invasive_cribriform_intraductal_opt_1",
-              "label": "Option 1",
+              "label": "Not seen",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "invasive_cribriform_intraductal_opt_2",
-              "label": "Option 2",
+              "label": "Present",
               "snomed": "",
               "icd": ""
             }
@@ -708,11 +851,11 @@
     },
     {
       "id": "molecular_block",
-      "title": "Ancillary Block Information",
+      "title": "Block for further testing",
       "fields": [
         {
           "id": "representative_molecular_block",
-          "label": "Representative Block (identifier)",
+          "label": "Best block for further testing (block number)",
           "type": "text",
           "required": false,
           "core": true,
@@ -723,7 +866,7 @@
         },
         {
           "id": "molecular_block_tumour_content",
-          "label": "Content of Representative Block",
+          "label": "Tumour content of that block",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -732,55 +875,55 @@
           "options": [
             {
               "id": "molecular_block_tumour_content_opt_1",
-              "label": "Option 1",
+              "label": "Less than 10%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_2",
-              "label": "Option 2",
+              "label": "10 to 19%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_3",
-              "label": "Option 3",
+              "label": "20 to 29%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_4",
-              "label": "Option 4",
+              "label": "30 to 39%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_5",
-              "label": "Option 5",
+              "label": "40 to 49%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_6",
-              "label": "Option 6",
+              "label": "50 to 59%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_7",
-              "label": "Option 7",
+              "label": "60 to 69%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_8",
-              "label": "Option 8",
+              "label": "70 to 79%",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "molecular_block_tumour_content_opt_9",
-              "label": "Option 9",
+              "label": "80% or more",
               "snomed": "",
               "icd": ""
             }
@@ -791,11 +934,11 @@
     },
     {
       "id": "snomed_codes",
-      "title": "Reference Codes",
+      "title": "SNOMED CT codes",
       "fields": [
         {
           "id": "snomed_t_code",
-          "label": "Reference Code A",
+          "label": "SNOMED CT topography code",
           "type": "text",
           "required": false,
           "core": true,
@@ -806,7 +949,7 @@
         },
         {
           "id": "snomed_m_code",
-          "label": "Reference Code B",
+          "label": "SNOMED CT morphology code",
           "type": "text",
           "required": false,
           "core": true,
@@ -1002,7 +1145,7 @@
       "fields": [
         {
           "id": "comments",
-          "label": "Comment(s)",
+          "label": "Comments",
           "type": "text",
           "required": false,
           "core": true,

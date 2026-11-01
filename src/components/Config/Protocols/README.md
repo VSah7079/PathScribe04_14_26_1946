@@ -1,3 +1,7 @@
+**Batch 755a:** the three library lists show the "Demo wording" tag; `ProtocolCardParts.tsx` follows `protocolActions()` (no Duplicate / New Version on a demo checklist); `BuildCustomiseModal` (in `protocolShared.tsx`) lists `copySourceCandidates()` with a one-line note; `SynopticEditor.tsx` (1,301 → 1,277 lines) takes its starting template from `hooks/useEditorStartingTemplate.ts` and shows `DemoChecklistCopyRefused.tsx` (new) instead of opening a copy of a demo checklist.
+
+**Batch 754:** `DemoChecklistRemovalCard.tsx` (new), at the top of All protocols, for ForMedrixAI support only: check what would be removed, then remove the 19 demonstration checklists from this organisation's library (archived). `protocolShared.tsx` (866 → 755 lines): the 19 entries moved to `services/templates/demoChecklistRegistry.ts`, and a customer build lists none of them.
+
 # components/Config/Protocols/
 
 The Synoptic Library — protocol/template lifecycle management (registry,

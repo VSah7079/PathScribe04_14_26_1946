@@ -4237,6 +4237,10 @@
         "description": "Réattribuer d'un coup tous les dossiers non attribués selon les règles. Audité.",
         "label": "Attribuer maintenant les dossiers non attribués"
       },
+      "caseSlideImageOpen": {
+        "description": "Ouvrir une lame depuis son aperçu de référence dans l'application de pathologie numérique du laboratoire, dans une fenêtre séparée. PathScribe ouvre seulement l'adresse ; l'autre application gère la connexion. Audité : qui, quelle lame, quand.",
+        "label": "Ouvrir une lame dans l'application de pathologie numérique du laboratoire"
+      },
       "caseTeamManage": {
         "description": "Ajouter ou retirer des personnes de l’équipe d’un cas (Équipe du cas), y compris son pathologiste principal. Un cytotechnicien ne peut pas occuper une fonction de pathologiste.",
         "label": "Modifier l’équipe d’un cas"
@@ -4592,6 +4596,10 @@
       "configOrganMapBindingsManage": {
         "description": "Choisir quelles questions des modèles synoptiques du laboratoire, et quelles réponses, alimentent les cartes d’organes, et quelles questions de marge génériques des modèles les cartes calculent. Tracé.",
         "label": "Lier des questions synoptiques aux cartes d’organes"
+      },
+      "configOrganMapDeliveryManage": {
+        "description": "Choisir si le système de laboratoire d’un laboratoire exécutant reçoit la carte anatomique pour les cas en mode Assist : désactivé, texte seul, ou texte et fichier image envoyé à une destination. Les modifications sont tracées.",
+        "label": "Paramétrer l’envoi de la carte anatomique au système de laboratoire"
       },
       "configOrganMapSchemeManage": {
         "description": "Modifier les couleurs, motifs, libellés de légende et seuils des cartes d’organes (distance de marge proche au sein ; règles de marge envahie du polype malin et de la MRC rectale ; règles de marge envahie et proche de la cavité buccale ; règles de marge envahie parenchymateuse et des tissus mous du rein) pour l’entreprise, une juridiction ou un établissement. Tracé.",
@@ -5036,6 +5044,10 @@
       "platformCrossTenantCasesView": {
         "description": "Accès du support PathScribe à un cas hors de l'organisation de l'utilisateur. Chaque ouverture est consignée dans le journal d'audit.",
         "label": "Ouvrir les cas d'autres organisations (support)"
+      },
+      "platformDemoChecklistsRemove": {
+        "description": "Retirer les 19 listes de contrôle de démonstration (marquées « Texte de démonstration ») de la bibliothèque synoptique d’une organisation cliente (elles sont archivées). Support ForMedrixAI uniquement. Audité.",
+        "label": "Retirer les listes de contrôle de démonstration"
       },
       "platformGoverningBodiesManage": {
         "description": "Choisir le contenu des organismes (CAP, RCPath, ICCR, RCPA) synchronisé dans la bibliothèque synoptique de la plateforme.",
@@ -10111,6 +10123,34 @@
       "tue": "mar.",
       "wed": "mer."
     }
+  },
+  "demoChecklists": {
+    "cancel": "Annuler",
+    "check": "Voir ce qui serait retiré",
+    "confirmYes": "Retirer",
+    "confirm_one": "Retirer {{count}} liste de contrôle de la bibliothèque de cette organisation ?",
+    "confirm_other": "Retirer {{count}} listes de contrôle de la bibliothèque de cette organisation ?",
+    "copyRefusedBack": "Retour à la bibliothèque synoptique",
+    "copyRefusedBody": "{{name}} contient un texte de démonstration qu’aucun pathologiste n’a encore relu : elle ne peut donc ni être copiée ni servir de base à une nouvelle version. Partez de zéro, d’une des listes de contrôle propres à PathScribe ou d’un protocole que votre laboratoire est autorisé à utiliser (Téléverser un protocole).",
+    "copyRefusedShort": "Une liste de contrôle au texte de démonstration ne peut pas être copiée tant qu’un pathologiste ne l’a pas relue.",
+    "copyRefusedTitle": "Cette liste de contrôle ne peut pas être copiée",
+    "demoBuildNote": "Sur le site de démonstration, la bibliothèque appartient à ce navigateur : un retrait ici vaut pour toutes les organisations de démonstration jusqu’à la réinitialisation complète. Sur le serveur d’un client, il ne vaut que pour cette organisation.",
+    "failed_one": "{{count}} n’a pas pu être retirée : {{names}}",
+    "failed_other": "{{count}} n’ont pas pu être retirées : {{names}}",
+    "inLibrary_one": "{{count}} liste de contrôle de démonstration est proposée dans cette bibliothèque.",
+    "inLibrary_other": "{{count}} listes de contrôle de démonstration sont proposées dans cette bibliothèque.",
+    "intro": "Les 19 listes de contrôle marquées « Texte de démonstration » servent uniquement aux démonstrations et ne sont jamais proposées à un client. Les retirer de la bibliothèque de cette organisation les archive : elles ne sont plus proposées pour les nouveaux comptes rendus, et un compte rendu déjà établi avec l’une d’elles s’ouvre toujours.",
+    "noneLeft": "Aucune liste de contrôle de démonstration n’est proposée dans cette bibliothèque.",
+    "notPermitted": "Seul le support ForMedrixAI peut retirer les listes de contrôle de démonstration.",
+    "pickerNote": "Les listes de contrôle marquées « Texte de démonstration » ne peuvent pas servir de point de départ.",
+    "remove": "Retirer les listes de contrôle de démonstration",
+    "removed_one": "{{count}} liste de contrôle retirée.",
+    "removed_other": "{{count}} listes de contrôle retirées.",
+    "title": "Listes de contrôle de démonstration",
+    "wordingTag": "Texte de démonstration",
+    "wordingTagHint": "Texte de démonstration qu’aucun pathologiste n’a encore relu. Il ne peut pas être copié dans vos propres listes de contrôle.",
+    "working": "Traitement en cours…",
+    "wouldRemove": "Seraient retirées : {{names}}"
   },
   "demoResetTab": {
     "disabled": {
@@ -17156,6 +17196,9 @@
         "yes": "Présent"
       }
     },
+    "delivery": {
+      "nothingShown": "Rien à afficher sur la carte."
+    },
     "derived": {
       "invasiveMarginsIncomplete": "{{synoptic}} : un carcinome invasif est enregistré, mais ces marges ne sont pas renseignées : {{margins}}.",
       "invasiveMarginsPrompt": "Valider quand même ?",
@@ -17388,8 +17431,10 @@
     },
     "panel": {
       "empty": "Répondez aux questions de la section Carte anatomique du compte rendu synoptique pour afficher la carte.",
+      "fileSent": "Fichier de la carte envoyé au système de laboratoire à {{time}}.",
       "insert": "Insérer dans le compte rendu",
       "insertTitle": "Placer cette carte, en couleurs d’impression, dans le compte rendu. C’est un instantané : les changements ultérieurs des réponses ne la modifient pas tant que vous ne l’insérez pas de nouveau.",
+      "lisOwnsReport": "Votre système de laboratoire rédige ce compte rendu.",
       "noBinding": "Ce compte rendu synoptique n’a pas de questions de carte. Un administrateur peut lier ses propres questions dans Configuration → Cartes d’organes.",
       "remove": "Retirer du compte rendu",
       "sectorHint": "Cliquez sur un secteur pour aller à sa question.",
@@ -17405,6 +17450,7 @@
       "title": "Carte anatomique",
       "toast": {
         "inserted": "Carte insérée dans le compte rendu.",
+        "lisOwnsReport": "Votre système de laboratoire rédige ce compte rendu ; la carte n’y est donc pas placée.",
         "locked": "Le compte rendu est signé ; la carte ne peut changer que par un amendement.",
         "noImage": "La carte n'a pas pu être convertie en image pour le compte rendu. Veuillez réessayer.",
         "notPermitted": "Vous n’avez pas l’autorisation de mettre la carte dans le compte rendu.",
@@ -17606,6 +17652,35 @@
       "rectalResection": "Résection rectale — marge circonférentielle, réflexion péritonéale et marge distale",
       "renalResection": "Néphrectomie — localisation, extension pT et marges"
     }
+  },
+  "organMapDelivery": {
+    "destinationHint": "Un dossier, une adresse SFTP ou un canal du moteur d’interfaces, tel que votre équipe d’interfaces l’a configuré. Jamais de nom d’utilisateur ni de mot de passe : le moteur d’interfaces détient la connexion. Les noms de fichier comportent le numéro d’enregistrement, le type de carte et l’heure, jamais le nom d’un patient.",
+    "destinationLabel": "Destination des fichiers",
+    "failureNote": "Un envoi qui échoue ne bloque jamais la finalisation et n’est pas signalé au pathologiste. Il apparaît dans la file sortante, où il peut être relancé.",
+    "formatLabel": "Format du fichier",
+    "formats": {
+      "pdf": "Document PDF",
+      "png": "Image PNG"
+    },
+    "intro": "Pour un cas en mode Assist, votre système de laboratoire rédige le compte rendu ; PathScribe n’y place donc jamais la carte anatomique. Choisissez si la carte est envoyée à ce système avec les données synoptiques. Elle est tracée à partir des réponses définitives de la liste de contrôle lors de la finalisation ; c’est une figure de compte rendu, pas une image du patient.",
+    "modeLabel": "Envoyer la carte anatomique",
+    "modes": {
+      "off": "Désactivé",
+      "text": "Texte seul",
+      "textAndFile": "Texte et fichier image"
+    },
+    "problems": {
+      "destinationCredentials": "Retirez le nom d’utilisateur et le mot de passe de la destination ; le moteur d’interfaces détient la connexion.",
+      "destinationRequired": "Indiquez où les fichiers doivent être envoyés.",
+      "destinationTooLong": "La destination est trop longue (300 caractères au maximum).",
+      "notPermitted": "Vous n’avez pas l’autorisation de modifier l’envoi de la carte anatomique.",
+      "saveFailed": "Le paramètre n’a pas été enregistré. Veuillez réessayer.",
+      "unknownFormat": "Choisissez un format de fichier.",
+      "unknownMode": "Choisissez comment la carte est envoyée."
+    },
+    "save": "Enregistrer l’envoi de la carte anatomique",
+    "saved": "Envoi de la carte anatomique enregistré.",
+    "title": "Envoi de la carte anatomique"
   },
   "organMapsSection": {
     "bindings": {
@@ -19873,42 +19948,6 @@
       "usedBy": "Utilisé par"
     },
     "title": "Dictionnaire des protocoles"
-  },
-  "protocolEditor": {
-    "addQuestion": "Ajouter une question",
-    "addSection": "Ajouter une section",
-    "backToConfiguration": "Retour à la configuration",
-    "choiceOptionsHint": "La modification des options de choix pourra être ajoutée ensuite — la structure est prête.",
-    "lifecycle": {
-      "archived": "Archivé",
-      "draft": "Brouillon",
-      "published": "Publié",
-      "validated": "Validé"
-    },
-    "meta": {
-      "lifecycle": "Cycle de vie",
-      "source": "Source",
-      "version": "Version"
-    },
-    "notFound": "Protocole introuvable.",
-    "question": {
-      "newText": "Nouvelle question"
-    },
-    "questionType": {
-      "boolean": "Oui/Non",
-      "choice": "Choix",
-      "number": "Nombre",
-      "text": "Texte"
-    },
-    "required": "Obligatoire",
-    "saveProtocol": "Enregistrer le protocole",
-    "section": {
-      "newTitle": "Nouvelle section"
-    },
-    "source": {
-      "custom": "Personnalisé"
-    },
-    "title": "Éditeur de protocole : {{name}}"
   },
   "protocolShared": {
     "buildModal": {
@@ -23652,6 +23691,53 @@
       "loadedOnScanner": "Chargée sur le scanner",
       "scanned": "Numérisée"
     }
+  },
+  "slideImage": {
+    "loading": "Chargement de l’image de la lame…",
+    "message": {
+      "blocked": "Votre navigateur a bloqué la fenêtre de la lame. Autorisez les fenêtres contextuelles pour PathScribe : sélectionnez l’icône de fenêtre bloquée à la fin de la barre d’adresse, choisissez de toujours autoriser les fenêtres contextuelles de ce site, puis sélectionnez à nouveau la lame.",
+      "noAddress": "Aucune adresse de visionneuse n’est définie. Adressez-vous à votre administrateur.",
+      "notPermitted": "Vous n’avez pas l’autorisation d’ouvrir les images de lames."
+    },
+    "openLabel": "Ouvrir la lame",
+    "openTitle": "Ouvrir la lame {{slide}} dans l’application de pathologie numérique du laboratoire",
+    "referenceNote": "Aperçu de référence. Pas pour le diagnostic.",
+    "state": {
+      "available": "Image disponible",
+      "failedImageQuality": "Qualité d’image insuffisante",
+      "noImageYet": "Pas encore d’image",
+      "queued": "En file d’attente",
+      "scanFailed": "Échec de la numérisation",
+      "scanning": "Numérisation en cours"
+    },
+    "thumbAlt": "Aperçu de référence de la lame {{slide}}"
+  },
+  "slideImageSettings": {
+    "addFacility": "Ajouter un établissement disposant de son propre système…",
+    "deploymentDefault": "Vide : l’adresse du déploiement est utilisée ({{address}})",
+    "description": "PathScribe n’a pas de visionneuse de lames. Il affiche un petit aperçu de référence de la lame, tel quel, fourni par votre scanner ou votre système d’images, et ouvre la lame dans l’application de pathologie numérique de votre laboratoire, dans une fenêtre séparée.",
+    "facilitiesHint": "Ne remplissez ces champs que pour un établissement disposant de son propre scanner ou de sa propre application de pathologie numérique. Vide : l’adresse du laboratoire est utilisée.",
+    "facilitiesTitle": "Établissements disposant de leur propre système",
+    "facilityFieldLabel": "{{facility}} : {{field}}",
+    "fields": {
+      "thumbnailUrlTemplate": "Adresse de l’image d’aperçu",
+      "viewerUrlTemplate": "Adresse de la visionneuse"
+    },
+    "labTitle": "Laboratoire",
+    "noDeploymentDefault": "Vide signifie aucune adresse : le déploiement n’en définit pas.",
+    "placeholdersHint": "Les adresses commencent par https://. Utilisez {{slidePlaceholder}} pour l’identifiant de la lame et {{accessionPlaceholder}} pour le numéro d’enregistrement du cas. Ne mettez jamais de nom de patient, de nom d’utilisateur ni de mot de passe dans une adresse : la connexion relève de l’autre application.",
+    "problemLine": "{{field}} : {{problem}}",
+    "problems": {
+      "credentials": "ne doit contenir ni nom d’utilisateur ni mot de passe",
+      "noSlidePlaceholder": "doit contenir {{slidePlaceholder}}",
+      "notHttps": "doit être une adresse https:// complète",
+      "notPermitted": "Vous n’avez pas l’autorisation de modifier les paramètres des images de lames.",
+      "unknownPlaceholder": "utilise un paramètre autre que {{slidePlaceholder}} ou {{accessionPlaceholder}}"
+    },
+    "removeFacility": "Retirer",
+    "save": "Enregistrer les paramètres des images de lames",
+    "saved": "Enregistré",
+    "title": "Images des lames"
   },
   "slideLabelLayoutEditor": {
     "description": "La face imprimable de la lame, la taille de module du code-barres et la hauteur du texte. Ces valeurs fixent désormais la taille des points et la position du texte de l’étiquette imprimée.",
@@ -27653,6 +27739,20 @@
     "localOnlyDev": "Local vocal uniquement (modèle vocal actif indisponible — vérifiez la clé API de son fournisseur)",
     "noValidatedModel": "Aucun modèle vocal validé configuré, ou la clé API de son fournisseur n'est pas définie"
   },
+  "windowPosition": {
+    "close": "Fermer",
+    "failed": "La position n’a pas pu être enregistrée. Agrandissez la fenêtre et réessayez.",
+    "instructions": "Déplacez cette fenêtre là où les images de lames doivent s’ouvrir sur ce poste de travail, puis ajustez sa taille. Sélectionnez ensuite Enregistrer la position.",
+    "save": "Enregistrer la position",
+    "saved": "Position enregistrée pour ce poste de travail. Vous pouvez fermer cette fenêtre.",
+    "screensHint": "Dans Chrome et Edge, autorisez PathScribe à gérer les fenêtres sur tous vos écrans lorsque le navigateur le demande, afin que la fenêtre revienne sur le bon écran. Si cet écran n’est plus branché, la fenêtre s’ouvre sur l’écran principal.",
+    "setPosition": "Définir la position…",
+    "setPositionTitle": "Ouvre la fenêtre des images de lames pour la placer là où les lames doivent s’ouvrir sur ce poste de travail",
+    "unknownWindow": "Cette page définit la position d’une fenêtre PathScribe. Ouvrez-la depuis le menu du poste de travail.",
+    "windows": {
+      "slideImage": "Fenêtre des images de lames"
+    }
+  },
   "worklistDp": {
     "readiness": {
       "error": "{{ready}}/{{total}} Erreur",
@@ -28143,12 +28243,6 @@
     "noCaseSpecified": "Aucun dossier spécifié.",
     "slideSurfacePlaceholder": "[ Zone d'affichage de la lame WSI réelle — le zoom/déplacement s'afficherait ici ]",
     "specimenLabel": "Prélèvement {{specimenLabel}}"
-  },
-  "wsiViewerLaunch": {
-    "blockedError": "Fenêtre bloquée — veuillez autoriser les fenêtres contextuelles pour ce site et réessayer",
-    "launchLabel": "Ouvrir dans le visualiseur",
-    "launchTitle": "Ouvrir cette lame dans le visualiseur WSI configuré",
-    "selectVendorTitle": "Sélectionner le visualiseur WSI"
   },
   "wsiViewerVendorSection": {
     "actions": {

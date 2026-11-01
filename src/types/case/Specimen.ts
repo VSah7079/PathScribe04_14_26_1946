@@ -396,11 +396,10 @@ export interface StainOrder {
    *  routed through. Undefined until a distribution tech actually
    *  scans and routes this slide — never defaulted. */
   distributionDestination?: 'physical' | 'digital';
-  /** Real, per the spec's own "sets status to Checked Out/Assigned"
-   *  (physical) and "In Scanning Queue/Loaded on Scanner" (digital) —
-   *  one shared real status field covering both real destinations,
-   *  since a slide is only ever routed one way at a time. */
+  /** Physical (Checked Out/Assigned) or digital (In Scanning Queue/Loaded on Scanner/Scanned): one status for both. */
   distributionStatus?: 'Assigned' | 'Checked Out' | 'In Scanning Queue' | 'Loaded on Scanner' | 'Scanned';
+  /** Batch 750: the last scanner unload's finding (wsiScanQueue.stainUnloaded), for the slide image state (slideImages.ts). */
+  lastScanOutcome?: import('@/services/digitalPathology/slideImages').SlideScanOutcome;
   /** Batch 434: the WSI scan batch this slide is loaded in
    *  (services/digitalPathology/). Set when it is loaded from the scanning
    *  queue; cleared when the batch is unloaded and the slide goes back to the

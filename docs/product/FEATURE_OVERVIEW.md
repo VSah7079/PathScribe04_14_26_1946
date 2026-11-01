@@ -490,6 +490,42 @@ The Role Dictionary lists every voice and shortcut command by group, including t
 
 ## Batch Management & Chain of Custody
 
+### Synoptic checklist wording: PathScribe's own, not licensed protocol text — Partial, Batches 738, 753, 754, 755a and 755b
+
+**For the practitioner.** The colon resection, prostate needle biopsy, radical prostatectomy, breast invasive carcinoma and the two UK-layout (colorectal resection, prostate biopsy) checklists read in plain clinical words, with questions that appear only when they apply (for example the positive-margin details only when a margin is positive).
+
+**For the system administrator.** Nothing to set up. The wording lives in the generic templates (`src/data/templates/generic/`). Since Batch 755a they have plain names ("Colon resection") and a **Demo wording** tag until a pathologist has reviewed the wording, and a tagged checklist can't be copied (no Duplicate or New Version; Build / Customise leaves it out; the save is refused). A lab builds its own checklist from scratch, from PathScribe's own checklists, or from a protocol it is licensed for.
+
+**For marketing.** Clear, plain-language checklists, written by PathScribe, using the grading and staging terms pathologists already use.
+
+**For FormedrixAI and partners (the plain reality).** Status: Partial. Fourteen generic checklists have real wording (colon in Batch 738; the two prostate checklists in Batch 753; breast invasive, the two UK-layout ones, breast DCIS, lung adenocarcinoma, lung and kidney resection, skin melanoma biopsy, prostate resection, colorectal local excision and further investigations in Batch 755b), besides PathScribe's own Mohs, oral cavity and neck dissection checklists. Five others (no demo case uses them, so they are left off the case list) still show placeholder answers ("Option 1") until PathScribe writes them or a CAP / RCPath content licence is in place. The wording is PathScribe's own on standard nomenclature (ISUP Grade Groups, WHO tumour types, TNM codes); no CAP or RCPath text was copied, but the question set was inherited from before the licensing clean-up, so counsel should confirm the position before these checklists are sold as content. They are not CAP- or RCPath-endorsed and must not be described as such. Batch 754: all 19 "Generic Template" checklists are demonstration content: customer builds leave them out (the build check fails otherwise), and ForMedrixAI support can remove them from an organisation's library (`docs/architecture/DEMO_CHECKLISTS.md`). Copies a customer makes of them keep the inherited question list, so they are not a route to production checklists.
+
+*Technical detail:* `data/templates/generic/colon_resection.json`, `prostate_needle_biopsy.json`, `prostate_radical_prostatectomy.json`; `services/templates/prostateChecklistWording.test.ts`; demo cases S26-4404, S26-5407, S26-4680. Batch 755a: `demoChecklists.showsDemoWordingTag()` / `checklistCopyRefusal()`, `components/Synoptic/DemoWordingTag.tsx`, `protocolLifecycle.copySourceCandidates()`, `templateService.saveDraft` (`DEMO_CHECKLIST_COPY`), `services/templates/demoWording.test.ts`; see `docs/architecture/DEMO_CHECKLISTS.md`.
+
+### Organ map on Assist cases and delivery to the laboratory system — Partial (Demo), Batch 751
+
+**For the practitioner.** On an Assist case the map helps fill in the checklist and jumps to questions; it never goes into the report ("Your laboratory system writes this report."). A quiet line says when the map file was sent to the laboratory system, if the lab has asked for it.
+
+**For the system administrator.** Facility → LIS Integration → Organ map delivery (performing lab): Off, Text only, or Text and image file (PNG or PDF) to a destination; `config:organ-map-delivery:manage`; audited; failures in the outbound queue with retry.
+
+**For marketing.** The organ map serves labs whose own system writes the report too.
+
+**For FormedrixAI and partners (the plain reality).** Status: Partial (Demo). Built in the browser and tested: the Assist rule, the setting, the text lines in the result message, the file (drawn at finalising from the final answers; its own `organ_map` LIS message, named in the result), retry, audit and the panel line. Planned: the API server drawing the file (today the browser draws it, so a release with no page open holds the file for retry); real-site formats with the first customer.
+
+*Technical detail:* `services/organMapping/organMapDelivery.ts`, `organMapDeliveryRules.ts`, `organMapFigures.ts` (`lisOwnsReport`), `services/reports/dispatchAssistSynopticResult.ts` (`dispatchOrganMapFile`), `documentRendering/imagePdf.ts`, `components/FacilityDictionary/OrganMapDeliverySetting.tsx`, `docs/architecture/ORGAN_MAPPING_API.md`.
+
+### Slide images: reference preview and opening the lab's digital pathology application — Partial (Demo), Batch 750
+
+**For the practitioner.** A scanned slide shows a small preview from the scanner, marked "Reference preview. Not for diagnosis."; selecting it opens the slide in the laboratory's own digital pathology application, in a window that remembers its place on this workstation. A slide without an image says No image yet, Queued, Scanning, Scan failed or Failed image quality.
+
+**For the system administrator.** Vendor Integrations → WSI Viewers → Slide images: a viewer address and a preview image address (https templates with `{{slideId}}` and `{{accession}}`), for the laboratory and per facility; blank uses the deployment's `VITE_SLIDE_VIEWER_URL_TEMPLATE` and `VITE_SLIDE_THUMBNAIL_URL_TEMPLATE`. `config:vendor-integrations:manage` to save; `case:slide-image:open` to open a slide (audited). The workstation menu's Slide image window → Set position… saves where the window opens. The preview host must be allowed in the security policy's img-src.
+
+**For marketing.** Works with the digital pathology system the laboratory already has.
+
+**For FormedrixAI and partners (the plain reality).** Status: Partial (Demo). PathScribe has no viewer and does not create, crop, enhance or analyse images (Pete, Oct 31, 2026; the FDA question is open, so no clinical-use claims). Built: settings, image states from the scanner unload, open action with capability and audit, remembered window with Save position, and the move to the main screen when a saved screen has gone (Chrome and Edge after the window placement permission). Tested in headless Chromium on one virtual screen only. Planned: previews delivered by the interface engine (service and contract exist), generating the img-src entry from the preview address. The demonstration images and the standalone demonstration page (tools/demo-slide-viewer) are set up outside PathScribe (SLIDE_IMAGE_DEMO.md).
+
+*Technical detail:* `services/digitalPathology/slideImages.ts`, `slideImageOpen.ts`, `ISlidePreviewService.ts`, `hooks/useSlideImage.ts`, `components/SlideImage/SlideImagePreview.tsx`, `components/Config/System/SlideImageSettingsCard.tsx`, `services/windowPlacement/windowPlacement.ts`, `pages/WindowPositionPage/`, `docs/architecture/SLIDE_IMAGES.md`.
+
 ### Cytology preparation, cell block hand-off and Divide specimen — Built (Demo), Batches 739 to 741
 
 **For the practitioner.** Fluids are prepared at their own Cytology Preparation bench; every cell block is handed off to histology with two scans (source, then cassette); aliquots say what they are for; a CSF or small fluid is suggested cytospins.

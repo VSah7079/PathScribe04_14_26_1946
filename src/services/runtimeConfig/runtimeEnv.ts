@@ -80,6 +80,8 @@ function buildTimeEnv(): ImportMetaEnv {
     VITE_NLM_BASE_URL: import.meta.env.VITE_NLM_BASE_URL,
     VITE_REPORT_PDF_ENDPOINT: import.meta.env.VITE_REPORT_PDF_ENDPOINT,
     VITE_SERVER_JOBS: import.meta.env.VITE_SERVER_JOBS,
+    VITE_SLIDE_THUMBNAIL_URL_TEMPLATE: import.meta.env.VITE_SLIDE_THUMBNAIL_URL_TEMPLATE,
+    VITE_SLIDE_VIEWER_URL_TEMPLATE: import.meta.env.VITE_SLIDE_VIEWER_URL_TEMPLATE,
     VITE_VOICE_ENABLED: import.meta.env.VITE_VOICE_ENABLED,
   } as ImportMetaEnv;
 }

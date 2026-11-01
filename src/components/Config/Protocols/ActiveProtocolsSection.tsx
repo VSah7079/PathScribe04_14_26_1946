@@ -54,6 +54,7 @@ import {
   EmptyState,
 } from './ProtocolCardParts';
 import { pressable } from '@/utils/a11y/pressable';
+import { DemoWordingTag } from '@/components/Synoptic/DemoWordingTag';
 
 // protocolGroup()'s return values are a real, closed set of data
 // identifiers compared by strict string equality (see protocolShared.tsx);
@@ -81,7 +82,7 @@ const ProtocolCard: React.FC<{ protocol: Protocol }> = ({ protocol: p }) => {
         <div className="ps-activeprotocols-cat-bar" style={categoryHueVar(p.category)} />
 
         <div className="ps-activeprotocols-info">
-          <div className="ps-activeprotocols-name" data-phi="name">{p.name}</div>
+          <div className="ps-activeprotocols-name"><span data-phi="name">{p.name}</span><DemoWordingTag templateId={p.id} /></div>
           <div className="ps-activeprotocols-meta">
             <span className="ps-activeprotocols-version">{p.version}</span>
             <span className="ps-activeprotocols-dot">&bull;</span>

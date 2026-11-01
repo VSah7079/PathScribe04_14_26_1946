@@ -1,6 +1,6 @@
 {
   "id": "skin_melanoma_bx",
-  "name": "Generic Template \u2014 Skin Melanoma Bx",
+  "name": "Skin melanoma biopsy",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "SKIN",
@@ -17,47 +17,65 @@
           "options": [
             {
               "id": "procedure_opt_1",
-              "label": "Option 1"
+              "label": "Shave biopsy",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_2",
-              "label": "Option 2"
+              "label": "Punch biopsy",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_3",
-              "label": "Option 3"
+              "label": "Excision",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_4",
-              "label": "Option 4"
+              "label": "Wide local excision",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_5",
-              "label": "Option 5"
+              "label": "Re-excision",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "specimen_laterality",
-          "label": "Specimen Laterality",
+          "label": "Side",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "specimen_laterality_opt_1",
-              "label": "Option 1"
+              "label": "Right",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "specimen_laterality_opt_2",
-              "label": "Option 2"
+              "label": "Left",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "specimen_laterality_opt_3",
-              "label": "Option 3"
+              "label": "Midline",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "specimen_laterality_opt_4",
-              "label": "Option 4"
+              "label": "Side not stated",
+              "snomed": "",
+              "icd": ""
             }
           ]
         }
@@ -65,278 +83,368 @@
     },
     {
       "id": "tumor",
-      "title": "Findings",
+      "title": "Melanoma",
       "fields": [
         {
           "id": "tumor_site",
-          "label": "Finding Site",
+          "label": "Site on the body",
           "type": "checkboxes",
           "required": true,
           "options": []
         },
         {
           "id": "multiple_primary_sites",
-          "label": "Multiple Primary Sites",
+          "label": "More than one primary melanoma",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "multiple_primary_sites_opt_1",
-              "label": "Option 1"
+              "label": "No",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "multiple_primary_sites_opt_2",
-              "label": "Option 2"
+              "label": "Yes (report each melanoma separately)",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "histologic_type",
-          "label": "Type",
+          "label": "Melanoma type",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "histologic_type_opt_1",
-              "label": "Option 1"
+              "label": "Melanoma in situ",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_2",
-              "label": "Option 2"
+              "label": "Superficial spreading melanoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_3",
-              "label": "Option 3"
+              "label": "Nodular melanoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_4",
-              "label": "Option 4"
+              "label": "Lentigo maligna melanoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_5",
-              "label": "Option 5"
+              "label": "Acral lentiginous melanoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_6",
-              "label": "Option 6"
+              "label": "Desmoplastic melanoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_7",
-              "label": "Option 7"
+              "label": "Mucosal melanoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_8",
-              "label": "Option 8"
+              "label": "Melanoma arising in a blue nevus",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_9",
-              "label": "Option 9"
+              "label": "Melanoma arising in a giant congenital nevus",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_10",
-              "label": "Option 10"
+              "label": "Spitz melanoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_11",
-              "label": "Option 11"
+              "label": "Nevoid melanoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_12",
-              "label": "Option 12"
+              "label": "Melanoma, low cumulative sun damage type",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_13",
-              "label": "Option 13"
+              "label": "Melanoma, type cannot be determined",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_14",
-              "label": "Option 14"
+              "label": "Other type (describe in a comment)",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "breslow_thickness",
-          "label": "Maximum Thickness (mm)",
+          "label": "Breslow thickness (mm)",
           "type": "text",
           "required": true,
           "options": []
         },
         {
           "id": "ulceration",
-          "label": "Surface Change",
+          "label": "Ulceration",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "ulceration_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "ulceration_opt_2",
-              "label": "Option 2"
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "anatomic_clark_level",
-          "label": "Anatomic Level",
+          "label": "Clark level",
           "type": "dropdown",
           "required": false,
           "options": [
             {
               "id": "anatomic_clark_level_opt_1",
-              "label": "Option 1"
+              "label": "Level I (in situ)",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "anatomic_clark_level_opt_2",
-              "label": "Option 2"
+              "label": "Level II",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "anatomic_clark_level_opt_3",
-              "label": "Option 3"
+              "label": "Level III",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "anatomic_clark_level_opt_4",
-              "label": "Option 4"
+              "label": "Level IV",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "anatomic_clark_level_opt_5",
-              "label": "Option 5"
+              "label": "Level V",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "anatomic_clark_level_opt_6",
-              "label": "Option 6"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "anatomic_clark_level_opt_7",
-              "label": "Option 7"
+              "label": "Not applicable",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "anatomic_clark_level_opt_8",
-              "label": "Option 8"
+              "label": "Not reported",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "mitotic_rate",
-          "label": "Activity Rate",
+          "label": "Mitoses per mm²",
           "type": "text",
           "required": true,
           "options": []
         },
         {
           "id": "macroscopic_satellite_lesions",
-          "label": "Macroscopic Satellite Finding(s)",
+          "label": "Satellite lesions (seen with the naked eye)",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "macroscopic_satellite_lesions_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "macroscopic_satellite_lesions_opt_2",
-              "label": "Option 2"
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "macroscopic_satellite_lesions_opt_3",
-              "label": "Option 3"
+              "label": "Not applicable (biopsy)",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "macroscopic_satellite_lesions_opt_4",
-              "label": "Option 4"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "microsatellites",
-          "label": "Microscopic Satellite Finding(s)",
+          "label": "Microsatellites",
           "type": "dropdown",
           "required": false,
           "options": [
             {
               "id": "microsatellites_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "microsatellites_opt_2",
-              "label": "Option 2"
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "microsatellites_opt_3",
-              "label": "Option 3"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "lymphatic_vascular_invasion",
-          "label": "Lymphatic/Vascular Involvement",
+          "label": "Lymphovascular invasion",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "lymphatic_vascular_invasion_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "lymphatic_vascular_invasion_opt_2",
-              "label": "Option 2"
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "lymphatic_vascular_invasion_opt_3",
-              "label": "Option 3"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "lymphatic_vascular_invasion_opt_4",
-              "label": "Option 4"
+              "label": "Not applicable",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "neurotropism",
-          "label": "Neural Involvement",
+          "label": "Neurotropism",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "neurotropism_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "neurotropism_opt_2",
-              "label": "Option 2"
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "neurotropism_opt_3",
-              "label": "Option 3"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "neurotropism_opt_4",
-              "label": "Option 4"
+              "label": "Not applicable",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "tumor_infiltrating_lymphocytes",
-          "label": "Infiltrating Cell Response",
+          "label": "Tumor-infiltrating lymphocytes",
           "type": "dropdown",
           "required": false,
           "options": [
             {
               "id": "tumor_infiltrating_lymphocytes_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_infiltrating_lymphocytes_opt_2",
-              "label": "Option 2"
+              "label": "Non-brisk",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_infiltrating_lymphocytes_opt_3",
-              "label": "Option 3"
+              "label": "Brisk",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_infiltrating_lymphocytes_opt_4",
-              "label": "Option 4"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
@@ -355,114 +463,199 @@
       "fields": [
         {
           "id": "margin_status_melanoma",
-          "label": "Margin Status",
+          "label": "Margins",
           "type": "checkboxes",
           "required": true,
           "options": [
-            { "id": "margin_status_melanoma_opt_1", "label": "Negative (uninvolved)" },
-            { "id": "margin_status_melanoma_opt_2", "label": "Positive (involved)" },
-            { "id": "margin_status_melanoma_opt_3", "label": "Cannot be assessed" }
+            {
+              "id": "margin_status_melanoma_opt_1",
+              "label": "Negative (uninvolved)"
+            },
+            {
+              "id": "margin_status_melanoma_opt_2",
+              "label": "Positive (involved)"
+            },
+            {
+              "id": "margin_status_melanoma_opt_3",
+              "label": "Cannot be assessed"
+            }
           ]
         },
         {
           "id": "margins_involved_invasive",
-          "label": "Margin(s) Involved A",
+          "label": "Invasive melanoma: involved margin(s)",
           "type": "checkboxes",
           "required": true,
           "options": [
-            { "id": "margins_involved_invasive_opt_1", "label": "Peripheral (lateral)" },
-            { "id": "margins_involved_invasive_opt_2", "label": "Deep" },
-            { "id": "margins_involved_invasive_opt_3", "label": "Peripheral and deep" },
-            { "id": "margins_involved_invasive_opt_4", "label": "Not applicable" }
-          ]
+            {
+              "id": "margins_involved_invasive_opt_1",
+              "label": "Peripheral (lateral)"
+            },
+            {
+              "id": "margins_involved_invasive_opt_2",
+              "label": "Deep"
+            },
+            {
+              "id": "margins_involved_invasive_opt_3",
+              "label": "Peripheral and deep"
+            },
+            {
+              "id": "margins_involved_invasive_opt_4",
+              "label": "Not applicable"
+            }
+          ],
+          "visibleWhen": {
+            "fieldId": "margin_status_melanoma",
+            "answerId": "",
+            "answerIds": [
+              "margin_status_melanoma_opt_2"
+            ]
+          }
         },
         {
           "id": "margins_involved_in_situ",
-          "label": "Margin(s) Involved B",
+          "label": "Melanoma in situ: involved margin(s)",
           "type": "checkboxes",
           "required": true,
           "options": [
-            { "id": "margins_involved_in_situ_opt_1", "label": "Peripheral (lateral)" },
-            { "id": "margins_involved_in_situ_opt_2", "label": "Deep" },
-            { "id": "margins_involved_in_situ_opt_3", "label": "Peripheral and deep" },
-            { "id": "margins_involved_in_situ_opt_4", "label": "Not applicable" }
-          ]
+            {
+              "id": "margins_involved_in_situ_opt_1",
+              "label": "Peripheral (lateral)"
+            },
+            {
+              "id": "margins_involved_in_situ_opt_2",
+              "label": "Deep"
+            },
+            {
+              "id": "margins_involved_in_situ_opt_3",
+              "label": "Peripheral and deep"
+            },
+            {
+              "id": "margins_involved_in_situ_opt_4",
+              "label": "Not applicable"
+            }
+          ],
+          "visibleWhen": {
+            "fieldId": "margin_status_melanoma",
+            "answerId": "",
+            "answerIds": [
+              "margin_status_melanoma_opt_2"
+            ]
+          }
         },
         {
           "id": "margin_involvement_satellites",
-          "label": "Margin Involvement C",
+          "label": "Microsatellites or satellites at a margin",
           "type": "checkboxes",
           "required": true,
           "options": [
             {
               "id": "margin_involvement_satellites_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "margin_involvement_satellites_opt_2",
-              "label": "Option 2"
+              "label": "Peripheral margin",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "margin_involvement_satellites_opt_3",
-              "label": "Option 3"
+              "label": "Deep margin",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "margin_involvement_satellites_opt_4",
-              "label": "Option 4"
+              "label": "Peripheral and deep margins",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "margin_involvement_satellites_opt_5",
-              "label": "Option 5"
+              "label": "Not applicable",
+              "snomed": "",
+              "icd": ""
             }
-          ]
+          ],
+          "visibleWhen": {
+            "fieldId": "margin_status_melanoma",
+            "answerId": "",
+            "answerIds": [
+              "margin_status_melanoma_opt_2"
+            ]
+          }
         },
         {
           "id": "margin_involvement_regression",
-          "label": "Margin Involvement D",
+          "label": "Regression at a margin",
           "type": "checkboxes",
           "required": true,
           "options": [
             {
               "id": "margin_involvement_regression_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "margin_involvement_regression_opt_2",
-              "label": "Option 2"
+              "label": "Peripheral margin",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "margin_involvement_regression_opt_3",
-              "label": "Option 3"
+              "label": "Deep margin",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "margin_involvement_regression_opt_4",
-              "label": "Option 4"
+              "label": "Peripheral and deep margins",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "margin_involvement_regression_opt_5",
-              "label": "Option 5"
+              "label": "Not applicable",
+              "snomed": "",
+              "icd": ""
             }
-          ]
+          ],
+          "visibleWhen": {
+            "fieldId": "margin_status_melanoma",
+            "answerId": "",
+            "answerIds": [
+              "margin_status_melanoma_opt_2"
+            ]
+          }
         }
       ]
     },
     {
       "id": "additional_findings",
-      "title": "Additional Findings",
+      "title": "Other findings",
       "fields": [
         {
           "id": "additional_findings",
-          "label": "Additional Findings",
+          "label": "Other findings",
           "type": "checkboxes",
           "required": false,
           "options": [
             {
               "id": "additional_findings_opt_1",
-              "label": "Option 1"
+              "label": "None",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_2",
-              "label": "Option 2"
+              "label": "Present (describe in a comment)",
+              "snomed": "",
+              "icd": ""
             }
           ]
         }
@@ -474,7 +667,7 @@
       "fields": [
         {
           "id": "comments",
-          "label": "Comment(s)",
+          "label": "Comments",
           "type": "text",
           "required": true,
           "options": []

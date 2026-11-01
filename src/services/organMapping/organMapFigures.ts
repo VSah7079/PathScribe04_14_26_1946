@@ -11,6 +11,11 @@
 // • After sign-out it is locked: the report version keeps it with its SHA-256
 //   (mockReportVersionService), and a change goes through an amendment.
 // • Inserting or removing needs report:organ-map:insert, and is audited.
+// • Batch 751 (Pete, Oct 31, 2026, spec section 12.2): on an Assist case the
+//   primary LIS writes the report, so PathScribe places no map in it (Mohs
+//   included): insert and remove are refused ('lisOwnsReport'), the panel says
+//   so, no figure goes into a report version or preview, and a map never
+//   holds up finalising. The map stays a working aid (view it, click to jump).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Case } from '@/types/case/Case';
@@ -43,6 +48,9 @@ export interface OrganMapFigureVersion {
 
 export type OrganMapFigureState = 'none' | 'current' | 'stale' | 'locked';
 
+/** Batch 751: the primary LIS writes this case's report (Assist), so no map is placed in it. */
+export const lisOwnsReport = (caseData: { reportingMode?: string | null } | null | undefined): boolean => caseData?.reportingMode === 'assist';
+
 /** Signed out (finalized, waiting for release, closed) or sent for countersign:
  *  the report image can no longer change in place. */
 export const isReportLockedForFigures = (status: string | undefined) =>
@@ -50,8 +58,9 @@ export const isReportLockedForFigures = (status: string | undefined) =>
 
 /** Batch 463: what the panel says about the report: an automatic map is in it, as it is now
  *  ('auto'), once it has something to show ('autoEmpty' until then: a Mohs map with no stage is drawn nowhere). */
-export type OrganMapReportState = OrganMapFigureState | 'auto' | 'autoEmpty';
-export function organMapReportState(mapType: OrganMapType | undefined, figure: OrganMapFigure | undefined, currentFingerprint: string | undefined, caseStatus: string | undefined, hasData = true): OrganMapReportState {
+export type OrganMapReportState = OrganMapFigureState | 'auto' | 'autoEmpty' | 'lisOwnsReport';
+export function organMapReportState(mapType: OrganMapType | undefined, figure: OrganMapFigure | undefined, currentFingerprint: string | undefined, caseStatus: string | undefined, hasData = true, assistCase = false): OrganMapReportState {
+  if (assistCase) return 'lisOwnsReport';
   if (mapType && isAutoReportMap(mapType)) return hasData ? 'auto' : 'autoEmpty';
   return organMapFigureState(figure, currentFingerprint, caseStatus);
 }
@@ -66,7 +75,8 @@ export const figureForInstance = (caseData: Pick<Case, 'organMapFigures'> | null
   (caseData?.organMapFigures ?? []).find(f => f.instanceId === instanceId);
 
 /** The figures a report version keeps, with their hashes (all, or one instance's). */
-export function organMapFiguresForVersion(caseData: Pick<Case, 'organMapFigures'> | null | undefined, instanceId?: string): OrganMapFigureVersion[] {
+export function organMapFiguresForVersion(caseData: Pick<Case, 'organMapFigures' | 'reportingMode'> | null | undefined, instanceId?: string): OrganMapFigureVersion[] {
+  if (lisOwnsReport(caseData)) return [];
   return (caseData?.organMapFigures ?? [])
     .filter(f => !instanceId || f.instanceId === instanceId)
     .map(f => ({
@@ -83,20 +93,25 @@ export interface OrganMapFigureDeps extends CaseWriteDeps {
   newId: () => string;
 }
 
-export type OrganMapFigureResult = { ok: true; caseData: Case } | { ok: false; reason: 'notPermitted' | 'locked' | 'notSaved' };
+export type OrganMapFigureResult = { ok: true; caseData: Case } | { ok: false; reason: 'notPermitted' | 'locked' | 'notSaved' | 'lisOwnsReport' };
 
 async function changeFigures(
   caseData: Case, instanceId: string, figure: OrganMapFigure | null, user: { id: string; name: string }, deps: OrganMapFigureDeps,
 ): Promise<OrganMapFigureResult> {
+  // Batch 751: before the permission check, so an Assist case is refused the same way for everyone.
+  if (lisOwnsReport(caseData)) return { ok: false, reason: 'lisOwnsReport' };
   if (!(await deps.enforce('report:organ-map:insert', { caseId: caseData.id, facilityId: caseData.order?.facilityId ?? null })).allowed) return { ok: false, reason: 'notPermitted' };
   let locked = false;
+  let assist = false;
   let base: Case | null = null;
   const r = await updateCaseWithRetry(caseData.id, current => {
+    if (lisOwnsReport(current)) { assist = true; return null; }
     if (isReportLockedForFigures(current.status)) { locked = true; return null; }
     base = current;
     const others = (current.organMapFigures ?? []).filter(f => f.instanceId !== instanceId);
     return { organMapFigures: figure ? [...others, figure] : others };
   }, deps);
+  if (assist) return { ok: false, reason: 'lisOwnsReport' };
   if (locked) return { ok: false, reason: 'locked' };
   if (r.ok === false || !base) return { ok: false, reason: 'notSaved' };
   const ref = (caseData as { accession?: { fullAccession?: string } }).accession?.fullAccession ?? caseData.id;
@@ -151,7 +166,8 @@ export interface OrganMapReportFigure {
 
 /** The figures for the report PDF payload (`reportFigures`), in the order of
  *  the case's synoptics. */
-export function organMapReportFigures(caseData: Pick<Case, 'organMapFigures' | 'synopticReports'> | null | undefined): OrganMapReportFigure[] {
+export function organMapReportFigures(caseData: Pick<Case, 'organMapFigures' | 'synopticReports' | 'reportingMode'> | null | undefined): OrganMapReportFigure[] {
+  if (lisOwnsReport(caseData)) return [];
   const order = (caseData?.synopticReports ?? []).map(r => r.instanceId);
   const rank = (id: string) => { const i = order.indexOf(id); return i < 0 ? order.length : i; };
   return [...(caseData?.organMapFigures ?? [])]

@@ -40,4 +40,7 @@ export interface EnterpriseConfig {
   features: EnterpriseFeatures;
   /** Batch 623 (PS-130): the customer's terminology licences. Absent = none recorded (test codes only). */
   terminologyLicences?: TerminologyLicences;
+  /** Batch 750: where slide previews come from and the address that opens the lab's own digital pathology application
+   *  (services/digitalPathology/slideImages.ts). Absent = the deployment's, if any. */
+  slideImages?: import('@/services/digitalPathology/slideImages').SlideImageSettings;
 }

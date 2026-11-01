@@ -180,3 +180,7 @@ The cytology specimen entries, GYN Cytology department and series, cytology prot
 
 - `itemEndStates` (the demo item end states) is cleared with the case data.
 - Batch 735: `pathscribe_touch_layout` (the computer's touch layout override) is cleared by a Full Reset, back to Auto.
+
+## Batch 750
+
+- `slide_previews` (slide previews the interface delivered, `digitalPathology/mockSlidePreviewService.ts`) is cleared by a Full Reset.
