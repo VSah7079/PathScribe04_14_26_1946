@@ -113,7 +113,7 @@ export function fillTemplate(template: string, values: { slideId: string; access
 }
 
 /** What the slide's last unload from a scanner found (set by wsiScanQueue.stainUnloaded). */
-export type SlideScanOutcome = 'scanned' | 'scanFailed' | 'imageQcFailed' | 'notScanned';
+export type SlideScanOutcome = 'scanned' | 'scanFailed' | 'imageQcFailed' | 'notScanned' | 'imageQcPending'; // Batch 763: scanned, waiting for image QC
 
 export interface SlideScanFields {
   distributionStatus?: 'Assigned' | 'Checked Out' | 'In Scanning Queue' | 'Loaded on Scanner' | 'Scanned';
@@ -121,11 +121,11 @@ export interface SlideScanFields {
 }
 
 /** The slide's image state, in the words the screen shows. */
-export type SlideImageState = 'noImageYet' | 'queued' | 'scanning' | 'scanFailed' | 'failedImageQuality' | 'available';
+export type SlideImageState = 'noImageYet' | 'queued' | 'scanning' | 'scanFailed' | 'failedImageQuality' | 'awaitingImageQc' | 'available';
 
 export function slideImageState(slide: SlideScanFields): SlideImageState {
   switch (slide.distributionStatus) {
-    case 'Scanned': return 'available';
+    case 'Scanned': return slide.lastScanOutcome === 'imageQcPending' ? 'awaitingImageQc' : 'available'; // Batch 763: not shown until its image QC passes
     case 'Loaded on Scanner': return 'scanning';
     case 'In Scanning Queue':
       return slide.lastScanOutcome === 'imageQcFailed' ? 'failedImageQuality' : slide.lastScanOutcome === 'scanFailed' ? 'scanFailed' : 'queued';

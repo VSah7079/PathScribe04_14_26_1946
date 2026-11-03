@@ -35,7 +35,7 @@ Each row shows the following.
 
 | Part | What it means |
 |---|---|
-| Patient and accession | The patient's name and the case number. If the case cannot be found the case identifier is shown instead. |
+| Accession and specimen | The case number and the specimen the field belongs to ("Specimen A – …"). Batch 759: the patient's name is no longer shown here. An outside case also shows its **Foreign case ID**. If the case cannot be found the case identifier is shown instead. |
 | Field name | The name of the report field the answer was typed into, for example the distance to the closest margin. |
 | What was typed | The exact text the pathologist entered. |
 | Reason | Why it could not be read: "No answer given yet", "No number found in the text", or "A number was found, but surrounded by text this parser doesn't trust". |
@@ -64,7 +64,7 @@ Each row shows the following.
 | Dismiss | Opens the window **Dismiss exception**: type why the field has no distance to give (for example the margin could not be assessed), then select **Dismiss**. The item moves to **Resolved and dismissed**, no number is recorded, an audit log entry is written, and the tumor board rules are checked again for the case. **Cancel** closes the window. |
 | Open Case | Opens the case's full report page so you can read the answer in context. Its back control returns to this list. |
 
-Resolve and Dismiss are greyed out for a person without the permission to resolve margin-distance exceptions. **Open Case** is available to anyone who can open this screen. Everyone who can open the screen can also see the typed text and patient name, so treat the screen as patient information.
+Resolve and Dismiss are greyed out for a person without the permission to resolve margin-distance exceptions. **Open Case** is available to anyone who can open this screen. Everyone who can open the screen can also see the typed text from the report, so treat the screen as patient information.
 
 ### Resolved and dismissed
 

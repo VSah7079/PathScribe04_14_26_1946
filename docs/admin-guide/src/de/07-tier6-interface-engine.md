@@ -23,6 +23,7 @@ Stufe 6 ist größtenteils optional. Ein Labor, das PathScribe allein betreibt, 
 4. [Berichts-Feed (Power BI)](#screen-bi_feed): Ein Berichtswerkzeug darf PathScribe-Daten lesen. Benötigt die durchführenden Einrichtungen im Einrichtungsverzeichnis.
 5. [Migrations-Feldzuordnungen](#screen-migration_field_mappings): Ordnen Sie die Feldnamen eines Altsystems zu, vor jedem Import historischer Daten.
 6. [Historische Datenmigrations-Aufträge](#screen-migration-jobs): Importieren Sie eine Datei aus einem Altsystem und prüfen Sie den Auftrag. Benötigt Schritt 5.
+7. [Auftragsschein-Import](#screen-requisition_ingestion): stapelweise gescannte Papier-Auftragsscheine über den Barcode jeder Seite ihrem Fall zuordnen. Erfordert den Ablageordner des Scanners (oder das System, das Scans sendet).
 
 Die Überwachungsbildschirme ([Systemprotokolle: Schnittstellen](#screen-audit-interfaces), [Schnittstellen-Engines](#screen-interface-engines), [Ausgehende Schnittstellen-DLQ](#screen-outbound-interface-dlq), [Ausgehende Sendungen](#screen-outbound-dispatches) und die [Ausgangswarteschlange](#screen-outbound-queue)) und die Testwerkzeuge ([Vorschau ausgehender Schnittstellennachrichten](#screen-outbound_message_preview), [Simulierter Postausgang](#screen-simulated_mail), [Simulierte Schnittstellen-Engine](#screen-mock-interface-engine) und [Simuliertes EMR](#screen-mock-emr)) sind keine Einrichtungsschritte. Jeder von ihnen nennt `Reference, not part of setup` und führt auf, was vorhanden sein muss, damit er Daten anzeigt.
 
@@ -802,6 +803,63 @@ Die lesende API gibt standardmäßig 1000 Zeilen je Seite zurück und höchstens
 **7. Berechtigungen.** Öffnen: `screen:configuration:open`. Einstellungen: `config:bi-feed:manage`. Token erstellen, ersetzen und widerrufen sowie Abruf testen: `config:bi-feed-tokens:manage`. Die Freigabe für identifizierende Token erfassen und zurückziehen: `config:bi-feed-identified:approve`. Alle drei haben hohes Risiko. Admin und Laborleitung haben sie standardmäßig; die Person, die ein identifizierendes Token erstellt, und die Person, die es freigibt, können daher dieselbe Person sein, sofern ein Krankenhaus sie nicht im Rollenverzeichnis trennt.
 
 **Bekannte Grenzen.** Der Feed wird noch nicht bereitgestellt; in der Demonstrationsversion funktionieren nur die Einstellungen und Token. Während die Daten laden und in einigen Problemmeldungen sagt der Bildschirm „Arbeitsplatz“, wo er ein Feed-Token meint (ein Versehen im Wortlaut). Die Grenze des Tokens von 60 Abrufen je Minute und die Gültigkeit von 365 Tagen sind im Code festgelegt.
+### Auftragsschein-Import {#screen-requisition_ingestion}
+Breadcrumb: Startseite > Konfiguration > System > Integrationen > Auftragsschein-Import
+
+**Status:** Teilweise
+
+**1. Navigation:** Registerkarte **System** der Konfiguration > Gruppe **Integrationen**
+**2. Wartungspunkt:** Auftragsschein-Import
+
+**3. Fachlicher Zweck und Umfang.** Papier-Auftragsscheine werden vom Abteilungsscanner stapelweise in einen Ordner im Krankenhausnetz oder in ein Dokumentensystem eines Drittanbieters (ein ECM, der Dokumentenspeicher des LIS, ein Scan-Dienst) gescannt oder von einem anderen System an die PathScribe-API gesendet. Jeder Ordner und jedes System ist eine Quelle, eingerichtet über ihre Adresse; es können beliebig viele sein. PathScribe liest den Eingangsnummer-Barcode jeder Seite und verknüpft den Scan mit seinem Fall, nur als Verweis: Der Fall behält einen Verweis auf die Datei an ihrem Speicherort, die zugehörigen Seiten, den Barcode, den Zeitpunkt und die Quelle; PathScribe behält keine Kopie. Eine Seite ohne Barcode gehört zum vorherigen Auftragsschein; ein Trennblatt beendet einen Auftragsschein und gehört zu keinem Fall. Ein Scan ohne passenden Fall wartet in der Warteschlange der nicht zugeordneten Auftragsscheine unter Eingang > **📥 Auftragsschein-Eingang**, wo das Personal ihn durch Scannen oder Eingeben der Eingangsnummer zuordnet oder mit Grund verwirft.
+
+**Was gebaut ist und was nicht.** Gebaut: diese Einstellung, die Regeln für Zuordnung und Seitengruppierung, der Auftragsschein-Eingang, die Schaltfläche **📄 Auftragsschein** des Falls auf dem Befundbildschirm und das Audit-Protokoll. In der Demonstrationsversion liest der Browser einen Ordner mit fiktiven PDFs, wenn jemand **Jetzt ausführen** drückt. Nicht gebaut: der geplante Serverjob, der Ihre Freigabe liest (`requisition.ingest`), das Lesen einer gedruckten Nummer ohne Barcode (OCR) und die API, an die ein sendendes System Scans übermittelt. Nur PDFs werden gelesen; jede andere Datei wird abgelehnt und in der Zusammenfassung des Laufs genannt.
+
+**Mehrere ausführende Einrichtungen.** Jede Quelle gehört zu einer ausführenden Einrichtung (Feld **Ausführende Einrichtung**) oder zu **Alle Einrichtungen** für einen Scanner, den alle Labore teilen. Die Scans einer Quelle warten in der Warteschlange dieser Einrichtung, und jede Berechtigung unten wird für diese Einrichtung geprüft: Wer nur einem Labor zugeordnet ist (Personal → seine Einrichtungen), sieht, startet und bearbeitet nur die Scanner und Scans dieses Labors, und nur wer für alle Einrichtungen arbeitet, kann eine gemeinsame Quelle anlegen oder ändern. **＋ Quelle hinzufügen** fügt einen weiteren Scanner hinzu; die Schaltflächen über dem Formular wechseln zwischen ihnen. Die Zuordnung gilt unternehmensweit: Eine Eingangsnummer bezeichnet genau einen Fall, daher findet ein in einem Labor gescannter Auftragsschein auch einen Fall, der in einem anderen ausgeführt wird.
+
+**Betrieb (serverlos).** Jede Quelle wird von einem geplanten Job gelesen, der einen Stapel verarbeitet und endet; in der PathScribe-Cloud läuft nichts dauerhaft. Ein Dokumentensystem eines Drittanbieters wird unter seiner https-Adresse gelesen, ein sendendes System sendet an die PathScribe-API. Ein Ordner im Krankenhausnetz wird vom PathScribe-**Standortagenten** gelesen, der dort bereits für Drucker und Freigaben installiert ist ([Standortagenten](#screen-site_agents)): Er liest die Barcodes im Krankenhausnetz und sendet PathScribe nur Dateiverweis, Seiten und Barcodes, sodass das PDF das Krankenhaus nie verlässt. Die Abholung von Auftragsscheinen durch den Standortagenten ist noch nicht gebaut. Die Prüfung auf fehlende Auftragsscheine läuft stündlich.
+
+**4. Voraussetzungen und Abhängigkeiten.** Der Scanner speichert PDFs (eine Datei kann viele Auftragsscheine enthalten) in einem Ordner, den der API-Server lesen kann, und die Eingangsetiketten auf den Auftragsscheinen tragen die Eingangsnummer als Code-128- oder Code-39-Barcode.
+
+Setup step: Tier 6, step 7
+Requires: Keine, dies ist ein Ausgangspunkt.
+Unlocks: Keine.
+
+**5. Bildschirm.**
+
+[SCREENSHOT PLACEHOLDER: system-requisition_ingestion - the requisition source, schedule and separator barcode]
+
+**6. Feldreferenz.**
+
+| Feldname | Datentyp / Format | Pflicht/Optional | Beschreibung und Geschäftslogik | Systemstandard |
+|---|---|---|---|---|
+| Diese Quelle lesen | Ja/Nein-Schalter | Optional | Solange er aus ist, liest der Job diese Quelle nicht. | Ein |
+| Name | Text | Pflicht | Wird im Auftragsschein-Eingang angezeigt. | Requisition scanner drop folder |
+| Ausführende Einrichtung | Auswahl: **Alle Einrichtungen** oder eine ausführende Labor-Einrichtung | Pflicht | Wem dieser Scanner gehört: Seine Scans warten in der Warteschlange dieser Einrichtung, und die Berechtigungen werden für sie geprüft. | Die Demonstrationsquelle: Desert Valley Medical Center; eine neue Quelle: das erste ausführende Labor |
+| Herkunft der Scans | Auswahl **Ein Ordner im Krankenhausnetz, in den der Scanner speichert**, **Ein Dokumentensystem eines Drittanbieters, das PathScribe unter seiner Adresse liest** oder **Ein System, das Scans an die PathScribe-API sendet** | Pflicht | Bestimmt, was das nächste Feld enthält. Legen Sie für jeden Ordner oder jedes System eine Quelle an; es können beliebig viele sein. | Ein Ordner im Krankenhausnetz, in den der Scanner speichert |
+| Ordneradresse / Systemadresse (https) / Sendendes System | Text | Pflicht | Ein Ordner: ein Netzwerkpfad (zum Beispiel `\\server\requisitions\inbox`) oder eine smb://-, nfs://-, file://- oder https://-Adresse. Ein Drittsystem (ein ECM, der Dokumentenspeicher des LIS, ein Scan-Dienst): seine https-Adresse; der Server liest dort neue Scans mit auf dem API-Server eingerichteten Zugangsdaten, nie im Browser. Ein sendendes System: sein Name, wie es sich bei der API anmeldet. Eine Adresse in falscher Form wird rot markiert und kann nicht gespeichert werden. | `\\lab-scan01\requisitions\inbox` (Demonstration) |
+| Lesen alle (Minuten) | Ganzzahl, 1 bis 1.440 | Pflicht | Wie oft der Job die Quelle liest. | 15 |
+| Barcode des Trennblatts | Text | Pflicht | Der Barcode auf dem Blatt zwischen Auftragsscheinen in einem Stapelscan. | `PATHSCRIBE-SEPARATOR` |
+| Speichern | Schaltfläche | Nicht zutreffend | Deaktiviert, solange sich nichts ändert oder ein Feld ungültig ist. Zeigt „Zuletzt gespeichert“ mit Zeitpunkt und Person. | Nicht zutreffend |
+
+**Erwartete Auftragsscheine.** Die zweite Karte dieses Bildschirms legt fest, welche Fälle einen gescannten Auftragsschein haben sollten, für die Organisation (**Standard der Organisation**) oder für eine ausführende Einrichtung (eine Einrichtung folgt dem Standard, bis ihre eigene Einstellung gespeichert ist).
+
+| Feldname | Datentyp / Format | Pflicht/Optional | Beschreibung und Geschäftslogik | Systemstandard |
+|---|---|---|---|---|
+| Gilt für | Auswahl: **Standard der Organisation** oder eine ausführende Labor-Einrichtung | Pflicht | Welche Einstellung bearbeitet wird. | Standard der Organisation |
+| Ein gescannter Auftragsschein wird erwartet für | Kontrollkästchen: **Elektronischer KIS-/LIS-Auftrag**, **Im Eingang erfasst, ohne importierten Auftrag**, **Externer Fall / Auftragsfall**, **Erfassung bei Systemausfall**, **Lockbox-Einwurf** | Optional | Ein Fall soll einen haben, wenn sein Auftrag auf eine angekreuzte Weise kam. Ein elektronischer KIS-/LIS-Auftrag ist der Auftrag (seine Auftragsnachricht) und braucht standardmäßig kein Papier. Ein aus einem importierten Auftrag erfasster Fall gilt als elektronisch. | Alle angekreuzt außer Elektronischer KIS-/LIS-Auftrag |
+| Fall markieren nach (Stunden) | Ganzzahl, 0 bis 720 | Pflicht | Stunden nach der Erfassung ohne zugeordneten Schein, bevor der Fall markiert wird. 0 markiert sofort. Blockiert die Arbeit nie. | 24 |
+| Scan ohne Fall markieren nach (Stunden) | Ganzzahl, 0 bis 720 | Pflicht | Stunden, die ein Scan in der Warteschlange warten darf, bevor er rot „Noch kein Fall“ markiert und nach oben gestellt wird: vielleicht ein nicht eingegangenes, verlorenes oder nicht erfasstes Präparat. | 24 |
+| Erwartungen speichern | Schaltfläche | Nicht zutreffend | Speichert die angezeigte Einstellung. Protokolliert (Requisition Expectation Saved). | Nicht zutreffend |
+
+Ein markierter Fall erscheint unter **Fälle ohne Auftragsschein** im Auftragsschein-Eingang, zeigt **⚠ Auftragsschein fehlt** auf dem Befundbildschirm und erhält eine Fall-Abweichung **Missing Requisition** (von System erfasst), die im Abweichungsablauf und in den QS-Berichten verfolgt wird. Das Zuordnen seines Scans schließt Markierung und Abweichung (Lösung **Requisition Received or Not Required**); ebenso **Kein Papierauftrag** mit Grund (Elektronischer Auftrag vorhanden, Mündlicher Auftrag, dokumentiert, Auftrag in einem anderen Datensatz, Sonstiges). Die Prüfung läuft mit dem Import: auf dem Server als geplanter Job, in der Demonstration bei jedem Öffnen des Eingangs oder bei **Jetzt ausführen**. Audit-Ereignisse: Requisition Missing, Requisition Received, Requisition Waived, Requisition Without Case.
+
+**Die Warteschlange nicht zugeordneter Auftragsscheine (Quarantäne).** Ein Scan, dessen Barcode zu keinem Fall passt oder unlesbar ist, kommt automatisch dorthin (Requisition Quarantined). Das Personal öffnet **Ansehen**, prüft die Seiten und ordnet ihn dann zu: durch Scannen oder Eingeben der Eingangsnummer, durch Eingabe eines Patientennamens oder einer Patientennummer zur Suche (Liste **Gefundene Fälle**, im Rahmen des eigenen Fallzugriffs), oder mit **Neuer Fall aus diesem Scan**, das den Eingang mit dem Scan öffnet; beim Speichern wird er dem neuen Fall zugeordnet (erfordert `case:accession:create`). Jede Zuordnung wird protokolliert (Requisition Re-associated), mit der Angabe, ob eingegeben, über die Suche gefunden oder neu angelegt.
+
+**7. Berechtigungen.** Öffnen: `screen:configuration:open`. Quelle ändern: `config:requisition-ingestion:manage` (hohes Risiko, protokolliert; standardmäßig Admin). Im Auftragsschein-Eingang: `requisition:inbox:review` (öffnen und einen wartenden Scan ansehen), `requisition:inbox:resolve` (zuordnen oder verwerfen), `requisition:ingestion:run` (Jetzt ausführen); die Rollen, die den Eingang öffnen, haben standardmäßig alle drei. Aus dem Fall: `case:requisition:view` (die Rollen mit Fallzugriff). Das Audit-Protokoll zeigt Requisition Matched, Requisition Quarantined, Requisition Re-associated, Requisition Discarded, Requisition Viewed und Requisition Source Saved, ohne Dateinamen und ohne Patientennamen. Die Befehle des Auftragsschein-Eingangs stehen in der Aktionsliste (Konfiguration → Aktionsregister und Personal → Rollen, Gruppe **Requisition Inbox**): zum Eingang wechseln, Import jetzt ausführen (Alt+G oder per Sprache im Eingang), gescannten Auftragsschein ansehen, nicht zugeordneten Auftragsschein zuordnen, verwerfen, Auftragsschein des Falls anzeigen. Eingangsmitarbeiter haben standardmäßig alle; die Rollen mit Fallzugriff das Anzeigen des Auftragsscheins. Eine Befehlsfreigabe erweitert nie, was die Berechtigungen oben erlauben.
+
+**Bekannte Grenzen.** Ein druckbares Trennblatt gibt es noch nicht: Drucken Sie den Barcode mit einem beliebigen Etikettenwerkzeug. Wird eine Datei an ihrem Speicherort verschoben oder gelöscht, kann der Auftragsschein des Falls nicht mehr geöffnet werden, da PathScribe keine Kopie behält.
+
 ### Migrations-Feldzuordnungen {#screen-migration_field_mappings}
 Breadcrumb: Startseite > Konfiguration > System > Labormaterialien & Arbeitsabläufe > Migrations-Feldzuordnungen
 

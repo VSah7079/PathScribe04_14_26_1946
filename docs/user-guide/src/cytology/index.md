@@ -92,15 +92,15 @@ Each tile shows a count. The count is the number of rows in its list.
 
 | Item | What it means |
 |---|---|
-| Patient name | Select it to open the case on the Screening Case page. Rows on the Pool tile are not openable: claim the case first. If the name is missing, the MRN or "Unknown patient" is shown. |
-| Case line | "Case S26-5002 · MRN 100002" (demonstration values): the case number and the MRN. |
+| Accession | Batch 760: the case number (the patient's name is no longer shown on the cytology screens). Select it to open the case on the Screening Case page. Rows on the Pool tile are not openable: claim the case first. |
+| Vial and slides line | For example "A: ThinPrep – Cervical · Slides S26-5107-AD1-L1": each specimen's vial type and description, then up to three slide ids. No MRN. |
 | Final Diagnosis Recorded / Awaiting Review | Green when a specimen on the case already has its final diagnosis chosen; amber otherwise. |
 | High-Risk QC / Random QC | On the QC / Rescreen tile: why the slide was picked. |
 | Your primary screen - needs another screener | On the QC / Rescreen tile: you did the first screen, so another screener must do the rescreen. |
 | AI: Review / AI: No Further Review (with a rank such as 2/5) | The result of the slide-level AI triage, when one has been completed. It is advice only. |
 | AI-Flagged FOV | The number of fields of view the AI marked, when there is no triage result. |
 | Hover text on the AI badges | Hold the pointer over the triage badge and it reads "AI slide-level triage"; over the field-of-view badge it reads "AI-flagged fields of view". |
-| Case … · MRN … | The small line under the patient's name on a case row (for example in HPV Triage or Recall Needed): the case number, then the MRN. |
+| Vial and slides line | The small line under the accession on a case row (for example in HPV Triage or Recall Needed): the vial type and the slide ids. |
 | Awaiting hrHPV Result / hrHPV result invalid: repeat test | On HPV Triage: the case waits for a result, or the result came back invalid. |
 | Manual entry awaiting second sign-off | On HPV Triage: a hand-entered result is waiting for a second person. |
 | Scan Complete - Ready to Screen | On Scans Completed. |
@@ -244,7 +244,7 @@ The list shows "Nothing pending - every flagged case and correlation candidate h
 1. Open **Cytology Workspace** from the Pathology Workspace. The Cytology Worklist opens on **GYN Cytology** with **My Worklist** selected.
 2. If you also screen Non-GYN or FNA cases, select **Non-GYN / FNA Queue**. Use an organ-site chip to narrow the list.
 3. If a "Yesterday's screening hours" panel is showing, confirm or correct it first (see below). It appears only while yesterday still needs signing off.
-4. Select a patient's name. The [Screening Case](help:cytology/screening-case) page opens for that case.
+4. Select a case's accession. The [Screening Case](help:cytology/screening-case) page opens for that case.
 5. Screen the case and save your review there. Use **Back to Worklist** to return. The case leaves My Worklist when it moves to another step.
 
 **Take work from the Pool.**
@@ -321,7 +321,7 @@ The list shows "Nothing pending - every flagged case and correlation candidate h
 ### Efficiency recommendations
 
 - Start the day on **My Worklist**, then **QC / Rescreen**, then the pool.
-- Use the patient name to open a case; a click anywhere on the row also opens it (not on Pool rows).
+- Use the accession to open a case; a click anywhere on the row also opens it (not on Pool rows).
 - Read the AI triage badge as a hint for ordering your work, not as a result.
 - Confirm your hours in one click at the end of the shift.
 - Watch the workload counter during the day. It shows the slides left now and left in a full day, so you can plan before you hit the limit.

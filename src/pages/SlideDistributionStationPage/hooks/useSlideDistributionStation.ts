@@ -41,6 +41,7 @@
 // saved. A label reprint is only printed once its reason was saved.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { distributionQcProblem } from '@/services/stainQc/stainQcRules';
 import { slideLevelOf, stainAtLevel } from '@/services/material/slideLevels';
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -226,7 +227,10 @@ export function useSlideDistributionStation() {
     const block = (specimen.blocks ?? []).find(b => b.label === target.blockNumber);
     if (!block) return fail({ key: 'slideDistribution.scanErrors.blockNotFound', values: { block: `${specimen.label}${target.blockNumber}` } });
     if (target.level === 'block') {
-      const stains = block.stains ?? [];
+      // Batch 763: slides held by stain QC (waiting, failed, re-cut) are not handed out.
+      const all = block.stains ?? [];
+      const stains = all.filter(s => !distributionQcProblem(s.status));
+      if (all.length > 0 && stains.length === 0) return fail({ key: 'slideDistribution.scanErrors.blockHeldByQc', values: { block: `${specimen.label}${block.label}`, count: String(all.length) } });
       if (stains.length === 0) return fail({ key: 'slideDistribution.scanErrors.noSlides', values: { block: `${specimen.label}${block.label}` } });
       let firstId = '';
       stains.forEach((stain, i) => { const id = enqueue(caseData, specimen, block, stain); if (i === 0) firstId = id; });
@@ -236,6 +240,8 @@ export function useSlideDistributionStation() {
     // target.level === 'slide'
     const stain = stainAtLevel(block.stains, target.slideLevel);
     if (!stain) return fail({ key: 'slideDistribution.scanErrors.slideNotFound', values: { slide: `${specimen.label}${block.label}-${target.slideLevel}` } });
+    const held = distributionQcProblem(stain.status);
+    if (held) return fail({ key: `slideDistribution.scanErrors.${held}`, values: { slide: `${specimen.label}${block.label}-${target.slideLevel}` } });
     const id = enqueue(caseData, specimen, block, stain);
     setActiveQueueId(id);
     return { ok: true };

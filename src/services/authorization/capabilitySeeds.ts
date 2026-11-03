@@ -201,7 +201,7 @@ const AUTOPSY_RELEASE = ['autopsy:body:release'];
 // print one before (the roles with case access, built-in and a hospital's own).
 const REPORT_PRINT = ['report:case-report:print'];
 // Batch 609 (PS-44): attaching images to a case report, for the same case-access roles.
-const REPORT_IMAGES = ['report:case-images:attach', 'case:attachment:upload', 'case:attachment:link', 'case:attachment:unlink', 'case:slide-image:open']; // Batch 742: and the case's attachments, same roles; Batch 750: opening a slide in the lab's own application
+const REPORT_IMAGES = ['report:case-images:attach', 'case:attachment:upload', 'case:attachment:link', 'case:attachment:unlink', 'case:slide-image:open', 'case:requisition:view']; // Batch 742: and the case's attachments, same roles; Batch 750: opening a slide in the lab's own application; Batch 762: the case's scanned requisition
 // Batch 613: related cases at sign-out are the signer's decision (Pathologist, Fellow); the Patient summary print is for the case-access roles that can read patient history.
 const RELATED_CASES = ['report:related-cases:attach'];
 const PATIENT_SUMMARY = ['patient:summary:print'];
@@ -441,6 +441,12 @@ export const FLAG_ACTIONS = ['case:flag:apply', 'case:flag:remove'];
 export const DIAGNOSIS_CODE_APPLY = ['case:diagnosis-code:apply'];
 export const INFORMAL_REVIEW_REQUEST = ['case:informal-review:request'];
 export const ACCESSION_CREATE = ['case:accession:create'];
+// Batch 762: requisition ingestion. Running the job now and working the Unmatched Requisitions queue, for the roles that open Accession.
+export const REQUISITION_INBOX = ['requisition:ingestion:run', 'requisition:inbox:review', 'requisition:inbox:resolve'];
+// Batch 763: the Post-Stain / Pre-Distribution QC gate. Signing off staining runs and scanned images, for the roles that open
+// Slide Distribution (where the checkpoint is); signing off a run that waits for its stainer's own sign-off, Lab Director.
+export const STAIN_QC_SIGN_OFF = ['stain:qc:sign-off', 'scan:image-qc:sign-off'];
+export const STAIN_QC_OVERRIDE = ['stain:qc:override'];
 export const QA_DEFICIENCY_ACTIONS = ['qa:deficiency:raise', 'qa:deficiency:escalate', 'qa:deficiency:contain', 'qa:deficiency:verify', 'qa:management-review:submit'];
 const SIGNING_ROLES = ['pathologist', 'fellow', 'resident'];
 const ATTENDING_ROLES = ['pathologist', 'fellow'];
@@ -666,7 +672,9 @@ export const CAPABILITY_SEEDS: Readonly<Record<string, readonly string[]>> = {
     ...(caps.includes('screen:quality-assurance:open') ? CAPA_DECIDE : []),
     ...(caps.includes('screen:quality-assurance:open') ? FOLLOW_UP_ACTIONS : []),
     ...(caps.includes('screen:quality-assurance:open') ? QA_DEFICIENCY_ACTIONS : []),
-    ...(caps.includes('screen:accession:open') ? ACCESSION_CREATE : []),
+    ...(caps.includes('screen:accession:open') ? [...ACCESSION_CREATE, ...REQUISITION_INBOX] : []),
+    ...(caps.includes('screen:slide-distribution:open') ? STAIN_QC_SIGN_OFF : []),
+    ...(r === SYSTEM_ROLE_IDS.LAB_DIRECTOR ? [...STAIN_QC_SIGN_OFF, ...STAIN_QC_OVERRIDE] : []),
     ...(SIGNING_ROLES.includes(r) ? [...SURGICAL_SIGN_OUT, ...DIAGNOSIS_CODE_APPLY, ...INFORMAL_REVIEW_REQUEST] : []),
     ...(ATTENDING_ROLES.includes(r) ? SURGICAL_RELEASES : []),
     ...(POOL_ROLES.includes(r) ? [...POOL_ACTIONS, ...REPORT_RECALL] : []),

@@ -19,6 +19,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { draftCacheService } from '@/services';
+import { draftAutosaveDecision, draftStateJson, type DraftBaseline } from '@/utils/draftCacheBaseline';
 
 
 const DEBOUNCE_MS = 1000; // matches the spec's Drafts:DebounceIntervalMs default
@@ -50,6 +51,7 @@ export function useDraftCache<T>(
   const [existingDraftPayload, setExistingDraftPayload] = useState<T | null>(null);
   const [existingDraftSavedAt, setExistingDraftSavedAt] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const baselineRef = useRef<DraftBaseline | null>(null);
 
   // ── Check for a pre-existing draft once per userId+entityId ────────────────
   // Real bug found and fixed here, per direct report: "timeout worked,
@@ -83,11 +85,17 @@ export function useDraftCache<T>(
   }, [enabled, userId, entityId]);
 
   // ── Debounced auto-save on every currentState change ────────────────────────
+  // Batch 756: only once the state differs from the page's first settled state (utils/draftCacheBaseline.ts), so
+  // opening a case and leaving it unchanged leaves no draft behind.
   useEffect(() => {
     if (!enabled || !userId || !entityId) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      draftCacheService.saveDraft(userId, entityId, currentState);
+      const key = `${userId}|${entityId}`;
+      const json = draftStateJson(currentState);
+      const decision = draftAutosaveDecision(baselineRef.current, key, json);
+      if (decision === 'baseline') baselineRef.current = { key, json: json as string };
+      if (decision === 'save') draftCacheService.saveDraft(userId, entityId, currentState);
     }, DEBOUNCE_MS);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [enabled, userId, entityId, currentState]);

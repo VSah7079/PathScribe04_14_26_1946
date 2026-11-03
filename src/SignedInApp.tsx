@@ -87,6 +87,7 @@ const RegistryExceptionsPage = lazy(() => import("./pages/RegistryExceptionsPage
 const AutopsyDashboardPage = lazy(() => import("./pages/AutopsyDashboardPage/AutopsyDashboardPage"));
 const OutboundQueuePage = lazy(() => import("./pages/OutboundQueuePage/OutboundQueuePage"));
 const LockboxDropOffPage = lazy(() => import("./pages/LockboxDropOffPage/LockboxDropOffPage"));
+const RequisitionInboxPage = lazy(() => import("./pages/RequisitionInboxPage/RequisitionInboxPage")); // Batch 762
 // Batch 550 (PS-539 D7): the signed-in user's exports from the API server.
 const MyExportsPage = lazy(() => import("./pages/MyExportsPage"));
 const UserGuidePage = lazy(() => import("./pages/Help/UserGuidePage"));
@@ -203,6 +204,8 @@ const SignedInApp: React.FC = () => (
                         <Route element={<ScannerProvider><MaterialScanTrackingBridge /><DefaultActionOnScanBridge /><AppShell /></ScannerProvider>}>
                           <Route path="/" element={<Home />} />
                           <Route path="/accession" element={<ScreenGate screen="accession"><AccessionPage /></ScreenGate>} />
+                          {/* Batch 762: scanned requisitions and the Unmatched Requisitions queue (requisition:inbox:review). */}
+                          <Route path="/accession/requisitions" element={<ScreenGate screen="requisitionInbox"><RequisitionInboxPage /></ScreenGate>} />
                           <Route path="/worklist" element={<ScreenGate screen="worklist"><WorklistPage /></ScreenGate>} />
                           {/* "Homepage Changes part 1" — direct request: new second-level
                               hub grouping Cytology Workspace, Microtome Workspace, Embedding

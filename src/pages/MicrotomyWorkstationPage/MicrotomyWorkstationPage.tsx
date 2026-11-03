@@ -43,8 +43,9 @@ import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { printSettingsService, actionRegistryService, microtomyCancelMissing } from '@/services';
 import { VOICE_CONTEXT } from '@/constants/systemActions';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
-import { formatDate, formatDateTime } from '@/utils/formatDate';
-import { DEFAULT_SLIDE_LABEL_LAYOUT } from '@/services/printSettings/IPrintSettingsService';
+import { formatDateTime } from '@/utils/formatDate';
+import { DEFAULT_SLIDE_LABEL_LAYOUT, MICROTOME_PRINT_BEHAVIORS } from '@/services/printSettings/IPrintSettingsService';
+import { blockLabelsToPrint } from '@/services/material/slideLabelCheck';
 import type { SlideLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
 import { resolveSlideLabelFitWarnings } from '@/utils/labels/resolveSlideLabelFitWarnings';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
@@ -71,6 +72,9 @@ import { useStationCarrier } from '@/hooks/useStationCarrier';
 import StationCarrierPanel from '@/components/Workstation/StationCarrierPanel';
 import { StationScanField } from '@/components/Workstation/StationScanField';
 import ScanTrailPanel from '@/components/Workstation/ScanTrailPanel';
+import BlockLockoutBanner from './components/BlockLockoutBanner';
+import { ForeignIdTag, TypedEntryCheck } from '@/components/Workstation/BenchIdentity';
+import { useTypedEntryCheck } from '@/hooks/useTypedEntryCheck';
 import './MicrotomyWorkstationPage.css';
 import '../../pathscribe.css';
 
@@ -84,6 +88,8 @@ const MicrotomyWorkstationPage: React.FC = () => {
   const w = useMicrotomyWorkstation();
   const carrier = useStationCarrier('microtomy');
   const billing = useMicrotomyBilling(w.workItem, w.stainTypes, w.adoptSavedCase);
+  // Batch 759 (spec §2.2, §3): after a typed entry, the identifiers to check against the block or slide.
+  const typedEntry = useTypedEntryCheck([w.workItem?.caseData.accession?.fullAccession, w.workItem?.caseData.id]);
 
   // Batch 388: this page has its own voice/keyboard context ("add comment", "add stain").
   useEffect(() => {
@@ -152,7 +158,7 @@ const MicrotomyWorkstationPage: React.FC = () => {
 
   const stains = !w.workItem ? [] : w.workItem.kind === 'block' ? w.workItem.block.stains : w.workItem.decant.stains;
   const nextUnprinted = computeNextUnprintedStain(stains);
-  const previewStain = w.printMode === 'on_demand' ? nextUnprinted : stains.find(s => w.batchSelection.has(s.id));
+  const previewStain = w.printMode !== 'batch' ? nextUnprinted : stains.find(s => w.batchSelection.has(s.id));
 
   const commentComments = !commentTarget
     ? []
@@ -169,7 +175,7 @@ const MicrotomyWorkstationPage: React.FC = () => {
         <h1 className="ps-microtomy-title">🔬 {t('microtomyWorkstation.pageTitle')}</h1>
       </div>
 
-      <StationCarrierPanel carrier={carrier} outputCandidates={stains.filter(s => s.printStatus === 'Printed').map(s => s.displayId).filter((id): id is string => !!id)} />
+      <StationCarrierPanel carrier={carrier} onCheckOff={(id, reason) => carrier.checkOffByHand(id, reason, w.resolveScan)} />
       {/* Batch 729 (spec §7.4): the case's station scan trail. */}
       {w.workItem && <ScanTrailPanel caseAccession={w.workItem.caseData.accession?.fullAccession ?? w.workItem.caseData.id} />}
 
@@ -183,8 +189,8 @@ const MicrotomyWorkstationPage: React.FC = () => {
         <>
           <div className="ps-microtomy-context-bar">
             <span>{t('microtomyWorkstation.context.accession')} <strong data-phi="accession">{w.workItem.caseData.accession?.fullAccession ?? w.workItem.caseData.id}</strong></span>
-            <span>{t('microtomyWorkstation.context.patient')} <strong data-phi="name">{`${w.workItem.caseData.patient?.givenNames ?? ''} ${w.workItem.caseData.patient?.familyNames ?? ''}`.trim() || '—'}</strong></span>
-            <span>{t('microtomyWorkstation.context.dob')} <strong data-phi="dob">{w.workItem.caseData.patient?.dateOfBirth ? formatDate(w.workItem.caseData.patient.dateOfBirth, i18n.language) : '—'}</strong></span>
+            {/* Batch 759 (Patient Verification spec §1): no patient name, date of birth or MRN at the bench; an outside case shows its Foreign Identifier. */}
+            <ForeignIdTag order={w.workItem.caseData.order} items={[w.workItem.kind === 'block' ? (w.workItem.matrixBlock ?? w.workItem.block) : w.workItem.decant, w.workItem.kind === 'block' && w.workItem.matrixBlock ? null : w.workItem.specimen]} />
             <span>
               {t('microtomyWorkstation.context.specimenBlock')}{' '}
               <strong>{w.workItem.specimen.label}{w.workItem.kind === 'block' ? w.workItem.block.label : w.workItem.decant.label}</strong>
@@ -201,6 +207,16 @@ const MicrotomyWorkstationPage: React.FC = () => {
               {t('microtomyWorkstation.blocksStillWaiting', { count: w.blocksStillWaiting.length, blocks: w.blocksStillWaiting.join(', ') })}
             </p>
           )}
+
+          {/* Batch 757: the dual scan. The label just printed is scanned (or typed) before the next slide prints.
+              Batch 758: in Block mode every label of the block waits, scanned back in any order. */}
+          {typedEntry && <TypedEntryCheck accession={w.workItem.caseData.accession?.fullAccession ?? w.workItem.caseData.id} source={t('benchIdentity.specimenSource', { label: w.workItem.specimen.label, description: w.workItem.specimen.description ?? '—' })} />}
+          {w.lockout && <BlockLockoutBanner block={`${w.workItem.specimen.label}${w.workItem.kind === 'block' ? w.workItem.block.label : w.workItem.decant.label}`} labels={w.lockoutLabels} onRecut={w.recutWaitingSlide} onVoid={w.voidWaitingSlide} onContinue={w.continuePastLockout} onStay={w.stayOnBlock} />}
+          {w.labelsToScan.length > 1
+            ? <p className="ps-microtomy-label-scan ps-microtomy-label-scan--waiting" role="status" data-phi="accession">{t('microtomyWorkstation.labelScan.awaitingMany', { slides: w.labelsToScan.join(', ') })}</p>
+            : w.labelToScan
+            ? <p className="ps-microtomy-label-scan ps-microtomy-label-scan--waiting" role="status" data-phi="accession">{t('microtomyWorkstation.labelScan.awaiting', { slide: w.labelToScan })}</p>
+            : w.labelConfirmed && <p className="ps-microtomy-label-scan ps-microtomy-label-scan--done" role="status" data-phi="accession">{t('microtomyWorkstation.labelScan.confirmed', { slide: w.labelConfirmed })}</p>}
 
           {w.saveError && <div className="ps-microtomy-save-error" role="alert">{w.saveError}</div>}
           {w.printNotice && <div className="ps-microtomy-save-error" role="alert">{w.printNotice}</div>}
@@ -303,6 +319,9 @@ const MicrotomyWorkstationPage: React.FC = () => {
             <HardwarePrintPanel
               printMode={w.printMode}
               onSetPrintMode={w.setPrintMode}
+              modes={MICROTOME_PRINT_BEHAVIORS}
+              unprintedCount={w.workItem.kind === 'block' ? blockLabelsToPrint(stains).length : 0}
+              onPrintBlock={() => { void w.handlePrintBlock(); }}
               nextStain={nextUnprinted}
               onPrintNext={w.handlePrintNext}
               batchSelectedCount={w.batchSelection.size}

@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import type { Batch, BatchItem } from './IBatchService';
 import {
   advanceBatch, advanceProblem, acceptsItems, carrierItemEvents, carriersForStation, decideItemScan, isCarrierBarcode,
-  manifestProgress, nodesForStationStage, resolveCarrierScan, sealBatch, sealProblem,
+  manifestProgress, nodesForStationStage, resolveCarrierScan, sealBatch, sealProblem, outputScanPlan,
 } from './stationCarrierRules';
 import { deriveNodeFromStation } from './batchFormHelpers';
 
@@ -129,5 +129,56 @@ describe('Batch 734 (Pete): an ad-hoc carrier moves between stations without ask
     expect(carrierMovesHere({ containerType: 'Ad-Hoc Batch', stationId: 'st1' }, 'st1')).toBe(false);
     expect(carrierMovesHere({ containerType: 'Ad-Hoc Batch', stationId: undefined }, 'st2')).toBe(false);
     expect(carrierMovesHere({ containerType: 'Staining Rack', stationId: 'st1' }, 'st2')).toBe(false);
+  });
+});
+
+describe('carrierItemRows (Batch 756)', () => {
+  it('lists every item in manifest order, marked arrived once it is scanned off', async () => {
+    const { carrierItemRows } = await import('./stationCarrierRules');
+    const items = [
+      { displayId: 'S26-0001-A1', reconciliationStatus: 'matched' },
+      { displayId: 'S26-0001-A2', reconciliationStatus: 'pending' },
+      { displayId: 'S26-0001-A3' },
+    ] as never;
+    expect(carrierItemRows({ items })).toEqual([
+      { displayId: 'S26-0001-A1', arrived: true },
+      { displayId: 'S26-0001-A2', arrived: false },
+      { displayId: 'S26-0001-A3', arrived: false },
+    ]);
+  });
+});
+
+describe('the Batch 757 carrier flow', () => {
+  it('a rescan of the output tray closes it: sealed when it has items, and the unloaded carrier completed when every item is scanned off', async () => {
+    const { outputTrayRescan } = await import('./stationCarrierRules');
+    const tray = { id: 'rack', sealedAt: undefined, items: [{ displayId: 'S26-0001-A1-L1' }] } as never;
+    const doneTray = { status: 'reconciling', items: [{ reconciliationStatus: 'matched' }], unexpectedScans: [], coldChainExcursion: undefined } as never;
+    const openTray = { status: 'reconciling', items: [{ reconciliationStatus: 'pending' }], unexpectedScans: [], coldChainExcursion: undefined } as never;
+    expect(outputTrayRescan(tray, { id: 'other' }, doneTray)).toEqual({ close: false, seal: false, completeLoaded: false });
+    expect(outputTrayRescan(tray, { id: 'rack' }, doneTray)).toEqual({ close: true, seal: true, completeLoaded: true });
+    expect(outputTrayRescan(tray, { id: 'rack' }, openTray)).toEqual({ close: true, seal: true, completeLoaded: false });
+    expect(outputTrayRescan({ id: 'rack', sealedAt: 'x', items: [] } as never, { id: 'rack' }, null)).toEqual({ close: true, seal: false, completeLoaded: false });
+  });
+  it('an embedded block goes into the Microtome tray once, and only an embedded one', async () => {
+    const { blockForOutputTray, WORKSTATION_OUTPUT_NODES, isSlideScanLevel } = await import('./stationCarrierRules');
+    const tray = { status: 'active', items: [{ displayId: 'S26-0001-A2' }] } as never;
+    expect(blockForOutputTray({ displayId: 'S26-0001-A1', status: 'Embedded' }, tray)).toBe('S26-0001-A1');
+    expect(blockForOutputTray({ displayId: 'S26-0001-A2', status: 'Embedded' }, tray)).toBeNull();
+    expect(blockForOutputTray({ displayId: 'S26-0001-A1', status: 'Pending' }, tray)).toBeNull();
+    expect(blockForOutputTray({ displayId: 'S26-0001-A1', status: 'Embedded' }, null)).toBeNull();
+    expect(WORKSTATION_OUTPUT_NODES.embedding).toEqual(['Microtomy / Sectioning']);
+    expect([isSlideScanLevel('slide'), isSlideScanLevel('block'), isSlideScanLevel(undefined)]).toEqual([true, false, false]);
+  });
+});
+
+describe('a staining rack scanned at the Microtome: Scan-First or Scan-Last (Batch 758)', () => {
+  const rackA = { id: 'r1', sealedAt: undefined, items: [] as BatchItem[] };
+  it('the output tray scanned again closes it (Batch 757)', () => {
+    expect(outputScanPlan(rackA, { id: 'r1' }, null, 3)).toEqual({ kind: 'close', seal: false, completeLoaded: false });
+  });
+  it('another rack with slides on the bench takes them all (Scan-Last); with none it becomes the output tray (Scan-First)', () => {
+    expect(outputScanPlan(null, { id: 'r2' }, null, 3)).toEqual({ kind: 'fillFromBench' });
+    expect(outputScanPlan(rackA, { id: 'r2' }, null, 2)).toEqual({ kind: 'fillFromBench' });
+    expect(outputScanPlan(null, { id: 'r2' }, null, 0)).toEqual({ kind: 'setOutput' });
   });
 });

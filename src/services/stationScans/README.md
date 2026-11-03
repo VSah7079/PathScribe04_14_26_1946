@@ -1,3 +1,5 @@
+**Batch 759:** `STATION_SCAN_ACTIONS` gains `typed` (an id typed or searched by hand instead of scanned: the Manual Entry flag, written by `services/scanEntry/manualEntryLog.ts`).
+
 # services/stationScans/
 
 Batch 726 (Lab Workflow & Batch spec, section 7; Decisions 5, 8, 9): station-level tracking. Every scan of a cassette, block, slide, matrix block or decant at a station is one immutable event. The item is the primary unit; a carrier is optional.
@@ -29,3 +31,5 @@ Server contract: `docs/architecture/STATION_TRACKING_API.md`.
 ## Batch 731
 
 - `StationScanEvent.parentItemId` (optional, spec §10.4): the Microtome's "printed" and Slide Distribution's "completed" events name the block the slide came from.
+
+Batch 757: new action `sectioned`, the slide label scanned back at the Microtome, with `parentItemId` (the block).

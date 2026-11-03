@@ -627,3 +627,7 @@ New capabilities `batch:manifest:seal`, `batch:carrier:advance`, `station:scan-m
 ## Batch 751
 
 `organMapDeliveryCapabilities.ts` (new): `config:organ-map-delivery:manage`, checked in `facilities/mockFacilityService.ts` (`setOrganMapDelivery`); a configuration capability (Admin, Lab Director).
+
+## Batch 762
+
+`requisitionCapabilities.ts` (new): `requisition:ingestion:run`, `requisition:inbox:review`, `requisition:inbox:resolve`, `case:requisition:view`, `config:requisition-ingestion:manage`, checked in `requisitions/requisitionService.ts`. Seeds: the first three for roles that open Accession, `case:requisition:view` with `REPORT_IMAGES` (case-access roles), the configuration with the other configuration sections (Admin).

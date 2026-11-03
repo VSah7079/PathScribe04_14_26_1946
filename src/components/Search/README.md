@@ -1,3 +1,5 @@
+**Batch 759:** `CaseSearchBar.tsx`: a case opened from a typed (not scanned) search is flagged as a manual entry (audit trail and station log); a dictated search counts as typed.
+
 # components/Search/
 
 ## Files
@@ -101,3 +103,5 @@ Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which address
 ## Batch 506 (PS-477)
 
 Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+Batch 756: `CaseSearchBar` keeps a hit's match score and matched value in the hit; it used to write them onto the case object itself (the one the case service holds), and the report page then offered them back as unsaved changes ("__match Score", "__matched Value").

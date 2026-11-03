@@ -1,3 +1,5 @@
+**Batch 759:** `fileSizeBaseline.ts`: `AccessionPage.tsx` lowered to 4,003 (the Outside Patient Data card moved to `OutsideCaseCard.tsx`) and `types/case/Case.ts` to 1,056 (`AiFieldSuggestion` moved to its own file).
+
 **Batch 742:** `fileSizeBaseline.ts`: `SynopticReportPage.tsx` lowered to 7,058 and `CytologyScreeningPage.tsx` to 1,537.
 
 **Batch 738:** `fileSizeBaseline.ts`: `useSignOutWorkflow.ts` lowered to 1,747.

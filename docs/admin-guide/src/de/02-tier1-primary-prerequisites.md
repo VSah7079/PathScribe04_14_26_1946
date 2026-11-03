@@ -813,6 +813,7 @@ Unlocks: [Druckerprofile](#screen-printer_profiles), [Zuschnitt-Hardware](#scree
 | Wartung alle (Tage) | Ganze Zahl, 1 bis 3650 | Optional | Gleiche Regel. | Leer |
 | Niedrigste Temperatur (°C), Höchste Temperatur (°C) | Zahlen, niedrigste unter höchster; beide dürfen leer sein | Optional | Batch 730: der Bereich für eine Temperaturkontrolle im Gerätelogbuch. Ein Messwert außerhalb gilt als nicht bestanden; der Bereich wird in jeden Eintrag übernommen. | Leer |
 | Nimmt Großformat-Objektträger | Kontrollkästchen, nur Färbeautomaten und Objektträgerscanner | Optional | Batch 732: Das Gerät nimmt Großformat-Objektträger (Megablöcke). Die Objektträgerverteilung schickt einen Großformat-Objektträger nur an einen so markierten Scanner. | Nicht angekreuzt |
+| QC-Freigabe | Auswahlliste, nur Färbeautomaten und Objektträgerscanner: Standard des Labors, Automatisch annehmen, Freigabe durch das Gerät (Schnittstellen-Engine), Freigabe in PathScribe | Optional | Batch 763: wie die Ergebnisse dieses Geräts freigegeben werden, bevor seine Objektträger ausgegeben (Färbeautomat) oder seine Bilder geöffnet werden (Scanner). Siehe [Färbe- und Scan-QC](#screen-stain_qc). | Standard des Labors |
 | Status | Aktiv / Inaktiv | Optional | | Aktiv |
 | Deck-Layout | Zeilen, nur Analysegeräte | Optional | Die Steckplätze auf dem Deck des Analysegeräts. Jede Zeile: Deck oder Fach, Steckplatz-ID (Buchstaben, Ziffern, „_“, keine zwei gleich) und Nimmt auf (Extraktionsplatte, Reagenzkartusche, Probenröhrchen-Rack; mindestens eines). Die Rack-Beladung bietet nur passende Steckplätze an. Die Steckplatz-ID wird auf den Barcode der Deckposition gedruckt. | Keine |
 
@@ -831,8 +832,44 @@ Unlocks: [Druckerprofile](#screen-printer_profiles), [Zuschnitt-Hardware](#scree
 
 Batch 737. Wird unter dem Register angezeigt, wenn das Labor wiederverwendbare Färbegestelle hat (gravierte RACK-IDs). Jede Zeile ist ein Gestell mit dem Kästchen **Nimmt Großformat-Objektträger auf**, sofort gespeichert (erfordert `config:equipment:manage`). Die Chargenverwaltung weist einen Großformat-Objektträger (aus einem Megablock geschnitten) zurück, der auf einen Färbeträger gescannt wird, der keine Großformat-Objektträger aufnimmt; ein Einweg-Färbeträger nimmt sie auf, wenn in Neuer Behälter **Nimmt Großformat-Objektträger auf (Megablöcke)** angekreuzt ist. Die Demo hat ein solches Gestell, RACK-STAIN-LF-01.
 
+Batch 761: Ein Gestell wird Lauf für Lauf wiederverwendet. Am Mikrotom startet das Scannen eines registrierten Gestells, dessen letzter Lauf geschlossen ist, ohne Formular einen neuen Lauf; die Chargenverwaltung öffnet es als neuen Lauf (Neuer Behälter, vorausgefüllt). Ein Gestell, dessen letzter Lauf versiegelt oder auf den Färbeautomaten gebracht, aber nie geschlossen wurde, wird mit einer Warnung angehalten. Das Schließen dieses Laufs am Mikrotom ist eine Abgleich-Übersteuerung (`batch:reconciliation:override`), die mit dem Grund „Reusable rack scanned for a new run; the last run on it was never closed.“ protokolliert wird.
+
 **7. Berechtigungen.** Öffnen: `screen:configuration:open`. Hinzufügen, bearbeiten, deaktivieren: `config:equipment:manage`. Einen Eintrag im Wartungsprotokoll erfassen: `equipment:maintenance:record`. Beide mit hohem Risiko. Admin und Laborleitung besitzen beide. Die Rollen Histologie-Fachkraft, Zytologieassistent und Molekulartechnologe besitzen ebenfalls die Berechtigung für das Protokoll.
 **Bekannte Grenzen.** Fälligkeitsdaten der Wartung werden in der Zeitzone der Einrichtung berechnet, die in den Einstellungen des Beitrags-Dashboards festgelegt ist.
+### Färbe- und Scan-QC {#screen-stain_qc}
+Breadcrumb: Startseite > Konfiguration > System > Arbeitsplatz & Hardware > Färbe- und Scan-QC
+
+**Status:** Teilweise
+
+**1. Navigation:** Konfigurationsreiter **System** > Gruppe **Arbeitsplatz & Hardware** > **Färbe- und Scan-QC**
+**2. Wartungspunkt:** Färbe- und Scan-QC
+
+**3. Geschäftszweck und Umfang.** Batch 763, der QC-Kontrollpunkt nach der Färbung und vor der Verteilung. Wenn ein Färbelauf endet, warten seine Objektträger auf die QC: Das Rack kann nicht ausgecheckt werden, und seine Objektträger werden an der Objektträgerverteilung nicht ausgegeben, bis der Lauf freigegeben ist. Ein gescanntes Bild kann ebenso warten, bevor der Pathologe es öffnen kann. Jeder Färbeautomat und Scanner wird auf eine von drei Arten freigegeben: **Automatisch annehmen** (sofort freigegeben, als automatisch angenommen protokolliert), **Freigabe durch das Gerät (Schnittstellen-Engine)** (Option A: das eigene QC-Ergebnis des Geräts, über die Schnittstellen-Engine gesendet, gibt den Lauf frei oder hält ihn zurück; bei einem Scanner seine eigene Bildprüfung) oder **Freigabe in PathScribe** (Option B: eine technische Fachkraft gibt am QC-Kontrollpunkt der Objektträgerverteilung frei). Dieser Bildschirm legt die Standards fest; der eigene Modus eines Geräts wird unter [Geräte](#screen-equipment) (QC-Freigabe) gesetzt und hat Vorrang vor dem Standard.
+
+**4. Voraussetzungen und Abhängigkeiten.** Die Geräteliste liest [Geräte](#screen-equipment): Färbeautomaten und Objektträgerscanner. Die Freigabe durch das Gerät braucht die Schnittstelle des Färbeautomaten (seine Freigabemeldung über die Schnittstellen-Engine); ohne sie gibt eine Aufsicht stattdessen frei.
+
+Setup step: Tier 1, step 22
+Requires: [Geräte](#screen-equipment)
+Unlocks: None.
+
+**5. Bildschirm.**
+
+[SCREENSHOT PLACEHOLDER: system-stain-qc - Die QC-Standards und die Liste der Färbeautomaten und Scanner mit ihrem Modus]
+
+**6. Feldreferenz.**
+
+| Feldname | Datentyp / Format | Pflicht/Optional | Beschreibung und Geschäftslogik | Systemstandard |
+|---|---|---|---|---|
+| Färbeautomaten | Auswahlliste: Automatisch annehmen, Freigabe durch das Gerät (Schnittstellen-Engine), Freigabe in PathScribe | Pflicht | Der Standard für einen Färbeautomaten ohne eigenen Modus. | Freigabe in PathScribe |
+| Objektträgerscanner | Gleiche Auswahlliste | Pflicht | Der Standard für einen Scanner ohne eigenen Modus. Bei Freigabe durch das Gerät wird ein Bild freigegeben, das die eigene Prüfung des Scanners bestanden hat; jedes andere wird zurückgehalten. | Automatisch annehmen |
+| QC-Standards speichern | Schaltfläche | Nicht zutreffend | Protokolliert als Stain QC Settings Saved. | Nicht zutreffend |
+| Färbeautomaten und Scanner | Tabelle: Gerät, Art, QC-Freigabe | Nicht zutreffend | Der Modus jedes Geräts, mit „Standard“, wenn es keinen eigenen hat. | Nicht zutreffend |
+
+Am Kontrollpunkt wird ein nicht bestandener Objektträger mit **Neu färben** (Status QC Failed) oder **Neu schneiden** (Recut Requested) und einem Grund markiert: Schwache Färbung, Überfärbung, Ungleichmäßige Färbung, Kontrolle nicht bestanden, Luftblase unter dem Deckglas, Gefaltetes Gewebe, Sonstiges. Ein Bild wird freigegeben oder mit einem Grund zum erneuten Scannen zurückgegeben: Unscharf, Gewebe nicht erfasst, Fehler beim Zusammensetzen, Verunreinigung auf dem Objektträger, Sonstiges. Das Auditprotokoll zeigt Stain QC Pending, Passed, Failed, Instrument Result Ignored; Image QC Pending, Passed, Failed.
+
+**7. Berechtigungen.** Öffnen: `screen:configuration:open`. Standards speichern: `config:stain-qc:manage` (Administration, Laborleitung). Am Kontrollpunkt: `stain:qc:sign-off` und `scan:image-qc:sign-off` (die Rollen, die die Objektträgerverteilung öffnen, Laborleitung); `stain:qc:override`, um einen Lauf freizugeben, der auf die Freigabe seines Färbeautomaten wartet (Laborleitung). Alle mit hohem Risiko.
+**Bekannte Grenzen.** Die Gründe für Nichtbestehen sind eine feste Liste; QC-Kriterien je Färbung sind nicht umgesetzt. Die Serverrouten und der Freigabekanal der Schnittstellen-Engine sind geplant.
+
 ### Druckerprofile {#screen-printer_profiles}
 Breadcrumb: Startseite > Konfiguration > System > Arbeitsplatz & Hardware > Druckerprofile
 
@@ -1031,7 +1068,8 @@ Unlocks: [Etikettendesigner](#screen-label_designer)
 
 | Feldname | Datentyp / Format | Pflicht/Optional | Beschreibung und Geschäftslogik | Systemstandard |
 |---|---|---|---|---|
-| Standard-Druckverhalten | Auswahl: Auf Abruf (je Block oder Behälter), Stapel (je Fall oder Auftrag) | Pflicht | Auf Abruf druckt jedes Kassettenetikett, sobald es beim Zuschnitt erfasst wird. Stapel verschiebt den Druck auf eine Aktion je Fall. | Auf Abruf |
+| Druckverhalten im Zuschnitt | Auswahl: Auf Abruf (je Block oder Behälter), Stapel (je Fall oder Auftrag) | Pflicht | Auf Abruf druckt jedes Kassettenetikett, sobald es beim Zuschnitt erfasst wird. Stapel verschiebt den Druck auf eine Aktion je Fall. | Auf Abruf |
+| Druckverhalten am Mikrotom | Auswahl: Auf Abruf, Block, Stapel | Optional | Batch 758. Wie das Mikrotom Objektträgeretiketten druckt, unabhängig vom Zuschnitt. Auf Abruf: ein Etikett nach dem anderen, jedes wird auf seinem Objektträger gescannt, bevor das nächste gedruckt wird. Block: Beim Scannen eines Blocks werden alle seine Etiketten gedruckt und in beliebiger Reihenfolge zurückgescannt. Stapel: Die MTA wählt die Objektträger aus und druckt sie zusammen. In jedem Modus wird der Wechsel zum nächsten Block angehalten, solange Etiketten dieses Blocks nicht gescannt sind, bis jedes gescannt, neu geschnitten oder verworfen ist oder die MTA fortfährt (protokolliert). Solange nichts gewählt ist, folgt das Mikrotom der Einstellung des Zuschnitts. | Wie Zuschnitt |
 | On-Demand-Leitplanken erzwingen | Ja/Nein-Schalter | Optional | Wenn aktiviert, ist der Standard laborweit festgelegt, und der Probeneingang kann einen Fall nicht auf Stapel umstellen. | Aus |
 | Scanverifizierung erforderlich | Ja/Nein-Schalter | Optional | Verlangt das Scannen des Barcodes der neuen Kassette oder des neuen Behälters, bevor zum nächsten Block weitergegangen wird. | Aus |
 | Beim Nachdruck eines Befunds nach dem Grund fragen | Ja/Nein-Schalter | Optional | Der Nachdruck eines gedruckten Befunds braucht einen Grund, der mit dem Druck im Prüfprotokoll festgehalten wird. | Aus |

@@ -34,8 +34,12 @@ import type { Batch } from '@/services/batches/IBatchService';
 import type { RecordMarginInkApplicationReasonCode } from '@/services/grossing/recordMarginInkApplication';
 import { useGrossingScreen } from './hooks/useGrossingScreen';
 import GrossingBenchTools from './GrossingBenchTools';
+import './GrossingBlockTable.css';
 import BlockPieceMapEditor from './components/BlockPieceMapEditor';
 import ScanTrailPanel from '@/components/Workstation/ScanTrailPanel';
+import { ForeignIdTag, TypedEntryCheck } from '@/components/Workstation/BenchIdentity';
+import { useTypedEntryCheck } from '@/hooks/useTypedEntryCheck';
+import { specimenSources } from '@/services/material/benchIdentity';
 import WrongCaseScanBanner from '@/components/Workstation/WrongCaseScanBanner';
 import { useWrongCaseScanCheck } from '@/hooks/useWrongCaseScanCheck';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
@@ -72,6 +76,8 @@ const GrossingScreenPage: React.FC = () => {
   const { effectiveStationId: grossingStationId } = useEffectiveScanStation();
   const wrongCase = useWrongCaseScanCheck(caseData?.accession?.fullAccession ?? caseData?.id, caseData?.id, { stationId: grossingStationId, userId: user?.id ?? '', userName: user?.name ?? user?.id ?? '' });
   const [isLoaded, setIsLoaded] = useState(false);
+  // Batch 759 (spec §2.2, §3): opened from a typed accession, the identifiers to check against the containers.
+  const typedEntry = useTypedEntryCheck([caseData?.accession?.fullAccession, caseData?.id]);
   // Batch 741 (fluid decisions 2 and 3): Divide specimen and its aliquots' status.
   const division = useSpecimenDivision(caseData, user?.name ?? user?.id ?? '', useCallback((c: Case) => { setCaseData(c); knownVersionRef.current = c.version ?? knownVersionRef.current; }, []));
   const [protocols, setProtocols] = useState<Protocol[]>([]);
@@ -298,7 +304,10 @@ const GrossingScreenPage: React.FC = () => {
           {t('grossingScreen.backToCase')}
         </button>
         <h1 className="ps-grossing-screen-title" data-phi="accession">{t('grossingScreen.pageTitle', { accession: caseData.accession?.fullAccession ?? caseData.id })}</h1>
+        {/* Batch 759 (spec §2.1): an outside case's Foreign Identifier, beside the accession, for good. */}
+        <ForeignIdTag order={caseData.order} />
       </div>
+      {typedEntry && <TypedEntryCheck accession={caseData.accession?.fullAccession ?? caseData.id} source={specimenSources(caseData.specimens).map(p => t('benchIdentity.specimenSource', { label: p.label, description: p.description })).join('; ')} />}
 
       {/* Batch 530 (Pete): add or reconcile the clinical history while grossing. */}
       <CaseClinicalHistoryBar caseData={caseData}

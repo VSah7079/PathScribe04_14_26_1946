@@ -1,3 +1,5 @@
+**Batch 758:** `src/02-tier1-primary-prerequisites.md` (and fr, de, nl, ko, es): Print Settings: Grossing Print Behavior (renamed) and Microtome Print Behavior. Rebuilt and published.
+
 **Batch 755a:** chapter 6 (Synoptic Library) describes the demonstration checklists by their plain names and tag, in all six languages; rebuilt and published.
 
 **Batch 739:** `src/02-tier1-primary-prerequisites.md` (and fr, de, nl, ko, es): Equipment kind Liquid-based cytology processor. Rebuilt.

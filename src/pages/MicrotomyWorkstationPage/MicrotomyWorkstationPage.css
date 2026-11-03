@@ -1,2 +1,6 @@
 /* Batch 729: the Microtome's note on the case's other blocks still waiting to be cut (spec §7.5). Logical properties only. */
 .ps-microtomy-waiting-note { margin-block: 6px 10px; margin-inline: 0; padding-block: 6px; padding-inline: 10px; border-radius: 8px; background: rgba(245, 158, 11, 0.12); font-size: 13px; }
+/* Batch 757: the dual-scan prompt (label waiting for its scan) and its confirmation. */
+.ps-microtomy-label-scan { margin: 6px 0; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+.ps-microtomy-label-scan--waiting { background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.5); color: #fcd34d; }
+.ps-microtomy-label-scan--done { background: rgba(52, 211, 153, 0.12); border: 1px solid rgba(52, 211, 153, 0.45); color: #6ee7b7; }

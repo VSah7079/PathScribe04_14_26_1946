@@ -19,10 +19,10 @@ One immutable record per scan of an item at a station. The item is the primary u
 | `stationName`, `stationWorkflowStage`, `facilityId` | Filled in by the server from the station registry, never taken from the caller. |
 | `node` | The processing step the item was at. |
 | `userId`, `userName` | Who scanned (from the signed-in session on the server). |
-| `action` | `received`, `loaded`, `unloaded`, `matched`, `missing`, `unexpected`, `printed`, `completed`. |
+| `action` | `received`, `loaded`, `unloaded`, `matched`, `missing`, `unexpected`, `printed`, `sectioned` (Batch 757: the slide label scanned back at the Microtome, with `parentItemId`), `completed`, `typed` (Batch 759: the id was typed or searched by hand, not scanned: the Manual Entry flag; written with the audit entry "Manual Entry", and only when the entry named an item; reports should not count it as a scan check). |
 | `result` | `ok`, `wrong-item`, `not-found`, `mismatch`. |
 | `inferredFromCarrier` | True when the event was written for every item in a carrier because the carrier was scanned (a hand-off to the next step, a carrier opened at a station). These events are **not** item-level verification: reports must not count them as per-item checks, wrong-item checks or time at the bench (spec 10.3). |
-| `note` | Short English note for the record (for example why a mismatch was continued). |
+| `note` | Short English note for the record (for example why a mismatch was continued; Batch 758: `missing` with "Label not scanned before the next block" when the Microtome tech continues past the block lockout). |
 
 There is no update and no delete.
 
@@ -66,3 +66,16 @@ Batch 729: the benches also record, through `recordStationScan.ts` (nothing with
 - Reports and the reporting feed built from these events (spec 9, 9.3): Batch 730.
 - Lineage (`parentItemId`) and item end states (spec 10.4, 10.5): Batch 731.
 - The demo keeps the most recent 20,000 events in the browser; the server keeps every event.
+
+## Batch 758: the Microtome bench (Planned on the server)
+
+Slides confirmed at a Microtome station before a staining rack is scanned wait on that station's bench (Scan-Last). Today the browser keeps the bench per station (`services/batches/benchSlideBuffer.ts`, through `dataStorage`). The server will hold it per station:
+
+| Call | Body | Answer |
+|---|---|---|
+| `POST /api/station-scans/bench/list` | `{ stationId }` | result: the slides on the bench (`slideId`, `caseAccession`, `confirmedAt`, `userId`), oldest first. |
+| `POST /api/station-scans/bench/add` | `{ stationId, slideId }` | result: the bench. A slide is on one bench at most; adding it again changes nothing. |
+| `POST /api/station-scans/bench/assign` | `{ stationId, batchId }` | result: the slides placed in the rack, and the ones refused (with the `addItemByScan` outcome). Only this station's bench is swept (Pete: technician A's rack scan never takes technician B's slides). The rack is sealed when at least one slide went in. |
+
+No patient identifier goes in a URL. The station comes from the computer's station setting; the server checks it against the caller's facilities.
+

@@ -630,6 +630,8 @@ Unlocks: 없음.
 | 장비 표 | 유지보수 및 교정 상태가 있는 각 활성 장비 | 해당 없음 | 서비스 알림이 있는 행은 강조 표시됩니다. 장비를 추가하거나 변경하는 곳은 [장비](#screen-equipment)입니다. | 해당 없음 |
 | 기록 추가 | 장비마다 버튼 | 해당 없음 | 유지보수 또는 교정을 기록합니다. `equipment:maintenance:record`가 필요합니다(Histotechnologist, Cytotechnologist, Molecular Technologist, Admin, Lab Director가 보유). | 해당 없음 |
 
+**재사용 랙(Batch 761).** 등록된 랙(RACK-…)을 스캔하면 이전에 완료된 런이 아니라 열린 런을 찾습니다. 마지막 런이 닫혀 있으면 스캔으로 새 런이 시작됩니다(랙이 미리 채워진 새 컨테이너). 마지막 런이 봉인되었거나 염색기에 올려진 후 닫히지 않았다면 "…의 마지막 런이 닫히지 않았습니다."라는 경고와 함께 열립니다. 랙을 다시 사용하기 전에 닫으십시오(완료 또는 감독자 재정의).
+
 **7. 권한.** 화면 열기: `screen:batch-management:open`(Histotechnologist, Cytotechnologist, Molecular Technologist, Admin). Histotechnologist, Cytotechnologist, Molecular Technologist는 또한 `batch:reconciliation:override`, `batch:run:abort`, `batch:cold-chain-excursion:acknowledge`(모두 고위험, 감사 로그 기록), `retention:material:dispose`, `retention:disposal-report:export`, `retention:holds-queue:export`와 세 개의 `wsi:scan-batch:*` 권한을 기본으로 가집니다. Admin은 화면을 열 수 있지만 이들 중 어느 것도 보유하지 않으며, `label:batch:reprint`와 `equipment:maintenance:record`는 보유합니다. `case:retention-hold:release`는 모든 케이스 역할(Pathologist, Fellow, Resident, PA, Accessioner와 세 가지 기술자 역할)이 보유합니다.
 **알려진 제한 사항.** 각인기 모니터는 Firebase가 구성되어 있으면 Firebase 컬렉션(`engraver_devices`)을 읽고, 그렇지 않으면 시뮬레이션된 장치를 표시합니다. Firebase는 운영 데이터베이스가 아니며 이 부분은 교체될 예정입니다. `src/pages/BatchManagement/`의 `README.md`에는 보존 보류 대기열이 구현되지 않았다고 아직 기재되어 있지만, 해당 페이지와 타일은 존재합니다. 배치는 구현됨입니다(`docs/architecture/CASE_WORKFLOWS_API.md`의 `IBatchService`).
 ### 포매 작업대 {#screen-embedding-station}

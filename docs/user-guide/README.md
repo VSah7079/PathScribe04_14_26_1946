@@ -82,3 +82,13 @@
 ## Batch 751
 
 - Batch 751: `report/synoptic-reporting.md` (Organ map and Mohs stages: the map on an Assist case, and the map-file line). Rebuilt.
+
+Batch 757: the Embedding and Microtome workstation pages describe carrier item lists, check-off by hand, the Microtome tray and the dual scan.
+
+Batch 758: the Microtome page describes Block mode, the block lockout (Recut, Void, Continue, Stay) and rack first or rack last with the bench counter.
+
+Batch 759: Accession (Originating case), Embedding, Microtome, Cytology Preparation, Add-On Orders, Grossing, Molecular, Margin Exception Review and the header search describe the bench without patient details, the Foreign case ID and typed entries.
+
+Batch 760: the Cytology Worklist and Screening Case pages describe the accession, vial and slide line in place of the patient's name and MRN.
+
+Batch 761: the Microtome page describes reusable staining racks and the unclosed-run warning.

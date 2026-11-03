@@ -118,18 +118,20 @@ export function stainLoaded(stain: StainOrder, batch: Pick<WsiScanBatch, 'id' | 
 
 /** The slide's record once its batch is unloaded: 'Scanned' when it scanned
  *  and passed image QC, otherwise back in the scanning queue (pure). */
-export function stainUnloaded(stain: StainOrder, batch: Pick<WsiScanBatch, 'batchBarcode'>, slide: WsiScanSlide, techUserId: string, at: string): StainOrder {
+export function stainUnloaded(stain: StainOrder, batch: Pick<WsiScanBatch, 'batchBarcode'>, slide: WsiScanSlide, techUserId: string, at: string, imageQc: 'release' | 'pending' = 'release'): StainOrder {
   const ok = slideScannedOk(slide);
+  // Batch 763: a scanned image whose scanner needs QC sign-off is kept from the pathologist until it passes.
+  const held = ok && imageQc === 'pending';
   const why = slide.scanStatus === 'completed' ? `image QC failed${slide.failureReason ? `: ${slide.failureReason}` : ''}`
     : slide.scanStatus === 'failed' ? `scan failed${slide.failureReason ? `: ${slide.failureReason}` : ''}`
       : 'not scanned';
   return {
     ...stain,
     distributionStatus: ok ? 'Scanned' : 'In Scanning Queue',
-    lastScanOutcome: ok ? 'scanned' : slide.scanStatus === 'completed' ? 'imageQcFailed' : slide.scanStatus === 'failed' ? 'scanFailed' : 'notScanned',
+    lastScanOutcome: held ? 'imageQcPending' : ok ? 'scanned' : slide.scanStatus === 'completed' ? 'imageQcFailed' : slide.scanStatus === 'failed' ? 'scanFailed' : 'notScanned',
     wsiScanBatchId: ok ? stain.wsiScanBatchId : undefined,
     distributionEvents: [...(stain.distributionEvents ?? []), event('unloaded_from_scanner', techUserId,
-      ok ? `unloaded from scan batch ${batch.batchBarcode}: scanned` : `unloaded from scan batch ${batch.batchBarcode}: ${why}; back in the scanning queue`, at)],
+      held ? `unloaded from scan batch ${batch.batchBarcode}: scanned, waiting for image QC` : ok ? `unloaded from scan batch ${batch.batchBarcode}: scanned` : `unloaded from scan batch ${batch.batchBarcode}: ${why}; back in the scanning queue`, at)],
   };
 }
 

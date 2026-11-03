@@ -23,6 +23,8 @@ status: Draft
 !!! note "How you reach this screen"
     Pathology assistants and grossing pathologists use the **Grossing** tile under [Pathology Workspace](help:pathology-workspace). It lists the cases waiting to be grossed (urgent first, then oldest); choose **Gross** on a row, or type or scan an accession number, to open the case. Physicians can still open the same screen from the report: select the Material tab and choose **Open Grossing Screen**. **Back to Case** returns you to the report screen.
 
+**Patient identity and typed entries (Batch 759).** This screen shows no patient name, date of birth or MRN. Check the accession number and the specimen source against the container; an outside case also shows its **Foreign case ID** (and a block or specimen's own **Foreign ID**). A typed id (when the scanner can't read a label) opens at once; a line says "Typed, not scanned: check the container shows … and …", and the typed entry is recorded quietly on the audit trail and in the scan history. See the Microtome page for the full account.
+
 ## Screen Tour
 
 ![The Grossing tile's queue of cases waiting to be grossed](capture:grossing-queue)

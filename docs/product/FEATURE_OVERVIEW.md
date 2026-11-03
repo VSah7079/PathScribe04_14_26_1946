@@ -63,6 +63,36 @@ completion, sign-out/finalize, and more).
 Case creation, order import, patient/encounter resolution, specimen
 entry.
 
+### Stain and scan QC gate (Slide Distribution, Configuration → Stain & scan QC) — Built (Demo), Batch 763
+
+**For the practitioner.** A finished staining run waits at the QC checkpoint on Slide Distribution: sign it off (all passed, or failed slides marked for re-stain or re-cut with a reason) before its slides are handed out. Scanned images can wait there too before the Pathologist sees them.
+
+**For the system administrator.** Configuration → System → Workstation & Hardware → Stain & scan QC (defaults for stainers and scanners), and each instrument's QC sign-off on the Equipment screen. Capabilities `stain:qc:sign-off`, `stain:qc:override`, `scan:image-qc:sign-off`, `config:stain-qc:manage`. Every decision is audited.
+
+**For marketing.** QC before distribution, instrument by instrument: the stainer's own sign-off, a PathScribe sign-off, or auto-accept.
+
+**For FormedrixAI and partners (the plain reality).** Status: Built (Demo). The server routes and the interface engine's sign-off channel are Planned. Fail reasons are a fixed list; no per-stain criteria.
+
+*Technical detail (for developers and Jira):*
+- `services/stainQc/` (types, rules, service, case writes, mock/http/instance), `services/hl7/processInboundStainQcSignOffEvent.ts`; the gate in `mockBatchService.advanceToNode` (`stainQcPending`); image hold in `wsiScanQueue.stainUnloaded` and `wsiScanBatchWorkflow.unloadScanBatch`.
+- Screens: `components/StainQc/QcCheckpointPanel.tsx` (Slide Distribution), `components/Config/System/StainQcSection.tsx`, Equipment QC sign-off.
+- Docs: `docs/product/STAIN_QC.md`, `docs/architecture/STAIN_QC_API.md`.
+
+### Requisition ingestion and the Requisition Inbox (`/accession/requisitions`) — Built (Demo), Batch 762
+
+**For the practitioner.** Requisitions scanned in a batch are put on their case by the accession barcode on each page; the report screen's **📄 Requisition** button shows the scan. Anything that can't be placed waits in Accession → **📥 Requisition Inbox**, where you view it and link it by scanning or typing the accession, or discard it with a reason.
+
+**For the system administrator.** Configuration → System → Integrations → Requisition ingestion: one source per scanner, each with its performing facility (or all facilities), the watched folder or sending system, the schedule (minutes) and the separator-sheet barcode; permissions are checked for the source's facility. Capabilities `requisition:ingestion:run`, `requisition:inbox:review`, `requisition:inbox:resolve`, `case:requisition:view`, `config:requisition-ingestion:manage`. Every match, quarantine, link, discard and view is audited.
+
+**For marketing.** One scan of the stack files every requisition on its case, with the hospital's store as the only copy and one queue for anything left to place.
+
+**For FormedrixAI and partners (the plain reality).** Status: Built (Demo). The demonstration reads real PDFs from `public/demo-requisitions/` in the browser when someone presses Run ingestion now. The server's scheduled job (`requisition.ingest`), OCR without a barcode and the posting API are Planned. Only a link is stored, so a moved or deleted file can't be opened. Several performing facilities are supported: each source belongs to a facility (or to all), and the queue and every permission follow it. Expected requisitions are flagged (badge, inbox list, Missing Requisition deficiency) and scans with no case are marked after a configurable time. Serverless design: scheduled functions; a hospital folder is read by the site agent (its requisition pickup is Planned). No printable separator sheet.
+
+*Technical detail (for developers and Jira):*
+- `services/requisitions/`: `requisitionRules.ts` (PDF only, page grouping with the separator sheet, barcode lookup keys, page address), `requisitionService.ts` (match, link, quarantine, re-link once the case exists, re-associate, discard, view; capabilities and audit), mock/http/instance, `requisitionPages.ts` (the JPEG page image of each PDF page, pdf-lib), `demoRequisitionEngine.ts` (ZXing Code 128 / Code 39 on each page), `requisitionIngestionRunner.ts`.
+- Screens: `pages/RequisitionInboxPage/`, `components/Requisitions/` (preview, the report header button, the Accession link), `components/Config/System/RequisitionIngestionSection.tsx`.
+- Docs: `docs/product/REQUISITION_INGESTION.md`, `docs/architecture/REQUISITION_INGESTION_API.md`.
+
 ### Sign-out checks, release permissions and privacy — Built (Demo), Batch 649
 
 **For the practitioner.** Whichever way you sign (Sign Out Case or Finalize), PathScribe checks the same things first: hold, microscopic documentation, critical findings, required fields and unverified AI answers. If signing fails part way, the case is put back and you are told. Buttons you may not use are greyed, and a refusal names the missing permission. Only a pathologist or fellow releases a preliminary report. Support screenshots hide every patient identifier.
@@ -624,6 +654,11 @@ The Role Dictionary lists every voice and shortcut command by group, including t
 - `services/stationScans/` (event log), `services/batches/stationCarrierRules.ts`, `hooks/useStationCarrier.ts`, `components/Workstation/StationCarrierPanel.tsx`, `pages/BatchManagement/BatchCarrierStepPanel.tsx`.
 - IBatchService: `sealManifest`, `advanceToNode`, `recordCarrierScan`; `stationId` on `addItemByScan`, `scanItemOut`, `overrideAndComplete`; Decal `transferToProcessing` keeps the same batch.
 - Batch 734: an open ad-hoc carrier scanned at another station moves there without a question (`carrierMovesHere`, `Batch.stationMoves`); the mismatch rule still asks when the step does not fit.
+- Batch 757 (Pete's embedding-to-staining flow, Nov 1, 2026): a carrier opened at a bench lists its items, each marked ✓ Arrived as it is scanned off (`carrierItemRows`); an item can be checked off by hand with a reason (`MANUAL_CHECK_OFF_REASONS`, written to the station log); Embedding has an output tray (an ad-hoc Microtome tray) and each embedded block goes into it (`blockForOutputTray`); the Microtome's dual scan: after a label prints, the tech scans it back, which records `sectioned` with the parent block and places the slide in the staining rack, and Print/Etch Next waits for it (`services/material/slideLabelCheck.ts`); scanning a full output tray again seals it and completes the carrier unloaded there (`outputTrayRescan`); the "Add printed slides to tray" button is gone (it skipped the label scan). Scans are handled one at a time in order, and the scan field no longer drops a scan that arrives while the last is being handled. Batch Management's carrier page has a scan-or-type field.
+- Batch 758 (Pete, Nov 1, 2026): the Microtome's own print mode (`PrintSettingsConfig.microtomePrintBehavior`: On-Demand, Block, Batch; unset follows Grossing's `defaultPrintBehavior`, `printSettings/microtomePrintMode.ts`). Block mode prints all of a block's labels on the block scan (`blockLabelsToPrint`), scanned back in any order. The block lockout: moving on (another block, Scan next) with labels of this block unscanned is held (`nextBlockLockout`, `BlockLockoutBanner`): Recut (reprint, reason Damaged Section), Void (cancel, Damaged Section), or Continue (each label logged `missing`, note "Label not scanned before the next block"). Scan-Last: a confirmed slide with no rack open goes on the station's bench (`services/batches/benchSlideBuffer.ts`, per station); a staining rack scanned with slides on the bench takes them all and is sealed (`outputScanPlan`); the bench counter shows on the carrier card, and closing the tab or signing out asks first (`utils/leaveGuards.ts`, `useLogout`). Server-side bench per station Planned.
+- Batch 761 (Pete, Nov 2, 2026): reusable staining racks. `services/batches/rackRuns.ts`: `currentRunForBarcode` (the open run, never the oldest; `getByMasterBarcode` uses it), `rackRunState` (none / closed / loading / notClosed), `rackStartsNewRun`, `rackRunDraft`. At the Microtome a registered rack whose last run is closed starts a new run on scan (`useStationCarrier`); one never closed is held (`CarrierPending` `rackNotClosed`) with a supervisor close (`closeLastRun`, reconciliation override with `RACK_REUSE_CLOSE_REASON`). Batch Management opens a closed rack as a new run and warns about one never closed.
+- Batch 759 (Patient Verification, Outside Case Tracking and Audit Logging spec, Pete, Nov 2, 2026): no patient name, date of birth or MRN on the bench screens; the Foreign case ID (`order.originatingCase`, entered at Accession for an outside case) and an item's Foreign ID beside the accession (`components/Workstation/BenchIdentity.tsx`); every station scan field and the header search tell a scan from a typed id (`services/scanEntry/entryMethod.ts`), and a typed id is flagged on the audit trail ("Manual Entry") and the station log (action `typed`) without blocking (`manualEntryLog.ts`); the screen then shows the two identifiers to check. See `PATIENT_VERIFICATION.md`.
+- Batch 760 (Cytology Workspace spec §2.1): Cytology Screening, its Ask a Colleague window and the Cytology Worklist show the accession, vial type and slide ids instead of the patient's name, date of birth and MRN (`services/cytology/cytologyBenchIdentity.ts`, `components/Cytology/CytologyIdentityLine.tsx`).
 
 ### Station screens by touch — Built (Demo), Batch 735
 
@@ -636,6 +671,7 @@ The Role Dictionary lists every voice and shortcut command by group, including t
 **For FormedrixAI and partners (the plain reality).** Status: Built (Demo). Re-audited in desktop Chromium only; the real-tablet check the spec requires (iPad at 1280 × 800 and 1024 × 768, keyboard-wedge scanner, gloves) is still to do, and until it passes no material may call a screen touch-ready. Batch 736: the preset reasons are the lab's own, in the Reason Dictionary (Configuration → System → Bench Reasons), with stable codes kept in records, audits and the Reconciliation exceptions report. Out of scope for now: wall displays, the Worklist, Molecular batches, Cytology.
 
 *Technical detail (for developers and Jira):*
+- Batch 756: the scan field's keyboard and submit buttons show only with the touch layout on; a scanner and a physical keyboard always work, Enter submits (Pete: "can't the field listen but also receive keyboard data?").
 - Spec and status: `docs/product/STATION_TOUCH.md`. Code: `components/Touch/`, `components/Workstation/StationScanField.tsx`, `components/Common/QuickReasonPicks.tsx`, `utils/touch/`, `hooks/useTouchLayout.ts`, `hooks/useScanFieldFocus.ts`, `hooks/useKeyboardKeepVisible.ts`, `services/scanner/scanRoutePolicy.ts`, `services/reasons/quickReasonSets.ts`, `utils/listOrder.ts`. Guard: `services/styleRules/touchLayout.guard.test.ts`.
 
 ### Batch Management (`/batch-management`) — Live

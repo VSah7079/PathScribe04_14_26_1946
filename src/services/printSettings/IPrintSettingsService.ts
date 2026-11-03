@@ -87,12 +87,21 @@ export const DEFAULT_SLIDE_LABEL_LAYOUT: SlideLabelLayoutConfig = {
   fontHeightMm: 1.2,
 };
 
+/** Batch 758: the Microtome's print modes. `on_demand`: one label at a time, each scanned back before the next
+ *  prints. `block`: scanning a block prints all its labels at once, scanned back in any order. `batch`: the tech
+ *  ticks the slides and prints them together. */
+export const MICROTOME_PRINT_BEHAVIORS = ['on_demand', 'block', 'batch'] as const;
+export type MicrotomePrintBehavior = typeof MICROTOME_PRINT_BEHAVIORS[number];
+
 export interface PrintSettingsConfig {
   /** "On-Demand" (per-block/container, as each cassette is logged) vs
    *  "Batch" (explicit, per-case bulk action) — real, per direct
    *  research: default to on-demand to respect patient-safety
    *  guardrails, while still supporting labs that insist on batching. */
   defaultPrintBehavior: 'on_demand' | 'batch';
+  /** Batch 758 (Pete, Nov 1, 2026: separate Grossing and Microtome print modes): how the Microtome prints slide
+   *  labels. Unset (settings saved before Batch 758) follows `defaultPrintBehavior` (microtomePrintMode.ts). */
+  microtomePrintBehavior?: MicrotomePrintBehavior;
   /** Whether operators can override the default behavior per action,
    *  or the system-wide default is enforced without exception. */
   enforceOnDemandGuardrails: boolean;

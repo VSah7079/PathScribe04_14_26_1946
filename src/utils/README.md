@@ -1,3 +1,5 @@
+**Batch 758:** `leaveGuards.ts` (new): what sign-out would leave behind (the Microtome bench), asked about first by `hooks/useLogout.ts`; held in memory for the tab. `microtomyOperations.ts`: Damaged Section is also a reprint reason (a recut).
+
 **Batch 739:** `aliquotMigration.ts` (legacy HPV aliquots retyped), `decantTypeText.ts` (a decant's type on screen, aliquots by purpose), `generateDefaultMaterial.ts` (the track's decant type).
 
 **Batch 737:** `microtomyOperations.ts` (matrix view carries the parts as pieces and writes back status and `exhaustedAt`), `addOnOrderOperations.ts` (`matrixExhausted`), `blockExceptionStates.ts` (`exhaustedOnScan`), `blockPieceRules.ts` (`slideSizeOnScan`, `slideFitsCarrier`); test `carrierFit.test.ts`. Labels: see `labels/README.md`.
@@ -878,3 +880,7 @@ Batch 669: `embeddingOperations.ts` gains `hasOpenEmbeddingDiscrepancy`, `clearE
 ## Batch 750
 
 `buildWsiViewerLaunchUrl.ts` (listed above) is deleted; slide addresses are built by `services/digitalPathology/slideImages.ts`.
+
+## Batch 756
+
+`draftCacheBaseline.ts` (new): `draftAutosaveDecision()` and `draftStateJson()`, the baseline rule `hooks/useDraftCache.ts` follows. Test: `draftCacheBaseline.test.ts`.

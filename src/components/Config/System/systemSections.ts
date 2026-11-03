@@ -37,8 +37,10 @@ export type SystemSection =
   | 'site_agents'
   | 'workstations'
   | 'bi_feed'
+  | 'requisition_ingestion'
   | 'scope_reference'
   | 'equipment'
+  | 'stain_qc'
   | 'grossing_hardware'
   | 'cassette_routing_rules'
   | 'cassette_colors'
@@ -162,6 +164,8 @@ export const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; gro
   { id: 'scope_reference',     emoji: '🧭', labelKey: 'systemTab.sections.scopeReference'       , group: 'Administration & Compliance' },
   // Batch 358: the equipment register (took over Batch 356's Instruments list).
   { id: 'equipment',           emoji: '🔬', labelKey: 'systemTab.sections.equipment'            , group: 'Workstation & Hardware' },
+  // Batch 763: the Post-Stain / Pre-Distribution QC gate's defaults for stainers and scanners.
+  { id: 'stain_qc',            emoji: '✅', labelKey: 'systemTab.sections.stainQc'              , group: 'Workstation & Hardware' },
   // Batch 359: grossing cameras and scales (settings; the device is in the register).
   { id: 'grossing_hardware',   emoji: '📷', labelKey: 'systemTab.sections.grossingHardware'     , group: 'Workstation & Hardware' },
 
@@ -304,6 +308,8 @@ export const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; gro
   // Batch 612: vendor message profiles. Shown to ForMedrixAI staff only (platform:interface-dictionary:manage).
   { id: 'interface_dictionary', emoji: '🧭', labelKey: 'systemTab.sections.interfaceDictionary', group: 'Integrations' },
   { id: 'physicians',       emoji: '🩻', labelKey: 'systemTab.sections.physicians'             , group: 'Integrations' },
+  // Batch 762: the requisition scanner's drop folder (or sending system), schedule and separator barcode.
+  { id: 'requisition_ingestion', emoji: '📥', labelKey: 'systemTab.sections.requisitionIngestion', group: 'Integrations' },
   { id: 'routing_rules',    emoji: '📋', labelKey: 'systemTab.sections.routingRules'          , group: 'Integrations' },
   { id: 'deficiencies',     emoji: '⚠️', labelKey: 'systemTab.sections.deficiencies'  , group: 'Integrations' },
   { id: 'terminology',      emoji: '🔌', labelKey: 'systemTab.sections.terminology'   , group: 'Integrations' },

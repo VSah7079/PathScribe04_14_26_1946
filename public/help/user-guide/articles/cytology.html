@@ -162,12 +162,12 @@
 </thead>
 <tbody>
 <tr>
-<td>Patient name</td>
-<td>Select it to open the case on the Screening Case page. Rows on the Pool tile are not openable: claim the case first. If the name is missing, the MRN or "Unknown patient" is shown.</td>
+<td>Accession</td>
+<td>Batch 760: the case number (the patient's name is no longer shown on the cytology screens). Select it to open the case on the Screening Case page. Rows on the Pool tile are not openable: claim the case first.</td>
 </tr>
 <tr>
-<td>Case line</td>
-<td>"Case S26-5002 · MRN 100002" (demonstration values): the case number and the MRN.</td>
+<td>Vial and slides line</td>
+<td>For example "A: ThinPrep – Cervical · Slides S26-5107-AD1-L1": each specimen's vial type and description, then up to three slide ids. No MRN.</td>
 </tr>
 <tr>
 <td>Final Diagnosis Recorded / Awaiting Review</td>
@@ -194,8 +194,8 @@
 <td>Hold the pointer over the triage badge and it reads "AI slide-level triage"; over the field-of-view badge it reads "AI-flagged fields of view".</td>
 </tr>
 <tr>
-<td>Case … · MRN …</td>
-<td>The small line under the patient's name on a case row (for example in HPV Triage or Recall Needed): the case number, then the MRN.</td>
+<td>Vial and slides line</td>
+<td>The small line under the accession on a case row (for example in HPV Triage or Recall Needed): the vial type and the slide ids.</td>
 </tr>
 <tr>
 <td>Awaiting hrHPV Result / hrHPV result invalid: repeat test</td>
@@ -494,7 +494,7 @@
 <li>Open <strong>Cytology Workspace</strong> from the Pathology Workspace. The Cytology Worklist opens on <strong>GYN Cytology</strong> with <strong>My Worklist</strong> selected.</li>
 <li>If you also screen Non-GYN or FNA cases, select <strong>Non-GYN / FNA Queue</strong>. Use an organ-site chip to narrow the list.</li>
 <li>If a "Yesterday's screening hours" panel is showing, confirm or correct it first (see below). It appears only while yesterday still needs signing off.</li>
-<li>Select a patient's name. The <a href="/help/cytology/screening-case">Screening Case</a> page opens for that case.</li>
+<li>Select a case's accession. The <a href="/help/cytology/screening-case">Screening Case</a> page opens for that case.</li>
 <li>Screen the case and save your review there. Use <strong>Back to Worklist</strong> to return. The case leaves My Worklist when it moves to another step.</li>
 </ol>
 <p><strong>Take work from the Pool.</strong></p>
@@ -568,7 +568,7 @@
 <h3 id="efficiency-recommendations">Efficiency recommendations</h3>
 <ul>
 <li>Start the day on <strong>My Worklist</strong>, then <strong>QC / Rescreen</strong>, then the pool.</li>
-<li>Use the patient name to open a case; a click anywhere on the row also opens it (not on Pool rows).</li>
+<li>Use the accession to open a case; a click anywhere on the row also opens it (not on Pool rows).</li>
 <li>Read the AI triage badge as a hint for ordering your work, not as a result.</li>
 <li>Confirm your hours in one click at the end of the shift.</li>
 <li>Watch the workload counter during the day. It shows the slides left now and left in a full day, so you can plan before you hit the limit.</li>

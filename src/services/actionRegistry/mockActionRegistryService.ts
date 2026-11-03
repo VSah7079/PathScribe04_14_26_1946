@@ -13,7 +13,7 @@ import { dataStorage } from '../browserData/dataStorage';
 import { withSpanishVoiceTriggers } from './spanishVoiceTriggers';
 import { findExactTriggerMatch } from './findExactTriggerMatch';
 import { migrateShortcuts } from './shortcutMigrations';
-import { LOCKBOX_SEED_ACTIONS } from './lockboxVoiceCommands'; import { GROSSING_BENCH_SEED_ACTIONS } from './grossingBenchVoiceCommands'; import { PATIENT_BANNER_SEED_ACTIONS } from './patientBannerCommands'; import { WORKLIST_ROW_SEED_ACTIONS, TRANSCRIPT_EVENT_ACTIONS } from './worklistRowCommands'; import { CASE_TEAM_SEED_ACTIONS } from './caseTeamCommands';
+import { LOCKBOX_SEED_ACTIONS } from './lockboxVoiceCommands'; import { GROSSING_BENCH_SEED_ACTIONS } from './grossingBenchVoiceCommands'; import { PATIENT_BANNER_SEED_ACTIONS } from './patientBannerCommands'; import { WORKLIST_ROW_SEED_ACTIONS, TRANSCRIPT_EVENT_ACTIONS } from './worklistRowCommands'; import { CASE_TEAM_SEED_ACTIONS } from './caseTeamCommands'; import { REQUISITION_SEED_ACTIONS } from './requisitionVoiceCommands';
 // ─────────────────────────────────────────────────────────────────────────────
 // Eligibility (which commands may run now) is commandEligibility.ts, shared by hotkeys and voice (Batch 650).
 // Screen-registered commands (the Report Draft's spoken section commands) are held in transientActions.ts.
@@ -34,7 +34,7 @@ const CUSTOM_EVENT_ACTIONS = new Set([
   'OPEN_DELEGATE_MODAL',
   // Page navigation (React Router)
   'OPEN_MESSAGES', 'OPEN_WORKLIST', 'OPEN_CONFIGURATION',
-  'OPEN_SEARCH', 'OPEN_AUDIT', 'OPEN_CONTRIBUTION', 'OPEN_HOME', 'OPEN_LOCKBOX_DROP_OFF', 'LOCKBOX_FOCUS_SCAN', 'LOCKBOX_MARK_URGENT', 'LOCKBOX_SHOW_DROP_OFF', 'LOCKBOX_SHOW_FOLDER', 'GROSSING_PRINT_CASSETTES', 'GROSSING_TAKE_PHOTO', 'GROSSING_ASSIGN_DECAL', 'GROSSING_ADD_ON_ORDER',
+  'OPEN_SEARCH', 'OPEN_AUDIT', 'OPEN_CONTRIBUTION', 'OPEN_HOME', 'OPEN_LOCKBOX_DROP_OFF', 'LOCKBOX_FOCUS_SCAN', 'LOCKBOX_MARK_URGENT', 'LOCKBOX_SHOW_DROP_OFF', 'LOCKBOX_SHOW_FOLDER', 'REQUISITION_RUN_NOW', 'GROSSING_PRINT_CASSETTES', 'GROSSING_TAKE_PHOTO', 'GROSSING_ASSIGN_DECAL', 'GROSSING_ADD_ON_ORDER',
   'GO_BACK', 'GO_FORWARD',
   // Case navigation (React Router)
   'NEXT_CASE', 'PREVIOUS_CASE',
@@ -3719,7 +3719,7 @@ const SEED_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
 
-  ...LOCKBOX_SEED_ACTIONS, ...PATIENT_BANNER_SEED_ACTIONS, ...WORKLIST_ROW_SEED_ACTIONS, ...CASE_TEAM_SEED_ACTIONS, ...GROSSING_BENCH_SEED_ACTIONS, // Batches 645, 662, 663, 664, 720
+  ...LOCKBOX_SEED_ACTIONS, ...PATIENT_BANNER_SEED_ACTIONS, ...WORKLIST_ROW_SEED_ACTIONS, ...CASE_TEAM_SEED_ACTIONS, ...GROSSING_BENCH_SEED_ACTIONS, ...REQUISITION_SEED_ACTIONS, // Batches 645, 662, 663, 664, 720, 762
 ];
 
 // Action registry persistence

@@ -79,6 +79,7 @@ const STAIN_STATUS_LABEL_KEY: Record<StainOrderStatus, string> = {
   'Ready for Review': 'materialTreePanel.stainStatus.readyForReview',
   'Recut Requested': 'materialTreePanel.stainStatus.recutRequested',
   'QC Failed': 'materialTreePanel.stainStatus.qcFailed',
+  'QC Pending': 'materialTreePanel.stainStatus.qcPending', // Batch 763
   Cancelled: 'materialTreePanel.stainStatus.cancelled',
 };
 

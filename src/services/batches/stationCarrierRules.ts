@@ -20,7 +20,7 @@
 
 import type { Batch, BatchItem, BatchProcessingNode, BatchStatus, CarrierScanResult } from './IBatchService';
 import { BATCH_ERRORS, type BatchErrorCode } from './IBatchService';
-import { isOpenBatch } from './batchListView';
+import { isOpenBatch, reconciliationGate } from './batchListView';
 import type { NewStationScanEvent, StationScanAction } from '../stationScans/IStationScanEventService';
 
 /** A station's workflow stage (ScanStation.workflowStage) → the processing steps it works on. */
@@ -54,7 +54,8 @@ export const WORKSTATION_NODES = {
 
 /** Carriers a workstation fills with its own output (the Microtome regroups cut slides into staining trays, spec §2 row 5). */
 export const WORKSTATION_OUTPUT_NODES = {
-  embedding: [],
+  // Batch 757 (Pete, Nov 1, 2026): embedded blocks are grouped into an ad-hoc Microtome tray at Embedding.
+  embedding: ['Microtomy / Sectioning'],
   microtomy: ['Staining'],
   slideDistribution: [],
 } as const satisfies Record<keyof typeof WORKSTATION_NODES, readonly BatchProcessingNode[]>;
@@ -194,6 +195,57 @@ export function manifestProgress(batch: Pick<Batch, 'items' | 'unexpectedScans'>
   const missing = batch.items.filter(i => i.reconciliationStatus !== 'matched');
   return { total: batch.items.length, matched: batch.items.length - missing.length, missing, unexpected: batch.unexpectedScans.length };
 }
+
+/** Batch 756 (Pete, Nov 1, 2026: "they scan the container to bring up the blocks, then scan each block showing they
+ *  had arrived"): every item in the carrier, in manifest order, and whether it has been scanned off here yet. */
+export function carrierItemRows(batch: Pick<Batch, 'items'>): { displayId: string; arrived: boolean }[] {
+  return batch.items.map(i => ({ displayId: i.displayId, arrived: i.reconciliationStatus === 'matched' }));
+}
+
+/** Batch 757: what scanning a carrier that is already this station's output tray means: the tray (a staining rack at
+ *  the Microtome, a Microtome tray at Embedding) is full, so it is sealed and sent on; and the carrier being
+ *  unloaded here closes with it when every item in it has been scanned off. */
+export function outputTrayRescan(output: Pick<Batch, 'id' | 'sealedAt' | 'items'>, scanned: Pick<Batch, 'id'>, loaded: Pick<Batch, 'status' | 'items' | 'unexpectedScans' | 'coldChainExcursion'> | null): { close: boolean; seal: boolean; completeLoaded: boolean } {
+  if (output.id !== scanned.id) return { close: false, seal: false, completeLoaded: false };
+  return { close: true, seal: !output.sealedAt && output.items.length > 0, completeLoaded: !!loaded && reconciliationGate(loaded).canComplete };
+}
+
+/** Batch 758 (Pete: both orders at the Microtome): what scanning an open carrier of the output step means.
+ *  The output tray scanned again: it is full (close it, as Batch 757). Another one, with slides waiting on the bench
+ *  (Scan-Last): fill it with every slide on this station's bench and seal it. Otherwise (Scan-First): it becomes the
+ *  output tray, and each confirmed slide goes straight into it. */
+export type OutputScanPlan =
+  | { kind: 'close'; seal: boolean; completeLoaded: boolean }
+  | { kind: 'fillFromBench' }
+  | { kind: 'setOutput' };
+
+export function outputScanPlan(
+  output: Pick<Batch, 'id' | 'sealedAt' | 'items'> | null,
+  scanned: Pick<Batch, 'id'>,
+  loaded: Pick<Batch, 'status' | 'items' | 'unexpectedScans' | 'coldChainExcursion'> | null,
+  benchCount: number,
+): OutputScanPlan {
+  const rescan = output ? outputTrayRescan(output, scanned, loaded) : null;
+  if (rescan?.close) return { kind: 'close', seal: rescan.seal, completeLoaded: rescan.completeLoaded };
+  return benchCount > 0 ? { kind: 'fillFromBench' } : { kind: 'setOutput' };
+}
+
+/** Batch 757: the scan levels that are a slide (a slide label), not a block or a container. */
+export const SLIDE_SCAN_LEVELS = ['slide', 'matrix_slide', 'decant_slide'] as const;
+export function isSlideScanLevel(level: string | undefined): boolean {
+  return !!level && (SLIDE_SCAN_LEVELS as readonly string[]).includes(level);
+}
+
+/** Batch 757: the embedded block that goes into the Embedding output tray, or null (no tray, not embedded yet, or in it already). */
+export function blockForOutputTray(block: { displayId?: string; status?: string } | null | undefined, output: Pick<Batch, 'items' | 'status'> | null): string | null {
+  if (!block?.displayId || !output || output.status !== 'active' || block.status !== 'Embedded') return null;
+  return output.items.some(i => i.displayId.toUpperCase() === block.displayId!.toUpperCase()) ? null : block.displayId;
+}
+
+/** Batch 757 (Pete: "we always need to be able to type in a field in case the scanner breaks"): the reasons an item
+ *  can be checked off by hand at a station; the reason is recorded with it. */
+export const MANUAL_CHECK_OFF_REASONS = ['labelUnreadable', 'labelDamaged', 'scannerDown'] as const;
+export type ManualCheckOffReason = typeof MANUAL_CHECK_OFF_REASONS[number];
 
 /** One station scan event per item in the carrier, marked as inferred from the carrier scan (spec §7.1). */
 export function carrierItemEvents(

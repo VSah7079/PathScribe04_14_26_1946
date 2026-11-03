@@ -13,6 +13,8 @@ import type { Icd10Code } from "@/services/diagnosisCodes/IDiagnosisCodesService
 import type { OrderClinicalIndicationProvenance } from "./OrderClinicalIndicationProvenance";
 import type { RecordedClinicalHistoryEntry } from "@/types/clinicalHistory/RecordedClinicalHistoryEntry";
 import type { OutsidePatientFinancialData } from "@/types/billing/OutsidePatientFinancialData";
+import type { OriginatingCase } from "./OriginatingCase";
+import type { AiFieldSuggestion } from "./AiFieldSuggestion";
 import { CaseStatus } from "./CaseStatus";
 import type { FieldLineageEntry } from '@/types/reports/FieldLineage';
 import type { RevisionType } from '@/types/reports/AmendmentRecord';
@@ -211,6 +213,8 @@ export interface OrderMetadata extends OrderClinicalIndicationProvenance {
    *  is 'outside' — see OutsidePatientFinancialData.ts's own header
    *  for the full field-by-field account. */
   outsidePatientData?: OutsidePatientFinancialData;
+  /** Batch 759: an outside case's own number at the institution it came from (the Foreign Identifier). */
+  originatingCase?: OriginatingCase;
 }
 
 export interface DiagnosticMetadata {
@@ -294,14 +298,7 @@ export interface AccessionMetadata {
 // Represents one template attached to one specimen.
 // A case can have many of these (multiple specimens × multiple templates).
 // ─────────────────────────────────────────────────────────────
-export type AiFieldVerification = 'unverified' | 'verified' | 'disputed';
-
-export interface AiFieldSuggestion {
-  value: string | string[];
-  confidence: number;        // 0–100
-  source: string;            // e.g. 'Gross: "2.3 × 1.8 × 1.5 cm"'
-  verification: AiFieldVerification;
-}
+export type { AiFieldSuggestion, AiFieldVerification } from './AiFieldSuggestion';
 
 export interface SynopticReportInstance {
   /** Unique ID for this report instance */

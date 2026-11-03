@@ -55,7 +55,8 @@ function printBadgeClass(status: StainOrder['printStatus']): string {
 export interface SlideGridPanelProps {
   stains: StainOrder[];
   stainTypes: StainType[];
-  printMode: 'on_demand' | 'batch';
+  /** Batch 758: Block mode shows the grid as On-Demand does (a per-row Print). */
+  printMode: 'on_demand' | 'block' | 'batch';
   batchSelection: Set<string>;
   onToggleSelect: (stainId: string) => void;
   onPrintOne: (stain: StainOrder) => void;
@@ -196,7 +197,7 @@ const SlideGridPanel: React.FC<SlideGridPanelProps> = ({
                       </button>
                     </>
                   )}
-                  {printMode === 'on_demand' && stain.printStatus !== 'Printed' && stain.printStatus !== 'Canceled' && (
+                  {printMode !== 'batch' && stain.printStatus !== 'Printed' && stain.printStatus !== 'Canceled' && (
                     <button type="button" className="ps-microtomy-row-btn ps-microtomy-row-btn--primary" onClick={() => onPrintOne(stain)}>
                       {t('microtomyWorkstation.slideGrid.print')}
                     </button>

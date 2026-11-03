@@ -1,6 +1,18 @@
+**Batch 762:** `product/REQUISITION_INGESTION.md` and `architecture/REQUISITION_INGESTION_API.md` (new), GUIDE_UPDATES and FEATURE_OVERVIEW entries, `architecture/AUTHORIZATION_API.md` (five capabilities), `architecture/MESSAGE_BUS_API.md` (`requisition.ingest`), the User Guide's Accession and report pages, the Admin Guide (Integrations, permissions).
+
+**Batch 761:** GUIDE_UPDATES and FEATURE_OVERVIEW entries (reusable racks), `architecture/CASE_WORKFLOWS_API.md` (`getByMasterBarcode` returns the open run), the User Guide's Microtome page.
+
+**Batch 760:** GUIDE_UPDATES and FEATURE_OVERVIEW entries, `product/PATIENT_VERIFICATION.md` (cytology), the User Guide's cytology pages.
+
+**Batch 759:** `product/PATIENT_VERIFICATION.md` (new), GUIDE_UPDATES and FEATURE_OVERVIEW entries, `architecture/STATION_TRACKING_API.md` (action `typed`), User Guide bench, Accession and header-search pages.
+
+**Batch 758:** `product/GUIDE_UPDATES.md` and `FEATURE_OVERVIEW.md` (Microtome print mode, Block printing, the block lockout, Scan-Last racks), `architecture/STATION_TRACKING_API.md` (the Microtome bench, Planned), the User Guide's Microtome page and the Admin Guide's Print Settings table (six languages).
+
 **Batch 755b (part 2):** `product/SLIDE_IMAGE_DEMO.md` section 10 (upload done; Vercel values still to set, by the development team), `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`, `DEMO_SEED_DATA.md`, handover rows.
 
 **Batch 755b (part 1):** `product/DEMO_SEED_DATA.md` (S13 adds Dr. Imogen Hartley; S15), `product/DEMO_GUIDE.md` (the Manchester pathologist), `GUIDE_UPDATES.md` and `FEATURE_OVERVIEW.md`.
+
+**Batch 763b:** `developer/HANDOVER_FIRST_RELEASE.md` version 1.2 (Nov 2): test figures after Batch 763, what changed in Batches 752 to 763 (section 9), how requisition ingestion works (section 11, new) and the version history (section 12, new). Documentation only.
 
 **Batch 755a:** `architecture/DEMO_CHECKLISTS.md` (names, tag, copy refusal, when the tag comes off), `product/DEMO_SEED_DATA.md` (S6, S15), `product/DEMO_GUIDE.md` (Videos 4 and 9), Admin Guide chapter 6 in six languages.
 
@@ -449,3 +461,5 @@ Batch 750: `architecture/SLIDE_IMAGES.md` and `product/SLIDE_IMAGE_DEMO.md` (new
 ## Batch 751
 
 Batch 751: `architecture/ORGAN_MAPPING_API.md` (Assist cases), `architecture/SYNOPTIC_RESULT_API.md` (4a), `architecture/AUTHORIZATION_API.md`; `product/GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`, `DEMO_SEED_DATA.md` (S15), `DEMO_GUIDE.md` (Video 9); the User and Admin Guides.
+
+Batch 756: `product/` guide entries for the Video 1 fixes.

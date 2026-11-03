@@ -20,15 +20,19 @@ import { defaultReviewMarginExceptionDeps } from '@/services/marginExtraction/de
 import { isServiceOk } from '@/services/types';
 import type { MarginExtractionException } from '@/services/marginExtraction/IMarginExtractionService';
 import { flagViewAccession } from '@/services/flags/caseFlagView';
-import { resolvePatientNameValue, type PersonNameValue } from '@/utils/personName';
+import { specimenOfInstance } from '@/services/material/benchIdentity';
+import type { OriginatingCase } from '@/types/case/OriginatingCase';
 
 /** A pending exception plus the display-only fields the row needs —
  *  resolved once per load rather than re-fetched per row. */
 export interface MarginExceptionRow {
   exception: MarginExtractionException;
   caseAccession: string;
-  /** The patient's name fields, or null; the page formats them (Batch 514). */
-  patientName: PersonNameValue | null;
+  /** Batch 759 (Patient Verification spec §1): no patient name in the review queue (it was shown since Batch 514).
+   *  The specimen part the field belongs to identifies the row with the accession, and an outside case's Foreign
+   *  Identifier is shown beside it. */
+  specimen: { label: string; description: string } | null;
+  order?: { originatingCase?: OriginatingCase };
 }
 
 export function useMarginExceptionReview() {
@@ -53,8 +57,8 @@ export function useMarginExceptionReview() {
     const withCase = (exception: MarginExtractionException) => caseService.getCase(exception.caseId).then(c => ({
       exception,
       caseAccession: c ? flagViewAccession(c, exception.caseId) : exception.caseId,
-      // Batch 514: the name fields; the page formats them in the screen's language.
-      patientName: c ? resolvePatientNameValue(c.patient) : null,
+      specimen: specimenOfInstance(c, exception.instanceId),
+      order: c?.order,
     }));
     const withCases = await Promise.all(pending.map(withCase));
     setDecidedRows(await Promise.all(decided.map(withCase)));

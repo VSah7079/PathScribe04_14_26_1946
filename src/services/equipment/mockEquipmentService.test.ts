@@ -13,7 +13,7 @@ describe('mockEquipmentService', () => {
 
   it('seeds the three Panther analysers the demo batches use, (Batch 467) the EGFR PCR instrument, (Batch 359) the Zebra printer and (Batch 434) the slide scanners', async () => {
     const res = await mockEquipmentService.getAll();
-    expect(res.ok && res.data.map(i => `${i.code}:${i.kind}`)).toEqual(['PANTHER_01:analyser', 'PANTHER_02:analyser', 'PANTHER_03:analyser', 'PCR_01:analyser', 'ZEBRA_ZT411_01:label_printer', 'APERIO_GT450_01:slide_scanner', 'APERIO_GT450_02:slide_scanner', 'GENIUS_01:slide_scanner', 'LBC_PROC_01:lbc_processor', 'LBC_PROC_02:lbc_processor']); // Batch 739: the liquid-based processors
+    expect(res.ok && res.data.map(i => `${i.code}:${i.kind}`)).toEqual(['PANTHER_01:analyser', 'PANTHER_02:analyser', 'PANTHER_03:analyser', 'PCR_01:analyser', 'ZEBRA_ZT411_01:label_printer', 'APERIO_GT450_01:slide_scanner', 'APERIO_GT450_02:slide_scanner', 'VENTANA_HE600_01:stainer', 'LEICA_ST5020_01:stainer', 'GENIUS_01:slide_scanner', 'LBC_PROC_01:lbc_processor', 'LBC_PROC_02:lbc_processor']); // Batch 739: the liquid-based processors; Batch 763: two stainers with their QC sign-off
     const byCode = await mockEquipmentService.getByCode('panther_02');
     expect(byCode.ok && byCode.data.scanStationId).toBe('station-molecular-1');
   });

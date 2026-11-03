@@ -21,7 +21,9 @@ import type { ServiceResult, ID } from '../types';
 import type { BatchItemMaterialType, BatchProcessingNode } from '../batches/IBatchService';
 
 /** What happened to the item at the station. */
-export const STATION_SCAN_ACTIONS = ['received', 'loaded', 'unloaded', 'matched', 'missing', 'unexpected', 'printed', 'completed'] as const;
+// Batch 757: 'sectioned', the slide label scanned back at the Microtome (the dual scan), bound to its block.
+// Batch 759 (spec §2.2): 'typed', an id typed (or searched) by hand instead of scanned: the Manual Entry flag.
+export const STATION_SCAN_ACTIONS = ['received', 'loaded', 'unloaded', 'matched', 'missing', 'unexpected', 'printed', 'sectioned', 'completed', 'typed'] as const;
 export type StationScanAction = typeof STATION_SCAN_ACTIONS[number];
 
 /** How the scan came out. */

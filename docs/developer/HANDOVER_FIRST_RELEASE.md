@@ -2,7 +2,11 @@
 
 *Written October 26, 2026 (Batch 698), for the development team and the technical writers. Plain language; no programming needed to follow the status tables.*
 
+**Version 1.2, November 2, 2026 (after Batch 763).** What changed in each version is on the last page (section 12).
+
 *Updated October 31, 2026 (Batches 752 to 754): section 3's figures, new rows in sections 4 and 7, section 9 (what changed in Batches 699 to 751) and section 10 (the demo's slide images, hosted in Cloudflare R2 since Oct 31). Rows added on Oct 31 are marked (Oct 31).*
+
+*Updated November 2, 2026 (version 1.2): section 3's figures, new rows in section 9 (Batches 752 to 763), section 11 (how requisition ingestion works) and section 12 (version history). Rows added on Nov 2 are marked (Nov 2).*
 
 This replaces nothing and extends the older notes. Read it first; it points to the detail:
 
@@ -44,7 +48,8 @@ Two related rules:
 
 | Measure | Value | Where it comes from |
 |---|---|---|
-| Latest batch | 752 (this update; 698 when first written) | Batch changelog, `src/i18n/README.md` |
+| Latest batch | 763 (version 1.2; 752 for version 1.1, 698 when first written) | Batch changelog, `src/i18n/README.md` |
+| (Nov 2) Automated tests (Batch 763 run, Nov 2) | 1,967 files: 1,953 passed, 10 failed, 4 skipped; 16,374 tests: 16,331 passed, 10 failed, 33 skipped; type check clean. The 10 failing files are the same kind as before: tests that read files kept outside Claude's working copy (`functions/`, `deploy/`, the CI files) and the Firestore emulator tests. Confirm they pass in the full repository | Full vitest run |
 | Automated tests (Batch 751 run, Oct 31) | 1,939 files: 1,924 passed, 11 failed, 4 skipped; 16,156 tests: 16,112 passed, 11 failed, 33 skipped. The 11 failures are the same in every run since Batch 746: tests that read files kept outside Claude's working copy (`functions/`, `deploy/`, the CI and `e2e/` files) and the Firestore emulator tests. Confirm they pass in the full repository | Full vitest run |
 | Automated tests (Batch 696 run, Oct 26) | 1,840 files passed, 4 skipped; 15,370 tests passed, 11 skipped | Full vitest run |
 | Jira work items open (not Done) | 164 | Jira, Oct 26 (Tests and Test Executions excluded) |
@@ -52,8 +57,8 @@ Two related rules:
 | of those: To Do | 70 (12 epics, 24 stories, 34 tasks) | See the work list |
 | of those: In Progress | 1 (PS-136, deprioritised) | |
 | Xray Test issues not Done | about 438; Test Executions not Done about 136 | Backfill is planned for the later testing phase |
-| User Guide | 70 articles, 1 picture still to capture (autopsy authorization), status Draft until clinical review | `scripts/user-guide/build.py` |
-| Administrator Guide | 12 chapters, 154 screens, English master plus fr, de, nl, ko, es (machine-translated; chapters 5, 10 and 11 not yet translated) | `scripts/admin-guide/build.py` |
+| User Guide | 72 articles (Nov 2; 70 on Oct 26), 1 picture still to capture (autopsy authorization), status Draft until clinical review | `scripts/user-guide/build.py` |
+| Administrator Guide | 12 chapters, 156 screens in the customer edition and 158 in the internal one (Nov 2; 154 on Oct 26), English master plus fr, de, nl, ko, es (machine-translated; chapters 5, 10 and 11 not yet translated) | `scripts/admin-guide/build.py` |
 | Regulatory Compliance Guide | 8 chapters, readiness matrix at Batch 678 | `docs/compliance-guide/` |
 | Intended Use Statement | Final Version with Coding Policy; rated against the code in the patent disclosure v3 | `docs/ip-and-legal/` and the disclosure |
 
@@ -227,7 +232,7 @@ From `KNOWN_GAPS.md`: `api/`, `api.zip` and raw logo source art stay out of the 
 - (Oct 31) Batches 699 to 751 were checked with automated tests and in a headless browser, not on real lab hardware (printers, scanners, touch screens, several monitors). Section 9 was written from the batch changelog and `docs/product/GUIDE_UPDATES.md`, not re-checked screen by screen.
 - (Oct 31) The R2 upload and the Vercel settings in section 10 were done on Pete's computer with the script; Claude did not see the finished upload.
 
-## 9. What changed since this note was written (Batches 699 to 751, Oct 27 to 31)
+## 9. What changed since this note was written (Batches 699 to 763, Oct 27 to Nov 2)
 
 Detail for each batch: the changelog in `src/i18n/README.md` and the four-voice entries in `docs/product/GUIDE_UPDATES.md` (whose "FormedrixAI and partners" paragraph lists what is not built). Everything below runs in the demo build against the browser's mock services; the server side of each is a written contract or not yet written.
 
@@ -244,6 +249,15 @@ Detail for each batch: the changelog in `src/i18n/README.md` and the four-voice 
 | Demo seed data for the videos | 738, 744 to 749 | Seed rows S1 to S14 from Pete's "Demo Seed Data Requirements": a sign-out-ready colon case, surgical orders, simulated printers and preset stations, demo users per role, fluid and FNA cases, autopsy, molecular, wall display profiles, batches in every step, block types, GYN volume. |
 | Slide images | 750 | A reference preview on each slide and an **Open slide** action that opens the lab's own digital pathology application in a remembered window (capability `case:slide-image:open`, audited). PathScribe has no slide viewer. Demo images: section 10. |
 | Organ maps on Assist cases | 751 | On an Assist case the map is never placed in the report (the laboratory system writes it); a per-site setting (Off, Text only, Text and image file) sends the map to the laboratory system, with delivered and failed examples in the outbound queue. Seed row S15. |
+| (Nov 2) Handover and slide hosting | 752 | This note brought up to Oct 31; the demo's slide images hosted in Cloudflare R2 (section 10). |
+| (Nov 2) Demonstration checklists | 753 to 755b | Every demo checklist reworded in PathScribe's own words (no CAP or RCPath wording), with plain names and a "Demo wording" tag; no copy can start from a demo checklist; demo checklists are kept out of customer areas, and the five no demo case uses are off the case picker; the Manchester demo pathologist is fictional. |
+| (Nov 2) Fixes found recording Video 1 | 756 | A case made on Accession reaches every bench (scans find it by the accession on its label); the scan field takes typed entry; no false "Unsaved Draft Found"; one print message per burst. |
+| (Nov 2) Processor to staining, scan by scan | 757, 758 | Carrier item lists at each bench with check-off by hand; the Embedding-to-Microtome tray; the dual scan (block, then the new slide label) at the Microtome; a sealed staining rack; the Microtome's own print mode (on demand, by block, by batch), the block lockout, and rack first or rack last. |
+| (Nov 2) Patient verification | 759 | No patient name, date of birth or MRN on the bench screens; a Foreign case ID for outside cases; a typed (not scanned) id is recorded as a Manual Entry on the audit trail without blocking. |
+| (Nov 2) Cytology screening | 760 | The Cytology Worklist and Screening Case pages show the accession, vial and slides, not the patient's identity. |
+| (Nov 2) Reusable staining racks | 761 | Scan, load, close, run after run, with a warning when the last run was never closed; a bug that reopened a rack's oldest run is fixed. |
+| (Nov 2) Requisition ingestion | 762 | Batch-scanned requisition PDFs are filed on their case by barcode, never copied; the Requisition Inbox for scans with no case; several performing facilities; cases expected to have a requisition are flagged when none arrives. How it works: section 11. |
+| (Nov 2) Stain and scanner QC gate | 763 | The Post-Stain / Pre-Distribution QC checkpoint on Slide Distribution, set per stainer and scanner: auto-accept, the instrument's own sign-off through the interface engine, or a PathScribe sign-off; scanned images can be held before the Pathologist sees them. Superadmin now receives every action in the Action list, including ones added later. |
 
 ## 10. Demo hosting: slide images (Oct 31, 2026)
 
@@ -255,3 +269,23 @@ Full steps and the record of what was set up: [`../product/SLIDE_IMAGE_DEMO.md`]
 - **Still to do:** add `https://slides-demo.formedrix.ai` to `img-src` in `deploy/security-headers/` and regenerate `vercel.json` (section 4.1); until then the previews are blank, though the demonstration page opens.
 - **To rebuild or add slides:** `scripts/Setup-PathScribeSlideDemo.ps1` (Windows). It asks for an R2 API token's keys while it runs and stores none. The images are not in the repository.
 - **For a customer:** the same two settings (or Configuration → WSI Viewers → Slide images) point at the site's own digital pathology application. The demo host is for demonstrations only.
+
+## 11. Requisition ingestion: how it works (Nov 2, 2026)
+
+Full detail: [`../product/REQUISITION_INGESTION.md`](../product/REQUISITION_INGESTION.md) and [`../architecture/REQUISITION_INGESTION_API.md`](../architecture/REQUISITION_INGESTION_API.md).
+
+1. **The administrator sets up each source** in Configuration → System → Integrations → **Requisition ingestion**. A source is a folder on the hospital network (`\\server\share`, or an smb or https address), a third-party document system's https address, or a system that sends scans to PathScribe's API. Each source also has its performing facility (or all facilities), how often to look (1 to 1,440 minutes) and the separator-sheet barcode. There can be as many sources as needed, and PathScribe reads them all: where a scan came from does not matter for matching.
+2. **On that schedule, PathScribe checks the source** for new PDFs. A file that is not a PDF is refused, named in the run's summary, and left where it is.
+3. **It reads the barcode on each page** and splits the file into requisitions: a new barcode starts one, a page with no barcode belongs to the one before it, and a separator sheet ends it.
+4. **It matches each barcode to a case and links it.** PathScribe does not copy the file. The case keeps a link to where the file already is, with the page range, the barcode, the time and the source; opening it from the case reads those pages from there and keeps nothing. If the hospital moves or deletes the file, it can no longer be opened from the case.
+5. **A scan that matches no case goes to the Requisition Inbox** (Accession), where staff view it and link it by accession, by a patient search, or by creating the case from it, or discard it with a reason. A scan that arrived before its case existed is linked on the next run; reading the same file again adds nothing. Every step is on the audit trail.
+
+**Built and planned.** Today this runs in the browser for the demonstration, when someone presses **Run ingestion now**. The timed server job (`requisition.ingest`) is planned. A folder on the hospital network cannot be reached from a cloud server, so the site agent on the hospital network will read it and send PathScribe only the file reference, pages and barcodes; the agent's requisition pickup is planned (`SITE_AGENT_API.md` §8). A hospital may instead use its own interface engine channel. A third-party system with an https address is read by the server directly.
+
+## 12. Version history
+
+| Version | Date | Batch | What changed in this note |
+|---|---|---|---|
+| 1.0 | October 26, 2026 | 698 | First written: status, remaining work by workstream, decisions, release standard, how to run and check the work. |
+| 1.1 | October 31, 2026 | 752 to 754 | Section 3's figures; new rows in sections 4 and 7; section 9 (Batches 699 to 751); section 10 (the demo's slide images in Cloudflare R2). |
+| 1.2 | November 2, 2026 | 763 | Version number and this history added. Section 3: latest batch 763, the Batch 763 test run, the guide counts. Section 9: rows for Batches 752 to 763 (checklist wording, the Video 1 fixes, processor-to-staining scanning, patient verification, cytology screening, reusable racks, requisition ingestion, the stain and scanner QC gate, every action on Superadmin). Section 11 (new): how requisition ingestion works, and what is built and planned. Not changed: the Jira counts (Jira updates are on hold) and sections 4 to 8. |

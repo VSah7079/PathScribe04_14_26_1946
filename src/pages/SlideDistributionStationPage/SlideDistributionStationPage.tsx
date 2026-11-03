@@ -30,6 +30,7 @@
 // same rules. Messages come back as locale keys.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { QcCheckpointPanel } from '@/components/StainQc/QcCheckpointPanel';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -156,6 +157,8 @@ const SlideDistributionStationPage: React.FC = () => {
       </div>
 
       <StationCarrierPanel carrier={carrier} />
+      {/* Batch 763: the Post-Stain / Pre-Distribution QC checkpoint (staining runs and scanned images waiting for QC). */}
+      <QcCheckpointPanel refreshKey={carrier.notice} />
       {/* Batch 729 (spec §7.4): the active slide's case scan trail. */}
       {activeItem && <ScanTrailPanel caseAccession={activeItem.caseData.accession?.fullAccession ?? activeItem.caseData.id} />}
       {/* Batch 731 (spec §10.6, §10.5): the slide's block when it is exhausted, and the slide's end state. */}

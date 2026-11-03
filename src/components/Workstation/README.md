@@ -20,3 +20,13 @@ Patient identifiers (item ids, which carry the accession) are inside `data-phi="
 ## Batch 732
 
 - `BlockPieceMapPanel.tsx` (+ `.css`, new; spec §11): block type, slide size and piece map at Embedding, Microtome (with "Piece exhausted") and Slide Distribution.
+
+Batch 756 (Pete: "can't the field listen but also receive keyboard data?"): `StationScanField` always takes a scanner and a physical keyboard; its keyboard and submit buttons show only with the touch layout on (`useTouchLayout`), and the keyboard button reads "⌨ Keyboard" / "⌨ Hide keyboard".
+
+Batch 757: `StationCarrierPanel` lists a loaded carrier's items (✓ Arrived as scanned; a waiting item can be checked off by hand with a reason) and the output tray's rescan hint; the "Add printed slides to tray" button is gone. `StationScanField` clears at once and never drops a scan that arrives while the last is still being handled.
+
+Batch 758: `StationCarrierPanel` shows the Microtome's bench counter ("Unassigned slides on bench: N", slides confirmed before a staining rack was scanned) and a hint for rack first or rack last.
+
+Batch 759: `BenchIdentity.tsx` (+ `.css`, new): `ForeignIdTag` (an outside case's Foreign case ID and the item's Foreign ID, highlighted) and `TypedEntryCheck` (the identifiers to check after a typed entry). `StationScanField` tells a scan from a typed id, records a typed one (`useManualEntryRecorder`) and passes `{ method }` to `onScan`.
+
+Batch 761: `StationCarrierPanel` shows the unclosed-run warning for a reusable rack, with Close last run (`batch:reconciliation:override`), Open in Batch Management and Cancel.

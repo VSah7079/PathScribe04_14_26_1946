@@ -26,12 +26,20 @@
 <li><strong>A closed or unknown carrier.</strong> The card says so plainly, with the date it was completed or aborted.</li>
 <li><strong>No station set.</strong> The card asks you to choose this computer's station from the list and select <strong>Use this station</strong>. Until you do, nothing scanned here is recorded and carriers can't be opened here.</li>
 <li><strong>Seal manifest</strong> stops anything being added to or removed from the carrier.</li>
-<li><strong>Output tray.</strong> Scan an open Staining carrier (a staining rack) to make it this bench's output tray. After printing a block's slides, <strong>Add printed slides to tray</strong> puts them in it. Slides you do not add stay loose, which is fine.</li>
+<li><strong>The tray from Embedding.</strong> Scan the Microtome tray: its blocks are listed, each marked <strong>✓ Arrived</strong> as you scan it. A block that won't scan can be typed, or checked off by hand with a reason. (Batch 757)</li>
+<li><strong>Output tray (staining rack).</strong> Scan an open Staining carrier (a staining rack) to make it this bench's output tray.</li>
+<li><strong>The dual scan.</strong> After a slide label prints, scan the label on the glass slide (or type it if the scanner is down). The screen asks for it ("Scan the label of … on the slide to confirm the cut") and <strong>Print/Etch Next</strong> waits until it is done. The scan ties the slide to its block, records the cut on the scan trail ("Cut, label confirmed") and puts the slide in the rack ("… confirmed and placed in …"). A label of this block that has not printed yet is refused.</li>
+<li><strong>A full rack.</strong> Scan the rack again: it is sealed with its slides and sent on to staining, and the Microtome tray closes with it when all its blocks have been scanned off.</li>
+<li><strong>Reusable staining racks (Batch 761).</strong> A registered rack (its barcode is engraved, for example RACK-STAIN-04) is used run after run. Scan it here: when its last run is closed, a new run starts on it at once ("… started a new staining run here …"), with nothing to fill in, and it becomes the output tray. Load it, then scan it again when it is full to close it. If its last run was sealed or put on the stainer but never closed, the rack is held: the card says "The last run on … was never closed", with <strong>Close last run and start a new one</strong> (for a supervisor with the reconciliation override permission; the close is recorded with its reason), <strong>Open in Batch Management</strong> and <strong>Cancel</strong>. A rack still being loaded simply carries on.</li>
+<li><strong>Rack first or rack last (Batch 758).</strong> You can scan the staining rack before the first slide (each confirmed slide goes straight into it), or cut first and scan the rack at the end. With no rack open, a confirmed slide is placed on the bench ("… confirmed and placed on the bench (… waiting for a rack)") and the card counts them: <strong>Unassigned slides on bench: 12</strong>, with "Scan an open staining rack to put them all in it and seal it." Scanning a rack then puts every slide on this bench into it and seals it in one scan. The bench belongs to this station only: a rack scanned at another microtome never takes your slides. A slide the rack refuses (a large-format slide in a standard rack, say) stays on the bench and the card says so. While slides are on the bench, closing the browser tab or signing out asks you first ("… slides on this bench are not in a staining rack yet …"); the slides stay on this station's bench either way.</li>
 </ul>
 <p>Every scan here is recorded with this station, the time and your name, which is what the scan trail and the turnaround reports are built from. Each slide label printed here is recorded as printed, and when the last slide of a block has printed the block is recorded as completed here (it goes to filing).</p>
 <p><strong>Other blocks still waiting.</strong> Under the identity bar, a line says when other blocks of the same case are still waiting to be cut, for example "2 other blocks of this case are still waiting to be cut: A3, M1". It counts routine slides only (add-on orders have their own timing on the wall display) and needs no click.</p>
+<h3 id="patient-identity-and-typed-entries-batch-759">Patient identity and typed entries (Batch 759)</h3>
+<p>The bench never shows the patient's name, date of birth or MRN, so nothing of the patient is readable on an open bench monitor. You identify the work by two identifiers on the container, cassette or slide: the <strong>accession number</strong> and the <strong>specimen part and its source</strong> (for example "Specimen A – Colon, segmental resection for tumor"). An outside or consultation case also shows, highlighted beside the accession, the originating institution's case number (<strong>Foreign case ID</strong>) and, when the block or specimen came with its own number, that number (<strong>Foreign ID</strong>).</p>
+<p>If the scanner can't read a label, type the id in the same field and press Enter. It opens at once, with nothing to confirm. A line then says "Typed, not scanned: check the container shows … and …": check both identifiers against what is in your hand. The typed entry is recorded quietly (time, workstation and you) on the audit trail, and as "Typed, not scanned" in the case's scan history. The line goes away with your next scan.</p>
 <h3 id="scan-history">Scan history</h3>
-<p>With a case open, <strong>Show scan history</strong> (just below the carrier card) opens the case's scan trail: every station scan of its cassettes, blocks and slides, newest first. The columns are <strong>When</strong>, <strong>Item</strong>, <strong>Where</strong> (the station and the step), <strong>Who</strong> and <strong>What happened</strong> (Received, Loaded into carrier, Taken out of carrier, Matched, Missing, Unexpected, Label printed, Completed here), with the outcome when it was not OK (Wrong item, Not found, Mismatch), the carrier the item was in ("In carrier" and its barcode), and "Recorded when the carrier was scanned" for a scan made for every item in a carrier. <strong>Hide scan history</strong> closes it. While it reads the trail it says "Loading scan history…". It is closed until you open it, and it is shown only to people allowed to see scan history; if the service refuses, it says "You do not have permission to see the scan history." With nothing recorded yet it reads "No station scans recorded for this case yet."</p>
+<p>With a case open, <strong>Show scan history</strong> (just below the carrier card) opens the case's scan trail: every station scan of its cassettes, blocks and slides, newest first. The columns are <strong>When</strong>, <strong>Item</strong>, <strong>Where</strong> (the station and the step), <strong>Who</strong> and <strong>What happened</strong> (Received, Loaded into carrier, Taken out of carrier, Matched, Missing, Unexpected, Label printed, Completed here, and Batch 759's Typed, not scanned), with the outcome when it was not OK (Wrong item, Not found, Mismatch), the carrier the item was in ("In carrier" and its barcode), and "Recorded when the carrier was scanned" for a scan made for every item in a carrier. <strong>Hide scan history</strong> closes it. While it reads the trail it says "Loading scan history…". It is closed until you open it, and it is shown only to people allowed to see scan history; if the service refuses, it says "You do not have permission to see the scan history." With nothing recorded yet it reads "No station scans recorded for this case yet."</p>
 <div class="admonition note">
 <p class="admonition-title">Picture</p>
 <p>The picture above was taken before the carrier card was added.</p>
@@ -57,12 +65,8 @@
 <td>The case number.</td>
 </tr>
 <tr>
-<td>Patient</td>
-<td>Patient name, as recorded on the case.</td>
-</tr>
-<tr>
-<td>DOB</td>
-<td>Date of birth, in your language's date format.</td>
+<td>Foreign case ID, Foreign ID</td>
+<td>Batch 759. An outside case shows, highlighted, the originating institution's own case number (<strong>Foreign case ID</strong>, with "from …" and the institution), and the outside number of the block or specimen when it came with one (<strong>Foreign ID</strong>). Check them against the outside container or cassette.</td>
 </tr>
 <tr>
 <td>Specimen/Block</td>
@@ -237,7 +241,7 @@
 <tbody>
 <tr>
 <td>Print Mode</td>
-<td>On-Demand or Batch. It starts in your laboratory's default.</td>
+<td>On-Demand, Block or Batch. It starts in your laboratory's Microtome setting (Batch 758: set apart from Grossing's). <strong>Block</strong>: scanning a block prints all of its labels at once; the panel says "Scanning a block prints all of its labels at once. Scan them back on the slides in any order." and <strong>Print the block's … labels</strong> prints any slide added afterwards.</td>
 </tr>
 <tr>
 <td>Next unprinted slide</td>
@@ -318,8 +322,8 @@
 </thead>
 <tbody>
 <tr>
-<td>On-Demand / Batch</td>
-<td>Switches the print mode.</td>
+<td>On-Demand / Block / Batch</td>
+<td>Switches the print mode for this session.</td>
 </tr>
 <tr>
 <td>Print/Etch Next</td>
@@ -331,11 +335,11 @@
 </tr>
 <tr>
 <td>Print (on a row)</td>
-<td>On-Demand mode. Prints that one slide.</td>
+<td>On-Demand and Block modes. Prints that one slide.</td>
 </tr>
 <tr>
 <td>Reprint (on a row)</td>
-<td>Printed slides only, on a block or a decant. Choose a reason from the list (Jam, Scratched Glass, Misprint, Other); the label prints again as soon as you choose, and an <strong>Undo</strong> message appears for a few seconds.</td>
+<td>Printed slides only, on a block or a decant. Choose a reason from the list (Jam, Scratched Glass, Misprint, Damaged Section, Other); the label prints again as soon as you choose, and an <strong>Undo</strong> message appears for a few seconds.</td>
 </tr>
 <tr>
 <td>+ Level</td>
@@ -460,6 +464,8 @@
 <li>Repeat until the panel reads "Every slide on this block has been printed."</li>
 <li>Select <strong>Scan next block/decant →</strong>, or simply scan the next block. The new block replaces the one on screen.</li>
 </ol>
+<p><strong>Block mode (Batch 758).</strong> Scan the block: every label of the block prints at once. Cut each section, lay it on a slide and scan the slide's label, in any order. The screen lists the labels still to scan ("Scan these labels on the slides, in any order …").</p>
+<p><strong>Moving on before every label is scanned (the block lockout, Batch 758).</strong> If you scan the next block, or select <strong>Scan next block/decant →</strong>, while labels of this block have not been scanned back, the next block does not open. An amber box says, for example, "2 labels of block A1 have not been scanned yet" and "Scan the remaining labels, or recut or void each slide, before going on to the next block." Each waiting slide has two buttons: <strong>Recut (new label)</strong> prints a new label for it (reason Damaged Section), which you scan like the first; <strong>Void slide</strong> cancels the slide (reason Damaged Section, with <strong>Undo</strong> for a few seconds). When nothing is waiting any more, the block you scanned opens by itself. <strong>Continue without them (logged)</strong> goes on and records each unscanned label on the scan trail as missing ("Label not scanned before the next block"). <strong>Stay on this block</strong> closes the box.</p>
 <h3 id="alternative-workflow">Alternative workflow</h3>
 <ol>
 <li><strong>Batch printing.</strong> Switch <strong>Print Mode</strong> to <strong>Batch</strong>. Tick the slides to print, select <strong>Print Batch</strong>, and watch the <strong>Batch Print Progress</strong> window. In Batch mode you can also drag a row to change the order of the grid (blocks only); labels print in that order.</li>

@@ -20,7 +20,7 @@ Batch 726 (Lab Workflow & Batch spec): a batch is a physical carrier and keeps i
 |---|---|---|---|
 | `getAll` | `GET /api/batches/batch/get-all` | none | result |
 | `getById` | `GET /api/batches/batch/get-by-id` | `id` (query) | result |
-| `getByMasterBarcode` | `GET /api/batches/batch/get-by-master-barcode` | `barcode` (query) | result |
+| `getByMasterBarcode` | `GET /api/batches/batch/get-by-master-barcode` | `barcode` (query) | result. Batch 761: a reusable rack has one batch per run, all with its barcode; return the open run (the newest if more than one), else the newest closed run, never the oldest (`services/batches/rackRuns.ts` `currentRunForBarcode`). The inbound instrument status processors rely on this to update the run on the stainer. |
 | `create` | `POST /api/batches/batch/create` | `draft` (the body) | result |
 | `addItemByScan` | `POST /api/batches/batch/add-item-by-scan` | `batchId`, `scannedValue`, `byUserId`, `byUserName`, `fovCount?`, `stationId?` (body fields; Batch 726: `stationId` writes a 'loaded' station scan event; a sealed or closed batch answers `not-accepting`); Batch 737: an Exhausted block or matrix block is added with `warning: 'blockExhausted'` and audited; a large-format slide on a Staining batch without `largeFormat` answers `slide-too-large`) | record (throws) |
 | `removeItem` | `DELETE /api/batches/batch/remove-item` | `batchId`, `itemId`, `byUserId`, `byUserName` (query) | result |

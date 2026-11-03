@@ -101,28 +101,34 @@ const CSMS_ELIGIBILITY: ActionId[] = ['csms.verifyEligibility', 'csms.recordNotE
 // Batch 645: Lockbox Drop-Off. Accessioner (the morning team) gets all seven; Admin only opens it, looks at the folder and marks accessioned.
 const LOCKBOX_ALL: ActionId[] = ['lockbox.open', 'lockbox.focusScan', 'lockbox.markUrgent', 'lockbox.showDropOff', 'lockbox.showFolder', 'lockbox.markAccessioned', 'lockbox.resolvePlaceholder'];
 const LOCKBOX_OVERSIGHT: ActionId[] = ['lockbox.open', 'lockbox.showFolder', 'lockbox.markAccessioned'];
+// Batch 762: the Requisition Inbox, for the roles that open Accession (as requisition:* in capabilitySeeds.ts); showing a case's
+// requisition for the roles with case access.
+const REQUISITION_INBOX: ActionId[] = ['requisition.openInbox', 'requisition.runNow', 'requisition.view', 'requisition.link', 'requisition.discard', 'requisition.openFromCase'];
+// Batch 763: the QC checkpoint on Slide Distribution (as stain:qc:* and scan:image-qc:* in capabilitySeeds.ts); signing off
+// instead of a stainer, Lab Director.
+const STAIN_QC: ActionId[] = ['stainQc.signOffRun', 'stainQc.failSlide', 'stainQc.releaseImage', 'stainQc.rescanImage'];
 const HISTORY_READING: ActionId[] = ['historyExtraction.run', 'historyExtraction.flag'];
 
 // Batch 720: the Grossing screen's bench tools: the people who gross.
 const GROSSING_BENCH: ActionId[] = ['grossing.printCassettes', 'grossing.takePhoto', 'grossing.assignDecal', 'grossing.addOnOrder'];
 
 export const DEFAULT_ACTION_GRANTS: Readonly<Record<string, readonly ActionId[]>> = {
-  Pathologist: [...GROSSING_BENCH, ...HPV_MANUAL, ...CSMS_ELIGIBILITY, ...HISTORY_READING, ...SIGNOUT_CASES, ...CASE_ACCESS_ASK, ...CASE_ACCESS_DECIDE, ...SEARCH_REPORTS, ...FOLLOW_UP_QA, ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...REPORT_FINAL, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY],
-  Fellow: [...GROSSING_BENCH, ...HISTORY_READING, ...SIGNOUT_CASES, ...CASE_ACCESS_ASK, ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY],
-  Resident: [...GROSSING_BENCH, ...HISTORY_READING, ...CASE_ACCESS_ASK, 'codes.searchFlagged', ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY_DAILY],
+  Pathologist: ['requisition.openFromCase', ...GROSSING_BENCH, ...HPV_MANUAL, ...CSMS_ELIGIBILITY, ...HISTORY_READING, ...SIGNOUT_CASES, ...CASE_ACCESS_ASK, ...CASE_ACCESS_DECIDE, ...SEARCH_REPORTS, ...FOLLOW_UP_QA, ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...REPORT_FINAL, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY],
+  Fellow: ['requisition.openFromCase', ...GROSSING_BENCH, ...HISTORY_READING, ...SIGNOUT_CASES, ...CASE_ACCESS_ASK, ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY],
+  Resident: ['requisition.openFromCase', ...GROSSING_BENCH, ...HISTORY_READING, ...CASE_ACCESS_ASK, 'codes.searchFlagged', ...BIOMETRIC, ...VIEW_ALL, ...REPORT_FLOW, ...CASE_FLOW, ...ORDERS, ...PRINT, ...INTRAOP, ...CYTOLOGY_DAILY],
   'Pathologists Assistant': [
-    ...GROSSING_BENCH,
+    ...GROSSING_BENCH, 'requisition.openFromCase',
     ...VIEW_ALL, ...BIOMETRIC, 'caseAccess.request',
     'report.saveDraft', 'report.discardChanges', 'notes.save',
     'flags.save', 'flags.applyStat', 'team.addMember',
     'orders.blockRecut', 'orders.stainSectioning', 'orders.newSpecimen', 'orders.confirmBlock', ...PRINT,
     'intraop.logGrossOnly', 'intraop.logSquashPrep', 'intraop.touchPrepPerformed', 'intraop.touchPrepSkip',
   ],
-  Accessioner: [...LOCKBOX_ALL, ...BIOMETRIC, ...VIEW_ALL, 'orders.newSpecimen', 'flags.save', 'flags.applyStat', ...PRINT, 'notes.save'],
-  Histotechnologist: [...BIOMETRIC, ...VIEW_ALL, ...BENCH, ...PRINT, 'orders.blockRecut', 'orders.stainSectioning', 'notes.save'],
-  Cytotechnologist: [...BIOMETRIC, ...VIEW_ALL, ...CYTOLOGY, 'flags.save', 'flags.applyStat', ...PRINT, 'notes.save'],
-  'Molecular Technologist': [...BIOMETRIC, ...VIEW_ALL, ...MOLECULAR, 'notes.save'],
+  Accessioner: [...REQUISITION_INBOX, ...LOCKBOX_ALL, ...BIOMETRIC, ...VIEW_ALL, 'orders.newSpecimen', 'flags.save', 'flags.applyStat', ...PRINT, 'notes.save'],
+  Histotechnologist: ['requisition.openFromCase', ...STAIN_QC, ...BIOMETRIC, ...VIEW_ALL, ...BENCH, ...PRINT, 'orders.blockRecut', 'orders.stainSectioning', 'notes.save'],
+  Cytotechnologist: ['requisition.openFromCase', ...BIOMETRIC, ...VIEW_ALL, ...CYTOLOGY, 'flags.save', 'flags.applyStat', ...PRINT, 'notes.save'],
+  'Molecular Technologist': ['requisition.openFromCase', ...BIOMETRIC, ...VIEW_ALL, ...MOLECULAR, 'notes.save'],
   Admin: ['registryBatch.makeFile', ...OUTBOUND_QUEUE, ...LOCKBOX_OVERSIGHT, ...BIOMETRIC, ...SEARCH_REPORTS, ...FOLLOW_UP_QA, 'caseAccess.approve', 'caseAccess.deny', 'caseAccess.revoke', ...VIEW_BASIC, ...DISPATCH, 'table.deleteRow'],
-  'Lab Director': [...HPV_MANUAL, ...CSMS_ELIGIBILITY, ...BIOMETRIC, ...SEARCH_REPORTS, ...FOLLOW_UP_QA, ...VIEW_BASIC, ...DISPATCH],
+  'Lab Director': [...STAIN_QC, 'stainQc.overrideVendor', ...HPV_MANUAL, ...CSMS_ELIGIBILITY, ...BIOMETRIC, ...SEARCH_REPORTS, ...FOLLOW_UP_QA, ...VIEW_BASIC, ...DISPATCH],
   'QA Reviewer': [...BIOMETRIC, ...SEARCH_REPORTS, ...FOLLOW_UP_QA, ...VIEW_BASIC],
 };

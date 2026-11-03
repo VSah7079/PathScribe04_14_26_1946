@@ -180,3 +180,7 @@ New `ScreenId` `autopsyDashboards` (`screen:autopsy-dashboards:open`), in the Qu
 ## Batch 750
 
 `routeGating.guard.test.ts`: `/window-position` listed as open on purpose (Save position for a window; no patient data).
+
+## Batch 762
+
+`screenAccess.ts`: sub-screen `requisitionInbox` (`/accession/requisitions`, `requisition:inbox:review`). `configSectionAccess.ts`: `requisition_ingestion` (`config:requisition-ingestion:manage`).

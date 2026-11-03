@@ -497,6 +497,10 @@
       "memberCardId": "회원 / 카드 번호",
       "orderingProvider": "의뢰 의사",
       "orderingProviderPlaceholder": "(케이스 및 환자에서 입력)",
+      "originatingCase": "원 케이스",
+      "originatingCaseNumber": "원 케이스 번호",
+      "originatingCaseNumberPlaceholder": "예: S-24-9842",
+      "originatingInstitution": "원 기관",
       "patientJurisdiction": "환자 및 관할권 식별",
       "paymentCategory": "결제 범주 / 체계",
       "primaryJurisdiction": "주 관할권",
@@ -2384,6 +2388,7 @@
       "rackNotRegistered": "랙 {{rackId}}이(가) 등록되어 있지 않습니다. ID를 확인하거나 먼저 랙을 등록하십시오.",
       "sameBatch": "항목이 이미 이 배치에 있습니다. 다른 배치를 선택하십시오.",
       "sourceNotActive": "활성 배치에서만 항목을 옮길 수 있습니다.",
+      "stainQcPending": "이 랙의 염색 슬라이드가 QC 대기 중입니다. 먼저 슬라이드 배부 화면의 QC 검사 지점에서 런을 승인하십시오.",
       "stationRequired": "먼저 이 컴퓨터의 작업대를 설정하세요.",
       "unexpectedScans_one": "이 배치에 속하지 않는 항목 {{count}}개가 스캔되었습니다. 해결하거나 감독자 예외 승인을 사용하십시오.",
       "unexpectedScans_other": "이 배치에 속하지 않는 항목 {{count}}개가 스캔되었습니다. 해결하거나 감독자 예외 승인을 사용하십시오."
@@ -2437,9 +2442,10 @@
     "remainingOfTarget": "목표 {{target}} 중 {{remaining}} 남음",
     "removeTitle": "배치에서 제거",
     "removedToast": "{{displayId}}가 배치에서 제거되었습니다.",
-    "scanHintActive": "카세트 또는 슬라이드 바코드를 스캔하여 이 배치에 추가하세요. 핸즈프리 — 필드를 먼저 클릭할 필요 없음.",
+    "scanHintActive": "카세트 또는 슬라이드 바코드를 스캔하여 이 배치에 추가하거나 아래 입력란에 입력하십시오.",
     "scanHintReconcile": "프로세스 외 검증: 운반체에서 제거할 때 각 실물 항목을 스캔하세요.",
     "scanHintSealed": "명세서가 봉인되었습니다. 검증을 시작하여 항목을 스캔해 꺼내세요.",
+    "scanPlaceholder": "카세트 또는 슬라이드 바코드를 스캔하거나 입력…",
     "scanRejected": {
       "alreadyInBatch": "{{displayId}}은(는) 이미 이 배치에 있습니다.",
       "inOtherActiveBatch": "{{displayId}}은(는) 이미 활성 배치 {{barcode}}에 있습니다.",
@@ -2448,6 +2454,7 @@
       "sealed": "{{barcode}}은(는) 봉인되어 더 이상 항목을 추가할 수 없습니다.",
       "slideTooLarge": "{{displayId}}은(는) 대형 슬라이드이며 {{barcode}}에는 대형 슬라이드를 넣을 수 없습니다. 대형 염색 랙을 사용하세요."
     },
+    "scanSubmit": "입력",
     "startReconciliation": "조정 시작",
     "supervisorOverrideLink": "감독자 재정의…",
     "transferToProcessing": "처리로 전송",
@@ -2508,6 +2515,7 @@
     "pendingLoadTile": "대기 중",
     "pendingLoadTitle": "배치 적재 대기 — 인쇄되었지만 아직 어떤 배치에도 스캔되지 않은 항목",
     "rackCheckedOutError": "럭 \"{{value}}\"은(는) 이미 다른 진행 중인 배치에 할당되어 있습니다.",
+    "rackLastRunNotClosed": "{{value}}의 마지막 런이 닫히지 않았습니다. 랙을 다시 사용하기 전에 닫으십시오.",
     "retentionHoldsTile": "보존 보류",
     "retentionHoldsTitle": "보존 보류 대기열 열기",
     "status": {
@@ -2698,6 +2706,14 @@
     },
     "title": "현장 기여도",
     "windowLabel": "최근 {{days}}일"
+  },
+  "benchIdentity": {
+    "foreignCase": "외부 케이스 ID",
+    "foreignItem": "외부 ID",
+    "foreignSource": "{{source}} 제공",
+    "specimenSource": "검체 {{label}} – {{description}}",
+    "typedCheck": "스캔이 아닌 입력: 용기에 {{accession}} 및 {{source}}이(가) 표시되어 있는지 확인하십시오.",
+    "typedCheckAccession": "스캔이 아닌 입력: 용기에 {{accession}}이(가) 표시되어 있는지 확인하십시오."
   },
   "benchReasons": {
     "AE_DIAGNOSIS_NEEDED": "진단 완료에 필요",
@@ -4225,6 +4241,10 @@
         "description": "풀 증례를 넘겨 다른 사람이 가져갈 수 있도록 풀에 남겨 둡니다.",
         "label": "풀 증례 넘기기"
       },
+      "caseRequisitionView": {
+        "description": "증례에서 그 증례에 연결된 스캔 요청서를 엽니다. 매번 감사 기록됩니다.",
+        "label": "증례의 스캔 요청서 보기"
+      },
       "caseRetentionHoldPlace": {
         "description": "사유와 메모를 남기고 케이스 검체의 폐기를 막습니다(환자 요청, 소송, 연구).",
         "label": "보존 보류 설정"
@@ -4689,6 +4709,10 @@
         "description": "보고서 레이아웃 또는 구성 요소를 사용 상태로 전환합니다. 감사 기록됩니다.",
         "label": "보고서 템플릿 및 구성 요소 게시"
       },
+      "configRequisitionIngestionManage": {
+        "description": "스캔 요청서의 출처(감시 폴더 또는 전송 시스템), 읽는 주기, 구분지 바코드를 설정합니다. 감사 기록됩니다.",
+        "label": "요청서 수집 관리"
+      },
       "configResearchCasesManage": {
         "description": "연구 증례를 인식하는 방법, 함께 보내는 무과금 재정 분류, 재료 보관 기간을 설정합니다. 이러한 증례는 임상 작업 목록과 통계에서 제외되며 결과나 과금 항목으로 전송되지 않습니다.",
         "label": "연구 증례 설정 관리"
@@ -4756,6 +4780,10 @@
       "configStainDictionaryManage": {
         "description": "염색, 절편 프로토콜, 주문 매크로, 분자 표적을 추가하고 편집합니다. 감사 기록됩니다.",
         "label": "염색 사전 관리"
+      },
+      "configStainQcManage": {
+        "description": "염색기와 스캐너의 기본 승인 방식(자동 승인, 장비 자체 승인, PathScribe 승인)을 설정합니다. 감사 기록됩니다.",
+        "label": "염색 및 스캔 QC 설정 관리"
       },
       "configSubspecialtiesManage": {
         "description": "세부 전문 분야와 배정된 검체 유형을 추가하고 편집합니다. 감사 기록됩니다.",
@@ -5305,6 +5333,18 @@
         "description": "작업대 스캔, 증례 및 운반체에서 집계한 합계만 표시하며 연구 증례는 제외됩니다.",
         "label": "검사실 워크플로 보고서 보기: 단계별 처리 시간"
       },
+      "requisitionInboxResolve": {
+        "description": "접수 번호를 스캔하거나 입력해 미매칭 스캔을 증례에 연결하거나, 사유와 함께 폐기합니다. 파일 자체는 변경되지 않습니다. 감사 기록됩니다.",
+        "label": "미매칭 요청서 연결 또는 폐기"
+      },
+      "requisitionInboxReview": {
+        "description": "요청서 수신함을 엽니다: 미매칭 요청서 대기열, 최근 연결과 실행, 미매칭 스캔 보기. 보기는 감사 기록됩니다.",
+        "label": "요청서 수신함 검토"
+      },
+      "requisitionIngestionRun": {
+        "description": "스캐너의 드롭 폴더를 지금 읽고 스캔한 요청서를 각 증례에 연결합니다(서버도 일정에 따라 실행합니다).",
+        "label": "요청서 수집 지금 실행"
+      },
       "retentionDisposalReportExport": {
         "description": "케이스 접수번호가 포함된 폐기물 추적 보고서를 다운로드합니다.",
         "label": "폐기 보고서 내보내기"
@@ -5316,6 +5356,10 @@
       "retentionMaterialDispose": {
         "description": "보관 기간이 지난 습조직, 블록 또는 슬라이드를 폐기 대기열에서 스캔하여 폐기 처리합니다.",
         "label": "보관 검체 폐기"
+      },
+      "scanImageQcSignOff": {
+        "description": "스캔 이미지를 병리의에게 전달하거나 사유와 함께 재스캔으로 돌려보냅니다. 감사 기록됩니다.",
+        "label": "스캔 이미지 QC 승인"
       },
       "screenAccessionOpen": {
         "description": "'접수' 화면과 홈 페이지의 타일을 볼 수 있습니다.",
@@ -5432,6 +5476,14 @@
       "searchReportScheduleManage": {
         "description": "저장된 보고서를 실행하여 선택한 사용자에게 CSV로 보내는 일정을 설정, 변경, 일시 중지 또는 삭제합니다. 모든 변경은 감사 로그에 기록됩니다.",
         "label": "사례 검색 보고서 예약"
+      },
+      "stainQcOverride": {
+        "description": "인터페이스 엔진을 통한 염색기 자체 승인을 기다리는 런을, 그 결과가 오지 않을 때 승인합니다. 재정의로 감사 기록됩니다.",
+        "label": "염색기 대신 승인"
+      },
+      "stainQcSignOff": {
+        "description": "QC 검사 지점에서 염색 런을 승인합니다. 모든 슬라이드가 통과하거나, 실패한 슬라이드는 사유와 함께 재염색 또는 재절편으로 보냅니다. 감사 기록됩니다.",
+        "label": "염색 QC 승인"
       },
       "stationScanHistoryView": {
         "description": "어떤 항목이 어느 작업대에서 누구에 의해 언제 스캔되었는지 확인합니다.",
@@ -7383,6 +7435,9 @@
       "sys-qa-trend-policy": {
         "description": "병리의사 또는 검체 유형에 대해 주요 불일치 추세를 표시하는 조건: 기간, 최소 검토 수, 기준, 전달 경로(사이트별)."
       },
+      "sys-requisition-ingestion": {
+        "description": "스캔 요청서의 출처, 읽는 주기, 일괄 스캔용 구분지 바코드."
+      },
       "sys-research-cases": {
         "description": "연구 증례를 인식하고 보관하며 임상 작업 목록, 결과 및 청구에서 제외하는 방법과 운반체의 용도를 설정합니다."
       },
@@ -7403,6 +7458,9 @@
       },
       "sys-specimens": {
         "description": "증례 검색 및 증례 생성에서 자동 완성을 구동하는 검체 사전입니다."
+      },
+      "sys-stain-qc": {
+        "description": "염색 슬라이드와 스캔 이미지가 배부되거나 열리기 전에 승인되는 방식: 자동 승인, 장비 자체 승인 또는 PathScribe 승인."
       },
       "sys-subspecialties": {
         "description": "위임 워크플로우를 위한 세부 전문분야 풀입니다."
@@ -8228,6 +8286,11 @@
     "title": "세포-조직 상관 기간",
     "windowDaysLabel": "기간(일)"
   },
+  "cytologyIdentity": {
+    "vial": "{{label}}: {{description}}",
+    "vialWithPlatform": "{{label}}: {{platform}} – {{description}}",
+    "withSlides": "{{vials}} · 슬라이드 {{slides}}"
+  },
   "cytologyInstrumentationSection": {
     "facility": {
       "emptyState": "시설 재정의가 없습니다 — 모든 시설이 조직 기본값을 사용합니다.",
@@ -8358,7 +8421,6 @@
       "waiting": "인계 대기 중"
     },
     "pageTitle": "세포검사 준비",
-    "patientName": "{{family}} {{given}}",
     "scanPlaceholder": "용기 또는 디캔트 바코드 스캔",
     "scanPrompt": "준비할 체액, 분주 또는 세포 블록을 스캔하세요."
   },
@@ -9070,8 +9132,6 @@
       "title": "환자 세포/조직 병력",
       "viewCase": "사례 보기"
     },
-    "patientLine": "{{name}} · MRN {{mrn}}",
-    "patientUnknown": "알 수 없는 환자",
     "printBtn": "인쇄",
     "printCaseReportBtn": "증례 보고서 인쇄",
     "printFailed": "보고서 PDF를 만들 수 없습니다. 다시 시도하고, 계속 실패하면 관리자에게 알리십시오.",
@@ -9526,7 +9586,6 @@
         }
       }
     },
-    "rowSubtitle": "증례 {{caseId}} · MRN {{mrn}}",
     "screeningHours": {
       "cancel": "취소",
       "change": "변경",
@@ -9580,7 +9639,6 @@
       "unassignedPool": "미배정 풀"
     },
     "title": "세포병리 워크리스트",
-    "unknownPatient": "알 수 없는 환자",
     "workload": {
       "leftFullDay": "8시간 근무일 기준 {{left}}장 남음",
       "leftNow": "지금 {{left}}장 남음(현재 한도 {{limit}}, 스크리닝 {{hours}}시간)",
@@ -10703,14 +10761,12 @@
         "biopsy": "생검",
         "needleCore": "바늘 생검"
       },
-      "dob": "생년월일:",
       "flag": {
         "fragile": "취약함",
         "requiresDecal": "탈회 필요",
         "tinyTissue": "미세 조직"
       },
       "matrixBlockOf": "검체 {{specimens}}의 매트릭스 블록",
-      "patient": "환자:",
       "scanNext": "다음 카세트 스캔 →",
       "specimenBlock": "검체/블록:",
       "specimenType": "유형:",
@@ -11110,6 +11166,10 @@
       "modelPlaceholder": "예: Panther",
       "nameLabel": "이름",
       "namePlaceholder": "예: Panther 4",
+      "qcModeDefault": "검사실 기본값(염색 및 스캔 QC)",
+      "qcModeHintScanner": "병리의가 열기 전에 이 스캐너의 이미지를 확인하는 방식입니다.",
+      "qcModeHintStainer": "이 염색기의 런이 슬라이드 배부 전에 승인되는 방식입니다.",
+      "qcModeLabel": "QC 승인",
       "saveButton": "변경 사항 저장",
       "serialLabel": "일련번호",
       "serialPlaceholder": "선택 사항",
@@ -11717,6 +11777,7 @@
       "runFailed": "실패한 장비 실행",
       "scanFailed": "스캔 실패",
       "scanning": "스캔 중",
+      "stainQcPending": "QC 대기",
       "stainingActive": "진행 중인 염색 배치",
       "statBatches": "STAT 배치",
       "statPending": "STAT 대기",
@@ -15341,6 +15402,7 @@
       "cutAndPlaced": "절단 및 부착됨",
       "pendingCut": "절단 대기 중",
       "qcFailed": "QC 실패",
+      "qcPending": "QC 대기",
       "readyForReview": "판독 준비 완료",
       "recutRequested": "재절단 요청됨",
       "staining": "염색 중"
@@ -15475,7 +15537,6 @@
     "context": {
       "accession": "접수번호:",
       "blockComments": "블록 코멘트",
-      "dob": "생년월일:",
       "flag": {
         "fragile": "취약함",
         "requiresDecal": "탈회 필요",
@@ -15485,7 +15546,6 @@
       "matrixPosition": "위치 {{n}}",
       "matrixSpecimen": "검체 {{label}}",
       "noHistory": "이 블록에 대해 인쇄된 슬라이드가 아직 없습니다.",
-      "patient": "환자:",
       "pieceCount": "조각 수: ",
       "priorHistory": "이전 슬라이드 기록",
       "scanNext": "다음 블록/침전물 스캔 →",
@@ -15541,6 +15601,8 @@
     "hardware": {
       "allPrinted": "이 블록의 모든 슬라이드가 인쇄되었습니다.",
       "batch": "배치",
+      "blockMode": "블록",
+      "blockModeHint": "블록을 스캔하면 해당 블록의 라벨이 한 번에 모두 인쇄됩니다. 슬라이드에 붙인 라벨을 순서와 관계없이 다시 스캔하십시오.",
       "couldNotStart": "인쇄를 시작할 수 없습니다.",
       "deviceStatus": "장치 상태",
       "fit": {
@@ -15556,6 +15618,8 @@
       "notConfigured": "이 스테이션은 실제 슬라이드 라벨 인쇄용으로 구성되지 않았습니다.",
       "onDemand": "온디맨드",
       "printBatch": "배치 인쇄",
+      "printBlock_one": "블록 라벨 {{count}}개 인쇄",
+      "printBlock_other": "블록 라벨 {{count}}개 인쇄",
       "printMode": "인쇄 모드",
       "printNext": "다음 항목 인쇄/각인",
       "profileMissing": "구성된 프린터 프로필이 더 이상 존재하지 않습니다.",
@@ -15566,6 +15630,23 @@
         "offline": "오프라인",
         "ready": "준비됨"
       }
+    },
+    "labelScan": {
+      "awaiting": "절편을 확인하려면 슬라이드의 {{slide}} 라벨을 스캔하십시오(스캐너가 작동하지 않으면 입력).",
+      "awaitingMany": "슬라이드의 다음 라벨을 순서와 관계없이 스캔하십시오(스캐너가 고장 난 경우 입력): {{slides}}",
+      "blocked": "다음 슬라이드를 인쇄하기 전에 {{slide}} 라벨을 스캔하십시오.",
+      "confirmed": "{{slide}} 확인됨: 이 블록에서 절편되어 기록되었습니다.",
+      "notPrinted": "{{slide}}은(는) 아직 인쇄되지 않았습니다. 먼저 인쇄하십시오."
+    },
+    "lockout": {
+      "body": "다음 블록으로 넘어가기 전에 남은 라벨을 스캔하거나, 각 슬라이드를 재절편 또는 무효 처리하십시오.",
+      "continue": "스캔 없이 계속(기록됨)",
+      "held": "먼저 이 블록의 라벨을 마치십시오.",
+      "recut": "재절편(새 라벨)",
+      "stay": "이 블록에 머무르기",
+      "title_one": "블록 {{block}}의 라벨 {{count}}개가 아직 스캔되지 않았습니다",
+      "title_other": "블록 {{block}}의 라벨 {{count}}개가 아직 스캔되지 않았습니다",
+      "void": "슬라이드 무효 처리"
     },
     "pageTitle": "박절 작업대",
     "printStatus": {
@@ -19598,7 +19679,7 @@
       "batchOption": "배치(사례/주문별)",
       "description": "온디맨드는 그로싱 중 카세트 라벨이 기록될 때마다 인쇄합니다. 배치는 모든 인쇄를 사례별 명시적 일괄 작업으로 미룹니다.",
       "onDemandOption": "온디맨드(블록/용기별)",
-      "title": "기본 인쇄 동작"
+      "title": "육안 검사 인쇄 방식"
     },
     "enabledLabel": "사용",
     "gs1Gtin": {
@@ -19611,6 +19692,15 @@
       "title": "온디맨드 가드레일 적용"
     },
     "loading": "인쇄 설정 로드 중…",
+    "microtomeBehavior": {
+      "description": "육안 검사와 별도로 마이크로톰이 슬라이드 라벨을 인쇄하는 방식입니다. 모든 라벨은 슬라이드에서 다시 스캔하여 절편을 확인합니다. 여기서 선택하기 전까지 마이크로톰은 육안 검사 설정을 따릅니다.",
+      "options": {
+        "batch": "일괄: 기사가 슬라이드를 선택하여 함께 인쇄",
+        "block": "블록: 블록을 스캔하면 모든 라벨이 인쇄되며, 순서와 관계없이 다시 스캔",
+        "on_demand": "요청 시: 한 번에 라벨 하나씩, 다음 라벨을 인쇄하기 전에 각 라벨을 스캔"
+      },
+      "title": "마이크로톰 인쇄 방식"
+    },
     "molecularPrinterProfile": {
       "description": "위와 동일한 실제 하드웨어 브리지 선택으로, 분자 검사 실행 모듈 자체의 플레이트, 랙, 검체 및 데크 위치 라벨에 적용됩니다.",
       "title": "분자 라벨 프린터 프로필"
@@ -21516,6 +21606,162 @@
     "sentToCodeReview": "케이스가 코드 검토로 전송됨",
     "title": "동료 검토 요청"
   },
+  "requisitionIngestion": {
+    "addSource": "＋ 출처 추가",
+    "enabled": "이 출처 읽기",
+    "expected": {
+      "graceHint": "접수 후 요청서가 연결되지 않은 시간. 0이면 즉시 표시합니다. 작업을 막지 않습니다.",
+      "graceHours": "증례 표시 시점(시간)",
+      "hint": "스캔 요청서가 있어야 하는 증례입니다. 기한 안에 연결된 요청서가 없는 증례는 요청서 수신함에 표시되고 “요청서 없음”이 나타나며 요청서 누락 결함이 등록됩니다. 전자 HIS 오더는 기본적으로 필요하지 않습니다. 오더 메시지가 기록된 요청입니다.",
+      "organisationDefault": "기관 기본값",
+      "origins": "스캔 요청서가 필요한 경우",
+      "save": "예상 설정 저장",
+      "scope": "적용 대상",
+      "title": "예상 요청서",
+      "unmatchedHint": "이 시간 동안 어떤 증례와도 매칭되지 않은 요청서는 검체 미접수, 분실 또는 접수 누락을 뜻할 수 있습니다. 빨간색으로 표시되고 미매칭 대기열 맨 위로 이동합니다.",
+      "unmatchedHours": "증례 없는 스캔 표시 시점(시간)",
+      "usesDefault": "이 시설은 자체 설정을 저장할 때까지 기관 기본값을 따릅니다."
+    },
+    "facility": "수행 시설",
+    "facilityHint": "이 스캐너를 쓰는 검사실입니다. 스캔은 해당 시설의 대기열에서 대기하며 그 시설 직원만 보고 처리할 수 있습니다. 모든 시설: 모든 검사실이 함께 쓰는 스캐너용.",
+    "kind": "스캔 출처",
+    "kinds": {
+      "api": "PathScribe API로 스캔을 보내는 시스템",
+      "documentSystem": "PathScribe가 주소로 읽는 타사 문서 시스템",
+      "fileShare": "스캐너가 저장하는 병원 네트워크 폴더"
+    },
+    "lastSaved": "마지막 저장: {{when}}, {{name}}",
+    "loading": "요청서 수집을 불러오는 중…",
+    "location": {
+      "api": "전송 시스템",
+      "documentSystem": "시스템 주소(https)",
+      "fileShare": "폴더 주소"
+    },
+    "locationHint": {
+      "api": "API에 자신을 식별할 때 쓰는 시스템 이름.",
+      "documentSystem": "스캐너가 보내는 시스템(ECM, LIS 문서 저장소, 스캔 서비스)의 https 주소입니다. 서버가 API 서버에 설정된 자격 증명으로 새 스캔을 읽으며 PathScribe는 각 파일의 링크만 보관합니다.",
+      "fileShare": "스캐너가 PDF를 저장하는 곳: \\\\server\\requisitions\\inbox 같은 네트워크 경로 또는 smb://, nfs://, file://, https:// 주소. 서버가 읽으며 브라우저는 읽지 않습니다."
+    },
+    "name": "이름",
+    "newSource": "새 출처: 아직 저장되지 않음",
+    "problem": "설정을 저장할 수 없습니다. 빨간색으로 표시된 항목을 확인하십시오.",
+    "referenceOnly": "PathScribe는 스캔 사본을 보관하지 않습니다. 각 증례에는 파일이 있는 위치로의 링크, 해당 페이지, 매칭된 바코드, 시각, 출처만 남습니다.",
+    "saved": "저장되었습니다.",
+    "schedule": "읽기 주기(분)",
+    "scheduleHint": "1~1,440분. 서버가 예약 작업으로 실행합니다.",
+    "separator": "구분지 바코드",
+    "separatorHint": "이 바코드가 있는 용지를 인쇄해 일괄 스캔에서 요청서 사이에 넣으십시오. 그 페이지는 앞 요청서를 끝내며 어떤 증례에도 포함되지 않습니다.",
+    "sources": "출처",
+    "subtitle": "스캔 요청서의 출처, 읽는 주기, 일괄 스캔 안에서 요청서 사이에 넣는 구분지.",
+    "title": "요청서 수집"
+  },
+  "requisitions": {
+    "accession": {
+      "creating": "스캔 요청서로 증례 생성 중:",
+      "linkFailed": "스캔을 연결할 수 없습니다. 요청서 수신함에서 연결하십시오.",
+      "linked": "스캔 요청서가 새 증례에 연결되었습니다"
+    },
+    "allFacilities": "모든 시설",
+    "caseButton_one": "📄 요청서",
+    "caseButton_other": "📄 요청서 ({{count}})",
+    "caseTab": "요청서 {{n}}",
+    "discardReasons": {
+      "duplicateScan": "중복 스캔",
+      "notARequisition": "요청서 아님",
+      "other": "기타",
+      "unreadable": "읽을 수 없는 스캔"
+    },
+    "errors": {
+      "alreadyClosed": "이 스캔은 이미 연결되었거나 폐기되었습니다.",
+      "noSuchCase": "{{accession}}에 해당하는 증례가 없습니다.",
+      "notPermitted": "이 작업에 대한 권한이 없습니다.",
+      "runFailed": "수집을 실행할 수 없습니다. 다시 시도하십시오."
+    },
+    "inbox": {
+      "backToAccession": "← 접수",
+      "discard": "폐기",
+      "discardReason": "폐기 사유",
+      "everyFacility": "내 모든 시설",
+      "facilityFilter": "시설",
+      "foundNone": "증례를 찾지 못했습니다. 스캔의 접수 번호, 환자 이름 또는 MRN을 확인하거나 이 스캔으로 새 증례를 만드십시오.",
+      "foundTitle": "찾은 증례",
+      "ingestion": "요청서 수집",
+      "lastRun": "마지막 실행 {{when}}: 파일 {{files}}개, 증례 연결 {{matched}}건, 미매칭 대기열 {{unmatched}}건, 거부 {{rejected}}건.",
+      "link": "연결",
+      "linkPlaceholder": "접수 번호, 환자 이름 또는 MRN",
+      "newCase": "이 스캔으로 새 증례",
+      "noRunYet": "아직 실행되지 않았습니다.",
+      "noSources": "내 시설에 설정된 스캐너가 없습니다. 관리자가 구성 → 시스템 → 통합 → 요청서 수집에서 추가합니다.",
+      "notRun": "역할에 해당 시설의 수집 실행 권한이 없어 실행하지 않음: {{names}}",
+      "recentEmpty": "아직 연결된 요청서가 없습니다.",
+      "recentTitle": "최근 연결",
+      "runNow": "지금 실행",
+      "running": "스캔을 읽는 중…",
+      "serverRuns": "서버가 일정에 따라 수집을 실행합니다.",
+      "sourceLine": "{{name}} · {{location}} · {{minutes}}분마다",
+      "sourceOff": "읽지 않음(꺼짐)",
+      "subtitle": "스캔 요청서는 페이지의 접수 바코드로 증례와 매칭되어 복사가 아닌 링크로 연결됩니다. 어떤 증례와도 매칭되지 않은 스캔은 누군가 증례에 연결하거나 폐기할 때까지 여기서 대기합니다.",
+      "title": "요청서 수신함",
+      "unmatchedEmpty": "대기 중인 항목이 없습니다. 모든 스캔이 증례에 연결되었습니다.",
+      "unmatchedTitle_one": "미매칭 요청서 ({{count}})",
+      "unmatchedTitle_other": "미매칭 요청서 ({{count}})"
+    },
+    "inboxLink": "📥 요청서 수신함",
+    "matchedAutomatically": "바코드로 매칭됨",
+    "matchedByHand": "{{name}} 님이 연결",
+    "missing": {
+      "accessioned": "접수 {{when}}",
+      "deficiencyRaised": "이 증례에 요청서 누락 결함이 등록되었습니다.",
+      "flagged": "표시됨: 연결된 요청서 없음.",
+      "hint": "이 증례들은 스캔 요청서가 있어야 하지만 기한 안에 연결된 것이 없습니다. 대기 중인 스캔에 접수 번호를 스캔하거나 입력해 연결하거나, 종이 요청서가 오지 않는 이유를 기록하십시오.",
+      "linkHint": "스캔을 연결하면 해제됩니다.",
+      "reason": "종이 요청서가 없는 이유",
+      "title_one": "요청서를 기다리는 증례 ({{count}})",
+      "title_other": "요청서를 기다리는 증례 ({{count}})",
+      "waive": "종이 요청서 없음"
+    },
+    "missingChip": "⚠ 요청서 없음",
+    "origins": {
+      "downtime": "다운타임 접수",
+      "electronic": "전자 HIS/LIS 오더",
+      "lockbox": "락박스 접수",
+      "manual": "접수에서 입력, 가져온 오더 없음",
+      "outside": "외부 / 계약 증례"
+    },
+    "pageRange": "{{from}}–{{to}}페이지",
+    "pageSingle": "{{page}}페이지",
+    "preview": {
+      "errors": {
+        "notPermitted": "이 요청서를 볼 권한이 없습니다.",
+        "unreadable": "저장 위치에서 스캔에 접근할 수 없습니다. PDF 열기를 사용하거나 파일이 아직 있는지 확인하십시오."
+      },
+      "loading": "스캔을 읽는 중…",
+      "openPdf": "PDF 열기",
+      "pageAlt": "요청서 {{page}}페이지",
+      "title": "스캔 요청서"
+    },
+    "reason": {
+      "noBarcode": "이 페이지에서 바코드를 읽을 수 없습니다",
+      "noMatch": "이 바코드와 일치하는 증례가 없습니다"
+    },
+    "rejected": {
+      "notPdf": "거부됨: PDF가 아님(PDF만 읽습니다)",
+      "unreadable": "거부됨: 파일을 읽을 수 없음"
+    },
+    "toast": {
+      "discarded": "스캔을 폐기했습니다. 파일 자체는 변경되지 않습니다.",
+      "linked": "요청서가 {{accession}}에 연결되었습니다.",
+      "waived": "기록됨: 종이 요청서 없음. 요청서 누락 결함이 종료되었습니다."
+    },
+    "view": "보기",
+    "waiverReasons": {
+      "electronicOrder": "전자 오더 기록 있음",
+      "other": "기타",
+      "requestInAnotherRecord": "다른 기록에 요청 있음",
+      "verbalOrderDocumented": "구두 오더, 기록됨"
+    },
+    "withoutCase": "아직 증례 없음: 검체가 접수되지 않았거나 분실되었거나 접수 처리되지 않았는지 확인하십시오"
+  },
   "researchCases": {
     "accessionPrefixes": "접수 번호 접두어",
     "active": "활성",
@@ -22253,6 +22499,8 @@
       "missing": "누락",
       "printed": "라벨 인쇄",
       "received": "수령",
+      "sectioned": "절편, 라벨 확인",
+      "typed": "스캔이 아닌 입력",
       "unexpected": "예상치 못한 항목",
       "unloaded": "운반체에서 꺼냄"
     },
@@ -22996,6 +23244,10 @@
       "release": {
         "dueSweep": "기한이 된 보류 공개"
       },
+      "requisition": {
+        "ingest": "요청서 수집",
+        "missingSweep": "요청서 누락 확인"
+      },
       "supportAccess": {
         "expire": "지원 접근 만료"
       }
@@ -23381,6 +23633,8 @@
     "title": "시뮬레이션 인쇄 기록",
     "toast": "시뮬레이션: {{kind}}이(가) {{destination}}(으)로 전송되었습니다. 실제로 인쇄되지 않았습니다.",
     "toastFailed": "시뮬레이션 실패: {{kind}}이(가) {{destination}}에 도달하지 못했습니다.",
+    "toastFailedRepeated": "시뮬레이션 실패: {{kind}} × {{count}}이(가) {{destination}}에 도달하지 못했습니다.",
+    "toastRepeated": "시뮬레이션: {{kind}} × {{count}}이(가) {{destination}}(으)로 전송되었습니다. 실제로 인쇄되지 않았습니다.",
     "transport": "전송 방식",
     "when": "시각"
   },
@@ -23663,9 +23917,13 @@
       "title": "사유 필요"
     },
     "scanErrors": {
+      "blockHeldByQc": "블록 {{block}}의 모든 슬라이드가 QC로 보류 중입니다({{count}}). 먼저 QC 검사 지점에서 런을 승인하십시오.",
       "blockNotFound": "블록 {{block}}을(를) 찾을 수 없습니다.",
       "noSlides": "블록 {{block}}에 배분할 슬라이드가 없습니다.",
       "notResolved": "스캔한 값과 일치하는 케이스, 블록 또는 슬라이드가 없습니다. 바코드를 확인하고 다시 시도하세요.",
+      "qcFailed": "슬라이드 {{slide}}는 QC에 실패하여 재염색 대기 중입니다.",
+      "qcPending": "슬라이드 {{slide}}는 QC 승인 대기 중이라 아직 배부할 수 없습니다.",
+      "recutRequested": "슬라이드 {{slide}}는 QC에 실패하여 재절편이 요청되었습니다.",
       "slideNotFound": "슬라이드 {{slide}}을(를) 찾을 수 없습니다.",
       "specimenNotFound": "해당 케이스에서 검체를 찾을 수 없습니다.",
       "unsupportedTarget": "이 스테이션은 블록, 매트릭스 블록 및 슬라이드 바코드를 처리합니다. 세포 블록 카세트, 디캔트, 검체 바코드는 아직 지원되지 않습니다."
@@ -23704,6 +23962,7 @@
     "referenceNote": "참고용 미리 보기입니다. 진단용이 아닙니다.",
     "state": {
       "available": "이미지 있음",
+      "awaitingImageQc": "이미지 QC 대기",
       "failedImageQuality": "이미지 품질 불합격",
       "noImageYet": "아직 이미지 없음",
       "queued": "대기 중",
@@ -24526,6 +24785,59 @@
       "vendorPlaceholder": "예: Ventana"
     }
   },
+  "stainQc": {
+    "actions": {
+      "recut": "재절편",
+      "restain": "재염색"
+    },
+    "errors": {
+      "failed": "QC 결정을 저장하지 못했습니다. 다시 불러온 후 다시 시도하십시오.",
+      "invalid": "실패한 각 슬라이드에 후속 조치와 사유를 지정하십시오.",
+      "notPermitted": "이 QC 결정을 내릴 권한이 없습니다. 관리자에게 문의하십시오."
+    },
+    "fail": "실패",
+    "followUp": "후속 조치",
+    "hint": "염색된 슬라이드와 스캔 이미지는 QC 승인 전까지 여기에서 대기합니다. QC 대기 중인 랙은 체크아웃할 수 없으며 슬라이드도 배부되지 않습니다.",
+    "imageLine": "스캐너 {{scanner}} · 스캔 배치 {{batch}}",
+    "imageReasons": {
+      "debris": "슬라이드 이물질",
+      "other": "기타",
+      "outOfFocus": "초점 불량",
+      "stitching": "스티칭 오류",
+      "tissueMissed": "조직 누락"
+    },
+    "imagesTitle_one": "QC 대기 중인 스캔 이미지 ({{count}})",
+    "imagesTitle_other": "QC 대기 중인 스캔 이미지 ({{count}})",
+    "modes": {
+      "autoAccept": "자동 승인",
+      "pathscribeSignOff": "PathScribe에서 승인",
+      "vendorSignOff": "장비 자체 승인(인터페이스 엔진)"
+    },
+    "outcome": "QC 결과",
+    "pass": "통과",
+    "reason": "사유",
+    "reasons": {
+      "controlFailed": "대조 슬라이드 실패",
+      "coverslipBubble": "커버슬립 기포",
+      "other": "기타",
+      "overStaining": "과염색",
+      "tissueFolded": "조직 접힘",
+      "uneven": "불균일 염색",
+      "weakStaining": "약한 염색"
+    },
+    "releaseImage": "병리의에게 전달",
+    "rescan": "다시 스캔",
+    "runLine_one": "슬라이드 {{count}}개 · {{when}}부터 대기",
+    "runLine_other": "슬라이드 {{count}}개 · {{when}}부터 대기",
+    "signOffAllPassed": "승인: 모든 슬라이드 통과",
+    "signOffInstead": "염색기 대신 승인",
+    "signOffWithFailures_one": "승인: 슬라이드 {{count}}개 실패",
+    "signOffWithFailures_other": "승인: 슬라이드 {{count}}개 실패",
+    "stainer": "염색기",
+    "stainerUnknown": "기록되지 않음",
+    "title": "QC 검사 지점",
+    "waitingForInstrument": "이 염색기는 인터페이스 엔진을 통해 자체 런을 승인합니다. 결과가 도착하면 런이 해제되며, 감독자가 대신 여기에서 승인할 수 있습니다."
+  },
   "stainQcGateModal": {
     "confirmButton": "육안 판독 체크리스트 완료 확인",
     "confirmedBadge": "{{name}}님이 육안 판독을 확인했습니다.",
@@ -24535,18 +24847,61 @@
     "intro": "아래의 염색 배치는 이 증례를 서명하기 전에 해결되어야 합니다.",
     "rowTitle": "배치 {{batchBarcode}} — {{specimenList}}"
   },
+  "stainQcSection": {
+    "columns": {
+      "instrument": "장비",
+      "kind": "종류",
+      "mode": "QC 승인"
+    },
+    "defaults": "기본값",
+    "explain": {
+      "autoAccept": "런 또는 이미지가 완료되는 즉시 승인 없이 해제됩니다(자동 승인으로 감사 기록).",
+      "pathscribeSignOff": "기사가 슬라이드 배부 화면의 QC 검사 지점에서 승인합니다(옵션 B).",
+      "vendorSignOff": "인터페이스 엔진으로 전송된 장비 자체 QC 결과가 해제 또는 보류를 결정합니다(옵션 A)."
+    },
+    "fromDefault": "기본값",
+    "instruments": "염색기 및 스캐너",
+    "instrumentsHint": "각 장비의 모드입니다. 구성 → 시스템 → 장비(QC 승인)에서 변경하십시오.",
+    "loading": "QC 설정을 불러오는 중…",
+    "noInstruments": "장비 등록부에 염색기나 슬라이드 스캐너가 아직 없습니다.",
+    "save": "QC 기본값 저장",
+    "saved": "QC 기본값을 저장했습니다.",
+    "scannerDefault": "슬라이드 스캐너",
+    "stainerDefault": "염색기",
+    "subtitle": "염색 후·배부 전 QC 검사 지점입니다. 각 염색기와 스캐너는 장비 화면에서 고유 모드를 가질 수 있으며, 나머지는 이 기본값을 사용합니다.",
+    "title": "염색 및 스캔 QC"
+  },
   "stationCarrier": {
-    "addToOutput": "인쇄된 슬라이드를 트레이에 추가 ({{count}})",
-    "andMore": "외 {{count}}개",
+    "bench": {
+      "counter": "작업대의 미배정 슬라이드: {{count}}",
+      "hint": "열린 염색 랙을 스캔하면 모두 랙에 넣고 봉인합니다.",
+      "leaveWarning_one": "이 작업대의 슬라이드 {{count}}개가 아직 염색 랙에 없습니다. 랙을 스캔할 때까지 이 스테이션의 작업대에 남습니다. 그래도 나가시겠습니까?",
+      "leaveWarning_other": "이 작업대의 슬라이드 {{count}}개가 아직 염색 랙에 없습니다. 랙을 스캔할 때까지 이 스테이션의 작업대에 남습니다. 그래도 나가시겠습니까?",
+      "noneAdded": "작업대의 슬라이드를 {{barcode}}에 넣을 수 없었습니다. 작업대에 {{count}}개 남음.",
+      "slideOnBench": "{{item}} 확인 후 작업대에 놓음(랙 대기 {{count}}개).",
+      "someLeft_one": "슬라이드 {{count}}개를 {{barcode}}에 넣을 수 없어 작업대에 남아 있습니다.",
+      "someLeft_other": "슬라이드 {{count}}개를 {{barcode}}에 넣을 수 없어 작업대에 남아 있습니다."
+    },
+    "checkOffPrompt": "{{item}}을(를) 수동으로 확인합니다. 이유는?",
+    "checkOffReasons": {
+      "labelDamaged": "라벨 손상",
+      "labelUnreadable": "라벨 판독 불가",
+      "scannerDown": "스캐너 작동 안 함"
+    },
+    "checkOffTitle": "라벨이 스캔되지 않습니까? 수동으로 확인",
     "chooseStation": "이 컴퓨터의 작업대",
     "close": "닫기",
     "dismiss": "메시지 닫기",
     "finish": "하역 완료",
+    "itemArrived": "✓ 도착",
+    "itemWaiting": "스캔 필요",
+    "itemsLabel": "이 운반 용기의 항목",
     "listLabel": "이 작업대의 열린 운반체",
     "noStation": "이 컴퓨터에 스캔 작업대가 설정되어 있지 않아 여기서 한 스캔은 기록되지 않으며 운반체를 열 수 없습니다. 이 컴퓨터의 작업대를 선택하세요.",
     "noneHere": "이 작업대에 열린 운반체가 없습니다.",
     "notice": {
-      "addedToOutput": "{{barcode}}에 추가된 슬라이드: {{count}}개.",
+      "blockIntoTray": "{{item}}이(가) {{barcode}}에 담겼습니다.",
+      "checkedOffByHand": "{{item}}이(가) {{barcode}}에서 수동으로 확인되었습니다. 사유가 기록됩니다.",
       "closedAborted": "{{barcode}}은(는) 닫혔습니다. {{at}}에 중단되었습니다.",
       "closedComplete": "{{barcode}}은(는) 닫혔습니다. {{at}}에 완료되었습니다.",
       "finished": "{{barcode}} 하역이 완료되었습니다.",
@@ -24556,13 +24911,21 @@
       "opened": "{{barcode}}을(를) 여기서 열었습니다. 항목: {{count}}개.",
       "openedAdHoc": "{{barcode}}을(를) 여기서 열었으며 이 작업대가 해당 작업대로 기록되었습니다. 항목: {{count}}개.",
       "openedMismatch": "{{barcode}}은(는) 다른 단계에 속하지만 여기서 열었습니다. 이 사실이 기록되었습니다.",
+      "outputClosedWithLoaded_one": "{{barcode}}이(가) 항목 {{count}}개와 함께 봉인되어 다음 단계로 보내졌습니다. {{loaded}} 완료.",
+      "outputClosedWithLoaded_other": "{{barcode}}이(가) 항목 {{count}}개와 함께 봉인되어 다음 단계로 보내졌습니다. {{loaded}} 완료.",
+      "outputClosed_one": "{{barcode}}이(가) 항목 {{count}}개와 함께 봉인되어 다음 단계로 보내졌습니다.",
+      "outputClosed_other": "{{barcode}}이(가) 항목 {{count}}개와 함께 봉인되어 다음 단계로 보내졌습니다.",
       "outputSet": "{{barcode}}이(가) 이제 출력 트레이입니다.",
       "sealed": "{{barcode}} 봉인됨. 항목: {{count}}개.",
+      "slideIntoRack": "{{item}}이(가) 확인되어 {{barcode}}에 담겼습니다.",
       "unexpectedKept": "{{item}}을(를) 유지했으며 {{barcode}}에 예상치 못한 항목으로 기록했습니다.",
       "unknown": "바코드 {{barcode}}인 운반체가 없습니다."
     },
     "openInBatchManagement": "배치 관리에서 열기",
     "outputHint": "열린 {{node}} 운반체를 스캔하면 절편 슬라이드의 출력 트레이로 사용됩니다.",
+    "outputHintEmbedding": "열려 있는 {{node}} 운반 용기를 스캔하여 포매된 블록을 미세절편기용으로 모으십시오.",
+    "outputHintMicrotomy": "열린 {{node}} 랙을 먼저 스캔하여 슬라이드를 하나씩 채우거나, 먼저 절편한 뒤 마지막에 랙을 스캔하십시오. 작업대의 모든 슬라이드가 랙에 들어가고 랙이 봉인됩니다.",
+    "outputRescanHint": "{{barcode}}이(가) 가득 차면 다시 스캔하여 봉인하고 다음 단계로 보내십시오.",
     "outputTray": "출력 트레이",
     "pending": {
       "continueAnyway": "그래도 계속",
@@ -24571,12 +24934,17 @@
       "wrongItem": "{{item}}은(는) 운반체 {{barcode}}에 없습니다. 그래도 계속하시겠습니까? 예상치 못한 항목으로 기록됩니다."
     },
     "progress": "{{total}}개 중 {{matched}}개 스캔 완료",
+    "rack": {
+      "closeLastRun": "마지막 런을 닫고 새 런 시작",
+      "newRun": "{{barcode}}에서 새 염색 런을 시작했습니다. 슬라이드를 넣고, 랙이 가득 차면 다시 스캔하여 닫으십시오.",
+      "notClosed_one": "{{barcode}}의 마지막 런(슬라이드 {{count}}개, {{at}})이 닫히지 않았습니다. 랙을 다시 사용하기 전에 닫거나 배치 관리에서 여십시오.",
+      "notClosed_other": "{{barcode}}의 마지막 런(슬라이드 {{count}}개, {{at}})이 닫히지 않았습니다. 랙을 다시 사용하기 전에 닫거나 배치 관리에서 여십시오."
+    },
     "routedHere": "이 작업대로 지정됨",
     "scanToUnload": "운반체에서 꺼낼 때 각 항목을 스캔하세요.",
     "seal": "명세서 봉인",
     "sealed": "봉인됨",
     "stationLine": "작업대: {{station}}",
-    "stillToScan": "아직 스캔할 항목: {{items}}",
     "title": "이 작업대의 운반체",
     "unexpectedCount_one": "예상치 못한 항목 {{count}}개 스캔됨",
     "unexpectedCount_other": "예상치 못한 항목 {{count}}개 스캔됨",
@@ -24584,9 +24952,9 @@
   },
   "stationScan": {
     "backToScanning": "스캔으로 돌아가기(키보드 숨기기)",
-    "backToScanningShort": "⌨ 스캔",
+    "backToScanningShort": "⌨ 키보드 숨기기",
     "typeAnId": "화면 키보드로 ID 입력",
-    "typeAnIdShort": "⌨ 입력"
+    "typeAnIdShort": "⌨ 키보드"
   },
   "stationSwitch": {
     "discardedAndSwitched": "📍 변경 사항을 버리고 {{station}}(으)로 전환했습니다.",
@@ -25881,6 +26249,7 @@
       "qaTrendPolicy": "불일치 추세 정책",
       "reagentLots": "시약 및 용액 로트",
       "releaseBuffer": "서명 후 공개 버퍼",
+      "requisitionIngestion": "요청서 수집",
       "researchCases": "연구 증례 및 배치 목적",
       "researchFeed": "연구 피드",
       "retention": "데이터 보존",
@@ -25895,6 +26264,7 @@
       "siteAgents": "사이트 에이전트",
       "smartCapture": "Smart Capture",
       "specimens": "검체 사전",
+      "stainQc": "염색 및 스캔 QC",
       "stains": "진단 카탈로그",
       "subspecialties": "세부 전문 분야",
       "supportAccess": "지원 접근",

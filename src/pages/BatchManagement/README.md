@@ -1,3 +1,5 @@
+**Batch 761:** `BatchManagementPage.tsx`: a reusable rack whose last run is closed opens as a new run (New Container, pre-filled with the rack), not as the old run; one never closed opens with a warning (`batchManagement.rackLastRunNotClosed`).
+
 **Batch 739:** `NewContainerModal`: **Processor** for a Liquid-Based Cytology Processing batch (Equipment kind `lbc_processor`).
 
 **Batch 737:** `BatchDetailView` shows the exhausted-block warning (stays until closed) and the large-format refusal (`scanRejected.slideTooLarge`); `NewContainerModal` has **Takes large-format slides (megablocks)** for a Staining carrier (`largeFormat` on the draft). Rules in `services/batches/mockBatchService.ts`, `utils/blockExceptionStates.ts`, `utils/blockPieceRules.ts`.
@@ -189,3 +191,5 @@ CSV exports neutralize formula cells (finding F8, `utils/csv.ts`); the disposal 
 ## Batch 730
 
 - `LabWorkflowReportsPage.tsx` (+ `.css`, `hooks/useLabWorkflowReports.ts`, new): the seven reports, dates in the lab's time zone, options per report, CSV export. Tile on Batch Management.
+
+Batch 757: the carrier page (`BatchDetailView`) has a scan-or-type field beside the hands-free scan (Pete: the scanner may break).

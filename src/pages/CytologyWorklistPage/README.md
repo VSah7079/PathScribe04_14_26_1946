@@ -1,3 +1,5 @@
+**Batch 760:** `CytologyScreeningPage.tsx` and `CytologyWorklistPage.tsx` show no patient name, date of birth or MRN: the accession, vial type and slide ids instead; Ask a Colleague names the case by its accession (Cytology Workspace spec §2.1).
+
 **Batch 744:** `CytologyWorklistPage.tsx`: the row shows the patient's name from either name shape (`resolvePatientNameValue`); it showed the MRN for the seeded patients.
 
 **Batch 742:** `CytologyScreeningPage.tsx`: the Attachments badge opens the Attachments window with no section offered (the cytology report prints images after its pages). 1,539 lines to 1,536.

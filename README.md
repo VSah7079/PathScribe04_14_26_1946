@@ -8,6 +8,22 @@
 
 **Batch 753:** the prostate needle biopsy and radical prostatectomy checklists read in real words, PathScribe's own (not CAP or RCPath text), so Video 9 shows no placeholder answers. See `src/data/templates/generic/README.md`.
 
+**Batch 757:** Pete's processor-to-staining flow: a carrier opened at a bench lists its items as they arrive, Embedding fills an ad-hoc Microtome tray, the Microtome's dual scan (block, then the printed slide label) ties each slide to its block and puts it in the staining rack, and a full tray or rack scanned again is sealed; typed entry and check-off by hand wherever a scan is needed. See `src/i18n/README.md`.
+
+**Batch 758:** the Microtome has its own print mode (On-Demand, Block, Batch), apart from Grossing's; Block mode prints a whole block's labels on the block scan; moving on to the next block with labels unscanned is held (recut, void or continue, logged); and slides can wait on the bench for a staining rack scanned last (Pete's Scan-Last order), with a prompt before sign-out or closing the tab.
+
+**Batch 759:** Pete's patient verification spec: bench screens show no patient name, date of birth or MRN (accession and specimen source instead); an outside case's own case number (Foreign case ID) shows beside the accession; every typed id is let through and quietly flagged as a Manual Entry on the audit trail and the scan history. See `docs/product/PATIENT_VERIFICATION.md`.
+
+**Batch 760:** Cytology Screening and the Cytology Worklist show the accession, vial type and slide ids instead of the patient's name, date of birth and MRN (Pete's Cytology Workspace spec §2.1).
+
+**Batch 761:** reusable staining racks: scanning a registered rack starts a new run with no form, PathScribe warns when the rack's last run was never closed, and a bug that reopened a rack's oldest finished run is fixed.
+
+**Batch 762:** requisition ingestion (Pete's spec): batch-scanned requisition PDFs are matched to their case by the barcode on each page and linked, never copied; scans that match no case wait in the Requisition Inbox (Accession) to be linked or discarded; the report header shows the case's requisition. Demo: real PDFs read in the browser (`public/demo-requisitions/`). Several performing facilities, folder / third-party system / API sources, expected requisitions flagged with a Missing Requisition deficiency (electronic HIS orders exempt by default), scans with no case marked after a day, and link-by-search or create-the-case from the queue.
+
+**Batch 763:** the stain and scanner QC gate (Pete's Post-Stain / Pre-Distribution QC checkpoint): a finished staining run waits at the QC checkpoint on Slide Distribution until it is signed off by the instrument (through the interface engine), in PathScribe, or auto-accepted, chosen per stainer and scanner; scanned images can wait the same way before the Pathologist sees them. Superadmin now receives every action in the Action list, including ones added later.
+
+**Batch 756:** fixes found recording demo Video 1: a case made on Accession reaches every bench: the Grossing queue lists it, and a cassette, block or slide scan finds it by the accession number on its label (S26-0001), not only by its internal id (O26-0031); no false "Unsaved Draft Found" on the report page; the station scan field's keyboard and submit buttons show on touch screens only (a scanner and a keyboard always work); one toast per burst of simulated prints. See `src/i18n/README.md`.
+
 **Batch 752:** the demo's slide images are hosted in Cloudflare R2 at `slides-demo.formedrix.ai` and set in Vercel (Production); `scripts/Setup-PathScribeSlideDemo.ps1` rebuilds them. The developer handover note (`docs/developer/HANDOVER_FIRST_RELEASE.md`) is brought up to Oct 31. See `docs/product/SLIDE_IMAGE_DEMO.md`.
 
 **Batch 751:** the organ map on Assist cases is a working aid only ("Your laboratory system writes this report."), and a lab can have it delivered to its laboratory system as text and a PNG or PDF file (Facility → LIS Integration → Organ map delivery, `config:organ-map-delivery:manage`). Seed row S15. See `docs/architecture/ORGAN_MAPPING_API.md`.

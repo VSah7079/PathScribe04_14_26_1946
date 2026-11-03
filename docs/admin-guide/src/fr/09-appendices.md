@@ -472,3 +472,4 @@ Pour une revue de routine d'une période échantillonnée, suivez ces étapes.
 5. Ouvrez l'onglet **Journal des erreurs**, filtrez sur **Ouvertes uniquement**, et vérifiez que rien d'important n'est non résolu.
 6. Ouvrez [Accès du support](#screen-support_access) et confirmez que la ligne de chaîne indique intact ; lisez les entrées de la période.
 7. Exportez le CSV du Journal d'audit pour la période et conservez le fichier avec vos notes de revue. L'export est lui-même consigné.
+8. Recherchez `Manual Entry` pour voir les identifiants saisis au lieu d’être scannés (Batch 759). Chaque entrée indique le module, ce qui a été saisi, l’utilisateur et le poste, et renvoie au dossier. Beaucoup d’entrées sur un même poste peuvent signaler un lecteur défaillant ou des étiquettes abîmées.

@@ -194,6 +194,7 @@ A share with `direction: 'pickup'` is watched for files matching its rule (`Shar
 - **Hand over data, not a stored file.** The content goes to the site's interface engine channel, or to the API's import for a kind of **data** file, such as orders or results (`handTo`).
   - PDFs and images aren't picked up: they stay links (`BLOB_STORAGE_API.md`).
   - PathScribe doesn't keep the file as an attachment.
+- **Requisition folders (Batch 762, Planned).** For a requisition source that is a folder on the hospital network (`REQUISITION_INGESTION_API.md` §2b), the agent is the reader: it takes each new PDF, reads its barcodes and page groups locally, and hands over only that report (the file's path, page ranges, barcodes) to the API's `recordIngestion`; the PDF stays on the share, as every PDF does here. A new `handTo` kind `requisitions` and a short-lived read link for opening a page are needed; neither is built.
 - **Once only.**
   - The handover carries a key made of the share, the name, size, SHA-256 and modified time (`pickupIdempotencyKey`).
   - The receiver keeps keys for 7 days and takes each once. This duty applies to the engine channel and the API import alike (`INTERFACE_ENGINE_EDGE.md` §4.3).

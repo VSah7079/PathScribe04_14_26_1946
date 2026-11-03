@@ -65,6 +65,17 @@ describe('the slide record through load and unload', () => {
     expect(stainUnloaded(loaded, batch, { ...base, scanStatus: 'failed' }, 'tech', at).lastScanOutcome).toBe('scanFailed');
     expect(stainUnloaded(loaded, batch, { ...base, scanStatus: 'pending' }, 'tech', at).lastScanOutcome).toBe('notScanned');
   });
+
+  it('holds a scanned image for image QC when the scanner’s QC mode says so (Batch 763)', () => {
+    const at = '2026-10-02T11:00:00Z';
+    const loaded = stainLoaded(digital('st1'), batch, '1', 'tech', '2026-10-02T10:00:00Z');
+    const base = { slidePosition: '1', caseId: 'C1', specimenId: 'sp1' };
+    const held = stainUnloaded(loaded, batch, { ...base, scanStatus: 'completed', qcPassed: true }, 'tech', at, 'pending');
+    expect(held).toMatchObject({ distributionStatus: 'Scanned', lastScanOutcome: 'imageQcPending', wsiScanBatchId: 'wb1' });
+    expect(held.distributionEvents?.[held.distributionEvents.length - 1]?.detail).toContain('waiting for image QC');
+    // A failed scan is not held: it goes back in the queue as before.
+    expect(stainUnloaded(loaded, batch, { ...base, scanStatus: 'failed' }, 'tech', at, 'pending').lastScanOutcome).toBe('scanFailed');
+  });
 });
 
 describe('batch progress and actions', () => {

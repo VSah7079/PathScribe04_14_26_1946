@@ -23,6 +23,11 @@
 // Slide levels (Batch 460): the level printed on a label is the one fixed in
 // the slide's displayId (services/material/slideLevels.ts), not its position,
 // and batch prints follow the grid's order.
+//
+// Batch 758 (Pete, Nov 1, 2026): the Microtome's own print mode (printSettings/microtomePrintMode.ts). In Block mode
+// scanning a block prints all of its labels at once, scanned back in any order. Moving on to another block while
+// labels of this one are not scanned back is held (the lockout): each waiting slide can be recut (a new label,
+// reason Damaged Section) or voided (cancelled), or the tech continues and the labels are logged as not scanned.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
@@ -41,6 +46,8 @@ import { wasSlideLabelOutput, markSlideLabelOutput } from '@/utils/labels/dispat
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 import { recordStationScan } from '@/services/stationScans/recordStationScan';
 import { benchParentItemId } from '@/services/material/materialLineage';
+import { fullSlideId, labelAwaitingScan, labelsAwaitingScan, slideLabelScanOutcome, blockLabelsToPrint, withLabelIds, nextBlockLockout, UNSCANNED_LABEL_NOTE, type WaitingLabel } from '@/services/material/slideLabelCheck';
+import { microtomePrintModeOf } from '@/services/printSettings/microtomePrintMode';
 import { flagBlockExhaustedOnce } from '@/utils/exhaustedBlockRules';
 import { markBlockPieceExhausted } from '@/services/material/pieceExhaustion';
 import { recordEndStateFromAction } from '@/services/itemEndStates/recordEndStateFromAction';
@@ -51,7 +58,7 @@ import { otherBlocksWaiting } from '@/services/material/incompleteSectioning';
 import { cassetteIdentifier, matrixBlockIdentifier } from '@/types/labels/LabelData';
 import { DEFAULT_SLIDE_LABEL_LAYOUT } from '@/services/printSettings/IPrintSettingsService';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
-import type { SlideLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
+import type { SlideLabelLayoutConfig, MicrotomePrintBehavior } from '@/services/printSettings/IPrintSettingsService';
 import type { Case } from '@/types/case/Case';
 import type { Specimen, HistologyBlock, StainOrder } from '@/types/case/Specimen';
 import type { Decant } from '@/types/case/Material';
@@ -78,7 +85,12 @@ export type MicrotomyWorkItem =
   | { kind: 'block'; caseData: Case; specimen: Specimen; block: HistologyBlock; matrixBlock?: MatrixBlock }
   | { kind: 'decant'; caseData: Case; specimen: Specimen; decant: Decant };
 
-export type PrintMode = 'on_demand' | 'batch';
+/** Batch 758: 'block' (all of a block's labels print when it is scanned) is the Microtome's only. */
+export type PrintMode = MicrotomePrintBehavior;
+
+/** Batch 758: moving on from a block with labels not scanned back is held; `next` is where the tech was going
+ *  (null: Scan next). */
+export interface BlockLockout { next: MicrotomyWorkItem | null }
 
 /** Batch 669 (ws-6): the quick Undo shown after Remove or Reprint, and the line shown once it has been used. */
 export interface UndoNotice {
@@ -119,6 +131,14 @@ function workItemFrom(caseData: Case, target: MicrotomyTarget): MicrotomyWorkIte
   return { kind: 'block', caseData, specimen: view, block, ...(matrixBlock ? { matrixBlock } : {}) };
 }
 
+function sameWorkItem(a: MicrotomyWorkItem | null, b: MicrotomyWorkItem | null): boolean {
+  return !!a && !!b && a.caseData.id === b.caseData.id && JSON.stringify(targetOf(a)) === JSON.stringify(targetOf(b));
+}
+
+const accessionOf = (item: MicrotomyWorkItem) => item.caseData.accession?.fullAccession ?? item.caseData.id;
+/** Batch 758: a block's slides with the id on their label (see withLabelIds). */
+const labelledStains = (item: Extract<MicrotomyWorkItem, { kind: 'block' }>) => withLabelIds(item.block.stains, `${item.specimen.label}${item.block.label}`);
+
 function withView(item: MicrotomyWorkItem, view: Specimen): MicrotomyWorkItem {
   const caseData = { ...item.caseData, ...microtomyCaseUpdates(item.caseData, view) } as Case;
   return workItemFrom(caseData, targetOf(item)) ?? item;
@@ -146,6 +166,21 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
   const [stainTypes, setStainTypes] = useState<StainType[]>([]);
   const [pendingRemoval, setPendingRemoval] = useState<{ kind: 'block' | 'decant'; parentId: string; stainId: string } | null>(null);
   const versionRef = useRef(0);
+  // Batch 757 (Pete: the dual scan): labels printed at the Microtome and not yet scanned back (upper-case slide ids),
+  // and what the last label scan confirmed. The confirmation itself is on the station log ("sectioned").
+  const [awaitingLabels, setAwaitingLabels] = useState<Set<string>>(new Set());
+  const [labelConfirmed, setLabelConfirmed] = useState<string | null>(null);
+  const workItemRef = useRef<MicrotomyWorkItem | null>(null);
+  // Batch 758: refs kept in step with the state, so back-to-back scans (queued by useStationCarrier) see each change.
+  const awaitingRef = useRef<Set<string>>(new Set());
+  const updateAwaiting = useCallback((change: (prev: Set<string>) => Set<string>) => { const next = change(awaitingRef.current); awaitingRef.current = next; setAwaitingLabels(next); }, []);
+  const setWork = useCallback((item: MicrotomyWorkItem | null) => { workItemRef.current = item; setWorkItem(item); }, []);
+  const [lockout, setLockout] = useState<BlockLockout | null>(null);
+  const printModeRef = useRef<PrintMode>('on_demand');
+  const autoPrintRef = useRef<(item: MicrotomyWorkItem) => Promise<void>>(async () => undefined);
+  /** The labels of `item` printed here and not scanned back (Microtome blocks only). */
+  const waitingFor = useCallback((item: MicrotomyWorkItem | null, awaiting: ReadonlySet<string> = awaitingRef.current): WaitingLabel[] =>
+    bench === 'microtome' && item?.kind === 'block' ? labelsAwaitingScan(awaiting, accessionOf(item), labelledStains(item)) : [], [bench]);
 
   const actor = useMemo(() => ({ id: user?.id ?? 'unknown', name: user?.name ?? user?.id ?? 'unknown' }), [user?.id, user?.name]);
   const exceptionRequirements = useFieldRequirements('addOnOrder');
@@ -159,8 +194,9 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
   // header switcher can still change it for the session.
   const loadDefaultPrintMode = useCallback(async () => {
     const res = await printSettingsService.get();
-    if (res.ok) setPrintMode(res.data.defaultPrintBehavior);
-  }, []);
+    // Batch 758: the Microtome has its own mode; the Cytology Preparation bench keeps the Grossing default.
+    if (res.ok) setPrintMode(bench === 'microtome' ? microtomePrintModeOf(res.data) : res.data.defaultPrintBehavior);
+  }, [bench]);
 
   /** Closes the Undo toast (and forgets what it would restore). */
   const dismissUndo = useCallback(() => {
@@ -171,17 +207,28 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
   }, []);
   useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current); }, []);
 
-  const startWork = useCallback((item: MicrotomyWorkItem) => {
+  /** Opens `item` at the bench; in Block mode its labels print (awaited, so the label scans queued behind it find them printed). */
+  const beginWork = useCallback(async (item: MicrotomyWorkItem) => {
     versionRef.current = item.caseData.version ?? 0;
-    setWorkItem(item);
+    setWork(item);
     setSaveError(null);
     setPrintNotice(null);
     dismissUndo();
     setBatchSelection(new Set());
-  }, [dismissUndo]);
+    if (bench === 'microtome' && item.kind === 'block' && printModeRef.current === 'block') await autoPrintRef.current(item);
+  }, [dismissUndo, setWork, bench]);
+
+  /** Batch 758: opens `item`, unless labels of the block being cut are still waiting (then the lockout shows). */
+  const startWork = useCallback(async (item: MicrotomyWorkItem): Promise<boolean> => {
+    const current = workItemRef.current;
+    if (nextBlockLockout(waitingFor(current), !sameWorkItem(current, item))) { setLockout({ next: item }); return false; }
+    await beginWork(item);
+    return true;
+  }, [beginWork, waitingFor]);
+  const held = useCallback(() => ({ ok: false as const, message: t('microtomyWorkstation.lockout.held') }), [t]);
 
   /** A scanned block, decant or matrix block (or one of their slides) becomes the work item. */
-  const resolveScan = useCallback(async (rawScanValue: string): Promise<{ ok: true } | { ok: false; message: string }> => {
+  const resolveScan = useCallback(async (rawScanValue: string): Promise<{ ok: true; labelConfirmed?: string } | { ok: false; message: string }> => {
     setScanError(null);
     const fail = (message: string) => { setScanError(message); return { ok: false as const, message }; };
     if (!rawScanValue.trim()) return { ok: false, message: t('microtomyWorkstation.scanErrors.empty') };
@@ -195,8 +242,26 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
       if (benchTakesBlock(bench)) return fail(t('microtomyWorkstation.scanErrors.cutAtMicrotome'));
       const item = workItemFrom(caseData, { kind: 'matrix', matrixBlockId: target.matrixBlockId });
       if (!item) return fail(t('microtomyWorkstation.scanErrors.matrixBlockNotFound'));
-      startWork(item);
+      if (!(await startWork(item))) return held();
       return { ok: true };
+    }
+
+    // Batch 757: a slide label of the block being cut is the second scan of the dual-scan check, not a new work item.
+    const current = workItemRef.current;
+    if (bench === 'microtome' && target.level === 'slide' && current?.kind === 'block' && current.caseData.id === caseData.id) {
+      const fullAccession = current.caseData.accession?.fullAccession ?? current.caseData.id;
+      const check = slideLabelScanOutcome({ scannedSlideId: resolved.displayId, fullAccession, stains: labelledStains(current) });
+      if (check.kind === 'notPrinted') return fail(t('microtomyWorkstation.labelScan.notPrinted', { slide: check.slideId }));
+      if (check.kind === 'confirm') {
+        updateAwaiting(prev => { const next = new Set(prev); next.delete(check.slideId.toUpperCase()); return next; });
+        setLabelConfirmed(check.slideId);
+        recordStationScan({
+          stationId: effectiveStationId, caseAccession: fullAccession, node: 'Microtomy / Sectioning', userId: actor.id, userName: actor.name ?? actor.id, result: 'ok',
+          itemId: check.slideId, materialType: current.matrixBlock ? 'matrix_slide' : 'slide', action: 'sectioned',
+          parentItemId: benchParentItemId(fullAccession, { specimenLabel: current.specimen.label, label: current.block.label, matrixLabel: current.matrixBlock?.label }),
+        });
+        return { ok: true, labelConfirmed: check.slideId };
+      }
     }
 
     const specimen = (caseData.specimens ?? []).find(sp => sp.label === specimenLetter);
@@ -206,7 +271,7 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
       const block = (specimen.blocks ?? []).find(b => b.label === target.blockNumber);
       if (!block) return fail(t('microtomyWorkstation.scanErrors.blockNotFound', { label: `${specimen.label}${target.blockNumber}` }));
       if (benchTakesBlock(bench)) return fail(t('microtomyWorkstation.scanErrors.cutAtMicrotome'));
-      startWork({ kind: 'block', caseData, specimen, block });
+      if (!(await startWork({ kind: 'block', caseData, specimen, block }))) return held();
       return { ok: true };
     }
     if (target.level === 'decant' || target.level === 'decant_slide') {
@@ -214,11 +279,11 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
       if (!decant) return fail(t('microtomyWorkstation.scanErrors.decantNotFound', { label: `${specimen.label}${target.decantLabel}` }));
       const refusal = benchTakesDecant(bench, decant);
       if (refusal) return fail(t(`microtomyWorkstation.scanErrors.${refusal}`, { label: `${specimen.label}${decant.label}` }));
-      startWork({ kind: 'decant', caseData, specimen, decant });
+      if (!(await startWork({ kind: 'decant', caseData, specimen, decant }))) return held();
       return { ok: true };
     }
     return fail(t('microtomyWorkstation.scanErrors.unsupported'));
-  }, [t, startWork, bench]);
+  }, [t, startWork, held, updateAwaiting, bench, effectiveStationId, actor]);
 
   /** A block chosen directly (not scanned). */
   const selectBlockDirectly = useCallback(async (caseId: string, specimenId: string, blockId: string): Promise<{ ok: true } | { ok: false; message: string }> => {
@@ -226,20 +291,25 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
     if (!caseData) return { ok: false, message: t('microtomyWorkstation.scanErrors.caseNotFound') };
     const item = workItemFrom(caseData, { kind: 'block', specimenId, blockId });
     if (!item) return { ok: false, message: t('microtomyWorkstation.scanErrors.blockNotOnCase') };
-    startWork(item);
+    if (!(await startWork(item))) return held();
     return { ok: true };
-  }, [t, startWork]);
+  }, [t, startWork, held]);
 
   /** The tech finished this block or decant; nothing is changed. */
-  const clearWorkItem = useCallback(() => {
-    setWorkItem(null);
+  const endWork = useCallback(() => {
+    setWork(null);
     setScanError(null);
     setSaveError(null);
     setPrintNotice(null);
     dismissUndo();
     setBatchSelection(new Set());
     setBatchProgress(null);
-  }, [dismissUndo]);
+  }, [dismissUndo, setWork]);
+  /** "Scan next": held like a new block while labels of this one are waiting (Batch 758). */
+  const clearWorkItem = useCallback(() => {
+    if (nextBlockLockout(waitingFor(workItemRef.current), true)) { setLockout({ next: null }); return; }
+    endWork();
+  }, [waitingFor, endWork]);
 
   /** Applies `op` to the work item and saves it. Returns the work item as
    *  saved, or (saved: false) as it is now after a failed save; null when the
@@ -248,7 +318,7 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
     const local = op(item.specimen);
     if (!local.ok) return null;
     const shown = withView(item, local.specimen);
-    setWorkItem(shown);
+    setWork(shown);
     const target = targetOf(item);
     try {
       // Batch 453: a change to decant slides only goes through the atomic,
@@ -274,7 +344,7 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
       if (r.ok && base) {
         versionRef.current = r.version;
         const saved = workItemFrom({ ...(base as Case), ...r.updates, version: r.version } as Case, target);
-        if (saved) { setWorkItem(saved); setSaveError(null); return { item: saved, saved: true }; }
+        if (saved) { setWork(saved); setSaveError(null); return { item: saved, saved: true }; }
         return { item: shown, saved: true };
       }
       setSaveError(t(`microtomyWorkstation.saveFailed.${r.ok === false && r.reason === 'conflict' ? 'conflict' : 'notApplied'}`));
@@ -285,9 +355,9 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
     // Not saved: show the case as it is now, so the tech can redo the change.
     const latest = await caseRouter.getCase(item.caseData.id).catch(() => null);
     const reloaded = latest ? workItemFrom(latest, target) : null;
-    if (reloaded) { versionRef.current = latest!.version ?? 0; setWorkItem(reloaded); return { item: reloaded, saved: false }; }
+    if (reloaded) { versionRef.current = latest!.version ?? 0; setWork(reloaded); return { item: reloaded, saved: false }; }
     return { item: shown, saved: false };
-  }, [t]);
+  }, [t, setWork]);
 
   /** The station's slide printer, gtin and label layout. */
   const getPrinterContext = useCallback(async (): Promise<{ printer: PrinterProfile; gtin: string; layout: SlideLabelLayoutConfig } | { error: string }> => {
@@ -328,15 +398,17 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
       ? benchParentItemId(fullAccession, { specimenLabel: item.specimen.label, label: item.decant.label, decant: true })
       : benchParentItemId(fullAccession, { specimenLabel: item.specimen.label, label: item.block.label, matrixLabel: item.matrixBlock?.label });
     recordStationScan({ ...base, itemId: slideId.startsWith(fullAccession) ? slideId : `${fullAccession}-${slideId}`, materialType: slideType, action: 'printed', parentItemId });
+    // Batch 757: at the Microtome the printed label waits for its scan (the dual scan).
+    if (bench === 'microtome' && item.kind === 'block') { const id = fullSlideId(fullAccession, slideId).toUpperCase(); updateAwaiting(prev => new Set(prev).add(id)); setLabelConfirmed(null); }
     if (item.kind === 'block' && !computeNextUnprintedStain(item.block.stains)) {
       const blockId = item.matrixBlock ? matrixBlockIdentifier(fullAccession, item.matrixBlock.label) : cassetteIdentifier(fullAccession, item.specimen.label, item.block.label);
       recordStationScan({ ...base, itemId: blockId, materialType: item.matrixBlock ? 'matrix_block' : 'block', action: 'completed' });
     }
-  }, [effectiveStationId, actor.id, actor.name, bench]);
+  }, [effectiveStationId, actor.id, actor.name, bench, updateAwaiting]);
 
   /** One slide: Pending → Printing (saved, so progress is honest) →
    *  Printed/Failed. Returns the work item to carry into the next slide. */
-  const dispatchAndRecordPrint = useCallback(async (item: MicrotomyWorkItem, stainId: string, reprint = false): Promise<{ ok: boolean; item: MicrotomyWorkItem; message?: string }> => {
+  const dispatchAndRecordPrint = useCallback(async (item: MicrotomyWorkItem, stainId: string, reprint = false, elsewhere?: ReadonlySet<string>): Promise<{ ok: boolean; item: MicrotomyWorkItem; message?: string }> => {
     // Batch 610 (#16): a block flagged as exhausted is not cut until the ordering pathologist answers.
     if (item.kind === 'block' && cuttingBlockedByExhaustion(item.block)) {
       return { ok: false, item, message: t('microtomyWorkstation.exhausted.cuttingBlocked') };
@@ -361,7 +433,7 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
     const slideId = stain?.displayId ?? `${afterPrinting.specimen.label}${parentLabel}-${level}`;
     // Batch 606 (PS-14): a slide whose label was already produced at the scan is not printed twice; a reprint always prints.
     // Batch 730: nor one whose add-on label was printed at another station when the order was placed ("print labels at").
-    const alreadyProduced = !reprint && (wasSlideLabelOutput(slideId) || printedElsewhere.has(stainId));
+    const alreadyProduced = !reprint && (wasSlideLabelOutput(slideId) || (elsewhere ?? printedElsewhere).has(stainId));
     const outcome = alreadyProduced
       ? { ok: true as const }
       : 'error' in ctx
@@ -387,12 +459,15 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
     const stains = workItem.kind === 'block' ? workItem.block.stains : workItem.decant.stains;
     const next = computeNextUnprintedStain(stains);
     if (!next) return;
+    // Batch 757: the label printed last is scanned before the next one prints.
+    const waiting = bench === 'microtome' ? labelAwaitingScan(awaitingLabels, workItem.caseData.accession?.fullAccession ?? workItem.caseData.id, workItem.kind === 'block' ? labelledStains(workItem) : stains) : null;
+    if (waiting) { setPrintNotice(t('microtomyWorkstation.labelScan.blocked', { slide: waiting })); return; }
     // Batch 669 (ws-4): a refusal (block flagged exhausted, "could not start") or a printer failure is said on screen,
     // not only in the grid; the batch and per-row Print use the progress window, which already showed it.
     setPrintNotice(null);
     const result = await dispatchAndRecordPrint(workItem, next.id);
     if (!result.ok) setPrintNotice(result.message ?? t('microtomyWorkstation.hardware.couldNotStart'));
-  }, [workItem, dispatchAndRecordPrint, t]);
+  }, [workItem, dispatchAndRecordPrint, t, bench, awaitingLabels]);
 
   /** "Print Selected" and Batch "Print Batch": one slide after another (one
    *  physical printer), in the grid's order (Batch 460: not the order ticked). */
@@ -412,6 +487,25 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
   }, [workItem, dispatchAndRecordPrint]);
 
   const clearBatchProgress = useCallback(() => setBatchProgress(null), []);
+
+  /** Batch 758 (Block mode): every label of the block not printed yet, one after another (one printer); the first
+   *  failure stops the rest and is said on screen. Labels printed elsewhere ("print labels at") are not printed again. */
+  const printBlockLabels = useCallback(async (item: MicrotomyWorkItem) => {
+    if (item.kind !== 'block') return;
+    const ids = blockLabelsToPrint(item.block.stains);
+    if (ids.length === 0) return;
+    setPrintNotice(null);
+    const routes = await labelPrintRouteService.getForStainOrders(ids).catch(() => null);
+    const elsewhere = new Set(routes && routes.ok === true ? routes.data.map(x => x.stainOrderId) : []);
+    let current: MicrotomyWorkItem = item;
+    for (const id of ids) {
+      const r = await dispatchAndRecordPrint(current, id, false, elsewhere);
+      current = r.item;
+      if (!r.ok) { setPrintNotice(r.message ?? t('microtomyWorkstation.hardware.couldNotStart')); return; }
+    }
+  }, [dispatchAndRecordPrint, t]);
+  autoPrintRef.current = printBlockLabels;
+  const handlePrintBlock = useCallback(async () => { if (workItem) await printBlockLabels(workItem); }, [workItem, printBlockLabels]);
 
   // ── Stain management ────────────────────────────────────────────────────
   const handleAddStain = useCallback(async (stainType: StainType, options: { duplicateCount?: number; levelDepthMicrons?: number; pairWithControl?: boolean; preparationMethod?: StainOrder['preparationMethod'] } = {}) => {
@@ -518,6 +612,39 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
     undoTimer.current = setTimeout(dismissUndo, MICROTOMY_UNDO_WINDOW_MS);
   }, [workItem, persistOp, dismissUndo]);
 
+  // ── Batch 758: the block lockout ─────────────────────────────────────────
+  const waitingNow = workItem ? waitingFor(workItem, awaitingLabels) : [];
+  /** Recut: the section was damaged, so a new label prints for the slide; it is scanned back like the first. */
+  const recutWaitingSlide = useCallback((stainId: string) => handleReprint(stainId, 'Damaged Section'), [handleReprint]);
+  /** Void: the slide is not made; it is cancelled (Damaged Section) and its label no longer waits. */
+  const voidWaitingSlide = useCallback(async (stainId: string) => {
+    const label = waitingFor(workItemRef.current).find(l => l.stainId === stainId);
+    await performRemoveStain(stainId, 'Damaged Section');
+    if (label) updateAwaiting(prev => { const next = new Set(prev); next.delete(label.slideId.toUpperCase()); return next; });
+  }, [waitingFor, performRemoveStain, updateAwaiting]);
+  /** Continue without them: each label still waiting is logged as not scanned ("missing", with a note). */
+  const continuePastLockout = useCallback(() => {
+    const item = workItemRef.current;
+    if (!item || item.kind !== 'block') return;
+    const waiting = waitingFor(item);
+    const fullAccession = accessionOf(item);
+    const parentItemId = benchParentItemId(fullAccession, { specimenLabel: item.specimen.label, label: item.block.label, matrixLabel: item.matrixBlock?.label });
+    for (const l of waiting) {
+      recordStationScan({ stationId: effectiveStationId, caseAccession: fullAccession, node: 'Microtomy / Sectioning', userId: actor.id, userName: actor.name ?? actor.id, result: 'ok',
+        itemId: l.slideId, materialType: item.matrixBlock ? 'matrix_slide' : 'slide', action: 'missing', parentItemId, note: UNSCANNED_LABEL_NOTE });
+    }
+    updateAwaiting(prev => { const next = new Set(prev); waiting.forEach(l => next.delete(l.slideId.toUpperCase())); return next; });
+  }, [waitingFor, effectiveStationId, actor, updateAwaiting]);
+  const stayOnBlock = useCallback(() => setLockout(null), []);
+  // Once nothing is waiting (scanned, recut and scanned, voided, or continued), the tech goes where they were going.
+  useEffect(() => {
+    if (!lockout || waitingNow.length > 0) return;
+    const next = lockout.next;
+    setLockout(null);
+    if (!next) { endWork(); return; }
+    void caseRouter.getCase(next.caseData.id).catch(() => null).then(latest => beginWork((latest && workItemFrom(latest, targetOf(next))) || next));
+  }, [lockout, waitingNow.length, endWork, beginWork]);
+
   const handleReorder = useCallback(async (orderedStainIds: string[]) => {
     if (!workItem || workItem.kind !== 'block') return;
     const blockId = workItem.block.id;
@@ -593,8 +720,8 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
   const adoptSavedCase = useCallback((caseData: Case) => {
     if (!workItem) return;
     const next = workItemFrom(caseData, targetOf(workItem));
-    if (next) { versionRef.current = caseData.version ?? versionRef.current; setWorkItem(next); }
-  }, [workItem]);
+    if (next) { versionRef.current = caseData.version ?? versionRef.current; setWork(next); }
+  }, [workItem, setWork]);
 
   /** Batch 729 (spec §7.5): the case's other blocks still waiting to be cut, for the note under the work item. */
   const blocksStillWaiting = useMemo(() => {
@@ -643,7 +770,14 @@ export function useMicrotomyWorkstation(options: { bench?: Bench } = {}) {
     }
   }, [workItem, persistOp, actor]);
 
+  workItemRef.current = workItem;
+  printModeRef.current = printMode;
+  const stainsNow = !workItem ? [] : workItem.kind === 'block' ? workItem.block.stains : workItem.decant.stains;
+  const labelToScan = bench === 'microtome' && workItem ? labelAwaitingScan(awaitingLabels, workItem.caseData.accession?.fullAccession ?? workItem.caseData.id, workItem.kind === 'block' ? labelledStains(workItem) : stainsNow) : null;
+
   return {
+    labelToScan, labelConfirmed, labelsToScan: waitingNow.map(l => l.slideId), handlePrintBlock,
+    lockout, lockoutLabels: lockout ? waitingNow : [], recutWaitingSlide, voidWaitingSlide, continuePastLockout, stayOnBlock,
     blocksStillWaiting, endStateItem, pieceView, handleMarkPieceExhausted,
     workItem, scanError, saveError, printNotice, undoNotice, undoLast, dismissUndo, resolveScan, selectBlockDirectly, clearWorkItem,
     printMode, setPrintMode, loadDefaultPrintMode,

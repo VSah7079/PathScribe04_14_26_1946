@@ -19,7 +19,7 @@ export const FILE_SIZE_BASELINE: Readonly<Record<string, number>> = {
   'components/Worklist/WorklistTable.tsx': 2290,
   'constants/systemActions.ts': 1309,
   'mock/mockReports.ts': 1104,
-  'pages/AccessionPage/AccessionPage.tsx': 4163,
+  'pages/AccessionPage/AccessionPage.tsx': 4002,
   'pages/AuditLogPage.tsx': 1288,
   'pages/CytologyWorklistPage/CytologyScreeningPage.tsx': 1528,
   'pages/IntraopQueuePage.tsx': 1194,
@@ -39,6 +39,6 @@ export const FILE_SIZE_BASELINE: Readonly<Record<string, number>> = {
   'services/cases/mockCaseService.ts': 6020,
   'services/cases/mockOrchestratorCaseService.ts': 2001,
   'services/quality/mockQaActivityRecordService.ts': 3725,
-  'types/case/Case.ts': 1059,
+  'types/case/Case.ts': 1056,
   'types/case/Specimen.ts': 1839, // Batch 732: the add-on exception types moved to addOnOrderException.ts; Batch 750: a comment shortened
 };

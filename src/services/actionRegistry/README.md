@@ -212,3 +212,7 @@ Print Current Cassette moved from Alt+P to Alt+Shift+O (Batch 639); `SHORTCUT_MI
 
 ## Batch 720 — grossing bench commands
 `grossingBenchVoiceCommands.ts` appends `GROSSING_PRINT_CASSETTES` (Alt+Shift+1), `GROSSING_TAKE_PHOTO` (2), `GROSSING_ASSIGN_DECAL` (3), `GROSSING_ADD_ON_ORDER` (4) in the `GROSSING` context; they dispatch `PATHSCRIBE_<id>`. Spanish phrases are in `spanishVoiceTriggers.ts`; all non-English phrases need review (`docs/product/PHRASE_REVIEW_LIST.md`).
+
+## Batch 762
+
+`requisitionVoiceCommands.ts` (new): `REQUISITION_RUN_NOW` (Alt+G, context `REQUISITIONS`, the Requisition Inbox); Spanish phrases in `spanishVoiceTriggers.ts`; the group's other entries classified in `permissionOnlyActions.ts`.

@@ -23,6 +23,7 @@ Tier 6 is mostly optional. A laboratory that runs PathScribe on its own, with no
 4. [Reporting feed (Power BI)](#screen-bi_feed): let a reporting tool read PathScribe data. Needs the performing-lab facilities in the Facility Dictionary.
 5. [Migration Field Mappings](#screen-migration_field_mappings): map a legacy system's field names, before any historical import.
 6. [Historical Data Migration Jobs](#screen-migration-jobs): import a legacy file and check the job. Needs step 5.
+7. [Requisition ingestion](#screen-requisition_ingestion): file batch-scanned paper requisitions on their cases by the barcode on each page. Needs the scanner's drop folder (or the system that sends scans).
 
 The monitoring screens ([System Logs: interfaces](#screen-audit-interfaces), [Interface Engines](#screen-interface-engines), [Outbound Interface DLQ](#screen-outbound-interface-dlq), [Outbound Dispatches](#screen-outbound-dispatches) and the [Outbound Queue](#screen-outbound-queue)) and the test tools ([Outbound Interface Message Preview](#screen-outbound_message_preview), [Simulated mail outbox](#screen-simulated_mail), [Mock Interface Engine](#screen-mock-interface-engine) and [Mock EMR](#screen-mock-emr)) are not setup steps. Each says `Reference, not part of setup` and lists what must exist for it to show data.
 
@@ -805,6 +806,63 @@ The reading API returns 1,000 rows a page by default and at most 10,000.
 **7. Permissions.** Open: `screen:configuration:open`. Settings: `config:bi-feed:manage`. Create, replace and revoke tokens and Test a pull: `config:bi-feed-tokens:manage`. Record and withdraw the identified approval: `config:bi-feed-identified:approve`. All three are high risk. Admin and Lab Director hold them by default, so the person who creates an identified token and the person who approves it can be the same person unless a hospital separates them in the Role Dictionary.
 
 **Known limits.** The feed is not served yet; in the demonstration build only the settings and tokens work. While the data loads, and in some problem messages, the screen says "workstation" where it means a feed token (a wording slip in the text). The token's limit of 60 pulls a minute and the 365-day lifetime are fixed in code.
+
+### Requisition ingestion {#screen-requisition_ingestion}
+Breadcrumb: Home > Configuration > System > Integrations > Requisition ingestion
+
+**Status:** Partial
+
+**1. Navigation:** Configuration tab **System** > group **Integrations**
+**2. Maintenance item:** Requisition ingestion
+
+**3. Business purpose and scope.** Paper requisitions are scanned in batches by the department scanner into a folder on the hospital network, or into a third-party document system (an ECM, the LIS document store, a scanning service), or are sent to the PathScribe API by another system. Each folder or system is a source, configured by its address; there can be as many as needed. PathScribe reads the accession barcode on each page and links the scan to its case, by reference only: the case keeps a link to the file where it lives, the pages that belong to it, the barcode, the time and the source, and PathScribe keeps no copy. A page with no barcode joins the requisition before it; a separator sheet ends a requisition and belongs to no case. A scan that matches no case waits in the Unmatched Requisitions queue on Accession → **📥 Requisition Inbox**, where staff link it by scanning or typing the accession, or discard it with a reason.
+
+**What is built and what is not.** Built: this setting, the matching and page-grouping rules, the Requisition Inbox, the case's **📄 Requisition** button on the report screen, and the audit trail. In the demonstration build the browser reads a demonstration folder of fictional PDFs when someone presses **Run ingestion now**. Not built: the server's scheduled job that reads your share (`requisition.ingest`), reading a printed number when there is no barcode (OCR), and the API a sending system posts to. Only PDFs are read; any other file is refused and named in the run's summary.
+
+**Several performing facilities.** Each source belongs to one performing facility (the **Performing facility** field), or to **All facilities** for a scanner every laboratory shares. A source's scans wait in that facility's queue, and every permission below is checked for that facility: a person assigned to one laboratory (Staff → their facilities) sees, runs and resolves only that laboratory's scanners and scans, and only someone who works for every facility can add or change an all-facility source. **＋ Add source** adds another scanner; the buttons above the form switch between them. Matching is enterprise-wide: an accession number names one case, so a requisition scanned at one laboratory still finds a case performed at another.
+
+**How it runs (serverless).** Each source is read by a scheduled job that does one batch and ends; nothing runs all the time in PathScribe's cloud. A third-party document system is read at its https address, and a sending system posts to the PathScribe API. A folder on the hospital network is read by the PathScribe **site agent** already installed there for printers and shares ([Site agents](#screen-site_agents)): it reads the barcodes on the hospital network and sends PathScribe only the file's reference, pages and barcodes, so the PDF never leaves the hospital. The site agent's requisition pickup is not built yet. The check for missing requisitions runs hourly.
+
+**4. Prerequisites and dependencies.** The scanner saves PDFs (one file may hold many requisitions) to a folder the API server can read, and the accession labels on the requisitions carry the accession number as a Code 128 or Code 39 barcode.
+
+Setup step: Tier 6, step 7
+Requires: None, this is a starting point.
+Unlocks: None.
+
+**5. Screen.**
+
+[SCREENSHOT PLACEHOLDER: system-requisition_ingestion - the requisition source, schedule and separator barcode]
+
+**6. Field reference.**
+
+| Field Name | Data Type / Format | Required/Optional | Description & Business Logic | System Default |
+|---|---|---|---|---|
+| Read this source | Yes/No switch | Optional | While it is off, the job does not read this source. | On |
+| Name | Text | Required | Shown on the Requisition Inbox. | Requisition scanner drop folder |
+| Performing facility | Choice: **All facilities** or a performing-lab facility | Required | Whose scanner this is: its scans wait in that facility's queue, and the permissions are checked for it. | The demonstration source: Desert Valley Medical Center; a new source: the first performing lab |
+| Where scans come from | Choice of **A folder on the hospital network the scanner saves to**, **A third-party document system PathScribe reads at its address** or **A system that sends scans to the PathScribe API** | Required | Decides what the next field holds. Add one source for each folder or system; there can be as many as needed. | A folder on the hospital network the scanner saves to |
+| Folder address / System address (https) / Sending system | Text | Required | A folder: a network path (for example `\\server\requisitions\inbox`) or an smb://, nfs://, file:// or https:// address. A third-party system (an ECM, the LIS document store, a scanning service): its https address; the server reads new scans there with credentials set up on the API server, never in the browser. A sending system: its name, as it identifies itself to the API. An address of the wrong form is marked in red and cannot be saved. | `\\lab-scan01\requisitions\inbox` (demonstration) |
+| Look every (minutes) | Whole number, 1 to 1,440 | Required | How often the job reads the source. | 15 |
+| Separator sheet barcode | Text | Required | The barcode printed on the sheet put between requisitions in one batch scan. | `PATHSCRIBE-SEPARATOR` |
+| Save | Button | Not applicable | Disabled until something changes or while a field is invalid. Shows "Last saved" with the time and the person. | Not applicable |
+
+**Expected requisitions.** The second card on this screen decides which cases should have a scanned requisition, for the organisation (**Organisation default**) or for one performing facility (a facility follows the default until its own setting is saved).
+
+| Field Name | Data Type / Format | Required/Optional | Description & Business Logic | System Default |
+|---|---|---|---|---|
+| Applies to | Choice: **Organisation default** or a performing-lab facility | Required | Which setting is being edited. | Organisation default |
+| A scanned requisition is expected for | Checkboxes: **Electronic HIS/LIS order**, **Typed at Accession, no imported order**, **Outside / contract case**, **Downtime accession**, **Lockbox drop** | Optional | A case is expected to have one when its order came in a ticked way. An electronic HIS/LIS order is the request on record (its order message), so by default it needs no paper. A case accessioned from an imported order counts as electronic. | All ticked except Electronic HIS/LIS order |
+| Flag a case after (hours) | Whole number, 0 to 720 | Required | Hours after accession with no requisition linked before the case is flagged. 0 flags it at once. Never blocks the work. | 24 |
+| Flag a scan with no case after (hours) | Whole number, 0 to 720 | Required | Hours a scan may wait in the Unmatched queue before it is marked "No case yet" in red and moved to the top: possibly a specimen not received, lost or not accessioned. | 24 |
+| Save expectations | Button | Not applicable | Saves the setting shown. Audited (Requisition Expectation Saved). | Not applicable |
+
+A flagged case appears under **Cases waiting for a requisition** on the Requisition Inbox, shows **⚠ Requisition missing** on the report screen, and gets a **Missing Requisition** case deficiency (raised by System), tracked in the deficiency workflow and the QA reports. Linking its scan closes the flag and the deficiency (resolution **Requisition Received or Not Required**); so does **No paper requisition** with a reason (Electronic order on record, Verbal order, documented, Request held in another record, Other). The check runs with ingestion: on the server as a scheduled job, in the demonstration each time the inbox opens or **Run ingestion now** is pressed. Audit events: Requisition Missing, Requisition Received, Requisition Waived, Requisition Without Case.
+
+**The Unmatched Requisitions queue (quarantine).** A scan whose barcode matches no case, or whose barcode cannot be read, goes to the queue automatically (Requisition Quarantined). Staff open **View** to inspect the pages, then link it: scan or type the accession, or type a patient name or MRN to search (the **Cases found** list, within their own case access), or press **New case from this scan** to open Accession with the scan attached; it is linked to the new case on submit (needs `case:accession:create`). Every link is audited as Requisition Re-associated, saying whether it was typed, found by search or a new case.
+
+**7. Permissions.** Open: `screen:configuration:open`. Change the source: `config:requisition-ingestion:manage` (high risk, audited; Admin by default). On the Requisition Inbox: `requisition:inbox:review` (open it and view a queued scan), `requisition:inbox:resolve` (link or discard), `requisition:ingestion:run` (Run ingestion now); the roles that open Accession hold all three by default. From the case: `case:requisition:view` (the roles with case access). The audit log shows Requisition Matched, Requisition Quarantined, Requisition Re-associated, Requisition Discarded, Requisition Viewed and Requisition Source Saved, with no file name and no patient name. The Requisition Inbox's commands are in the Action list (Configuration → Action Registry and Staff → Roles, group **Requisition Inbox**): Go to the Requisition Inbox, Run Requisition Ingestion Now (Alt+G or by voice on the inbox), View a Scanned Requisition, Link an Unmatched Requisition to a Case, Discard an Unmatched Requisition, Show the Case's Requisition. Accessioners hold them all by default; the roles with case access hold Show the Case's Requisition. A command grant never widens what the permissions above allow.
+
+**Known limits.** There is no printable separator sheet yet: print the barcode from any label tool. When a file is moved or deleted where it is stored, the case's requisition can no longer be opened, because PathScribe keeps no copy.
 
 ### Migration Field Mappings {#screen-migration_field_mappings}
 Breadcrumb: Home > Configuration > System > Lab Materials & Workflows > Migration Field Mappings

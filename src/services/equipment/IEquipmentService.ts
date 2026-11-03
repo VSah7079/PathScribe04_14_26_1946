@@ -69,6 +69,9 @@ export interface Equipment {
   temperatureMaxCelsius?: number;
   /** Batch 732 (spec §11.1): a stainer or slide scanner that takes large-format slides (megablock sections). */
   supportsLargeFormat?: boolean;
+  /** Batch 763: a stainer's or slide scanner's QC sign-off (services/stainQc/): auto-accept, the instrument's own
+   *  (through the interface engine), or a PathScribe sign-off. Unset: the lab's default in Configuration. */
+  qcMode?: import('../stainQc/stainQcTypes').QcMode;
   status: 'Active' | 'Inactive';
   /** Batch 406: an analyser's deck layout (its instrument profile). Racks
    *  loaded for it are placed in one of these slots; see

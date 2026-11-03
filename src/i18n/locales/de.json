@@ -497,6 +497,10 @@
       "memberCardId": "Mitglieds-/Kartennummer",
       "orderingProvider": "Anfordernder Arzt",
       "orderingProviderPlaceholder": "(unter „Fall & Patient“ eingeben)",
+      "originatingCase": "Ursprungsfall",
+      "originatingCaseNumber": "Nummer des Ursprungsfalls",
+      "originatingCaseNumberPlaceholder": "z. B. S-24-9842",
+      "originatingInstitution": "Ursprungseinrichtung",
       "patientJurisdiction": "Patienten- und Jurisdiktionsidentifikation",
       "paymentCategory": "Zahlungskategorie / -schema",
       "primaryJurisdiction": "Primäre Jurisdiktion",
@@ -2384,6 +2388,7 @@
       "rackNotRegistered": "Rack {{rackId}} ist nicht registriert. Prüfen Sie die ID oder registrieren Sie das Rack zuerst.",
       "sameBatch": "Das Element ist bereits in dieser Charge. Wählen Sie eine andere.",
       "sourceNotActive": "Elemente können nur aus einer aktiven Charge verschoben werden.",
+      "stainQcPending": "Die gefärbten Objektträger dieses Racks warten auf die QC. Geben Sie den Lauf zuerst am QC-Kontrollpunkt der Objektträgerverteilung frei.",
       "stationRequired": "Legen Sie zuerst den Arbeitsplatz dieses Computers fest.",
       "unexpectedScans_one": "{{count}} Element, das nicht zu dieser Charge gehört, wurde gescannt. Klären Sie es oder verwenden Sie eine Supervisor-Freigabe.",
       "unexpectedScans_other": "{{count}} Elemente, die nicht zu dieser Charge gehören, wurden gescannt. Klären Sie sie oder verwenden Sie eine Supervisor-Freigabe."
@@ -2437,9 +2442,10 @@
     "remainingOfTarget": "{{remaining}} verbleibend von {{target}} Ziel",
     "removeTitle": "Aus Charge entfernen",
     "removedToast": "{{displayId}} aus Charge entfernt.",
-    "scanHintActive": "Scannen Sie den Barcode einer Kassette oder eines Objektträgers, um ihn dieser Charge hinzuzufügen. Freihändig — kein Klicken in ein Feld nötig.",
+    "scanHintActive": "Scannen Sie den Barcode einer Kassette oder eines Objektträgers, um ihn dieser Charge hinzuzufügen, oder geben Sie ihn im Feld unten ein.",
     "scanHintReconcile": "Prozessunabhängige Verifizierung: Scannen Sie jedes physische Element, während Sie es vom Träger entfernen.",
     "scanHintSealed": "Das Manifest ist versiegelt. Starten Sie die Verifizierung, um Elemente abzuscannen.",
+    "scanPlaceholder": "Barcode einer Kassette oder eines Objektträgers scannen oder eingeben…",
     "scanRejected": {
       "alreadyInBatch": "{{displayId}} ist bereits in dieser Charge.",
       "inOtherActiveBatch": "{{displayId}} ist bereits in der aktiven Charge {{barcode}}.",
@@ -2448,6 +2454,7 @@
       "sealed": "{{barcode}} ist versiegelt: Es können keine Elemente mehr hinzugefügt werden.",
       "slideTooLarge": "{{displayId}} ist ein Großformat-Objektträger, und {{barcode}} nimmt keine Großformat-Objektträger auf. Verwenden Sie ein Großformat-Färbegestell."
     },
+    "scanSubmit": "Übernehmen",
     "startReconciliation": "Abgleich starten",
     "supervisorOverrideLink": "Vorgesetzten-Override…",
     "transferToProcessing": "Zur Verarbeitung übertragen",
@@ -2508,6 +2515,7 @@
     "pendingLoadTile": "Ausstehend",
     "pendingLoadTitle": "Ausstehende Chargenbeladung — gedruckte Elemente, die noch in keine Charge eingescannt wurden",
     "rackCheckedOutError": "Gestell „{{value}}“ ist bereits einer anderen aktiven Charge zugewiesen.",
+    "rackLastRunNotClosed": "Der letzte Lauf auf {{value}} wurde nie geschlossen. Schließen Sie ihn, bevor das Gestell wieder verwendet wird.",
     "retentionHoldsTile": "Aufbewahrungssperren",
     "retentionHoldsTitle": "Warteschlange der Aufbewahrungssperren öffnen",
     "status": {
@@ -2698,6 +2706,14 @@
     },
     "title": "Laborbeiträge",
     "windowLabel": "Letzte {{days}} Tage"
+  },
+  "benchIdentity": {
+    "foreignCase": "Externe Fall-ID",
+    "foreignItem": "Externe ID",
+    "foreignSource": "von {{source}}",
+    "specimenSource": "Probe {{label}} – {{description}}",
+    "typedCheck": "Eingetippt, nicht gescannt: Prüfen Sie, ob der Behälter {{accession}} und {{source}} zeigt.",
+    "typedCheckAccession": "Eingetippt, nicht gescannt: Prüfen Sie, ob der Behälter {{accession}} zeigt."
   },
   "benchReasons": {
     "AE_DIAGNOSIS_NEEDED": "Für die Diagnose erforderlich",
@@ -4225,6 +4241,10 @@
         "description": "Einen Pool-Fall weitergeben, sodass er für andere im Pool bleibt.",
         "label": "Pool-Fall weitergeben"
       },
+      "caseRequisitionView": {
+        "description": "Den mit einem Fall verknüpften gescannten Auftragsschein aus dem Fall heraus öffnen. Jede Ansicht wird protokolliert.",
+        "label": "Gescannten Auftragsschein eines Falls ansehen"
+      },
       "caseRetentionHoldPlace": {
         "description": "Die Entsorgung des Materials eines Falls verhindern (Patientenwunsch, Rechtsstreit, Forschung), mit Grund und Vermerk.",
         "label": "Aufbewahrungssperre setzen"
@@ -4689,6 +4709,10 @@
         "description": "Ein Befundlayout oder einen Baustein in Gebrauch nehmen. Protokolliert.",
         "label": "Befundvorlagen und -bausteine veröffentlichen"
       },
+      "configRequisitionIngestionManage": {
+        "description": "Festlegen, woher gescannte Auftragsscheine kommen (ein überwachter Ordner oder ein sendendes System), wie oft sie gelesen werden und den Barcode des Trennblatts. Protokolliert.",
+        "label": "Auftragsschein-Import verwalten"
+      },
       "configResearchCasesManage": {
         "description": "Festlegen, wie Forschungsfälle erkannt werden, welche Kostenträgerklasse ohne Abrechnung gesendet wird und wie lange ihr Material aufbewahrt wird. Diese Fälle fehlen in klinischen Arbeitslisten und Statistiken und werden nie als Ergebnisse oder Leistungen gesendet.",
         "label": "Einstellungen für Forschungsfälle verwalten"
@@ -4756,6 +4780,10 @@
       "configStainDictionaryManage": {
         "description": "Färbungen, Schneideprotokolle, Auftragsmakros und molekulare Zielstrukturen anlegen und bearbeiten. Protokolliert.",
         "label": "Färbeverzeichnis verwalten"
+      },
+      "configStainQcManage": {
+        "description": "Festlegen, wie Färbeautomaten und Scanner standardmäßig freigegeben werden: automatisch, durch das Gerät oder in PathScribe. Protokolliert.",
+        "label": "Färbe- und Scan-QC-Einstellungen verwalten"
       },
       "configSubspecialtiesManage": {
         "description": "Subspezialitäten und die ihnen zugeordneten Probenarten anlegen und bearbeiten. Protokolliert.",
@@ -5305,6 +5333,18 @@
         "description": "Nur Summen aus Stationsscans, Fällen und Trägern; Forschungsfälle sind ausgenommen.",
         "label": "Laborablauf-Bericht anzeigen: die Durchlaufzeit je Schritt"
       },
+      "requisitionInboxResolve": {
+        "description": "Einen nicht zugeordneten Scan durch Scannen oder Eingeben der Eingangsnummer einem Fall zuordnen oder mit Grund verwerfen. Die Datei selbst bleibt unberührt. Protokolliert.",
+        "label": "Nicht zugeordnete Auftragsscheine zuordnen oder verwerfen"
+      },
+      "requisitionInboxReview": {
+        "description": "Den Auftragsschein-Eingang öffnen: die Warteschlange nicht zugeordneter Auftragsscheine, die letzten Zuordnungen und Läufe, und einen nicht zugeordneten Scan ansehen. Das Ansehen wird protokolliert.",
+        "label": "Auftragsschein-Eingang einsehen"
+      },
+      "requisitionIngestionRun": {
+        "description": "Den Ablageordner des Scanners jetzt lesen und jeden gescannten Auftragsschein seinem Fall zuordnen (der Server tut dies auch planmäßig).",
+        "label": "Auftragsscan-Import jetzt ausführen"
+      },
       "retentionDisposalReportExport": {
         "description": "Den Entsorgungsnachweis mit den Eingangsnummern der Fälle herunterladen.",
         "label": "Entsorgungsbericht exportieren"
@@ -5316,6 +5356,10 @@
       "retentionMaterialDispose": {
         "description": "Nassgewebe, Blöcke oder Objektträger in der Entsorgungsliste scannen, um sie nach Ablauf der Aufbewahrungsfrist als entsorgt zu kennzeichnen.",
         "label": "Aufbewahrtes Material entsorgen"
+      },
+      "scanImageQcSignOff": {
+        "description": "Ein gescanntes Bild an den Pathologen freigeben oder mit Grund zum erneuten Scannen zurückgeben. Protokolliert.",
+        "label": "Bild-QC freigeben"
       },
       "screenAccessionOpen": {
         "description": "Den Bildschirm „Eingang“ und seine Kachel auf der Startseite sehen.",
@@ -5432,6 +5476,14 @@
       "searchReportScheduleManage": {
         "description": "Einen Zeitplan einrichten, ändern, pausieren oder löschen, der einen gespeicherten Bericht ausführt und als CSV an gewählte Benutzer sendet. Jede Änderung wird im Auditprotokoll erfasst.",
         "label": "Fallsuche-Berichte planen"
+      },
+      "stainQcOverride": {
+        "description": "Einen Lauf freigeben, der auf die Freigabe seines Färbeautomaten über die Schnittstellen-Engine wartet, wenn dieses Ergebnis ausbleibt. Als Übersteuerung protokolliert.",
+        "label": "Statt eines Färbeautomaten freigeben"
+      },
+      "stainQcSignOff": {
+        "description": "Einen Färbelauf am QC-Kontrollpunkt freigeben: alle Objektträger bestehen, oder ein nicht bestandener geht mit Grund zur Neufärbung oder zum Neuschnitt. Protokolliert.",
+        "label": "Färbe-QC freigeben"
       },
       "stationScanHistoryView": {
         "description": "Sehen, welches Element an welchem Arbeitsplatz von wem und wann gescannt wurde.",
@@ -7383,6 +7435,9 @@
       "sys-qa-trend-policy": {
         "description": "Wann ein Muster schwerwiegender Diskrepanzen für einen Pathologen oder eine Präparatart gemeldet wird: Zeitraum, Mindestbegutachtungen, Schwellen und Weiterleitung, je Standort."
       },
+      "sys-requisition-ingestion": {
+        "description": "Woher gescannte Auftragsscheine kommen, wie oft sie gelesen werden, und der Trennblatt-Barcode für Stapelscans."
+      },
       "sys-research-cases": {
         "description": "Wie Forschungsfälle erkannt, aufbewahrt und aus klinischen Arbeitslisten, Ergebnissen und Abrechnung herausgehalten werden; und die möglichen Zwecke eines Trägers."
       },
@@ -7403,6 +7458,9 @@
       },
       "sys-specimens": {
         "description": "Das Probendiktionary, das die Autovervollständigung bei der Fallsuche und Fallanlage steuert."
+      },
+      "sys-stain-qc": {
+        "description": "Wie gefärbte Objektträger und gescannte Bilder freigegeben werden, bevor sie ausgegeben oder geöffnet werden: automatisch, durch das Gerät oder in PathScribe."
       },
       "sys-subspecialties": {
         "description": "Subspezialitäten-Pools für den Delegationsworkflow."
@@ -8228,6 +8286,11 @@
     "title": "Zeitfenster für die zyto-histologische Korrelation",
     "windowDaysLabel": "Zeitfenster (Tage)"
   },
+  "cytologyIdentity": {
+    "vial": "{{label}}: {{description}}",
+    "vialWithPlatform": "{{label}}: {{platform}} – {{description}}",
+    "withSlides": "{{vials}} · Objektträger {{slides}}"
+  },
   "cytologyInstrumentationSection": {
     "facility": {
       "emptyState": "Keine Einrichtungsüberschreibungen — jede Einrichtung verwendet den Unternehmensstandard.",
@@ -8358,7 +8421,6 @@
       "waiting": "Wartet auf Übergabe"
     },
     "pageTitle": "Zytologie-Präparation",
-    "patientName": "{{given}} {{family}}",
     "scanPlaceholder": "Behälter- oder Dekantat-Barcode scannen",
     "scanPrompt": "Scannen Sie eine Flüssigkeit, ein Aliquot oder einen Zellblock, um sie vorzubereiten."
   },
@@ -9070,8 +9132,6 @@
       "title": "Zyto-/Histo-Vorgeschichte des Patienten",
       "viewCase": "Fall ansehen"
     },
-    "patientLine": "{{name}} · MRN {{mrn}}",
-    "patientUnknown": "Unbekannter Patient",
     "printBtn": "Drucken",
     "printCaseReportBtn": "Fallbefund drucken",
     "printFailed": "Das Befund-PDF konnte nicht erstellt werden. Versuchen Sie es erneut; wenn es weiterhin fehlschlägt, wenden Sie sich an Ihren Administrator.",
@@ -9526,7 +9586,6 @@
         }
       }
     },
-    "rowSubtitle": "Fall {{caseId}} · Patientennr. {{mrn}}",
     "screeningHours": {
       "cancel": "Abbrechen",
       "change": "Ändern",
@@ -9580,7 +9639,6 @@
       "unassignedPool": "Nicht zugewiesener Pool"
     },
     "title": "Zytologie-Arbeitsliste",
-    "unknownPatient": "Unbekannter Patient",
     "workload": {
       "leftFullDay": "Noch {{left}} Präparate an einem vollen 8-Stunden-Tag",
       "leftNow": "Jetzt noch {{left}} Präparate (bisherige Grenze {{limit}}, {{hours}} h gescreent)",
@@ -10703,14 +10761,12 @@
         "biopsy": "Biopsie",
         "needleCore": "Stanzbiopsie"
       },
-      "dob": "Geburtsdatum:",
       "flag": {
         "fragile": "Zerbrechlich",
         "requiresDecal": "Entkalkung erforderlich",
         "tinyTissue": "Winziges Gewebe"
       },
       "matrixBlockOf": "Matrixblock der Proben {{specimens}}",
-      "patient": "Patient:",
       "scanNext": "Nächste Kassette scannen →",
       "specimenBlock": "Probe/Block:",
       "specimenType": "Typ:",
@@ -11110,6 +11166,10 @@
       "modelPlaceholder": "z. B. Panther",
       "nameLabel": "Name",
       "namePlaceholder": "z. B. Panther 4",
+      "qcModeDefault": "Standard des Labors (Färbe- und Scan-QC)",
+      "qcModeHintScanner": "Wie ein Bild dieses Scanners geprüft wird, bevor der Pathologe es öffnen kann.",
+      "qcModeHintStainer": "Wie ein Lauf dieses Färbeautomaten freigegeben wird, bevor seine Objektträger ausgegeben werden.",
+      "qcModeLabel": "QC-Freigabe",
       "saveButton": "Änderungen speichern",
       "serialLabel": "Seriennummer",
       "serialPlaceholder": "Optional",
@@ -11717,6 +11777,7 @@
       "runFailed": "Fehlgeschlagene Gerätelläufe",
       "scanFailed": "Scan fehlgeschlagen",
       "scanning": "Wird gescannt",
+      "stainQcPending": "Wartet auf QC",
       "stainingActive": "Aktive Färbechargen",
       "statBatches": "STAT-Chargen",
       "statPending": "STAT ausstehend",
@@ -15341,6 +15402,7 @@
       "cutAndPlaced": "Geschnitten & aufgezogen",
       "pendingCut": "Schnitt ausstehend",
       "qcFailed": "QK fehlgeschlagen",
+      "qcPending": "Wartet auf QC",
       "readyForReview": "Bereit zur Durchsicht",
       "recutRequested": "Nachschnitt angefordert",
       "staining": "Färbung läuft"
@@ -15475,7 +15537,6 @@
     "context": {
       "accession": "Zugangsnummer:",
       "blockComments": "Blockkommentare",
-      "dob": "Geburtsdatum:",
       "flag": {
         "fragile": "Zerbrechlich",
         "requiresDecal": "Entkalkung erforderlich",
@@ -15485,7 +15546,6 @@
       "matrixPosition": "Position {{n}}",
       "matrixSpecimen": "Probe {{label}}",
       "noHistory": "Für diesen Block wurden noch keine Objektträger gedruckt.",
-      "patient": "Patient:",
       "pieceCount": "Stückzahl: ",
       "priorHistory": "Objektträger-Verlauf",
       "scanNext": "Nächsten Block/Dekantierung scannen →",
@@ -15541,6 +15601,8 @@
     "hardware": {
       "allPrinted": "Alle Objektträger dieses Blocks wurden gedruckt.",
       "batch": "Stapel",
+      "blockMode": "Block",
+      "blockModeHint": "Beim Scannen eines Blocks werden alle seine Etiketten auf einmal gedruckt. Scannen Sie sie danach in beliebiger Reihenfolge auf den Objektträgern.",
       "couldNotStart": "Der Druck konnte nicht gestartet werden.",
       "deviceStatus": "Gerätestatus",
       "fit": {
@@ -15556,6 +15618,8 @@
       "notConfigured": "Diese Station ist nicht für echten Objektträger-Etikettendruck konfiguriert.",
       "onDemand": "Bei Bedarf",
       "printBatch": "Stapel drucken",
+      "printBlock_one": "{{count}} Etikett des Blocks drucken",
+      "printBlock_other": "{{count}} Etiketten des Blocks drucken",
       "printMode": "Druckmodus",
       "printNext": "Nächsten drucken/gravieren",
       "profileMissing": "Das konfigurierte Druckerprofil existiert nicht mehr.",
@@ -15566,6 +15630,23 @@
         "offline": "Offline",
         "ready": "Bereit"
       }
+    },
+    "labelScan": {
+      "awaiting": "Scannen Sie das Etikett von {{slide}} auf dem Objektträger, um den Schnitt zu bestätigen (oder geben Sie es ein, wenn der Scanner ausgefallen ist).",
+      "awaitingMany": "Scannen Sie diese Etiketten auf den Objektträgern in beliebiger Reihenfolge (oder tippen Sie sie ein, wenn der Scanner ausgefallen ist): {{slides}}",
+      "blocked": "Scannen Sie das Etikett von {{slide}}, bevor Sie den nächsten Objektträger drucken.",
+      "confirmed": "{{slide}} bestätigt: von diesem Block geschnitten und aufgezeichnet.",
+      "notPrinted": "{{slide}} wurde noch nicht gedruckt: zuerst drucken."
+    },
+    "lockout": {
+      "body": "Scannen Sie die übrigen Etiketten oder schneiden Sie jeden Objektträger neu bzw. verwerfen Sie ihn, bevor Sie zum nächsten Block gehen.",
+      "continue": "Ohne sie fortfahren (protokolliert)",
+      "held": "Schließen Sie zuerst die Etiketten dieses Blocks ab.",
+      "recut": "Neu schneiden (neues Etikett)",
+      "stay": "Bei diesem Block bleiben",
+      "title_one": "{{count}} Etikett von Block {{block}} wurde noch nicht gescannt",
+      "title_other": "{{count}} Etiketten von Block {{block}} wurden noch nicht gescannt",
+      "void": "Objektträger verwerfen"
     },
     "pageTitle": "Mikrotomie-Arbeitsplatz",
     "printStatus": {
@@ -19598,7 +19679,7 @@
       "batchOption": "Stapel (pro Fall/Auftrag)",
       "description": "Bei Bedarf wird jedes Kassettenetikett gedruckt, sobald es beim Zuschnitt erfasst wird. Stapel verschiebt den gesamten Druck auf eine explizite Sammelaktion pro Fall.",
       "onDemandOption": "Bei Bedarf (pro Block/Behälter)",
-      "title": "Standard-Druckverhalten"
+      "title": "Druckverhalten im Zuschnitt"
     },
     "enabledLabel": "Aktiviert",
     "gs1Gtin": {
@@ -19611,6 +19692,15 @@
       "title": "On-Demand-Leitplanken erzwingen"
     },
     "loading": "Druckeinstellungen werden geladen…",
+    "microtomeBehavior": {
+      "description": "Wie das Mikrotom Objektträgeretiketten druckt, unabhängig vom Zuschnitt. Jedes Etikett wird auf seinem Objektträger gescannt, um den Schnitt zu bestätigen. Solange hier nichts gewählt ist, folgt das Mikrotom der Einstellung des Zuschnitts.",
+      "options": {
+        "batch": "Stapel: Die MTA wählt die Objektträger aus und druckt sie zusammen",
+        "block": "Block: Beim Scannen eines Blocks werden alle seine Etiketten gedruckt; sie werden in beliebiger Reihenfolge zurückgescannt",
+        "on_demand": "Auf Abruf: ein Etikett nach dem anderen; jedes wird gescannt, bevor das nächste gedruckt wird"
+      },
+      "title": "Druckverhalten am Mikrotom"
+    },
     "molecularPrinterProfile": {
       "description": "Dieselbe echte Hardware-Bridge-Wahl wie oben, für die eigenen Platten-, Gestell-, Präparat- und Deck-Positionsetiketten des Molekulartest-Ausführungsmoduls.",
       "title": "Molekular-Etikett-Druckerprofil"
@@ -21516,6 +21606,162 @@
     "sentToCodeReview": "Fall zur Codeüberprüfung gesendet",
     "title": "Überprüfung durch Kollegen anfordern"
   },
+  "requisitionIngestion": {
+    "addSource": "＋ Quelle hinzufügen",
+    "enabled": "Diese Quelle lesen",
+    "expected": {
+      "graceHint": "Stunden nach der Erfassung ohne zugeordneten Schein. 0 markiert sofort. Blockiert die Arbeit nie.",
+      "graceHours": "Fall markieren nach (Stunden)",
+      "hint": "Welche Fälle einen gescannten Auftragsschein haben sollten. Ein Fall ohne rechtzeitig zugeordneten Schein wird im Auftragsschein-Eingang markiert, zeigt „Auftragsschein fehlt“ und erhält eine Abweichung „Auftragsschein fehlt“. Ein elektronischer KIS-Auftrag braucht standardmäßig keinen: Seine Auftragsnachricht ist der Auftrag.",
+      "organisationDefault": "Standard der Organisation",
+      "origins": "Ein gescannter Auftragsschein wird erwartet für",
+      "save": "Erwartungen speichern",
+      "scope": "Gilt für",
+      "title": "Erwartete Auftragsscheine",
+      "unmatchedHint": "Ein Auftragsschein, der so lange zu keinem Fall passt, kann auf ein nicht eingegangenes, verlorenes oder nicht erfasstes Präparat hinweisen: Er wird rot markiert und oben in die Warteschlange gestellt.",
+      "unmatchedHours": "Scan ohne Fall markieren nach (Stunden)",
+      "usesDefault": "Diese Einrichtung folgt dem Standard der Organisation, bis Sie eine eigene Einstellung speichern."
+    },
+    "facility": "Ausführende Einrichtung",
+    "facilityHint": "Das Labor, dem dieser Scanner gehört. Seine Scans warten in der Warteschlange dieser Einrichtung, und nur Personal dieser Einrichtung kann sie sehen und bearbeiten. Alle Einrichtungen: für einen Scanner, den alle Labore teilen.",
+    "kind": "Herkunft der Scans",
+    "kinds": {
+      "api": "Ein System, das Scans an die PathScribe-API sendet",
+      "documentSystem": "Ein Dokumentensystem eines Drittanbieters, das PathScribe unter seiner Adresse liest",
+      "fileShare": "Ein Ordner im Krankenhausnetz, in den der Scanner speichert"
+    },
+    "lastSaved": "Zuletzt gespeichert {{when}} von {{name}}",
+    "loading": "Auftragsschein-Import wird geladen…",
+    "location": {
+      "api": "Sendendes System",
+      "documentSystem": "Systemadresse (https)",
+      "fileShare": "Ordneradresse"
+    },
+    "locationHint": {
+      "api": "Der Name des Systems, wie es sich bei der API anmeldet.",
+      "documentSystem": "Die https-Adresse des Systems, an das der Scanner sendet (ein ECM, der Dokumentenspeicher des LIS, ein Scan-Dienst). Der Server liest dort neue Scans mit den auf dem API-Server eingerichteten Zugangsdaten; PathScribe behält nur den Verweis auf jede Datei.",
+      "fileShare": "Wo der Scanner seine PDFs speichert: ein Netzwerkpfad wie \\\\server\\requisitions\\inbox oder eine smb://-, nfs://-, file://- oder https://-Adresse. Der Server liest ihn, der Browser nie."
+    },
+    "name": "Name",
+    "newSource": "Neue Quelle: noch nicht gespeichert",
+    "problem": "Die Einstellungen konnten nicht gespeichert werden. Prüfen Sie die rot markierten Felder.",
+    "referenceOnly": "PathScribe behält keine Kopie eines Scans: Jeder Fall behält einen Verweis auf die Datei an ihrem Speicherort, die zugehörigen Seiten, den Barcode der Zuordnung, den Zeitpunkt und die Quelle.",
+    "saved": "Gespeichert.",
+    "schedule": "Lesen alle (Minuten)",
+    "scheduleHint": "1 bis 1.440 Minuten. Der Server führt es als geplanten Job aus.",
+    "separator": "Barcode des Trennblatts",
+    "separatorHint": "Drucken Sie ein Blatt mit diesem Barcode und legen Sie es in einem Stapelscan zwischen die Auftragsscheine. Diese Seite beendet den vorherigen Auftragsschein und wird keinem Fall zugeordnet.",
+    "sources": "Quellen",
+    "subtitle": "Woher gescannte Auftragsscheine kommen, wie oft sie gelesen werden, und das Trennblatt zwischen Auftragsscheinen in einem Stapelscan.",
+    "title": "Auftragsschein-Import"
+  },
+  "requisitions": {
+    "accession": {
+      "creating": "Neuer Fall für den gescannten Auftragsschein:",
+      "linkFailed": "Der Scan konnte nicht zugeordnet werden: Ordnen Sie ihn im Auftragsschein-Eingang zu.",
+      "linked": "Der gescannte Auftragsschein ist dem neuen Fall zugeordnet"
+    },
+    "allFacilities": "Alle Einrichtungen",
+    "caseButton_one": "📄 Auftragsschein",
+    "caseButton_other": "📄 Auftragsscheine ({{count}})",
+    "caseTab": "Auftragsschein {{n}}",
+    "discardReasons": {
+      "duplicateScan": "Doppelter Scan",
+      "notARequisition": "Kein Auftragsschein",
+      "other": "Sonstiges",
+      "unreadable": "Unlesbarer Scan"
+    },
+    "errors": {
+      "alreadyClosed": "Dieser Scan wurde bereits zugeordnet oder verworfen.",
+      "noSuchCase": "Kein Fall für {{accession}} gefunden.",
+      "notPermitted": "Sie haben dafür keine Berechtigung.",
+      "runFailed": "Der Import konnte nicht ausgeführt werden. Versuchen Sie es erneut."
+    },
+    "inbox": {
+      "backToAccession": "← Eingang",
+      "discard": "Verwerfen",
+      "discardReason": "Grund für das Verwerfen",
+      "everyFacility": "Alle meine Einrichtungen",
+      "facilityFilter": "Einrichtung",
+      "foundNone": "Kein Fall gefunden. Prüfen Sie Eingangsnummer, Patientenname oder Patientennummer auf dem Scan, oder legen Sie daraus einen neuen Fall an.",
+      "foundTitle": "Gefundene Fälle",
+      "ingestion": "Auftragsschein-Import",
+      "lastRun": "Letzter Lauf {{when}}: {{files}} Dateien, {{matched}} Fällen zugeordnet, {{unmatched}} in die Warteschlange „Nicht zugeordnet“, {{rejected}} abgelehnt.",
+      "link": "Zuordnen",
+      "linkPlaceholder": "Eingangsnummer, Patientenname oder Patientennummer",
+      "newCase": "Neuer Fall aus diesem Scan",
+      "noRunYet": "Noch kein Lauf.",
+      "noSources": "Für Ihre Einrichtungen ist kein Scanner eingerichtet. Ein Administrator fügt einen unter Konfiguration → System → Integrationen → Auftragsschein-Import hinzu.",
+      "notRun": "Nicht ausgeführt, da Ihre Rolle den Import für diese Einrichtung nicht ausführen darf: {{names}}",
+      "recentEmpty": "Noch keine Auftragsscheine zugeordnet.",
+      "recentTitle": "Zuletzt zugeordnet",
+      "runNow": "Jetzt ausführen",
+      "running": "Scans werden gelesen…",
+      "serverRuns": "Der Server führt den Import nach seinem Zeitplan aus.",
+      "sourceLine": "{{name}} · {{location}} · alle {{minutes}} Min.",
+      "sourceOff": "wird nicht gelesen (ausgeschaltet)",
+      "subtitle": "Gescannte Auftragsscheine werden über den Eingangsnummer-Barcode auf der Seite ihrem Fall zugeordnet und verknüpft, nicht kopiert. Ein Scan ohne passenden Fall wartet hier, bis ihn jemand einem Fall zuordnet oder verwirft.",
+      "title": "Auftragsschein-Eingang",
+      "unmatchedEmpty": "Nichts offen: Jeder Scan ist einem Fall zugeordnet.",
+      "unmatchedTitle_one": "Nicht zugeordnete Auftragsscheine ({{count}})",
+      "unmatchedTitle_other": "Nicht zugeordnete Auftragsscheine ({{count}})"
+    },
+    "inboxLink": "📥 Auftragsschein-Eingang",
+    "matchedAutomatically": "Über seinen Barcode zugeordnet",
+    "matchedByHand": "Zugeordnet von {{name}}",
+    "missing": {
+      "accessioned": "Erfasst {{when}}",
+      "deficiencyRaised": "Für diesen Fall wurde eine Abweichung „Auftragsschein fehlt“ erfasst.",
+      "flagged": "Markiert: kein Auftragsschein zugeordnet.",
+      "hint": "Diese Fälle sollten einen gescannten Auftragsschein haben, und rechtzeitig wurde keiner zugeordnet. Scannen oder geben Sie die Eingangsnummer an einem wartenden Scan ein, um ihn zuzuordnen, oder halten Sie fest, warum kein Papierauftrag kommt.",
+      "linkHint": "Das Zuordnen seines Scans hebt dies auf.",
+      "reason": "Warum kein Papierauftrag",
+      "title_one": "Fälle ohne Auftragsschein ({{count}})",
+      "title_other": "Fälle ohne Auftragsschein ({{count}})",
+      "waive": "Kein Papierauftrag"
+    },
+    "missingChip": "⚠ Auftragsschein fehlt",
+    "origins": {
+      "downtime": "Erfassung bei Systemausfall",
+      "electronic": "Elektronischer KIS-/LIS-Auftrag",
+      "lockbox": "Lockbox-Einwurf",
+      "manual": "Im Eingang erfasst, ohne importierten Auftrag",
+      "outside": "Externer Fall / Auftragsfall"
+    },
+    "pageRange": "Seiten {{from}}–{{to}}",
+    "pageSingle": "Seite {{page}}",
+    "preview": {
+      "errors": {
+        "notPermitted": "Sie haben keine Berechtigung, diesen Auftragsschein anzusehen.",
+        "unreadable": "Der Scan ist an seinem Speicherort nicht erreichbar. Nutzen Sie PDF öffnen oder prüfen Sie, ob die Datei noch vorhanden ist."
+      },
+      "loading": "Scan wird gelesen…",
+      "openPdf": "PDF öffnen",
+      "pageAlt": "Auftragsschein, Seite {{page}}",
+      "title": "Gescannter Auftragsschein"
+    },
+    "reason": {
+      "noBarcode": "Auf dieser Seite war kein Barcode lesbar",
+      "noMatch": "Dieser Barcode passt zu keinem Fall"
+    },
+    "rejected": {
+      "notPdf": "Abgelehnt: kein PDF (nur PDFs werden gelesen)",
+      "unreadable": "Abgelehnt: Die Datei konnte nicht gelesen werden"
+    },
+    "toast": {
+      "discarded": "Scan verworfen. Die Datei selbst bleibt unberührt.",
+      "linked": "Auftragsschein {{accession}} zugeordnet.",
+      "waived": "Erfasst: kein Papierauftrag. Die Abweichung „Auftragsschein fehlt“ ist geschlossen."
+    },
+    "view": "Ansehen",
+    "waiverReasons": {
+      "electronicOrder": "Elektronischer Auftrag vorhanden",
+      "other": "Sonstiges",
+      "requestInAnotherRecord": "Auftrag in einem anderen Datensatz",
+      "verbalOrderDocumented": "Mündlicher Auftrag, dokumentiert"
+    },
+    "withoutCase": "Noch kein Fall: Prüfen Sie, ob ein Präparat nicht eingegangen, verloren oder nicht erfasst ist"
+  },
   "researchCases": {
     "accessionPrefixes": "Präfixe der Eingangsnummer",
     "active": "Aktiv",
@@ -22253,6 +22499,8 @@
       "missing": "Fehlend",
       "printed": "Etikett gedruckt",
       "received": "Empfangen",
+      "sectioned": "Geschnitten, Etikett bestätigt",
+      "typed": "Eingetippt, nicht gescannt",
       "unexpected": "Unerwartet",
       "unloaded": "Aus Träger entnommen"
     },
@@ -22996,6 +23244,10 @@
       "release": {
         "dueSweep": "Fällige zurückgehaltene Freigaben"
       },
+      "requisition": {
+        "ingest": "Auftragsschein-Import",
+        "missingSweep": "Prüfung fehlender Auftragsscheine"
+      },
       "supportAccess": {
         "expire": "Ablauf des Support-Zugriffs"
       }
@@ -23381,6 +23633,8 @@
     "title": "Protokoll simulierter Drucke",
     "toast": "Simuliert: {{kind}} an {{destination}} gesendet. Es wurde nichts gedruckt.",
     "toastFailed": "Simulierter Fehler: {{kind}} hat {{destination}} nicht erreicht.",
+    "toastFailedRepeated": "Simulierter Fehler: {{kind}} × {{count}} hat {{destination}} nicht erreicht.",
+    "toastRepeated": "Simuliert: {{kind}} × {{count}} an {{destination}} gesendet. Es wurde nichts gedruckt.",
     "transport": "Gesendet über",
     "when": "Wann"
   },
@@ -23663,9 +23917,13 @@
       "title": "Grund erforderlich"
     },
     "scanErrors": {
+      "blockHeldByQc": "Alle Objektträger von Block {{block}} werden von der QC zurückgehalten ({{count}}). Geben Sie zuerst den Lauf am QC-Kontrollpunkt frei.",
       "blockNotFound": "Block {{block}} wurde nicht gefunden.",
       "noSlides": "Block {{block}} hat keine Objektträger zum Verteilen.",
       "notResolved": "Dieser Scan passt zu keinem Fall, Block oder Objektträger. Prüfen Sie den Barcode und versuchen Sie es erneut.",
+      "qcFailed": "Objektträger {{slide}} hat die QC nicht bestanden und wartet auf die Neufärbung.",
+      "qcPending": "Objektträger {{slide}} wartet auf die QC-Freigabe und kann noch nicht ausgegeben werden.",
+      "recutRequested": "Objektträger {{slide}} hat die QC nicht bestanden; ein Neuschnitt wurde angefordert.",
       "slideNotFound": "Objektträger {{slide}} wurde nicht gefunden.",
       "specimenNotFound": "Das Präparat wurde in diesem Fall nicht gefunden.",
       "unsupportedTarget": "Diese Station nimmt Block-, Matrixblock- und Objektträger-Barcodes an. Zellblockkassetten, Dekantate und Präparat-Barcodes werden noch nicht unterstützt."
@@ -23704,6 +23962,7 @@
     "referenceNote": "Referenzvorschau. Nicht für die Diagnose.",
     "state": {
       "available": "Bild vorhanden",
+      "awaitingImageQc": "Wartet auf Bild-QC",
       "failedImageQuality": "Bildqualität nicht bestanden",
       "noImageYet": "Noch kein Bild",
       "queued": "In der Warteschlange",
@@ -24526,6 +24785,59 @@
       "vendorPlaceholder": "z. B. Ventana"
     }
   },
+  "stainQc": {
+    "actions": {
+      "recut": "Neu schneiden",
+      "restain": "Neu färben"
+    },
+    "errors": {
+      "failed": "Diese QC-Entscheidung konnte nicht gespeichert werden. Neu laden und erneut versuchen.",
+      "invalid": "Geben Sie für jeden nicht bestandenen Objektträger eine Folgemaßnahme und einen Grund an.",
+      "notPermitted": "Sie haben keine Berechtigung für diese QC-Entscheidung. Wenden Sie sich an Ihre Administration."
+    },
+    "fail": "Nicht bestanden",
+    "followUp": "Folgemaßnahme",
+    "hint": "Gefärbte Objektträger und gescannte Bilder warten hier, bis ihre QC freigegeben ist. Ein Rack, das auf die QC wartet, kann nicht ausgecheckt werden, und seine Objektträger werden nicht ausgegeben.",
+    "imageLine": "Scanner {{scanner}} · Scan-Charge {{batch}}",
+    "imageReasons": {
+      "debris": "Verunreinigung auf dem Objektträger",
+      "other": "Sonstiges",
+      "outOfFocus": "Unscharf",
+      "stitching": "Fehler beim Zusammensetzen",
+      "tissueMissed": "Gewebe nicht erfasst"
+    },
+    "imagesTitle_one": "Gescanntes Bild wartet auf QC ({{count}})",
+    "imagesTitle_other": "Gescannte Bilder warten auf QC ({{count}})",
+    "modes": {
+      "autoAccept": "Automatisch annehmen",
+      "pathscribeSignOff": "Freigabe in PathScribe",
+      "vendorSignOff": "Freigabe durch das Gerät (Schnittstellen-Engine)"
+    },
+    "outcome": "QC-Ergebnis",
+    "pass": "Bestanden",
+    "reason": "Grund",
+    "reasons": {
+      "controlFailed": "Kontrolle nicht bestanden",
+      "coverslipBubble": "Luftblase unter dem Deckglas",
+      "other": "Sonstiges",
+      "overStaining": "Überfärbung",
+      "tissueFolded": "Gefaltetes Gewebe",
+      "uneven": "Ungleichmäßige Färbung",
+      "weakStaining": "Schwache Färbung"
+    },
+    "releaseImage": "An den Pathologen freigeben",
+    "rescan": "Erneut scannen",
+    "runLine_one": "{{count}} Objektträger · wartet seit {{when}}",
+    "runLine_other": "{{count}} Objektträger · warten seit {{when}}",
+    "signOffAllPassed": "Freigeben: alle Objektträger bestanden",
+    "signOffInstead": "Statt des Färbeautomaten freigeben",
+    "signOffWithFailures_one": "Freigeben: {{count}} Objektträger nicht bestanden",
+    "signOffWithFailures_other": "Freigeben: {{count}} Objektträger nicht bestanden",
+    "stainer": "Färbeautomat",
+    "stainerUnknown": "Nicht erfasst",
+    "title": "QC-Kontrollpunkt",
+    "waitingForInstrument": "Dieser Färbeautomat gibt seine Läufe selbst über die Schnittstellen-Engine frei. Der Lauf wird freigegeben, sobald sein Ergebnis eintrifft; eine Aufsicht kann ihn stattdessen hier freigeben."
+  },
   "stainQcGateModal": {
     "confirmButton": "Bestätigen, dass die Checkliste für die visuelle Ablesung vollständig ist",
     "confirmedBadge": "Visuelle Ablesung bestätigt von {{name}}.",
@@ -24535,18 +24847,61 @@
     "intro": "Die unten aufgeführten Färbe-Chargen müssen geklärt werden, bevor dieser Fall signiert werden kann.",
     "rowTitle": "Charge {{batchBarcode}} — {{specimenList}}"
   },
+  "stainQcSection": {
+    "columns": {
+      "instrument": "Gerät",
+      "kind": "Art",
+      "mode": "QC-Freigabe"
+    },
+    "defaults": "Standards",
+    "explain": {
+      "autoAccept": "der Lauf oder das Bild wird sofort nach Abschluss ohne Freigabe weitergegeben (als automatisch angenommen protokolliert).",
+      "pathscribeSignOff": "eine technische Fachkraft gibt am QC-Kontrollpunkt der Objektträgerverteilung frei (Option B).",
+      "vendorSignOff": "das eigene QC-Ergebnis des Geräts, über die Schnittstellen-Engine gesendet, gibt frei oder hält zurück (Option A)."
+    },
+    "fromDefault": "Standard",
+    "instruments": "Färbeautomaten und Scanner",
+    "instrumentsHint": "Der Modus jedes Geräts. Ändern unter Konfiguration → System → Geräte (QC-Freigabe).",
+    "loading": "QC-Einstellungen werden geladen…",
+    "noInstruments": "Noch kein Färbeautomat oder Objektträgerscanner im Geräteregister.",
+    "save": "QC-Standards speichern",
+    "saved": "QC-Standards gespeichert.",
+    "scannerDefault": "Objektträgerscanner",
+    "stainerDefault": "Färbeautomaten",
+    "subtitle": "Der QC-Kontrollpunkt nach der Färbung und vor der Verteilung. Jeder Färbeautomat und Scanner kann im Bildschirm Geräte einen eigenen Modus haben; die übrigen verwenden diese Standards.",
+    "title": "Färbe- und Scan-QC"
+  },
   "stationCarrier": {
-    "addToOutput": "Gedruckte Objektträger in die Schale legen ({{count}})",
-    "andMore": "und {{count}} weitere",
+    "bench": {
+      "counter": "Nicht zugeordnete Objektträger auf dem Arbeitsplatz: {{count}}",
+      "hint": "Scannen Sie ein offenes Färbegestell, um alle hineinzulegen und es zu versiegeln.",
+      "leaveWarning_one": "{{count}} Objektträger auf diesem Arbeitsplatz ist noch nicht in einem Färbegestell. Er bleibt auf dem Arbeitsplatz dieser Station, bis ein Gestell gescannt wird. Trotzdem verlassen?",
+      "leaveWarning_other": "{{count}} Objektträger auf diesem Arbeitsplatz sind noch nicht in einem Färbegestell. Sie bleiben auf dem Arbeitsplatz dieser Station, bis ein Gestell gescannt wird. Trotzdem verlassen?",
+      "noneAdded": "Keiner der Objektträger auf dem Arbeitsplatz konnte in {{barcode}}; {{count}} noch auf dem Arbeitsplatz.",
+      "slideOnBench": "{{item}} bestätigt und auf den Arbeitsplatz gelegt ({{count}} warten auf ein Gestell).",
+      "someLeft_one": "{{count}} Objektträger konnte nicht in {{barcode}} und liegt noch auf dem Arbeitsplatz.",
+      "someLeft_other": "{{count}} Objektträger konnten nicht in {{barcode}} und liegen noch auf dem Arbeitsplatz."
+    },
+    "checkOffPrompt": "{{item}} von Hand abhaken. Warum?",
+    "checkOffReasons": {
+      "labelDamaged": "Etikett beschädigt",
+      "labelUnreadable": "Etikett unleserlich",
+      "scannerDown": "Scanner funktioniert nicht"
+    },
+    "checkOffTitle": "Etikett lässt sich nicht scannen? Von Hand abhaken",
     "chooseStation": "Arbeitsplatz dieses Computers",
     "close": "Schließen",
     "dismiss": "Meldung schließen",
     "finish": "Entladen abschließen",
+    "itemArrived": "✓ Angekommen",
+    "itemWaiting": "Zu scannen",
+    "itemsLabel": "Inhalt dieses Trägers",
     "listLabel": "Offene Träger für diesen Arbeitsplatz",
     "noStation": "Für diesen Computer ist kein Scan-Arbeitsplatz festgelegt. Scans werden hier nicht erfasst und Träger können hier nicht geöffnet werden. Wählen Sie den Arbeitsplatz dieses Computers.",
     "noneHere": "Keine offenen Träger für diesen Arbeitsplatz.",
     "notice": {
-      "addedToOutput": "Objektträger in {{barcode}} gelegt: {{count}}.",
+      "blockIntoTray": "{{item}} in {{barcode}} gelegt.",
+      "checkedOffByHand": "{{item}} in {{barcode}} von Hand abgehakt; der Grund wird aufgezeichnet.",
       "closedAborted": "{{barcode}} ist geschlossen: abgebrochen am {{at}}.",
       "closedComplete": "{{barcode}} ist geschlossen: abgeschlossen am {{at}}.",
       "finished": "Entladen von {{barcode}} abgeschlossen.",
@@ -24556,13 +24911,21 @@
       "opened": "{{barcode}} hier geöffnet. Elemente: {{count}}.",
       "openedAdHoc": "{{barcode}} hier geöffnet; dieser Arbeitsplatz wurde als sein Arbeitsplatz erfasst. Elemente: {{count}}.",
       "openedMismatch": "{{barcode}} hier geöffnet, obwohl er zu einem anderen Schritt gehört. Dies wurde erfasst.",
+      "outputClosedWithLoaded_one": "{{barcode}} mit {{count}} Element versiegelt und weitergegeben. {{loaded}} ist abgeschlossen.",
+      "outputClosedWithLoaded_other": "{{barcode}} mit {{count}} Elementen versiegelt und weitergegeben. {{loaded}} ist abgeschlossen.",
+      "outputClosed_one": "{{barcode}} mit {{count}} Element versiegelt und weitergegeben.",
+      "outputClosed_other": "{{barcode}} mit {{count}} Elementen versiegelt und weitergegeben.",
       "outputSet": "{{barcode}} ist jetzt die Ausgabeschale.",
       "sealed": "{{barcode}} versiegelt. Elemente: {{count}}.",
+      "slideIntoRack": "{{item}} bestätigt und in {{barcode}} gestellt.",
       "unexpectedKept": "{{item}} beibehalten und in {{barcode}} als unerwartet erfasst.",
       "unknown": "Kein Träger hat den Barcode {{barcode}}."
     },
     "openInBatchManagement": "In der Chargenverwaltung öffnen",
     "outputHint": "Scannen Sie einen offenen {{node}}-Träger, um ihn als Ausgabeschale für geschnittene Objektträger zu verwenden.",
+    "outputHintEmbedding": "Scannen Sie einen offenen Träger für {{node}}, um die eingebetteten Blöcke darin für das Mikrotom zu sammeln.",
+    "outputHintMicrotomy": "Scannen Sie zuerst ein offenes {{node}}-Gestell, um es Objektträger für Objektträger zu füllen, oder schneiden Sie zuerst und scannen Sie das Gestell am Ende: Alle Objektträger auf dem Arbeitsplatz kommen hinein, und es wird versiegelt.",
+    "outputRescanHint": "Wenn {{barcode}} voll ist, scannen Sie ihn erneut, um ihn zu versiegeln und weiterzugeben.",
     "outputTray": "Ausgabeschale",
     "pending": {
       "continueAnyway": "Trotzdem fortfahren",
@@ -24571,12 +24934,17 @@
       "wrongItem": "{{item}} ist nicht im Träger {{barcode}}. Trotzdem fortfahren? Es wird als unerwartet erfasst."
     },
     "progress": "{{matched}} von {{total}} abgescannt",
+    "rack": {
+      "closeLastRun": "Letzten Lauf schließen und neuen beginnen",
+      "newRun": "{{barcode}} hat hier einen neuen Färbelauf begonnen. Laden Sie die Objektträger und scannen Sie das Gestell erneut, wenn es voll ist, um es zu schließen.",
+      "notClosed_one": "Der letzte Lauf auf {{barcode}} ({{count}} Objektträger, {{at}}) wurde nie geschlossen. Schließen Sie ihn, bevor Sie das Gestell wieder verwenden, oder öffnen Sie ihn in der Chargenverwaltung.",
+      "notClosed_other": "Der letzte Lauf auf {{barcode}} ({{count}} Objektträger, {{at}}) wurde nie geschlossen. Schließen Sie ihn, bevor Sie das Gestell wieder verwenden, oder öffnen Sie ihn in der Chargenverwaltung."
+    },
     "routedHere": "Für hier bestimmt",
     "scanToUnload": "Scannen Sie jedes Element, während Sie es aus dem Träger nehmen.",
     "seal": "Manifest versiegeln",
     "sealed": "Versiegelt",
     "stationLine": "Arbeitsplatz: {{station}}",
-    "stillToScan": "Noch zu scannen: {{items}}",
     "title": "Träger an diesem Arbeitsplatz",
     "unexpectedCount_one": "{{count}} unerwartetes Element gescannt",
     "unexpectedCount_other": "{{count}} unerwartete Elemente gescannt",
@@ -24584,9 +24952,9 @@
   },
   "stationScan": {
     "backToScanning": "Zurück zum Scannen (Tastatur ausblenden)",
-    "backToScanningShort": "⌨ Scannen",
+    "backToScanningShort": "⌨ Tastatur ausblenden",
     "typeAnId": "Eine ID mit der Bildschirmtastatur eingeben",
-    "typeAnIdShort": "⌨ Tippen"
+    "typeAnIdShort": "⌨ Tastatur"
   },
   "stationSwitch": {
     "discardedAndSwitched": "📍 Änderungen verworfen und zu {{station}} gewechselt.",
@@ -25881,6 +26249,7 @@
       "qaTrendPolicy": "Richtlinie für Diskrepanztrends",
       "reagentLots": "Reagenz- & Lösungschargen",
       "releaseBuffer": "Freigabepuffer nach Signierung",
+      "requisitionIngestion": "Auftragsschein-Import",
       "researchCases": "Forschungsfälle und Chargenzwecke",
       "researchFeed": "Forschungs-Feed",
       "retention": "Datenaufbewahrung",
@@ -25895,6 +26264,7 @@
       "siteAgents": "Standortagenten",
       "smartCapture": "Smart Capture",
       "specimens": "Präparatwörterbuch",
+      "stainQc": "Färbe- und Scan-QC",
       "stains": "Diagnosekatalog",
       "subspecialties": "Subspezialitäten",
       "supportAccess": "Support-Zugriff",

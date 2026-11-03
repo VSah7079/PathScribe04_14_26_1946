@@ -23,6 +23,8 @@ status: Draft
 !!! note "Several parts are demonstration only"
     The screen, the plate rules, the order queue, result handling and the report link are all built and work in the demonstration. What is **not** built is the live connection to a real analyser or reference laboratory. Sending a worklist and receiving a run result are stand-ins today. See "Exception handling" below and the notes on each tab.
 
+**Patient identity and typed entries (Batch 759).** This screen shows no patient name, date of birth or MRN. Check the accession number and the specimen source against the container; an outside case also shows its **Foreign case ID** (and a block or specimen's own **Foreign ID**). A typed id (when the scanner can't read a label) opens at once; a line says "Typed, not scanned: check the container shows … and …", and the typed entry is recorded quietly on the audit trail and in the scan history. See the Microtome page for the full account.
+
 ## Screen Tour
 
 ![The Molecular Workspace with its five tabs and the Order Queue showing queued orders](capture:molecular-overview)

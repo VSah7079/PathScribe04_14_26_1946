@@ -824,6 +824,7 @@ Unlocks: [Printer Profiles](#screen-printer_profiles), [Grossing Hardware](#scre
 | Maintenance Every (days) | Whole number, 1 to 3650 | Optional | Same rule. | Blank |
 | Lowest temperature (°C), Highest temperature (°C) | Numbers, lowest below highest; either may be blank | Optional | Batch 730: the range a Temperature check in the Equipment Log is held to. A reading outside it is a Fail; the range is copied onto each entry when it is made. | Blank |
 | Takes large-format slides | Tick box, stainers and slide scanners only | Optional | Batch 732: the device takes large-format (megablock) slides. Slide Distribution sends a large-format slide only to a scanner with this ticked. | Not ticked |
+| QC sign-off | Picklist, stainers and slide scanners only: The lab's default, Auto-accept, Instrument sign-off (interface engine), PathScribe sign-off | Optional | Batch 763: how this instrument's output is signed off before its slides are handed out (stainer) or its images opened (scanner). See [Stain & scan QC](#screen-stain_qc). | The lab's default |
 | Status | Active / Inactive | Optional | | Active |
 | Deck layout | Rows, analysers only | Optional | The slots on the analyser's deck. Each row: Deck or bay, Slot ID (letters, digits, "_", no two alike), and Takes (Extraction plate, Reagent cartridge, Sample tube rack; at least one). Rack Loading offers only slots that fit. The slot ID is printed on the deck-position barcode. | None |
 
@@ -842,8 +843,44 @@ Unlocks: [Printer Profiles](#screen-printer_profiles), [Grossing Hardware](#scre
 
 Batch 737. Shown below the register when the lab has reusable staining racks (engraved RACK- ids). Each row is a rack with the tick box **Takes large-format slides**, saved at once (needs `config:equipment:manage`). Batch Management refuses a large-format slide (cut from a megablock) scanned onto a staining carrier that does not take large-format slides; a disposable staining carrier takes them when **Takes large-format slides (megablocks)** is ticked in New Container. The demo has one such rack, RACK-STAIN-LF-01.
 
+Batch 761: a rack is reused run after run. At the Microtome, scanning a registered rack whose last run is closed starts a new run on it, with no form; Batch Management opens it as a new run (New Container, pre-filled). A rack whose last run was sealed or put on the stainer but never closed is held with a warning. Closing that run from the Microtome is a reconciliation override (`batch:reconciliation:override`), recorded with the reason "Reusable rack scanned for a new run; the last run on it was never closed."
+
 **7. Permissions.** Open: `screen:configuration:open`. Add, edit, deactivate: `config:equipment:manage`. Record a service log entry: `equipment:maintenance:record`. Both high risk. Admin and Lab Director hold both. The Histotechnologist, Cytotechnologist and Molecular Technologist roles also hold the log permission.
 **Known limits.** Service due dates are worked out in the facility's time zone on the Contribution Dashboard settings.
+
+### Stain & scan QC {#screen-stain_qc}
+Breadcrumb: Home > Configuration > System > Workstation & Hardware > Stain & scan QC
+
+**Status:** Partial
+
+**1. Navigation:** Configuration tab **System** > group **Workstation & Hardware** > **Stain & scan QC**
+**2. Maintenance item:** Stain & scan QC
+
+**3. Business purpose and scope.** Batch 763, the Post-Stain / Pre-Distribution QC checkpoint. When a staining run finishes, its slides wait for QC: the rack cannot be checked out and its slides are not handed out at Slide Distribution until the run is signed off. A scanned image can wait the same way before the Pathologist can open it. Each stainer and scanner signs off in one of three ways: **Auto-accept** (released at once, audited as auto-accepted), **Instrument sign-off (interface engine)** (Option A: the instrument's own QC result, sent through the interface engine, releases or holds the run; for a scanner, its own image check), or **PathScribe sign-off** (Option B: a technologist signs off at the QC checkpoint on Slide Distribution). This screen sets the defaults; an instrument's own mode is set on [Equipment](#screen-equipment) (QC sign-off) and wins over the default.
+
+**4. Prerequisites and dependencies.** The instrument list reads [Equipment](#screen-equipment): stainers and slide scanners. Instrument sign-off needs the stainer's interface (its sign-off message through the interface engine); without it, a supervisor signs off instead.
+
+Setup step: Tier 1, step 22
+Requires: [Equipment](#screen-equipment)
+Unlocks: None.
+
+**5. Screen.**
+
+[SCREENSHOT PLACEHOLDER: system-stain-qc - The QC defaults and the list of stainers and scanners with their modes]
+
+**6. Field reference.**
+
+| Field Name | Data Type / Format | Required/Optional | Description & Business Logic | System Default |
+|---|---|---|---|---|
+| Stainers | Picklist: Auto-accept, Instrument sign-off (interface engine), PathScribe sign-off | Required | The default for a stainer with no mode of its own. | PathScribe sign-off |
+| Slide scanners | Same picklist | Required | The default for a scanner with no mode of its own. With Instrument sign-off, an image the scanner's own check passed is released; any other is held. | Auto-accept |
+| Save QC defaults | Button | Not applicable | Audited as Stain QC Settings Saved. | Not applicable |
+| Stainers and scanners | Table: Instrument, Kind, QC sign-off | Not applicable | Each instrument's mode, with "the default" when it has none of its own. | Not applicable |
+
+At the checkpoint, a failed slide is marked **Re-stain** (status QC Failed) or **Re-cut** (Recut Requested) with a reason: Weak staining, Over-staining, Uneven staining, Control failed, Coverslip bubble, Folded tissue, Other. An image is released or sent back to be scanned again with a reason: Out of focus, Tissue missed, Stitching error, Debris on the slide, Other. The audit log shows Stain QC Pending, Passed, Failed, Instrument Result Ignored; Image QC Pending, Passed, Failed.
+
+**7. Permissions.** Open: `screen:configuration:open`. Save the defaults: `config:stain-qc:manage` (Admin, Lab Director). At the checkpoint: `stain:qc:sign-off` and `scan:image-qc:sign-off` (the roles that open Slide Distribution, Lab Director); `stain:qc:override` to sign off a run that waits for its stainer's own sign-off (Lab Director). All high risk.
+**Known limits.** The fail reasons are a fixed list; per-stain QC criteria are not built. The server routes and the interface engine's sign-off channel are Planned.
 
 ### Printer Profiles {#screen-printer_profiles}
 Breadcrumb: Home > Configuration > System > Workstation & Hardware > Printer Profiles
@@ -1045,7 +1082,8 @@ Unlocks: [Label Designer](#screen-label_designer)
 
 | Field Name | Data Type / Format | Required/Optional | Description & Business Logic | System Default |
 |---|---|---|---|---|
-| Default Print Behavior | Choice: On-Demand (per block or container), Batch (per case or order) | Required | On-Demand prints each cassette label as it is logged during grossing. Batch defers printing to one per-case action. | On-Demand |
+| Grossing Print Behavior | Choice: On-Demand (per block or container), Batch (per case or order) | Required | On-Demand prints each cassette label as it is logged during grossing. Batch defers printing to one per-case action. (Named Default Print Behavior before Batch 758.) | On-Demand |
+| Microtome Print Behavior | Choice: On-Demand, Block, Batch | Optional | Batch 758. How the Microtome prints slide labels, apart from Grossing. On-Demand: one label at a time, each scanned back on its slide before the next prints. Block: scanning a block prints all of its labels, scanned back in any order. Batch: the technician ticks the slides and prints them together. In every mode, moving on to the next block while labels of this one are not scanned back is held until each is scanned, recut or voided, or the technician continues (logged). Until it is chosen, the Microtome follows the Grossing setting. | Follows Grossing |
 | Enforce On-Demand Guardrails | Yes/No switch | Optional | When on, the default is fixed lab-wide and accessioners cannot switch a case to Batch. | Off |
 | Require Scan Verification | Yes/No switch | Optional | Requires scanning the new cassette or container barcode before moving to the next block. | Off |
 | Ask for a reason when a report is reprinted | Yes/No switch | Optional | A reprint of a printed report needs a reason, kept in the audit log with the print. | Off |

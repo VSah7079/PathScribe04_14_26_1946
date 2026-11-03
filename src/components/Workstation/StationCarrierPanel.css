@@ -23,3 +23,11 @@
 .ps-carrier-notice--warning { background: rgba(245, 158, 11, 0.12); }
 .ps-carrier-notice--error { background: rgba(248, 113, 113, 0.14); }
 .ps-carrier-dismiss { background: transparent; border: 0; color: inherit; font-size: 16px; cursor: pointer; line-height: 1; }
+/* Batch 756: the carrier's items, each marked once scanned off at this station. */
+.ps-carrier-items { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.ps-carrier-item { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 6px; font-size: 12px; border: 1px dashed rgba(148, 163, 184, 0.45); color: var(--ps-text-dim); }
+.ps-carrier-item--arrived { border-style: solid; border-color: rgba(52, 211, 153, 0.6); background: rgba(52, 211, 153, 0.12); color: #6ee7b7; }
+.ps-carrier-item--button { cursor: pointer; background: transparent; font: inherit; font-size: 12px; }
+.ps-carrier-item--button:hover { border-color: #fbbf24; color: #fde68a; }
+/* Batch 758: slides on the Microtome bench, not yet in a staining rack (Scan-Last). */
+.ps-carrier-bench { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-block-start: 6px; padding: 6px 10px; border-radius: 8px; font-size: 13px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.45); color: #fcd34d; }

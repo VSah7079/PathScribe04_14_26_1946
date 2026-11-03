@@ -15,25 +15,27 @@ import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { useSelectableScanStations } from '@/hooks/useSelectableScanStations';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
 import { formatDateTime } from '@/utils/formatDate';
-import { manifestProgress, nodesForStationStage } from '@/services/batches/stationCarrierRules';
+import { carrierItemRows, manifestProgress, nodesForStationStage, MANUAL_CHECK_OFF_REASONS, type ManualCheckOffReason } from '@/services/batches/stationCarrierRules';
 import { reconciliationGate } from '@/services/batches/batchListView';
 import type { StationCarrier } from '@/hooks/useStationCarrier';
 import './StationCarrierPanel.css';
 
 interface Props {
   carrier: StationCarrier;
-  /** Microtome: the current block's printed slides, offered for the output tray. */
-  outputCandidates?: string[];
+  /** Batch 757: checks an item off the loaded carrier by hand (a label that won't scan), with the reason. */
+  onCheckOff?: (displayId: string, reason: ManualCheckOffReason) => void;
 }
 
-const MISSING_SHOWN = 8;
-
-const StationCarrierPanel: React.FC<Props> = ({ carrier, outputCandidates = [] }) => {
+// Batch 758: the Microtome's bench counter (slides confirmed before a staining rack was scanned).
+// Batch 757: slides go into the Microtome's output tray one at a time, by the dual scan (the label scanned back), so
+// the "Add printed slides to tray" button (which skipped that scan) is gone.
+const StationCarrierPanel: React.FC<Props> = ({ carrier, onCheckOff }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { stations } = useSelectableScanStations();
   const { setStationId } = useEffectiveScanStation();
   const [pick, setPick] = useState('');
+  const [checkOffFor, setCheckOffFor] = useState<string | null>(null);
   const { station, carriers, loaded, output, notice, pending, busy, nodes } = carrier;
 
   // The station picker starts on a station for this workstation's own step, when the user has one.
@@ -106,11 +108,34 @@ const StationCarrierPanel: React.FC<Props> = ({ carrier, outputCandidates = [] }
           </div>
           <p className="ps-carrier-text">{t('stationCarrier.progress', { matched: progress.matched, total: progress.total })}</p>
           {loaded.status === 'active' && <p className="ps-carrier-text ps-carrier-text--dim">{t('stationCarrier.scanToUnload')}</p>}
-          {progress.missing.length > 0 && loaded.status === 'reconciling' && (
-            <p className="ps-carrier-text" data-phi="accession">
-              {t('stationCarrier.stillToScan', { items: progress.missing.slice(0, MISSING_SHOWN).map(i => i.displayId).join(', ') })}
-              {progress.missing.length > MISSING_SHOWN && ` ${t('stationCarrier.andMore', { count: progress.missing.length - MISSING_SHOWN })}`}
-            </p>
+          {/* Batch 756: the carrier's items as soon as it is opened, each marked once it is scanned off here. */}
+          <ul className="ps-carrier-items" aria-label={t('stationCarrier.itemsLabel')} data-phi="accession">
+            {carrierItemRows(loaded).map(row => (
+              <li key={row.displayId}>
+                {!row.arrived && onCheckOff && (loaded.status === 'active' || loaded.status === 'reconciling') ? (
+                  <button type="button" className="ps-carrier-item ps-carrier-item--button" title={t('stationCarrier.checkOffTitle')} onClick={() => setCheckOffFor(row.displayId)}>
+                    <span className="ps-carrier-barcode">{row.displayId}</span>
+                    <span>{t('stationCarrier.itemWaiting')}</span>
+                  </button>
+                ) : (
+                  <span className={`ps-carrier-item${row.arrived ? ' ps-carrier-item--arrived' : ''}`}>
+                    <span className="ps-carrier-barcode">{row.displayId}</span>
+                    <span>{t(row.arrived ? 'stationCarrier.itemArrived' : 'stationCarrier.itemWaiting')}</span>
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+          {checkOffFor && onCheckOff && (
+            <div className="ps-carrier-row" role="group" aria-label={t('stationCarrier.checkOffPrompt', { item: checkOffFor })} data-phi="accession">
+              <span className="ps-carrier-text">{t('stationCarrier.checkOffPrompt', { item: checkOffFor })}</span>
+              {MANUAL_CHECK_OFF_REASONS.map(reason => (
+                <button key={reason} type="button" className="ps-btn-secondary" disabled={busy} onClick={() => { onCheckOff(checkOffFor, reason); setCheckOffFor(null); }}>
+                  {t(`stationCarrier.checkOffReasons.${reason}`)}
+                </button>
+              ))}
+              <button type="button" className="ps-btn-secondary" onClick={() => setCheckOffFor(null)}>{t('common.cancel')}</button>
+            </div>
           )}
           {progress.unexpected > 0 && <p className="ps-carrier-text ps-carrier-text--warn">{t('stationCarrier.unexpectedCount', { count: progress.unexpected })}</p>}
           <div className="ps-carrier-row">
@@ -135,18 +160,35 @@ const StationCarrierPanel: React.FC<Props> = ({ carrier, outputCandidates = [] }
                 <strong className="ps-carrier-barcode">{output.masterBarcode}</strong>
                 <span>{t('batchManagement.itemCount', { count: output.items.length })}</span>
               </div>
+              {/* Batch 757: scanning the tray again when it is full seals it and sends it on. */}
+              <p className="ps-carrier-text ps-carrier-text--dim" data-phi="accession">{t('stationCarrier.outputRescanHint', { barcode: output.masterBarcode })}</p>
               <div className="ps-carrier-row">
-                <button type="button" className="ps-btn-primary" disabled={busy || outputCandidates.length === 0} onClick={() => { void carrier.addToOutput(outputCandidates); }}>
-                  {t('stationCarrier.addToOutput', { count: outputCandidates.length })}
-                </button>
                 <button type="button" className="ps-btn-secondary" onClick={carrier.closeOutput}>{t('stationCarrier.close')}</button>
               </div>
             </>
-          ) : <p className="ps-carrier-text ps-carrier-text--dim">{t('stationCarrier.outputHint', { node: carrier.outputNodes.map(nodeLabel).join(', ') })}</p>}
+          ) : <p className="ps-carrier-text ps-carrier-text--dim">{t(carrier.workstation === 'embedding' ? 'stationCarrier.outputHintEmbedding' : carrier.workstation === 'microtomy' ? 'stationCarrier.outputHintMicrotomy' : 'stationCarrier.outputHint', { node: carrier.outputNodes.map(nodeLabel).join(', ') })}</p>}
+          {/* Batch 758 (Scan-Last): slides confirmed with no rack open wait on this station's bench. */}
+          {carrier.benchCount > 0 && (
+            <div className="ps-carrier-bench" role="status">
+              <strong>{t('stationCarrier.bench.counter', { count: carrier.benchCount })}</strong>
+              <span className="ps-carrier-text ps-carrier-text--dim">{t('stationCarrier.bench.hint')}</span>
+            </div>
+          )}
         </div>
       )}
 
-      {pending && (
+      {/* Batch 761: a reusable rack whose last run was never closed. */}
+      {pending?.kind === 'rackNotClosed' && (
+        <div className="ps-carrier-box ps-carrier-box--warn" role="alert">
+          <p className="ps-carrier-text">{t('stationCarrier.rack.notClosed', { barcode: pending.batch.masterBarcode, count: pending.batch.items.length, at: formatDateTime(pending.batch.sealedAt ?? pending.batch.createdAt, i18n.language) })}</p>
+          <div className="ps-carrier-row">
+            <CapabilityButton capability="batch:reconciliation:override" className="ps-btn-primary" disabled={busy} onClick={() => { void carrier.closeLastRun(); }}>{t('stationCarrier.rack.closeLastRun')}</CapabilityButton>
+            <button type="button" className="ps-btn-secondary" onClick={() => navigate(`/batch-management?carrier=${encodeURIComponent(pending.batch.masterBarcode)}`)}>{t('stationCarrier.openInBatchManagement')}</button>
+            <button type="button" className="ps-btn-secondary" onClick={carrier.cancelPending}>{t('common.cancel')}</button>
+          </div>
+        </div>
+      )}
+      {pending && pending.kind !== 'rackNotClosed' && (
         <div className="ps-carrier-box ps-carrier-box--warn" role="alert" data-phi="accession">
           <p className="ps-carrier-text">
             {pending.kind === 'mismatch'

@@ -109,3 +109,9 @@ Before, Manage Reprints could reprint another slide's barcode after a reorder.
 ## Batch 732
 
 - `pieceExhaustion.ts` (new, tested; spec §11.5): `markBlockPieceExhausted` — needs `material:end-state:record`, audited; the last piece makes the block Exhausted and records its end state.
+
+Batch 757: `slideLabelCheck.ts` (new): the Microtome's dual scan (`slideLabelScanOutcome`, `labelAwaitingScan`, `fullSlideId`).
+
+**Batch 758:** `slideLabelCheck.ts`: `labelsAwaitingScan` (every label of the block still to scan), `blockLabelsToPrint` (Block mode), `nextBlockLockout` and `UNSCANNED_LABEL_NOTE` (the block lockout), `withLabelIds` (a slide with no stored id gets the id its label carries; before, the dual scan never matched it).
+
+**Batch 759:** `benchIdentity.ts` (new): `foreignIdentifiersOf` (the Foreign case ID and the item's own outside number), `specimenSources`, `specimenOfInstance` (the part a report field belongs to). Pure.

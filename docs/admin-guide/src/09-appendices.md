@@ -476,3 +476,4 @@ For a routine review of a sampled period, work through these steps.
 5. Open the **Error Log** tab, filter **Open Only**, and check that nothing important is unresolved.
 6. Open [Support Access](#screen-support_access) and confirm the chain line reads intact; read the entries for the period.
 7. Export the Audit Log CSV for the period and keep the file with your review notes. The export is itself recorded.
+8. Search `Manual Entry` to see ids typed instead of scanned (Batch 759). Each entry names the module, what was typed, the user and the workstation, and links to the case. Many from one workstation can mean a failing scanner or damaged labels.

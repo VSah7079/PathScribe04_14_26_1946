@@ -36,6 +36,7 @@ import {
   filterEquipment, normaliseEquipmentCode, settingsLinksByEquipment, stationsForEquipment, validateEquipmentDraft, type EquipmentDraftErrors,
 } from '../../../services/equipment/equipmentRules';
 import { LoadingState } from '@/components/Common/LoadingState';
+import { QC_MODES } from '@/services/stainQc/stainQcTypes';
 
 type Draft = Omit<EquipmentDraft, 'status'> & { active: boolean };
 const emptyDraft: Draft = { code: '', name: '', kind: 'analyser', make: '', model: '', serialNumber: '', facilityId: '', scanStationId: '', active: true };
@@ -63,7 +64,7 @@ const EquipmentModal: React.FC<ModalProps> = ({ mode, item, items, labs, station
           code: item.code, name: item.name, kind: item.kind, make: item.make ?? '', model: item.model ?? '', serialNumber: item.serialNumber ?? '',
           facilityId: item.facilityId, scanStationId: item.scanStationId ?? '', active: item.status === 'Active',
           maintenanceIntervalDays: item.maintenanceIntervalDays, calibrationIntervalDays: item.calibrationIntervalDays,
-          temperatureMinCelsius: item.temperatureMinCelsius, temperatureMaxCelsius: item.temperatureMaxCelsius, supportsLargeFormat: item.supportsLargeFormat,
+          temperatureMinCelsius: item.temperatureMinCelsius, temperatureMaxCelsius: item.temperatureMaxCelsius, supportsLargeFormat: item.supportsLargeFormat, qcMode: item.qcMode,
           deckSlots: item.deckSlots?.map(sl => ({ ...sl, rackTypes: [...sl.rackTypes] })),
         }
       : { ...emptyDraft, facilityId: defaultFacilityId ?? '' },
@@ -198,6 +199,18 @@ const EquipmentModal: React.FC<ModalProps> = ({ mode, item, items, labs, station
             </label>
           )}
 
+          {/* Batch 763: the Post-Stain / Pre-Distribution QC sign-off for this instrument (unset: the lab's default). */}
+          {(draft.kind === 'stainer' || draft.kind === 'slide_scanner') && (
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label" htmlFor="eq-qc-mode">{t('equipmentSection.modal.qcModeLabel')}</label>
+              <select id="eq-qc-mode" className="ps-conf-select" value={draft.qcMode ?? ''} onChange={e => set('qcMode', (e.target.value || undefined) as Draft['qcMode'])}>
+                <option value="">{t('equipmentSection.modal.qcModeDefault')}</option>
+                {QC_MODES.map(m => <option key={m} value={m}>{t(`stainQc.modes.${m}`)}</option>)}
+              </select>
+              <span className="ps-conf-field-hint">{t(draft.kind === 'stainer' ? 'equipmentSection.modal.qcModeHintStainer' : 'equipmentSection.modal.qcModeHintScanner')}</span>
+            </div>
+          )}
+
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('equipmentSection.modal.statusLabel')}</label>
             <div className="ps-conf-toggle-row">
@@ -273,6 +286,7 @@ const EquipmentSection: React.FC<{ selectedFacilityId?: string }> = ({ selectedF
           maintenanceIntervalDays: rest.maintenanceIntervalDays, calibrationIntervalDays: rest.calibrationIntervalDays,
           temperatureMinCelsius: rest.temperatureMinCelsius, temperatureMaxCelsius: rest.temperatureMaxCelsius,
           supportsLargeFormat: rest.kind === 'stainer' || rest.kind === 'slide_scanner' ? rest.supportsLargeFormat : undefined,
+          qcMode: rest.kind === 'stainer' || rest.kind === 'slide_scanner' ? rest.qcMode : undefined, // Batch 763
           // Batch 406: the deck layout, for analysers only.
           deckSlots: rest.kind === 'analyser' ? rest.deckSlots : undefined,
         })

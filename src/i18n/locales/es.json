@@ -500,6 +500,10 @@
       "memberCardId": "N.º de afiliado / tarjeta",
       "orderingProvider": "Facultativo solicitante",
       "orderingProviderPlaceholder": "(introdúzcalo en Caso y paciente)",
+      "originatingCase": "Caso de origen",
+      "originatingCaseNumber": "Número del caso de origen",
+      "originatingCaseNumberPlaceholder": "p. ej., S-24-9842",
+      "originatingInstitution": "Centro de origen",
       "patientJurisdiction": "Identificación del paciente y de la jurisdicción",
       "paymentCategory": "Categoría / régimen de pago",
       "primaryJurisdiction": "Jurisdicción principal",
@@ -2422,6 +2426,7 @@
       "rackNotRegistered": "La gradilla {{rackId}} no está registrada. Compruebe el identificador o registre primero la gradilla.",
       "sameBatch": "Ese es el lote en el que ya está el elemento. Elija otro lote.",
       "sourceNotActive": "Los elementos solo se pueden sacar de un lote activo.",
+      "stainQcPending": "Los portaobjetos teñidos de esta gradilla esperan el control de calidad. Firme primero la serie en el punto de control de Distribución de portaobjetos.",
       "stationRequired": "Asigne primero el puesto de este equipo.",
       "unexpectedScans_many": "Se escanearon {{count}} elementos que no pertenecen a este lote. Resuélvalos o utilice la anulación de un supervisor.",
       "unexpectedScans_one": "Se escaneó {{count}} elemento que no pertenece a este lote. Resuélvalo o utilice la anulación de un supervisor.",
@@ -2476,9 +2481,10 @@
     "remainingOfTarget": "Quedan {{remaining}} de un objetivo de {{target}}",
     "removeTitle": "Quitar del lote",
     "removedToast": "{{displayId}} quitado del lote.",
-    "scanHintActive": "Escanee el código de barras de un casete o portaobjetos para añadirlo a este lote. Manos libres: no es necesario hacer clic antes en un campo.",
+    "scanHintActive": "Escanee el código de barras de un casete o portaobjetos para añadirlo a este lote, o escríbalo en el campo de abajo.",
     "scanHintReconcile": "Verificación fuera de proceso: escanee cada elemento físico al retirarlo del soporte.",
     "scanHintSealed": "El manifiesto está sellado. Inicie la verificación para escanear la salida de los elementos.",
+    "scanPlaceholder": "Escanee o escriba el código de barras de un casete o portaobjetos…",
     "scanRejected": {
       "alreadyInBatch": "{{displayId}} ya está en este lote.",
       "inOtherActiveBatch": "{{displayId}} ya está en el lote activo {{barcode}}.",
@@ -2487,6 +2493,7 @@
       "sealed": "{{barcode}} está sellado: no se pueden añadir más elementos.",
       "slideTooLarge": "{{displayId}} es un portaobjetos de gran formato y {{barcode}} no admite portaobjetos de gran formato. Use una gradilla de tinción de gran formato."
     },
+    "scanSubmit": "Introducir",
     "startReconciliation": "Iniciar conciliación",
     "supervisorOverrideLink": "Anulación del supervisor…",
     "transferToProcessing": "Transferir a procesamiento",
@@ -2548,6 +2555,7 @@
     "pendingLoadTile": "Pendiente de carga",
     "pendingLoadTitle": "Carga de lotes pendiente: elementos impresos que aún no se han escaneado en ningún lote",
     "rackCheckedOutError": "La gradilla «{{value}}» ya está asignada a otro lote activo.",
+    "rackLastRunNotClosed": "La última tanda de {{value}} nunca se cerró. Ciérrela antes de volver a usar la gradilla.",
     "retentionHoldsTile": "Retenciones de conservación",
     "retentionHoldsTitle": "Abrir la cola de retenciones de conservación",
     "status": {
@@ -2744,6 +2752,14 @@
     },
     "title": "Contribuciones en el puesto de trabajo",
     "windowLabel": "Últimos {{days}} días"
+  },
+  "benchIdentity": {
+    "foreignCase": "ID de caso externo",
+    "foreignItem": "ID externo",
+    "foreignSource": "de {{source}}",
+    "specimenSource": "Muestra {{label}} – {{description}}",
+    "typedCheck": "Escrito, no escaneado: compruebe que el envase muestra {{accession}} y {{source}}.",
+    "typedCheckAccession": "Escrito, no escaneado: compruebe que el envase muestra {{accession}}."
   },
   "benchReasons": {
     "AE_DIAGNOSIS_NEEDED": "Necesario para completar el diagnóstico",
@@ -4281,6 +4297,10 @@
         "description": "Pasar un caso de un grupo para que siga disponible para otra persona.",
         "label": "Pasar un caso de un grupo"
       },
+      "caseRequisitionView": {
+        "description": "Abrir desde el caso el volante escaneado vinculado a él. Cada consulta queda auditada.",
+        "label": "Ver el volante escaneado de un caso"
+      },
       "caseRetentionHoldPlace": {
         "description": "Impedir que se elimine el material de un caso (petición del paciente, litigio, investigación), con un motivo y una nota.",
         "label": "Poner una retención de conservación"
@@ -4745,6 +4765,10 @@
         "description": "Poner en uso un diseño o una parte de informe. Auditado.",
         "label": "Publicar plantillas y partes de informe"
       },
+      "configRequisitionIngestionManage": {
+        "description": "Definir de dónde vienen los volantes escaneados (una carpeta vigilada o un sistema emisor), cada cuánto se leen y el código de barras de la hoja separadora. Auditado.",
+        "label": "Gestionar la incorporación de volantes"
+      },
       "configResearchCasesManage": {
         "description": "Definir cómo se reconocen los casos de investigación, la clase financiera sin cargo que se envía y cuánto tiempo se conserva su material. Estos casos quedan fuera de las listas de trabajo y estadísticas clínicas y nunca se envían como resultados ni cargos.",
         "label": "Gestionar la configuración de casos de investigación"
@@ -4812,6 +4836,10 @@
       "configStainDictionaryManage": {
         "description": "Añadir y editar tinciones, protocolos de corte, macros de petición y dianas moleculares. Auditado.",
         "label": "Gestionar el diccionario de tinciones"
+      },
+      "configStainQcManage": {
+        "description": "Definir cómo se firman por defecto los teñidores y escáneres: aceptación automática, firma del instrumento o firma en PathScribe. Auditado.",
+        "label": "Gestionar la configuración del control de tinción y escaneo"
       },
       "configSubspecialtiesManage": {
         "description": "Añadir y editar subespecialidades y los tipos de muestra que se les asignan. Auditado.",
@@ -5361,6 +5389,18 @@
         "description": "Solo totales, a partir de los escaneos de puesto, los casos y los soportes; se excluyen los casos de investigación.",
         "label": "Ver el informe del flujo: el tiempo de respuesta por paso"
       },
+      "requisitionInboxResolve": {
+        "description": "Vincular un escaneo sin asignar a un caso escaneando o escribiendo su número de registro, o descartarlo con un motivo. El archivo en sí nunca se modifica. Auditado.",
+        "label": "Vincular o descartar volantes sin asignar"
+      },
+      "requisitionInboxReview": {
+        "description": "Abrir la bandeja de volantes: la cola de volantes sin asignar, los vínculos y ejecuciones recientes, y ver un escaneo sin asignar. La consulta queda auditada.",
+        "label": "Revisar la bandeja de volantes"
+      },
+      "requisitionIngestionRun": {
+        "description": "Leer ahora la carpeta de entrega del escáner y vincular cada volante escaneado a su caso (el servidor también lo hace según una programación).",
+        "label": "Ejecutar ahora la incorporación de volantes"
+      },
       "retentionDisposalReportExport": {
         "description": "Descargar el informe de seguimiento de residuos del material eliminado, que enumera los números de acceso de los casos.",
         "label": "Exportar el informe de eliminación"
@@ -5372,6 +5412,10 @@
       "retentionMaterialDispose": {
         "description": "Escanear tejido húmedo, bloques o portaobjetos en la cola de eliminación para marcarlos como eliminados una vez superado su periodo de conservación.",
         "label": "Eliminar material conservado"
+      },
+      "scanImageQcSignOff": {
+        "description": "Liberar una imagen escaneada al Patólogo, o devolverla para escanearla de nuevo con un motivo. Auditado.",
+        "label": "Firmar el control de imágenes"
       },
       "screenAccessionOpen": {
         "description": "Ver la pantalla Recepción y su mosaico en la página de inicio.",
@@ -5488,6 +5532,14 @@
       "searchReportScheduleManage": {
         "description": "Crear, cambiar, pausar o eliminar una programación que ejecuta un informe guardado y lo envía en CSV a los usuarios elegidos. Cada cambio queda registrado en el registro de auditoría.",
         "label": "Programar informes de búsqueda de casos"
+      },
+      "stainQcOverride": {
+        "description": "Firmar una serie que espera la firma de su teñidor por el motor de interfaz, cuando ese resultado no llega. Auditado como anulación.",
+        "label": "Firmar en lugar de un teñidor"
+      },
+      "stainQcSignOff": {
+        "description": "Firmar una serie de tinción en el punto de control: todos los portaobjetos conformes, o uno no conforme se envía a volver a teñir o a cortar con un motivo. Auditado.",
+        "label": "Firmar el control de tinción"
       },
       "stationScanHistoryView": {
         "description": "Ver qué elemento se escaneó, en qué puesto, por quién y cuándo.",
@@ -7462,6 +7514,9 @@
       "sys-qa-trend-policy": {
         "description": "Cuándo se señala un patrón de discordancias mayores para un anatomopatólogo o un tipo de muestra: ventana, revisiones mínimas, umbrales y enrutamiento, por sede."
       },
+      "sys-requisition-ingestion": {
+        "description": "De dónde vienen los volantes escaneados, cada cuánto se leen y el código de barras de la hoja separadora para escaneos por lotes."
+      },
       "sys-research-cases": {
         "description": "Cómo se reconocen y conservan los casos de investigación y se mantienen fuera de las listas de trabajo clínicas, los resultados y la facturación; y las finalidades posibles de un soporte."
       },
@@ -7482,6 +7537,9 @@
       },
       "sys-specimens": {
         "description": "El diccionario de muestras que alimenta el autocompletado en la búsqueda de casos y en la creación de casos."
+      },
+      "sys-stain-qc": {
+        "description": "Cómo se firman los portaobjetos teñidos y las imágenes escaneadas antes de repartirlos o abrirlos: aceptación automática, firma del instrumento o firma en PathScribe."
       },
       "sys-subspecialties": {
         "description": "Grupos de subespecialidad para el flujo de delegación."
@@ -8325,6 +8383,11 @@
     "title": "Plazo de correlación citohistológica",
     "windowDaysLabel": "Plazo (días)"
   },
+  "cytologyIdentity": {
+    "vial": "{{label}}: {{description}}",
+    "vialWithPlatform": "{{label}}: {{platform}} – {{description}}",
+    "withSlides": "{{vials}} · Portaobjetos {{slides}}"
+  },
   "cytologyInstrumentationSection": {
     "facility": {
       "emptyState": "No hay excepciones de centro: todos los centros usan el valor predeterminado de la empresa.",
@@ -8455,7 +8518,6 @@
       "waiting": "Pendiente de entrega"
     },
     "pageTitle": "Preparación citológica",
-    "patientName": "{{given}} {{family}}",
     "scanPlaceholder": "Escanee un código de barras de recipiente o decantación",
     "scanPrompt": "Escanee un líquido, una alícuota o un bloque celular para prepararlo."
   },
@@ -9169,8 +9231,6 @@
       "title": "Historial citológico e histológico del paciente",
       "viewCase": "Ver caso"
     },
-    "patientLine": "{{name}} · NHC {{mrn}}",
-    "patientUnknown": "Paciente desconocido",
     "printBtn": "Imprimir",
     "printCaseReportBtn": "Imprimir informe del caso",
     "printFailed": "No se ha podido generar el PDF del informe. Inténtelo de nuevo; si sigue fallando, avise a su administrador.",
@@ -9630,7 +9690,6 @@
         }
       }
     },
-    "rowSubtitle": "Caso {{caseId}} · NHC {{mrn}}",
     "screeningHours": {
       "cancel": "Cancelar",
       "change": "Cambiar",
@@ -9684,7 +9743,6 @@
       "unassignedPool": "Grupo sin asignar"
     },
     "title": "Lista de trabajo de citología",
-    "unknownPatient": "Paciente desconocido",
     "workload": {
       "leftFullDay": "Quedan {{left}} portaobjetos en una jornada completa de 8 horas",
       "leftNow": "Quedan {{left}} portaobjetos ahora (límite hasta el momento {{limit}}, {{hours}} h cribadas)",
@@ -10822,14 +10880,12 @@
         "biopsy": "Biopsia",
         "needleCore": "Cilindro de aguja"
       },
-      "dob": "Fecha de nacimiento:",
       "flag": {
         "fragile": "Frágil",
         "requiresDecal": "Requiere descalcificación",
         "tinyTissue": "Tejido diminuto"
       },
       "matrixBlockOf": "Bloque matriz de las muestras {{specimens}}",
-      "patient": "Paciente:",
       "scanNext": "Escanear la siguiente cassette →",
       "specimenBlock": "Muestra/bloque:",
       "specimenType": "Tipo:",
@@ -11233,6 +11289,10 @@
       "modelPlaceholder": "p. ej., Panther",
       "nameLabel": "Nombre",
       "namePlaceholder": "p. ej., Panther 4",
+      "qcModeDefault": "Valor predeterminado del laboratorio (Control de tinción y escaneo)",
+      "qcModeHintScanner": "Cómo se revisa una imagen de este escáner antes de que el Patólogo pueda abrirla.",
+      "qcModeHintStainer": "Cómo se firma una serie de este teñidor antes de repartir sus portaobjetos.",
+      "qcModeLabel": "Firma del control de calidad",
       "saveButton": "Guardar cambios",
       "serialLabel": "Número de serie",
       "serialPlaceholder": "Opcional",
@@ -11847,6 +11907,7 @@
       "runFailed": "Ejecuciones de equipo fallidas",
       "scanFailed": "Escaneo fallido",
       "scanning": "Escaneando",
+      "stainQcPending": "Pendiente de control",
       "stainingActive": "Lotes de tinción activos",
       "statBatches": "Lotes STAT",
       "statPending": "STAT pendiente",
@@ -15535,6 +15596,7 @@
       "cutAndPlaced": "Cortado y colocado",
       "pendingCut": "Corte pendiente",
       "qcFailed": "Control de calidad no superado",
+      "qcPending": "Pendiente de control",
       "readyForReview": "Listo para revisión",
       "recutRequested": "Recorte solicitado",
       "staining": "Teñiendo"
@@ -15675,7 +15737,6 @@
     "context": {
       "accession": "Registro:",
       "blockComments": "Comentarios del bloque",
-      "dob": "F. nac.:",
       "flag": {
         "fragile": "Frágil",
         "requiresDecal": "Requiere calco",
@@ -15685,7 +15746,6 @@
       "matrixPosition": "Posición {{n}}",
       "matrixSpecimen": "Muestra {{label}}",
       "noHistory": "Aún no se han impreso portaobjetos de este bloque.",
-      "patient": "Paciente:",
       "pieceCount": "Nº de fragmentos: ",
       "priorHistory": "Historial previo de portaobjetos",
       "scanNext": "Escanear siguiente bloque/decantado →",
@@ -15741,6 +15801,8 @@
     "hardware": {
       "allPrinted": "Se han impreso todos los portaobjetos de este bloque.",
       "batch": "Lote",
+      "blockMode": "Bloque",
+      "blockModeHint": "Al escanear un bloque se imprimen todas sus etiquetas a la vez. Escanéelas después en los portaobjetos, en cualquier orden.",
       "couldNotStart": "No se ha podido iniciar la impresión.",
       "deviceStatus": "Estado del dispositivo",
       "fit": {
@@ -15756,6 +15818,9 @@
       "notConfigured": "Esta estación no está configurada para la impresión real de etiquetas de portaobjetos.",
       "onDemand": "Bajo demanda",
       "printBatch": "Imprimir lote",
+      "printBlock_many": "Imprimir las {{count}} etiquetas del bloque",
+      "printBlock_one": "Imprimir {{count}} etiqueta del bloque",
+      "printBlock_other": "Imprimir las {{count}} etiquetas del bloque",
       "printMode": "Modo de impresión",
       "printNext": "Imprimir/grabar siguiente",
       "profileMissing": "El perfil de impresora configurado ya no existe.",
@@ -15766,6 +15831,24 @@
         "offline": "Sin conexión",
         "ready": "Listo"
       }
+    },
+    "labelScan": {
+      "awaiting": "Escanee la etiqueta de {{slide}} en el portaobjetos para confirmar el corte (o escríbala si el escáner no funciona).",
+      "awaitingMany": "Escanee estas etiquetas en los portaobjetos, en cualquier orden (o escríbalas si el escáner no funciona): {{slides}}",
+      "blocked": "Escanee la etiqueta de {{slide}} antes de imprimir el siguiente portaobjetos.",
+      "confirmed": "{{slide}} confirmado: cortado de este bloque y registrado.",
+      "notPrinted": "{{slide}} aún no se ha impreso: imprímalo primero."
+    },
+    "lockout": {
+      "body": "Escanee las etiquetas restantes, o vuelva a cortar o anule cada portaobjetos, antes de pasar al bloque siguiente.",
+      "continue": "Continuar sin ellas (queda registrado)",
+      "held": "Termine primero las etiquetas de este bloque.",
+      "recut": "Volver a cortar (nueva etiqueta)",
+      "stay": "Quedarse en este bloque",
+      "title_many": "{{count}} etiquetas del bloque {{block}} aún no se han escaneado",
+      "title_one": "{{count}} etiqueta del bloque {{block}} aún no se ha escaneado",
+      "title_other": "{{count}} etiquetas del bloque {{block}} aún no se han escaneado",
+      "void": "Anular portaobjetos"
     },
     "pageTitle": "Estación de microtomía",
     "printStatus": {
@@ -19839,7 +19922,7 @@
       "batchOption": "Por lote (por caso o petición)",
       "description": "A demanda imprime la etiqueta de cada casete a medida que se registra durante el tallado. Por lote aplaza toda la impresión a una acción masiva explícita por caso.",
       "onDemandOption": "A demanda (por bloque o contenedor)",
-      "title": "Comportamiento de impresión predeterminado"
+      "title": "Modo de impresión en macroscopía"
     },
     "enabledLabel": "Activado",
     "gs1Gtin": {
@@ -19852,6 +19935,15 @@
       "title": "Imponer las salvaguardas de «A demanda»"
     },
     "loading": "Cargando ajustes de impresión…",
+    "microtomeBehavior": {
+      "description": "Cómo imprime el micrótomo las etiquetas de portaobjetos, aparte de la macroscopía. Cada etiqueta se escanea en su portaobjetos para confirmar el corte. Mientras no se elija aquí, el micrótomo sigue el ajuste de macroscopía.",
+      "options": {
+        "batch": "Lote: el técnico marca los portaobjetos y los imprime juntos",
+        "block": "Bloque: al escanear un bloque se imprimen todas sus etiquetas; se escanean después en cualquier orden",
+        "on_demand": "A demanda: una etiqueta cada vez; cada una se escanea antes de imprimir la siguiente"
+      },
+      "title": "Modo de impresión en el micrótomo"
+    },
     "molecularPrinterProfile": {
       "description": "La misma elección de puente de hardware real que arriba, para las etiquetas de placa, gradilla, muestra y ubicación de la plataforma del módulo de ejecución de pruebas moleculares.",
       "title": "Perfil de impresora de etiquetas moleculares"
@@ -21786,6 +21878,165 @@
     "sentToCodeReview": "Caso enviado a revisión de codificación",
     "title": "Solicitar revisión a un colega"
   },
+  "requisitionIngestion": {
+    "addSource": "＋ Añadir origen",
+    "enabled": "Leer este origen",
+    "expected": {
+      "graceHint": "Horas tras el registro sin volante vinculado. 0 lo marca enseguida. Nunca bloquea el trabajo.",
+      "graceHours": "Marcar un caso tras (horas)",
+      "hint": "Qué casos deberían tener un volante escaneado. Un caso sin volante vinculado a tiempo se marca en la bandeja de volantes, muestra «Falta el volante» y recibe una deficiencia de volante ausente. Una petición electrónica del HIS no lo necesita por defecto: su mensaje de petición es la solicitud registrada.",
+      "organisationDefault": "Valor predeterminado de la organización",
+      "origins": "Se espera un volante escaneado para",
+      "save": "Guardar expectativas",
+      "scope": "Se aplica a",
+      "title": "Volantes esperados",
+      "unmatchedHint": "Un volante que no corresponde a ningún caso durante este tiempo puede indicar una muestra no recibida, perdida o no registrada: se marca en rojo y pasa al principio de la cola sin asignar.",
+      "unmatchedHours": "Marcar un escaneo sin caso tras (horas)",
+      "usesDefault": "Este centro sigue el valor predeterminado de la organización hasta que guarde uno propio."
+    },
+    "facility": "Centro ejecutor",
+    "facilityHint": "El laboratorio al que pertenece este escáner. Sus escaneos esperan en la cola de ese centro y solo el personal que trabaja en él puede verlos y resolverlos. Todos los centros: para un escáner compartido por todos los laboratorios.",
+    "kind": "Origen de los escaneos",
+    "kinds": {
+      "api": "Un sistema que envía escaneos a la API de PathScribe",
+      "documentSystem": "Un sistema documental de terceros que PathScribe lee en su dirección",
+      "fileShare": "Una carpeta de la red del hospital donde guarda el escáner"
+    },
+    "lastSaved": "Guardado por última vez {{when}} por {{name}}",
+    "loading": "Cargando la incorporación de volantes…",
+    "location": {
+      "api": "Sistema emisor",
+      "documentSystem": "Dirección del sistema (https)",
+      "fileShare": "Dirección de la carpeta"
+    },
+    "locationHint": {
+      "api": "El nombre del sistema, tal como se identifica ante la API.",
+      "documentSystem": "La dirección https del sistema al que envía el escáner (un gestor documental, el almacén de documentos del LIS, un servicio de digitalización). El servidor lee allí los escaneos nuevos con las credenciales configuradas en el servidor de la API; PathScribe solo guarda el vínculo a cada archivo.",
+      "fileShare": "Dónde guarda el escáner sus PDF: una ruta de red como \\\\server\\requisitions\\inbox, o una dirección smb://, nfs://, file:// o https://. La lee el servidor; el navegador, nunca."
+    },
+    "name": "Nombre",
+    "newSource": "Origen nuevo: aún no guardado",
+    "problem": "No se pudo guardar la configuración. Revise los campos marcados en rojo.",
+    "referenceOnly": "PathScribe no guarda ninguna copia de un escaneo: cada caso conserva un vínculo al archivo donde está, las páginas que le corresponden, el código de barras con que se asignó, cuándo y desde qué origen.",
+    "saved": "Guardado.",
+    "schedule": "Leer cada (minutos)",
+    "scheduleHint": "De 1 a 1440 minutos. El servidor lo ejecuta como tarea programada.",
+    "separator": "Código de barras de la hoja separadora",
+    "separatorHint": "Imprima una hoja con este código de barras y colóquela entre los volantes de un mismo escaneo por lotes. Esa página cierra el volante anterior y no se asocia a ningún caso.",
+    "sources": "Orígenes",
+    "subtitle": "De dónde vienen los volantes escaneados, cada cuánto se leen y la hoja separadora entre volantes de un mismo escaneo por lotes.",
+    "title": "Incorporación de volantes"
+  },
+  "requisitions": {
+    "accession": {
+      "creating": "Creación de un caso para el volante escaneado:",
+      "linkFailed": "No se pudo vincular el escaneo: vincúlelo desde la bandeja de volantes.",
+      "linked": "El volante escaneado está vinculado al caso nuevo"
+    },
+    "allFacilities": "Todos los centros",
+    "caseButton_many": "📄 Volantes ({{count}})",
+    "caseButton_one": "📄 Volante",
+    "caseButton_other": "📄 Volantes ({{count}})",
+    "caseTab": "Volante {{n}}",
+    "discardReasons": {
+      "duplicateScan": "Escaneo duplicado",
+      "notARequisition": "No es un volante",
+      "other": "Otro",
+      "unreadable": "Escaneo ilegible"
+    },
+    "errors": {
+      "alreadyClosed": "Este escaneo ya se ha vinculado o descartado.",
+      "noSuchCase": "No se encontró ningún caso para {{accession}}.",
+      "notPermitted": "No tiene permiso para esto.",
+      "runFailed": "No se pudo ejecutar la incorporación. Inténtelo de nuevo."
+    },
+    "inbox": {
+      "backToAccession": "← Registro",
+      "discard": "Descartar",
+      "discardReason": "Motivo del descarte",
+      "everyFacility": "Todos mis centros",
+      "facilityFilter": "Centro",
+      "foundNone": "No se encontró ningún caso. Compruebe en el escaneo el número de registro, el nombre del paciente o el NHC, o cree un caso nuevo a partir de él.",
+      "foundTitle": "Casos encontrados",
+      "ingestion": "Incorporación de volantes",
+      "lastRun": "Última ejecución {{when}}: {{files}} archivos, {{matched}} vinculados a casos, {{unmatched}} a la cola sin asignar, {{rejected}} rechazados.",
+      "link": "Vincular",
+      "linkPlaceholder": "N.º de registro, nombre del paciente o NHC",
+      "newCase": "Caso nuevo a partir de este escaneo",
+      "noRunYet": "Todavía no se ha ejecutado.",
+      "noSources": "No hay ningún escáner configurado para sus centros. Un administrador lo añade en Configuración → Sistema → Integraciones → Incorporación de volantes.",
+      "notRun": "No ejecutado, porque su rol no puede ejecutar la incorporación para ese centro: {{names}}",
+      "recentEmpty": "Todavía no hay volantes vinculados.",
+      "recentTitle": "Vinculados recientemente",
+      "runNow": "Ejecutar ahora",
+      "running": "Leyendo escaneos…",
+      "serverRuns": "El servidor ejecuta la incorporación según su programación.",
+      "sourceLine": "{{name}} · {{location}} · cada {{minutes}} min",
+      "sourceOff": "no se lee (desactivado)",
+      "subtitle": "Los volantes escaneados se asignan a su caso por el código de barras de registro de la página y se vinculan, no se copian. Un escaneo que no corresponde a ningún caso espera aquí hasta que alguien lo vincule a un caso o lo descarte.",
+      "title": "Bandeja de volantes",
+      "unmatchedEmpty": "Nada pendiente: cada escaneo está vinculado a un caso.",
+      "unmatchedTitle_many": "Volantes sin asignar ({{count}})",
+      "unmatchedTitle_one": "Volantes sin asignar ({{count}})",
+      "unmatchedTitle_other": "Volantes sin asignar ({{count}})"
+    },
+    "inboxLink": "📥 Bandeja de volantes",
+    "matchedAutomatically": "Asignado por su código de barras",
+    "matchedByHand": "Vinculado por {{name}}",
+    "missing": {
+      "accessioned": "Registrado {{when}}",
+      "deficiencyRaised": "Se ha abierto una deficiencia de volante ausente para este caso.",
+      "flagged": "Marcado: ningún volante vinculado.",
+      "hint": "Estos casos deberían tener un volante escaneado y no se ha vinculado ninguno a tiempo. Escanee o escriba el número de registro en un escaneo en cola para vincularlo, o registre por qué no llegará un volante en papel.",
+      "linkHint": "Vincular su escaneo lo resuelve.",
+      "reason": "Por qué no hay volante en papel",
+      "title_many": "Casos a la espera de un volante ({{count}})",
+      "title_one": "Casos a la espera de un volante ({{count}})",
+      "title_other": "Casos a la espera de un volante ({{count}})",
+      "waive": "Sin volante en papel"
+    },
+    "missingChip": "⚠ Falta el volante",
+    "origins": {
+      "downtime": "Registro en contingencia",
+      "electronic": "Petición electrónica HIS/LIS",
+      "lockbox": "Entrega en lockbox",
+      "manual": "Introducido en Registro, sin petición importada",
+      "outside": "Caso externo / por contrato"
+    },
+    "pageRange": "Páginas {{from}}–{{to}}",
+    "pageSingle": "Página {{page}}",
+    "preview": {
+      "errors": {
+        "notPermitted": "No tiene permiso para ver este volante.",
+        "unreadable": "No se puede acceder al escaneo donde está guardado. Use Abrir PDF o compruebe que el archivo sigue allí."
+      },
+      "loading": "Leyendo el escaneo…",
+      "openPdf": "Abrir PDF",
+      "pageAlt": "Página {{page}} del volante",
+      "title": "Volante escaneado"
+    },
+    "reason": {
+      "noBarcode": "No se pudo leer ningún código de barras en esta página",
+      "noMatch": "Este código de barras no corresponde a ningún caso"
+    },
+    "rejected": {
+      "notPdf": "Rechazado: no es un PDF (solo se leen PDF)",
+      "unreadable": "Rechazado: no se pudo leer el archivo"
+    },
+    "toast": {
+      "discarded": "Escaneo descartado. El archivo en sí no se modifica.",
+      "linked": "Volante vinculado a {{accession}}.",
+      "waived": "Registrado: sin volante en papel. La deficiencia de volante ausente queda cerrada."
+    },
+    "view": "Ver",
+    "waiverReasons": {
+      "electronicOrder": "Petición electrónica registrada",
+      "other": "Otro",
+      "requestInAnotherRecord": "Petición en otro registro",
+      "verbalOrderDocumented": "Petición verbal, documentada"
+    },
+    "withoutCase": "Aún sin caso: compruebe si una muestra no se ha recibido, se ha perdido o no se ha registrado"
+  },
   "researchCases": {
     "accessionPrefixes": "Prefijos de número de registro",
     "active": "Activa",
@@ -22531,6 +22782,8 @@
       "missing": "Faltante",
       "printed": "Etiqueta impresa",
       "received": "Recibido",
+      "sectioned": "Cortado, etiqueta confirmada",
+      "typed": "Escrito, no escaneado",
       "unexpected": "Inesperado",
       "unloaded": "Sacado del soporte"
     },
@@ -23280,6 +23533,10 @@
       "release": {
         "dueSweep": "Liberaciones retenidas vencidas"
       },
+      "requisition": {
+        "ingest": "Incorporación de volantes",
+        "missingSweep": "Comprobación de volantes ausentes"
+      },
       "supportAccess": {
         "expire": "Caducidad del acceso de soporte"
       }
@@ -23676,6 +23933,8 @@
     "title": "Registro de impresión simulada",
     "toast": "Simulado: {{kind}} enviado a {{destination}}. No se imprimió nada.",
     "toastFailed": "Fallo simulado: {{kind}} no llegó a {{destination}}.",
+    "toastFailedRepeated": "Fallo simulado: {{kind}} × {{count}} no llegó a {{destination}}.",
+    "toastRepeated": "Simulado: {{kind}} × {{count}} enviado a {{destination}}. No se imprimió nada.",
     "transport": "Enviado por",
     "when": "Cuándo"
   },
@@ -23959,9 +24218,13 @@
       "title": "Motivo obligatorio"
     },
     "scanErrors": {
+      "blockHeldByQc": "Todos los portaobjetos del bloque {{block}} están retenidos por el control de calidad ({{count}}). Firme primero la serie en el punto de control.",
       "blockNotFound": "No se encontró el bloque {{block}}.",
       "noSlides": "El bloque {{block}} no tiene portaobjetos que distribuir.",
       "notResolved": "Ese escaneo no coincidió con ningún caso, bloque ni portaobjetos. Compruebe el código de barras e inténtelo de nuevo.",
+      "qcFailed": "El portaobjetos {{slide}} no superó el control de calidad y espera volver a teñirse.",
+      "qcPending": "El portaobjetos {{slide}} espera la firma del control de calidad y aún no puede repartirse.",
+      "recutRequested": "El portaobjetos {{slide}} no superó el control de calidad y se ha solicitado un nuevo corte.",
       "slideNotFound": "No se encontró el portaobjetos {{slide}}.",
       "specimenNotFound": "No se encontró la muestra en ese caso.",
       "unsupportedTarget": "Esta estación admite códigos de barras de bloques, bloques matriz y portaobjetos. Los casetes de bloque celular, los trasvases y los códigos de barras de muestras aún no son compatibles."
@@ -24000,6 +24263,7 @@
     "referenceNote": "Vista previa de referencia. No apta para diagnóstico.",
     "state": {
       "available": "Imagen disponible",
+      "awaitingImageQc": "Pendiente del control de imagen",
       "failedImageQuality": "Calidad de imagen no superada",
       "noImageYet": "Aún sin imagen",
       "queued": "En cola",
@@ -24822,6 +25086,62 @@
       "vendorPlaceholder": "p. ej. Ventana"
     }
   },
+  "stainQc": {
+    "actions": {
+      "recut": "Volver a cortar",
+      "restain": "Volver a teñir"
+    },
+    "errors": {
+      "failed": "No se pudo guardar la decisión. Recargue e inténtelo de nuevo.",
+      "invalid": "Indique una acción y un motivo para cada portaobjetos no conforme.",
+      "notPermitted": "No tiene permiso para esta decisión de control de calidad. Consulte a su administrador."
+    },
+    "fail": "No conforme",
+    "followUp": "Acción",
+    "hint": "Los portaobjetos teñidos y las imágenes escaneadas esperan aquí hasta que se firme su control de calidad. Una gradilla pendiente de control no puede darse de salida y sus portaobjetos no se reparten.",
+    "imageLine": "Escáner {{scanner}} · lote de escaneo {{batch}}",
+    "imageReasons": {
+      "debris": "Suciedad en el portaobjetos",
+      "other": "Otro",
+      "outOfFocus": "Desenfocada",
+      "stitching": "Error de unión",
+      "tissueMissed": "Tejido no capturado"
+    },
+    "imagesTitle_many": "Imágenes escaneadas pendientes de control ({{count}})",
+    "imagesTitle_one": "Imagen escaneada pendiente de control ({{count}})",
+    "imagesTitle_other": "Imágenes escaneadas pendientes de control ({{count}})",
+    "modes": {
+      "autoAccept": "Aceptación automática",
+      "pathscribeSignOff": "Firma en PathScribe",
+      "vendorSignOff": "Firma del instrumento (motor de interfaz)"
+    },
+    "outcome": "Resultado del control",
+    "pass": "Conforme",
+    "reason": "Motivo",
+    "reasons": {
+      "controlFailed": "Control no conforme",
+      "coverslipBubble": "Burbuja bajo el cubreobjetos",
+      "other": "Otro",
+      "overStaining": "Tinción excesiva",
+      "tissueFolded": "Tejido plegado",
+      "uneven": "Tinción irregular",
+      "weakStaining": "Tinción débil"
+    },
+    "releaseImage": "Liberar al Patólogo",
+    "rescan": "Volver a escanear",
+    "runLine_many": "{{count}} portaobjetos · en espera desde el {{when}}",
+    "runLine_one": "{{count}} portaobjetos · en espera desde el {{when}}",
+    "runLine_other": "{{count}} portaobjetos · en espera desde el {{when}}",
+    "signOffAllPassed": "Firmar: todos los portaobjetos conformes",
+    "signOffInstead": "Firmar en lugar del teñidor",
+    "signOffWithFailures_many": "Firmar: {{count}} portaobjetos no conformes",
+    "signOffWithFailures_one": "Firmar: {{count}} portaobjetos no conforme",
+    "signOffWithFailures_other": "Firmar: {{count}} portaobjetos no conformes",
+    "stainer": "Teñidor",
+    "stainerUnknown": "No registrado",
+    "title": "Punto de control de calidad",
+    "waitingForInstrument": "Este teñidor firma sus propias series a través del motor de interfaz. La serie se libera cuando llega su resultado; un supervisor puede firmarla aquí en su lugar."
+  },
   "stainQcGateModal": {
     "confirmButton": "Confirmar que la lista de comprobación de lectura visual está completa",
     "confirmedBadge": "Lectura visual confirmada por {{name}}.",
@@ -24831,18 +25151,63 @@
     "intro": "Los lotes de tinción siguientes requieren resolución antes de poder validar este caso.",
     "rowTitle": "Lote {{batchBarcode}} — {{specimenList}}"
   },
+  "stainQcSection": {
+    "columns": {
+      "instrument": "Instrumento",
+      "kind": "Tipo",
+      "mode": "Firma del control"
+    },
+    "defaults": "Valores predeterminados",
+    "explain": {
+      "autoAccept": "la serie o la imagen se libera en cuanto termina, sin firma (auditado como aceptación automática).",
+      "pathscribeSignOff": "un técnico la firma en el punto de control de Distribución de portaobjetos (opción B).",
+      "vendorSignOff": "el resultado de control del propio instrumento, enviado por el motor de interfaz, la libera o la retiene (opción A)."
+    },
+    "fromDefault": "predeterminado",
+    "instruments": "Teñidores y escáneres",
+    "instrumentsHint": "El modo de cada instrumento. Cámbielo en Configuración → Sistema → Equipos (Firma del control de calidad).",
+    "loading": "Cargando la configuración del control…",
+    "noInstruments": "Aún no hay teñidores ni escáneres de portaobjetos en el registro de equipos.",
+    "save": "Guardar los valores predeterminados",
+    "saved": "Valores predeterminados guardados.",
+    "scannerDefault": "Escáneres de portaobjetos",
+    "stainerDefault": "Teñidores",
+    "subtitle": "El punto de control de calidad tras la tinción y antes de la distribución. Cada teñidor y escáner puede tener su propio modo en la pantalla Equipos; el resto usa estos valores predeterminados.",
+    "title": "Control de tinción y escaneo"
+  },
   "stationCarrier": {
-    "addToOutput": "Añadir los portaobjetos impresos a la bandeja ({{count}})",
-    "andMore": "y {{count}} más",
+    "bench": {
+      "counter": "Portaobjetos sin asignar en la mesa: {{count}}",
+      "hint": "Escanee una gradilla de tinción abierta para colocarlos todos en ella y sellarla.",
+      "leaveWarning_many": "{{count}} portaobjetos de esta mesa aún no están en una gradilla de tinción. Permanecen en la mesa de este puesto hasta que se escanee una gradilla. ¿Salir de todos modos?",
+      "leaveWarning_one": "{{count}} portaobjetos de esta mesa aún no está en una gradilla de tinción. Permanece en la mesa de este puesto hasta que se escanee una gradilla. ¿Salir de todos modos?",
+      "leaveWarning_other": "{{count}} portaobjetos de esta mesa aún no están en una gradilla de tinción. Permanecen en la mesa de este puesto hasta que se escanee una gradilla. ¿Salir de todos modos?",
+      "noneAdded": "Ninguno de los portaobjetos de la mesa pudo entrar en {{barcode}}; {{count}} siguen en la mesa.",
+      "slideOnBench": "{{item}} confirmado y dejado en la mesa ({{count}} esperando una gradilla).",
+      "someLeft_many": "{{count}} portaobjetos no pudieron entrar en {{barcode}} y siguen en la mesa.",
+      "someLeft_one": "{{count}} portaobjetos no pudo entrar en {{barcode}} y sigue en la mesa.",
+      "someLeft_other": "{{count}} portaobjetos no pudieron entrar en {{barcode}} y siguen en la mesa."
+    },
+    "checkOffPrompt": "Marcar {{item}} a mano. ¿Por qué?",
+    "checkOffReasons": {
+      "labelDamaged": "Etiqueta dañada",
+      "labelUnreadable": "Etiqueta ilegible",
+      "scannerDown": "El escáner no funciona"
+    },
+    "checkOffTitle": "¿La etiqueta no se escanea? Márquela a mano",
     "chooseStation": "Puesto de este equipo",
     "close": "Cerrar",
     "dismiss": "Cerrar el mensaje",
     "finish": "Terminar la descarga",
+    "itemArrived": "✓ Recibido",
+    "itemWaiting": "Por escanear",
+    "itemsLabel": "Elementos de este contenedor",
     "listLabel": "Soportes abiertos para este puesto",
     "noStation": "Este equipo no tiene un puesto de escaneo asignado, por lo que los escaneos aquí no se registran y no se pueden abrir soportes. Elija el puesto de este equipo.",
     "noneHere": "No hay soportes abiertos para este puesto.",
     "notice": {
-      "addedToOutput": "Portaobjetos añadidos a {{barcode}}: {{count}}.",
+      "blockIntoTray": "{{item}} colocado en {{barcode}}.",
+      "checkedOffByHand": "{{item}} marcado a mano en {{barcode}}; el motivo queda registrado.",
       "closedAborted": "{{barcode}} está cerrado: se anuló el {{at}}.",
       "closedComplete": "{{barcode}} está cerrado: se completó el {{at}}.",
       "finished": "Descarga de {{barcode}} terminada.",
@@ -24852,13 +25217,23 @@
       "opened": "{{barcode}} abierto aquí. Elementos: {{count}}.",
       "openedAdHoc": "{{barcode}} abierto aquí; este puesto se ha registrado como su puesto de trabajo. Elementos: {{count}}.",
       "openedMismatch": "{{barcode}} abierto aquí aunque pertenece a otro paso. Ha quedado registrado.",
+      "outputClosedWithLoaded_many": "{{barcode}} sellado con {{count}} elementos y enviado. {{loaded}} está completo.",
+      "outputClosedWithLoaded_one": "{{barcode}} sellado con {{count}} elemento y enviado. {{loaded}} está completo.",
+      "outputClosedWithLoaded_other": "{{barcode}} sellado con {{count}} elementos y enviado. {{loaded}} está completo.",
+      "outputClosed_many": "{{barcode}} sellado con {{count}} elementos y enviado.",
+      "outputClosed_one": "{{barcode}} sellado con {{count}} elemento y enviado.",
+      "outputClosed_other": "{{barcode}} sellado con {{count}} elementos y enviado.",
       "outputSet": "{{barcode}} es ahora la bandeja de salida.",
       "sealed": "{{barcode}} sellado. Elementos: {{count}}.",
+      "slideIntoRack": "{{item}} confirmado y colocado en {{barcode}}.",
       "unexpectedKept": "{{item}} se mantiene y queda registrado como inesperado en {{barcode}}.",
       "unknown": "Ningún soporte tiene el código de barras {{barcode}}."
     },
     "openInBatchManagement": "Abrir en Gestión de lotes",
     "outputHint": "Escanee un soporte de {{node}} abierto para usarlo como bandeja de salida de los portaobjetos cortados.",
+    "outputHintEmbedding": "Escanee un contenedor de {{node}} abierto para reunir en él los bloques incluidos para el micrótomo.",
+    "outputHintMicrotomy": "Escanee primero una gradilla de {{node}} abierta para llenarla portaobjetos a portaobjetos, o corte primero y escanee la gradilla al final: todos los portaobjetos de la mesa entran en ella y se sella.",
+    "outputRescanHint": "Cuando {{barcode}} esté lleno, escanéelo de nuevo para sellarlo y enviarlo al paso siguiente.",
     "outputTray": "Bandeja de salida",
     "pending": {
       "continueAnyway": "Continuar de todos modos",
@@ -24867,12 +25242,18 @@
       "wrongItem": "{{item}} no está en el soporte {{barcode}}. ¿Continuar de todos modos? Se registrará como inesperado."
     },
     "progress": "{{matched}} de {{total}} escaneados",
+    "rack": {
+      "closeLastRun": "Cerrar la última tanda e iniciar una nueva",
+      "newRun": "{{barcode}} ha iniciado aquí una nueva tanda de tinción. Cargue los portaobjetos y vuelva a escanear la gradilla cuando esté llena para cerrarla.",
+      "notClosed_many": "La última tanda de {{barcode}} ({{count}} portaobjetos, {{at}}) nunca se cerró. Ciérrela antes de volver a usar la gradilla, o ábrala en Gestión de lotes.",
+      "notClosed_one": "La última tanda de {{barcode}} ({{count}} portaobjetos, {{at}}) nunca se cerró. Ciérrela antes de volver a usar la gradilla, o ábrala en Gestión de lotes.",
+      "notClosed_other": "La última tanda de {{barcode}} ({{count}} portaobjetos, {{at}}) nunca se cerró. Ciérrela antes de volver a usar la gradilla, o ábrala en Gestión de lotes."
+    },
     "routedHere": "Destinado aquí",
     "scanToUnload": "Escanee cada elemento al sacarlo del soporte.",
     "seal": "Sellar el manifiesto",
     "sealed": "Sellado",
     "stationLine": "Puesto: {{station}}",
-    "stillToScan": "Pendientes de escanear: {{items}}",
     "title": "Soportes en este puesto",
     "unexpectedCount_many": "{{count}} elementos inesperados escaneados",
     "unexpectedCount_one": "{{count}} elemento inesperado escaneado",
@@ -24881,9 +25262,9 @@
   },
   "stationScan": {
     "backToScanning": "Volver a escanear (ocultar el teclado)",
-    "backToScanningShort": "⌨ Escanear",
+    "backToScanningShort": "⌨ Ocultar teclado",
     "typeAnId": "Escribir un identificador con el teclado en pantalla",
-    "typeAnIdShort": "⌨ Escribir"
+    "typeAnIdShort": "⌨ Teclado"
   },
   "stationSwitch": {
     "discardedAndSwitched": "📍 Se descartaron los cambios y se cambió a {{station}}.",
@@ -26191,6 +26572,7 @@
       "qaTrendPolicy": "Política de tendencia de discordancias",
       "reagentLots": "Lotes de reactivos y soluciones",
       "releaseBuffer": "Búfer de liberación tras la validación",
+      "requisitionIngestion": "Incorporación de volantes",
       "researchCases": "Casos de investigación y finalidades de lote",
       "researchFeed": "Canal de investigación",
       "retention": "Conservación de datos",
@@ -26205,6 +26587,7 @@
       "siteAgents": "Agentes del centro",
       "smartCapture": "Captura inteligente",
       "specimens": "Diccionario de muestras",
+      "stainQc": "Control de tinción y escaneo",
       "stains": "Catálogo diagnóstico",
       "subspecialties": "Subespecialidades",
       "supportAccess": "Acceso de soporte",

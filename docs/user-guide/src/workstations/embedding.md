@@ -36,7 +36,9 @@ A card at the top of the screen, **Carriers at this station**, links this bench 
 
 - **The list.** The card lists the open carriers for this station: the ones routed to it (marked **Routed here**) and the ones at Embedding. STAT carriers come first, then the oldest; with none it reads "No open carriers for this station." Select one, or scan its barcode (it starts with CONT- or RACK-), to open it here.
 - **A carrier from the step before.** A processor basket from Processing moves to Embedding when you scan it here. It stays the same batch, and every cassette in it is recorded as received from the carrier.
-- **Unloading.** With a carrier open, scan each item as you take it out. The first scan starts the unloading. The card counts what has been scanned off (the line "… of … scanned off", for example 3 of 12) and lists what is still to scan. When everything is scanned off, **Finish unloading** closes the carrier.
+- **Unloading.** With a carrier open, its items are listed (**Items in this carrier**), each marked "To scan". Scan each item as you take it out: it is marked **✓ Arrived** and opens for embedding. The first scan starts the unloading, and the card counts what has been scanned off (the line "… of … scanned off", for example 3 of 12). When everything is scanned off, **Finish unloading** closes the carrier. (Batch 757)
+- **A label that won't scan.** Type the barcode into the scan field and press Enter. Or select the item in the list ("Label won’t scan? Check it off by hand") and answer "Check off … by hand. Why?" with **Label unreadable**, **Label damaged** or **Scanner not working**. The item is marked arrived and the reason is recorded on the station's scan log.
+- **The tray for the Microtome (output tray).** Scan an empty, open Microtome / Sectioning carrier (made in Batch Management as an Ad-hoc batch) to make it this bench's output tray. Each block you confirm as embedded goes into it ("… placed in …"). When the tray is full, scan it again: it is sealed and sent on to the Microtome.
 - **An item that is not in the carrier.** The item does not open straight away. The card says it is not in the carrier: **Continue anyway** opens it and records it as unexpected (this is audited), **Cancel** does nothing.
 - **A carrier for another step.** The card warns you which step the carrier belongs to. **Open here anyway** opens it and records that it was opened at another step.
 - **A closed or unknown carrier.** The card says so plainly, with the date it was completed or aborted.
@@ -45,9 +47,15 @@ A card at the top of the screen, **Carriers at this station**, links this bench 
 
 Every scan here is recorded with this station, the time and your name, which is what the scan trail and the turnaround reports are built from. **Confirm** also records the block as completed at this station.
 
+### Patient identity and typed entries (Batch 759)
+
+The bench never shows the patient's name, date of birth or MRN, so nothing of the patient is readable on an open bench monitor. You identify the work by two identifiers on the container, cassette or slide: the **accession number** and the **specimen part and its source** (for example "Specimen A – Colon, segmental resection for tumor"). An outside or consultation case also shows, highlighted beside the accession, the originating institution's case number (**Foreign case ID**) and, when the block or specimen came with its own number, that number (**Foreign ID**).
+
+If the scanner can't read a label, type the id in the same field and press Enter. It opens at once, with nothing to confirm. A line then says "Typed, not scanned: check the container shows … and …": check both identifiers against what is in your hand. The typed entry is recorded quietly (time, workstation and you) on the audit trail, and as "Typed, not scanned" in the case's scan history. The line goes away with your next scan.
+
 ### Scan history
 
-With a case open, **Show scan history** (just below the carrier card) opens the case's scan trail: every station scan of its cassettes, blocks and slides, newest first. The columns are **When**, **Item**, **Where** (the station and the step), **Who** and **What happened** (Received, Loaded into carrier, Taken out of carrier, Matched, Missing, Unexpected, Label printed, Completed here), with the outcome when it was not OK (Wrong item, Not found, Mismatch), the carrier the item was in ("In carrier" and its barcode), and "Recorded when the carrier was scanned" for a scan made for every item in a carrier. **Hide scan history** closes it. While it reads the trail it says "Loading scan history…". It is closed until you open it, and it is shown only to people allowed to see scan history; if the service refuses, it says "You do not have permission to see the scan history." With nothing recorded yet it reads "No station scans recorded for this case yet."
+With a case open, **Show scan history** (just below the carrier card) opens the case's scan trail: every station scan of its cassettes, blocks and slides, newest first. The columns are **When**, **Item**, **Where** (the station and the step), **Who** and **What happened** (Received, Loaded into carrier, Taken out of carrier, Matched, Missing, Unexpected, Label printed, Completed here, and Batch 759's Typed, not scanned), with the outcome when it was not OK (Wrong item, Not found, Mismatch), the carrier the item was in ("In carrier" and its barcode), and "Recorded when the carrier was scanned" for a scan made for every item in a carrier. **Hide scan history** closes it. While it reads the trail it says "Loading scan history…". It is closed until you open it, and it is shown only to people allowed to see scan history; if the service refuses, it says "You do not have permission to see the scan history." With nothing recorded yet it reads "No station scans recorded for this case yet."
 
 !!! note "Picture"
     The picture above was taken before the carrier card was added.
@@ -67,8 +75,7 @@ Batch 732: for a megablock, a multi-piece or a matrix block, a panel shows the t
 | Field | What it means |
 |---|---|
 | Accession | The case number. |
-| Patient | Patient name. |
-| DOB | Date of birth, shown in your language's date format. |
+| Foreign case ID, Foreign ID | Batch 759. An outside case shows, highlighted, the originating institution's own case number (**Foreign case ID**, with "from …" and the institution), and the outside number of the block or specimen when it came with one (**Foreign ID**). Check them against the outside container or cassette. |
 | Specimen/Block | The specimen letter and block label. |
 | Type | The specimen description. |
 | Scan next cassette → | Closes this cassette and returns to the scan box. |

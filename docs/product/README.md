@@ -325,3 +325,19 @@ Batch 750: `SLIDE_IMAGE_DEMO.md` (new: preparing, hosting and connecting the fiv
 ## Batch 751
 
 Batch 751: `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md` (organ map on Assist cases and delivery), `DEMO_SEED_DATA.md` (S15), `DEMO_GUIDE.md` (Video 9 and the prostatectomy note).
+
+Batch 756: GUIDE_UPDATES and FEATURE_OVERVIEW (station scan field) entries for the fixes found recording demo Video 1.
+
+Batch 757: GUIDE_UPDATES and FEATURE_OVERVIEW entries for the embedding-to-staining flow.
+
+Batch 758: GUIDE_UPDATES and FEATURE_OVERVIEW entries for the Microtome print mode, Block printing, the block lockout and Scan-Last racks.
+
+Batch 759: `PATIENT_VERIFICATION.md` (new: Pete's patient verification, outside case and manual entry spec, as built), GUIDE_UPDATES and FEATURE_OVERVIEW entries.
+
+Batch 760: GUIDE_UPDATES and FEATURE_OVERVIEW entries for cytology screening without patient details; PATIENT_VERIFICATION.md updated.
+
+Batch 761: GUIDE_UPDATES and FEATURE_OVERVIEW entries for reusable staining racks.
+
+Batch 762: `REQUISITION_INGESTION.md` (new: requisition ingestion and the Requisition Inbox, as built), GUIDE_UPDATES and FEATURE_OVERVIEW entries.
+
+Batch 763: `STAIN_QC.md` (new: the stain and scanner QC gate, as built), GUIDE_UPDATES and FEATURE_OVERVIEW entries.

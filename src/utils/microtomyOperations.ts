@@ -45,7 +45,9 @@ export type MicrotomyCancelReason = typeof MICROTOMY_CANCEL_REASONS[number];
 
 /** Real, per the spec's own "dedicated Reprint button requiring
  *  single-tap reason selection." */
-export const MICROTOMY_REPRINT_REASONS = ['Jam', 'Scratched Glass', 'Misprint', 'Other'] as const;
+export const MICROTOMY_REPRINT_REASONS = ['Jam', 'Scratched Glass', 'Misprint', 'Damaged Section', 'Other'] as const;
+// Batch 758: 'Damaged Section' is also a reprint reason (a recut: the section was damaged, so the slide is cut again on
+// a new label), used by the Microtome's block lockout and offered in the Reprint picker.
 
 /** Batch 388: the reasons are stored as these English values (audit and label
  *  records); the screen shows them through `microtomyWorkstation.reasons.<key>`. */

@@ -26,6 +26,8 @@ status: Draft
 
 **Where it fits.** There is no Home tile. The usual way in is the **Add-on order** button in the block row of the [report](help:report) screen's header, which opens this screen with that case already loaded. Each slide you order appears as a Pending slide on its block at the [Microtome Workstation](help:workstations/microtomy), where the technologist cuts, labels and prints it. Finished slides are routed at the [Slide Distribution Station](help:workstations/slide-distribution). A molecular test run in the laboratory goes to the molecular order queue (see [Order Queue](help:molecular/order-queue)); a test that is sent out goes to the reference laboratory you choose.
 
+**Patient identity and typed entries (Batch 759).** This screen shows no patient name, date of birth or MRN. Check the accession number and the specimen source against the container; an outside case also shows its **Foreign case ID** (and a block or specimen's own **Foreign ID**). A typed id (when the scanner can't read a label) opens at once; a line says "Typed, not scanned: check the container shows … and …", and the typed entry is recorded quietly on the audit trail and in the scan history. See the Microtome page for the full account.
+
 ## Screen Tour
 
 ![The Add-On Order Builder with the case's blocks on the left, the builder in the middle, the order summary on the right and order tracking below](capture:add-on-orders-overview)

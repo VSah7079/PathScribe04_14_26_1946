@@ -79,6 +79,7 @@ describe('image state', () => {
     expect(slideImageState({ distributionStatus: 'In Scanning Queue', lastScanOutcome: 'imageQcFailed' })).toBe('failedImageQuality');
     expect(slideImageState({ distributionStatus: 'Loaded on Scanner' })).toBe('scanning');
     expect(slideImageState({ distributionStatus: 'Scanned' })).toBe('available');
+    expect(slideImageState({ distributionStatus: 'Scanned', lastScanOutcome: 'imageQcPending' })).toBe('awaitingImageQc'); // Batch 763
     expect(slideImageState(CYTOLOGY_WSI_SCAN)).toBe('available');
   });
   it('a failed-quality image is still shown (marked); the others have none', () => {

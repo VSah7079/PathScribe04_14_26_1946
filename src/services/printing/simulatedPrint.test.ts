@@ -43,3 +43,13 @@ describe('simulatedPrint (Batch 606)', () => {
     expect(listSimulatedPrints()).toHaveLength(0);
   });
 });
+
+describe('one toast for a burst of simulated sends (Batch 756)', () => {
+  it('counts sends within the burst window and starts again after it', async () => {
+    const { nextSimulatedToastCount, SIMULATED_TOAST_BURST_MS } = await import('./simulatedPrint');
+    expect(nextSimulatedToastCount(undefined, 1000)).toBe(1);
+    expect(nextSimulatedToastCount({ count: 1, last: 1000 }, 1500)).toBe(2);
+    expect(nextSimulatedToastCount({ count: 11, last: 1000 }, 1000 + SIMULATED_TOAST_BURST_MS - 1)).toBe(12);
+    expect(nextSimulatedToastCount({ count: 12, last: 1000 }, 1000 + SIMULATED_TOAST_BURST_MS)).toBe(1);
+  });
+});

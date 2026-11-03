@@ -1,3 +1,5 @@
+**Batch 759:** the MRN column of the linked specimens is gone (Patient Verification spec §1).
+
 # pages/MolecularBatchManagement/
 
 Real, pre-existing feature, per direct guidance: "I want a separate Batch

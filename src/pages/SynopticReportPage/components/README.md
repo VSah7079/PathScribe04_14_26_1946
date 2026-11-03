@@ -1,3 +1,5 @@
+**Batch 759:** `HeaderBar.tsx`: the Foreign case ID beside the accession (704 → 708 lines).
+
 **Batch 755b (part 2):** `RightSynopticPanel.tsx` offers the picker only what `offeredOnCasePicker()` allows (no TEST forms, no unused demo checklists).
 
 **Batch 755a:** `TemplatePicker.tsx` (new file, moved unchanged out of `RightSynopticPanel.tsx`, now 1,750 lines): the "pick a checklist for this specimen" list, with the "Demo wording" tag; `RightSynopticPanel.tsx` header and `Sidebar.tsx` entry show the tag.

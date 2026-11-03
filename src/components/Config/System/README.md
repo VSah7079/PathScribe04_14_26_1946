@@ -1,3 +1,5 @@
+**Batch 758:** `PrintSettingsSection.tsx`: the Default Print Behavior card is now Grossing Print Behavior, and a Microtome Print Behavior card (On-Demand, Block, Batch) follows it.
+
 **Batch 747:** `DemoDisplayTokensCard.tsx` (+ `.css`, new), on `DemoResetTab.tsx`: Issue tokens shows a fresh token for each demo wall display and the OR Suite terminal, once (`services/demoReset/demoDisplayTokens.ts`).
 
 **Batch 737:** `StainingRacksPanel.tsx` (new), shown in `EquipmentSection.tsx`: the lab's reusable staining racks with **Takes large-format slides** (saved at once; the rack registry checks `config:equipment:manage`).
@@ -1749,3 +1751,9 @@ Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): the AI instructions t
 ## Batch 750
 
 - `SlideImageSettingsCard.tsx` (new), at the top of the WSI Viewers section (`WsiViewerVendorDictionarySection.tsx`): the laboratory's viewer and preview addresses, and a facility's own; saved through the enterprise settings (`config:vendor-integrations:manage`). The section's inactive marker no longer joins text with a hard-coded dot.
+
+## Batch 762
+
+- `RequisitionIngestionSection.tsx` (new), Integrations → Requisition ingestion: the source (watched folder or sending system), schedule and separator-sheet barcode, saved through `requisitionService.saveSource` (`config:requisition-ingestion:manage`).
+
+- `RequisitionExpectationCard.tsx` (new, Batch 762): Expected requisitions, the organisation default and each facility's own: which origins need a scan, hours before a case is flagged, hours before a scan with no case is flagged.

@@ -2081,3 +2081,35 @@ Batch 733: Add-On Orders tracking, group answers; Microtome, one flag per block.
 ## Batch 751
 
 `SynopticReportPage/hooks/useOrganMap.ts`: the Assist state and the map-file line.
+
+## Batch 756
+
+Grossing queue lists cases made on Accession (`GrossingWorkspacePage`); the accession message names the accession number (`AccessionPage`); the grossing block table's piece description field is styled (`GrossingScreenPage/GrossingBlockTable.css`).
+
+## Batch 757
+
+Embedding output tray and manual check-off; Microtome dual scan; Batch Management scan-or-type field.
+
+## Batch 758
+
+Microtome: Block print mode, the block lockout (`components/BlockLockoutBanner.tsx`), the label list for Block mode.
+
+## Batch 759
+
+No patient name, date of birth or MRN on the bench screens (Embedding, Microtome, Cytology Preparation, Add-On Orders, Margin Exception Review, Molecular Batch Management); Foreign case ID on the bench, grossing and report headers; Accession's Originating case (`AccessionPage/OutsideCaseCard.tsx`). `MarginExceptionReviewPage.tsx` shows the specimen instead of the patient (`hooks/useMarginExceptionReview.ts`).
+
+## Batch 760
+
+Cytology Screening and the Cytology Worklist: no patient name, date of birth or MRN (`CytologyWorklistPage/`).
+
+## Batch 761
+
+Batch Management: a reusable rack's closed last run is not reopened; an unclosed one is warned about.
+
+## Batch 762
+
+`RequisitionInboxPage/` (new, `/accession/requisitions`): the Requisition Inbox. `AccessionPage`: the Requisition Inbox button. `SynopticReportPage/components/HeaderBar.tsx`: the case's Requisition button.
+
+## Batch 763
+
+`SlideDistributionStationPage`: the QC checkpoint panel below the carrier card; `hooks/useSlideDistributionStation.ts` refuses a slide or block held by stain QC. `SynopticReportPage/components/MaterialTreePanel.tsx`: the QC Pending stain status.

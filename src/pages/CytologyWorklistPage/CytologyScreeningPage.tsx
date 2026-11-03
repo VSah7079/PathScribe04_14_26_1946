@@ -74,7 +74,8 @@ import type { PathologyLexiconEntry } from '@/types/cytology/PathologyLexicon';
 import { resolveCytologyIsPathologistTrack } from '@/services/cases/resolveCytologyIsPathologistTrack';
 import { formatDate, formatDateTime } from '@/utils/formatDate';
 import { formatList } from '@/utils/formatList';
-import { formatIdentificationName, fromLegacyName, resolvePatientFullDisplayName } from '@/utils/personName';
+import CytologyIdentityLine from '@/components/Cytology/CytologyIdentityLine';
+import { cytologyCaseIdentity } from '@/services/cytology/cytologyBenchIdentity';
 import type { ProviderCredential } from '@/types/staff/ProviderCredential';
 import type { Jurisdiction } from '@/types/systemConfig';
 import { resolveCytologyReviewerRole } from '@/services/cytology/resolveCytologyReviewerRole';
@@ -853,9 +854,8 @@ export default function CytologyScreeningPage() {
               <h1 className="ps-cytoscreen-case-title">
                 <Trans i18nKey="cytologyScreening.caseTitle" values={{ id: caseData.id }} components={{ accession: <span data-phi="accession" /> }} />
               </h1>
-              <p className="ps-cytoscreen-patient-line" data-phi="true">
-                {t('cytologyScreening.patientLine', { name: resolvePatientFullDisplayName(caseData.patient, i18n.language) ?? t('cytologyScreening.patientUnknown'), mrn: caseData.patient?.mrn ?? '—' })}
-              </p>
+              {/* Batch 760 (Cytology spec §2.1): no patient name, date of birth or MRN; the vial type and the slide ids. */}
+              <p className="ps-cytoscreen-patient-line"><CytologyIdentityLine identity={cytologyCaseIdentity(caseData)} /></p>
               {/* Batch 425: the patient's registry opt-outs. */}
               <RegistryOptOutBadge consent={caseData.patient?.registryConsent} />
             </div>
@@ -1385,7 +1385,7 @@ export default function CytologyScreeningPage() {
         <RequestReviewModal
           isOpen={reviewOpen}
           caseId={caseData.id}
-          caseLabel={caseData.patient ? formatIdentificationName(fromLegacyName(caseData.patient.firstName ?? '', caseData.patient.lastName ?? '')) : undefined}
+          caseLabel={cytologyCaseIdentity(caseData).accession /* Batch 760: not the patient's name */}
           fromUserId={user?.id ?? 'u1'}
           fromUserName={user?.name ?? 'Unknown'}
           onClose={() => setReviewOpen(false)}

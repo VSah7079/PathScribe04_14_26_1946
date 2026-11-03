@@ -813,6 +813,7 @@ Unlocks: [Profils d'imprimante](#screen-printer_profiles), [Matériel de macrosc
 | Maintenance tous les (jours) | Nombre entier, de 1 à 3650 | Facultatif | Même règle. | Vide |
 | Température minimale (°C), Température maximale (°C) | Nombres, minimum inférieur au maximum ; l'un ou l'autre peut être vide | Facultatif | Lot 730 : la plage appliquée à un contrôle de température du journal des équipements. Une mesure hors plage est un échec ; la plage est copiée sur chaque entrée. | Vide |
 | Accepte les lames grand format | Case à cocher, automates de coloration et scanners de lames uniquement | Facultatif | Lot 732 : l’appareil accepte les lames grand format (mégablocs). La distribution des lames n’envoie une lame grand format qu’à un scanner coché. | Non coché |
+| Validation du contrôle qualité | Liste, automates de coloration et scanners de lames seulement : Valeur par défaut du laboratoire, Acceptation automatique, Validation par l'instrument (moteur d'interface), Validation dans PathScribe | Facultatif | Lot 763 : comment la production de cet instrument est validée avant la distribution de ses lames (automate) ou l'ouverture de ses images (scanner). Voir [Contrôle coloration et numérisation](#screen-stain_qc). | Valeur par défaut du laboratoire |
 | Statut | Actif / Inactif | Facultatif | | Actif |
 | Disposition du plateau | Lignes, analyseurs uniquement | Facultatif | Les emplacements du plateau de l'analyseur. Chaque ligne : Plateau ou baie, Identifiant d'emplacement (lettres, chiffres, « _ », sans doublon) et Accepte (Plaque d'extraction, Cartouche de réactifs, Portoir de tubes d'échantillons ; au moins un). Le Chargement des portoirs ne propose que les emplacements adaptés. L'identifiant d'emplacement est imprimé sur le code-barres de position sur le plateau. | Aucun |
 
@@ -831,8 +832,44 @@ Unlocks: [Profils d'imprimante](#screen-printer_profiles), [Matériel de macrosc
 
 Lot 737. Affiché sous le registre lorsque le laboratoire a des portoirs de coloration réutilisables (identifiants RACK- gravés). Chaque ligne est un portoir avec la case **Prend les lames grand format**, enregistrée immédiatement (nécessite `config:equipment:manage`). La Gestion des lots refuse une lame grand format (coupée dans un mégabloc) scannée sur un support de coloration qui ne prend pas les lames grand format ; un support de coloration jetable les prend lorsque **Prend les lames grand format (mégablocs)** est coché dans Nouveau conteneur. La démo a un tel portoir, RACK-STAIN-LF-01.
 
+Batch 761 : un portoir est réutilisé série après série. Au microtome, scanner un portoir enregistré dont la dernière série est fermée démarre une nouvelle série, sans formulaire ; la gestion des lots l’ouvre comme une nouvelle série (Nouveau contenant, prérempli). Un portoir dont la dernière série a été scellée ou placée sur le colorateur sans jamais être fermée est bloqué avec un avertissement. Fermer cette série depuis le microtome est une dérogation de rapprochement (`batch:reconciliation:override`), enregistrée avec le motif « Reusable rack scanned for a new run; the last run on it was never closed. »
+
 **7. Autorisations.** Ouvrir : `screen:configuration:open`. Ajouter, modifier, désactiver : `config:equipment:manage`. Enregistrer une entrée du journal d'entretien : `equipment:maintenance:record`. Toutes deux à risque élevé. Les rôles Administrateur et Directeur de laboratoire détiennent les deux. Les rôles Histotechnicien, Cytotechnicien et Technicien en biologie moléculaire détiennent aussi l'autorisation du journal.
 **Limites connues.** Les échéances d'entretien sont calculées dans le fuseau horaire de l'établissement défini dans les paramètres du Tableau de bord des contributions.
+### Contrôle coloration et numérisation {#screen-stain_qc}
+Breadcrumb: Accueil > Configuration > Système > Poste de travail et matériel > Contrôle coloration et numérisation
+
+**Statut :** Partiel
+
+**1. Navigation :** onglet de Configuration **Système** > groupe **Poste de travail et matériel** > **Contrôle coloration et numérisation**
+**2. Élément de maintenance :** Contrôle coloration et numérisation
+
+**3. Objectif métier et portée.** Lot 763, le point de contrôle qualité après coloration et avant distribution. À la fin d'une série de coloration, ses lames attendent leur contrôle : le portoir ne peut pas être sorti et ses lames ne sont pas distribuées en Distribution des lames tant que la série n'est pas validée. Une image numérisée peut attendre de la même façon avant que le Pathologiste puisse l'ouvrir. Chaque automate et scanner est validé de l'une des trois façons : **Acceptation automatique** (libérée aussitôt, tracée comme acceptée automatiquement), **Validation par l'instrument (moteur d'interface)** (option A : le résultat de contrôle de l'instrument, envoyé par le moteur d'interface, libère ou retient la série ; pour un scanner, son propre contrôle d'image) ou **Validation dans PathScribe** (option B : un technicien valide au point de contrôle de la Distribution des lames). Cet écran fixe les valeurs par défaut ; le mode propre d'un instrument se règle dans [Équipements](#screen-equipment) (Validation du contrôle qualité) et l'emporte sur la valeur par défaut.
+
+**4. Prérequis et dépendances.** La liste des instruments lit les [Équipements](#screen-equipment) : automates de coloration et scanners de lames. La validation par l'instrument nécessite l'interface de l'automate (son message de validation par le moteur d'interface) ; sans elle, un superviseur valide à sa place.
+
+Setup step: Tier 1, step 22
+Requires: [Équipements](#screen-equipment)
+Unlocks: None.
+
+**5. Écran.**
+
+[SCREENSHOT PLACEHOLDER: system-stain-qc - Les valeurs par défaut et la liste des automates et scanners avec leur mode]
+
+**6. Référence des champs.**
+
+| Nom du champ | Type de données / format | Obligatoire/Facultatif | Description et logique métier | Valeur par défaut du système |
+|---|---|---|---|---|
+| Automates de coloration | Liste : Acceptation automatique, Validation par l'instrument (moteur d'interface), Validation dans PathScribe | Obligatoire | La valeur par défaut d'un automate sans mode propre. | Validation dans PathScribe |
+| Scanners de lames | Même liste | Obligatoire | La valeur par défaut d'un scanner sans mode propre. Avec la validation par l'instrument, une image acceptée par le contrôle du scanner est libérée ; les autres sont retenues. | Acceptation automatique |
+| Enregistrer les valeurs par défaut | Bouton | Sans objet | Tracé comme Stain QC Settings Saved. | Sans objet |
+| Automates et scanners | Tableau : Instrument, Type, Validation | Sans objet | Le mode de chaque instrument, avec « par défaut » s'il n'en a pas en propre. | Sans objet |
+
+Au point de contrôle, une lame en échec est marquée **Recolorer** (statut QC Failed) ou **Recouper** (Recut Requested) avec un motif : Coloration faible, Surcoloration, Coloration irrégulière, Témoin non conforme, Bulle sous la lamelle, Tissu plié, Autre. Une image est transmise ou renvoyée en numérisation avec un motif : Flou, Tissu non capturé, Erreur d'assemblage, Débris sur la lame, Autre. Le journal d'audit montre Stain QC Pending, Passed, Failed, Instrument Result Ignored ; Image QC Pending, Passed, Failed.
+
+**7. Autorisations.** Ouvrir : `screen:configuration:open`. Enregistrer les valeurs par défaut : `config:stain-qc:manage` (Administrateur, Directeur de laboratoire). Au point de contrôle : `stain:qc:sign-off` et `scan:image-qc:sign-off` (les rôles qui ouvrent la Distribution des lames, Directeur de laboratoire) ; `stain:qc:override` pour valider une série qui attend la validation de son automate (Directeur de laboratoire). Tous à risque élevé.
+**Limites connues.** Les motifs d'échec sont une liste fixe ; les critères de contrôle par coloration ne sont pas réalisés. Les routes du serveur et le canal de validation du moteur d'interface sont prévus.
+
 ### Profils d'imprimante {#screen-printer_profiles}
 Breadcrumb: Accueil > Configuration > Système > Poste de travail et matériel > Profils d'imprimante
 
@@ -1031,7 +1068,8 @@ Unlocks: [Concepteur d'étiquettes](#screen-label_designer)
 
 | Nom du champ | Type de données / format | Obligatoire/Facultatif | Description et logique métier | Valeur par défaut du système |
 |---|---|---|---|---|
-| Comportement d'impression par défaut | Choix : À la demande (par bloc ou contenant), Par lot (par dossier ou commande) | Obligatoire | À la demande imprime chaque étiquette de cassette au moment de son enregistrement pendant la macroscopie. Par lot reporte l'impression à une action unique par dossier. | À la demande |
+| Comportement d'impression en macroscopie | Choix : À la demande (par bloc ou contenant), Par lot (par dossier ou commande) | Obligatoire | À la demande imprime chaque étiquette de cassette au moment de son enregistrement pendant la macroscopie. Par lot reporte l'impression à une action unique par dossier. | À la demande |
+| Mode d’impression au microtome | Choix : À la demande, Bloc, Par lot | Facultatif | Batch 758. Comment le microtome imprime les étiquettes de lames, indépendamment de la macroscopie. À la demande : une étiquette à la fois, chacune scannée sur sa lame avant l’impression de la suivante. Bloc : la lecture d’un bloc imprime toutes ses étiquettes, scannées dans n’importe quel ordre. Par lot : le technicien coche les lames et les imprime ensemble. Dans tous les modes, passer au bloc suivant alors que des étiquettes de ce bloc ne sont pas scannées est bloqué jusqu’à ce que chacune soit scannée, recoupée ou annulée, ou que le technicien continue (consigné). Tant que rien n’est choisi, le microtome suit le réglage de la macroscopie. | Comme la macroscopie |
 | Appliquer les garde-fous à la demande | Interrupteur Oui/Non | Facultatif | Lorsqu'il est activé, la valeur par défaut est fixée pour tout le laboratoire et les préposés à l'accession ne peuvent pas faire passer un dossier en Par lot. | Désactivé |
 | Exiger la vérification par numérisation | Interrupteur Oui/Non | Facultatif | Exige de numériser le code-barres de la nouvelle cassette ou du nouveau contenant avant de passer au bloc suivant. | Désactivé |
 | Demander un motif lors de la réimpression d'un compte rendu | Interrupteur Oui/Non | Facultatif | La réimpression d'un compte rendu déjà imprimé exige un motif, conservé dans le journal d'audit avec l'impression. | Désactivé |

@@ -115,7 +115,7 @@ export interface SpecimenContainer {
 export type BlockStatus = 'Pending' | 'Grossed' | 'Embedded' | 'Exhausted' | 'Cancelled' | 'Lost' | 'Damaged' | 'Deleted' | 'Invalidated';
 export type StainOrderStatus =
   | 'Pending Cut' | 'Cut & Placed' | 'Staining' | 'Coverslipped'
-  | 'Ready for Review' | 'Recut Requested' | 'QC Failed' | 'Cancelled';
+  | 'Ready for Review' | 'Recut Requested' | 'QC Failed' | 'Cancelled' | 'QC Pending'; // Batch 763: stained, waiting for QC sign-off
 
 /**
  * Real feature, per direct confirmation: "we need a stain order called
@@ -371,7 +371,7 @@ export interface StainOrder {
    *  is deliberately a new, separate StainOrder) — see
    *  reprintCount below for the real, cumulative audit count this
    *  keeps instead. */
-  lastReprintReason?: 'Jam' | 'Scratched Glass' | 'Misprint' | 'Other';
+  lastReprintReason?: 'Jam' | 'Scratched Glass' | 'Misprint' | 'Damaged Section' | 'Other'; // Batch 758: 'Damaged Section' (a recut)
   lastReprintOrderedBy?: string;
   lastReprintOrderedAt?: string;
   /** Real, cumulative count of reprint actions against this exact

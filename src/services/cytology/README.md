@@ -2178,3 +2178,5 @@ Comments in `recallWindows.ts` and `selfCollectedRecall.ts` corrected: the windo
 ## Batch 716: demo routing default
 
 `mockCytologyRoutingSettingsService` starts from `DEMO_CYTOLOGY_ROUTING_SETTINGS` (non-GYN and FNA on the Cytology worklist) so cases accessioned in a training video appear in the cytology queue. The product default (`DEFAULT_CYTOLOGY_ROUTING_SETTINGS`, used by `reset()` and the server) is still the Surgical Pathology worklist.
+
+**Batch 760:** `cytologyBenchIdentity.ts` (new): a cytology case's non-PHI identity (accession, vial type, up to three slide ids), for the screening screens (Cytology Workspace spec §2.1).

@@ -33,7 +33,8 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import '../../../pathscribe.css';
 import { printSettingsService, facilityPrintSettingsService, printerProfileService } from '@/services/index';
-import type { PrintSettingsConfig } from '@/services/printSettings/IPrintSettingsService';
+import { MICROTOME_PRINT_BEHAVIORS, type PrintSettingsConfig } from '@/services/printSettings/IPrintSettingsService';
+import { microtomePrintModeOf } from '@/services/printSettings/microtomePrintMode';
 import type { FacilityPrintSettings } from '@/services/printSettings/IFacilityPrintSettingsService';
 import { resolveEffectivePrintSettings } from '@/services/printSettings/IFacilityPrintSettingsService';
 import { containerLabelSizePresets, requisitionLabelSizePresets, isPrintSettingsReadOnly, savePrintSettingsChanges } from '@/services/printSettings/printSettingsForm';
@@ -176,6 +177,27 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
               <span className="ps-conf-option-text">
                 {mode === 'on_demand' ? t('printSettingsSection.defaultBehavior.onDemandOption') : t('printSettingsSection.defaultBehavior.batchOption')}
               </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Batch 758: Microtome Print Behavior (apart from Grossing's) ── */}
+      <div className="ps-conf-card ps-conf-card--spaced">
+        <div className="ps-conf-card-title">{t('printSettingsSection.microtomeBehavior.title')}</div>
+        <div className="ps-conf-card-description">{t('printSettingsSection.microtomeBehavior.description')}</div>
+        <div className="ps-conf-radio-group">
+          {MICROTOME_PRINT_BEHAVIORS.map(mode => (
+            <label key={mode} className="ps-conf-radio-label">
+              <input
+                type="radio"
+                name="microtomePrintBehavior"
+                checked={microtomePrintModeOf(effective) === mode}
+                onChange={() => update({ microtomePrintBehavior: mode })}
+                disabled={readOnly}
+                className="ps-conf-radio-input"
+              />
+              <span className="ps-conf-option-text">{t(`printSettingsSection.microtomeBehavior.options.${mode}`)}</span>
             </label>
           ))}
         </div>

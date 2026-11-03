@@ -472,3 +472,4 @@ Gehen Sie für eine routinemäßige Überprüfung eines Stichprobenzeitraums die
 5. Öffnen Sie den Tab **Fehlerprotokoll**, filtern Sie auf **Nur offene** und prüfen Sie, dass nichts Wichtiges ungelöst ist.
 6. Öffnen Sie den [Support-Zugriff](#screen-support_access) und bestätigen Sie, dass die Kettenzeile „unverändert“ meldet; lesen Sie die Einträge des Zeitraums.
 7. Exportieren Sie die CSV-Datei des Prüfprotokolls für den Zeitraum und bewahren Sie die Datei bei Ihren Prüfnotizen auf. Der Export wird selbst protokolliert.
+8. Suchen Sie `Manual Entry`, um eingetippte statt gescannte IDs zu sehen (Batch 759). Jeder Eintrag nennt das Modul, die Eingabe, den Benutzer und den Arbeitsplatz und verweist auf den Fall. Viele Einträge an einem Arbeitsplatz können auf einen defekten Scanner oder beschädigte Etiketten hinweisen.

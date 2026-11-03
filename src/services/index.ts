@@ -746,6 +746,11 @@ export {
 } from './caseAttachments/caseAttachments';
 export * from './caseAttachments/attachmentCatalog';
 export { ATTACHMENT_ACCEPT, DEFAULT_ATTACHMENT_WARN_BYTES, isOverWarningSize, megabytes } from './caseAttachments/attachmentFiles';
+// Batch 762: requisition ingestion (pointers to the scanned PDFs; nothing stored), the Unmatched Requisitions queue.
+export { requisitionService } from './requisitions/requisitionServiceInstance';
+export { ingestionRunsInBrowser, runIngestionNow } from './requisitions/requisitionIngestionRunner';
+export { REQUISITION_ERRORS, type IRequisitionService } from './requisitions/IRequisitionService';
+export * from './requisitions/requisitionTypes';
 export { lisStagingQueueService } from './lisIngestion/lisStagingQueueServiceInstance';
 export { migrationFieldMappingService } from './migration/migrationFieldMappingServiceInstance';
 export { getMockInterfaceEngineSettings, setMockInterfaceEngineSettings } from './mockInterfaceEngine/mockInterfaceEngineSettings';
@@ -850,3 +855,7 @@ export { scanStepFor, dropTimeFromLocalInput, dwellParts, dwellLabel, accessionL
 export { healthStatusService } from './healthStatus/healthStatusServiceInstance';
 export type { IHealthStatusService } from './healthStatus/IHealthStatusService';
 export { footerStatusKind, shouldRecheck, parseHealthStatus, HEALTH_RECHECK_AFTER_MS, type HealthStatus, type HealthState, type FooterPhase, type FooterStatusKind } from './healthStatus/healthStatusContract';
+// Batch 763: the Post-Stain / Pre-Distribution QC gate (staining runs and scanned images held until QC is signed off).
+export { stainQcService, stainQcSystem } from './stainQc/stainQcServiceInstance';
+export { STAIN_QC_ERRORS, type IStainQcService } from './stainQc/IStainQcService';
+export * from './stainQc/stainQcTypes';

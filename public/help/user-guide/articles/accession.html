@@ -329,6 +329,14 @@
 </thead>
 <tbody>
 <tr>
+<td>Originating case: Originating case number</td>
+<td>The outside institution's own case (or accession) number, as on its paperwork (the empty box shows e.g. S-24-9842). Batch 759: every workspace header (the benches, Grossing and the report screen) then shows it, highlighted as <strong>Foreign case ID</strong>, beside the PathScribe accession number. Optional.</td>
+</tr>
+<tr>
+<td>Originating case: Originating institution</td>
+<td>The institution that number belongs to, as written on its paperwork. Shown after the number ("from …"). Optional.</td>
+</tr>
+<tr>
 <td>Facility &amp; Origin: Facility Account</td>
 <td>The Submitting Facility you chose on Case &amp; Patient. It cannot be edited here; until you choose one it says to select it on Case &amp; Patient.</td>
 </tr>
@@ -416,6 +424,10 @@
 <td>Go to Worklist</td>
 <td>Opens the Worklist.</td>
 </tr>
+<tr>
+<td>📥 Requisition Inbox</td>
+<td>Under the title. Opens the Requisition Inbox: scanned requisitions that matched no case wait there (see below). Shown when your role may review it.</td>
+</tr>
 </tbody>
 </table>
 <h3 id="icons-and-status-indicators">Icons and status indicators</h3>
@@ -461,6 +473,35 @@
 </tr>
 </tbody>
 </table>
+<h3 id="requisition-inbox">Requisition Inbox</h3>
+<p>Paper requisitions are scanned in batches by the department scanner. PathScribe reads the accession barcode on each page and puts the scan on its case: on the report screen the header shows <strong>📄 Requisition</strong>. A page with no barcode of its own (a second page of the same form) stays with the page before it. A <strong>separator sheet</strong> (a page with your laboratory's separator barcode) between two requisitions ends the first one and is not kept with any case. PathScribe keeps a link to the scan where your hospital stores it, never a copy.</p>
+<p>The <strong>Requisition Inbox</strong> (Accession, then <strong>📥 Requisition Inbox</strong>; <strong>← Accession</strong> goes back) has three parts:</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Requisition ingestion</td>
+<td>Each scanner set up for your facilities, with the laboratory it belongs to, where its scans come from and how often they are read ("not read (switched off)" when an administrator has turned it off), and each scanner's last run: how many files were read, how many scans were linked to cases, how many went to the queue, and any file refused (only PDFs are read: "Refused: not a PDF (only PDFs are read)"). <strong>Run ingestion now</strong> (Alt+G, or say "run ingestion now") reads the scans at once; in a live laboratory the server does this on its schedule and the line reads "The server runs ingestion on its schedule."</td>
+</tr>
+<tr>
+<td>Unmatched Requisitions</td>
+<td>Scans PathScribe could not place: "This barcode matches no case" (the barcode was read; no case has it yet), or "No barcode could be read on this page". <strong>View</strong> shows the scanned pages beside the list ("Reading the scan…" while they load; each picture is labelled "Requisition page" and its number for screen readers), with <strong>Open PDF</strong> and <strong>Close</strong>.</td>
+</tr>
+<tr>
+<td>Recently linked</td>
+<td>The scans placed lately, with the case, "Matched on its barcode" or "Linked by" and the person's name, and <strong>View</strong>. Before anything is placed it reads "No requisitions linked yet.", and before the first run the ingestion part reads "No run yet."</td>
+</tr>
+</tbody>
+</table>
+<p>To place a scan from the queue, scan or type the accession into the field (it reads "Accession, patient name or MRN") and press Enter (or <strong>Link</strong> on a touch screen). If what you typed is not an accession, PathScribe searches by accession, patient name or MRN and lists the <strong>Cases found</strong> under the scan, each with <strong>Link</strong>; when nothing is found it says so. If the case has not been accessioned yet, <strong>New case from this scan</strong> opens Accession with a banner naming the scan ("Creating a case for the scanned requisition:", with <strong>View</strong> to read it while you type); when you submit the case, the scan is linked to it and the banner says "The scanned requisition is linked to the new case". To take one out of the queue instead, choose the <strong>Reason for discarding</strong> (<strong>Not a requisition</strong>, <strong>Duplicate scan</strong>, <strong>Unreadable scan</strong> or <strong>Other</strong>) and <strong>Discard</strong>: the scan itself is not deleted where it is stored. A scan that arrives before its case is accessioned waits in the queue and is linked by the next run once the case exists. Every link, discard and view is on the audit log.</p>
+<p><strong>A requisition with no case.</strong> A scan that has waited in the queue too long (24 hours unless your laboratory set otherwise) is marked in red, "No case yet: check for a specimen not received, lost or not accessioned", and moves to the top of the queue. Look for the specimen, then link or discard the scan.</p>
+<p><strong>Cases waiting for a requisition.</strong> Cases that should have a scanned requisition and have none linked in time are listed at the top of the inbox, with the laboratory, how the order came in (for example "Typed at Accession, no imported order", "Outside / contract case", "Downtime accession" or "Lockbox drop") and when the case was accessioned. A Missing Requisition deficiency is raised for each (the row then says so; otherwise it reads "Flagged: no requisition linked."), and the report screen shows <strong>⚠ Requisition missing</strong>. "Linking its scan clears this.": link the scan from the queue as above. If no paper requisition is coming, choose <strong>Why no paper requisition</strong> (<strong>Electronic order on record</strong>, <strong>Verbal order, documented</strong>, <strong>Request held in another record</strong> or <strong>Other</strong>) and <strong>No paper requisition</strong>: the deficiency is closed with your reason. Cases ordered electronically from the HIS do not need a paper requisition unless your laboratory says otherwise.</p>
+<p><strong>Several laboratories.</strong> Each scanner belongs to a performing facility, and each queued scan shows which laboratory's scanner it came from. You see the scans of the facilities you work for: <strong>Every facility I work for</strong> at the top right shows them all, or pick one facility to see only its scans and scanners (<strong>Run ingestion now</strong> then reads only that facility's scanners). A scan is matched to its case wherever the case is performed, because an accession number names one case.</p>
 <h3 id="hotkeys">Hotkeys</h3>
 <p>On this screen: <strong>Alt+N</strong> adds a specimen, <strong>Alt+I</strong> goes to Import from Order, <strong>Alt+Shift+C</strong> opens the case comment, <strong>Alt+.</strong> and <strong>Alt+,</strong> move between the two tabs (on a wide window both are already on screen, so they change nothing you can see), and <strong>Alt+1</strong> to <strong>Alt+6</strong> jump to the clinical history categories (cytology only). <strong>Alt+Enter</strong> ("Submit Case") only takes you to the Specimens tab (on a wide window it changes nothing you can see); you must still select <strong>Submit Accession</strong> yourself. F1 opens this guide.</p>
 <h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
@@ -499,6 +540,7 @@
 <li><strong>Specimen problem found.</strong> Use <strong>Deficiencies (optional)</strong> on the specimen, or <strong>Case-Level Deficiencies</strong> for the whole case. Choose an Issue, add Detail, and <strong>Done</strong>. Each becomes an open record tracked on its own; you need not resolve it now.</li>
 <li><strong>A matching intraoperative entry exists.</strong> After saving, a window "Intraoperative Entry Found" offers <strong>Merge Now</strong>, <strong>Not this case</strong>, or <strong>Review in Intraop Queue</strong>. Merge adds the entry's gross description and photos to the case.</li>
 <li><strong>Leaving with work typed in.</strong> The "Leave Accession?" window warns that the information will be lost. Choose <strong>Leave and Discard</strong> only if you mean it.</li>
+<li><strong>A scanned requisition is not on the case.</strong> Open <strong>📥 Requisition Inbox</strong>. If the scan is under Unmatched Requisitions, <strong>View</strong> it, check the accession on the page, and scan or type that accession to link it. If it is not there, ask whether it was scanned, and check the last run line for a refused file.</li>
 </ol>
 <h3 id="error-recovery">Error recovery</h3>
 <ol>

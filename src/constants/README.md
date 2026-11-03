@@ -267,3 +267,11 @@ Config search entries `protocols-library` and `tpl-builder` no longer say "CAP-c
 ## Batch 728
 
 - `configSearchIndex.ts`: `sys-research-cases`.
+
+## Batch 762
+
+`requisitionActionGroup.ts` (new): the Requisition Inbox action group (F39+PS001–006), spread through `addedActionGroups.ts`; `defaultActionGrants.ts`: Accessioner gets all six, the case-access roles Show the case's requisition.
+
+## Batch 763
+
+`stainQcActionGroup.ts` (new): the Stain & Scan QC action group (F40+PS001–005), spread through `addedActionGroups.ts`; `defaultActionGrants.ts`: Histotechnologist and Lab Director (and the override for Lab Director). Superadmin receives every action (`services/roles/actionSeeds.ts` `ALL_ACTION_IDS`). `configSearchIndex.ts`: `sys-stain-qc`.

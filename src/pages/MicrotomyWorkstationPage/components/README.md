@@ -21,3 +21,5 @@ Clickable elements here work from the keyboard (`pressable` / `switchable`, `uti
 - `CytologyPanel.tsx`: shows only the suggested slides not yet on the decant; "Accept suggestion" is replaced by a line when all are there.
 - `BlockExhaustedControl.tsx`: a `CapabilityButton` (`add-on:exception:flag`); after a flag it says where the notice went (Supervisor / Accessioning Desk when no ordering pathologist) or that nobody could be told; a refused permission has its own message.
 - `SlideGridPanel.tsx` is unchanged: its Reprint and comment buttons now work for a decant because the hook handles both kinds.
+
+Batch 758: `BlockLockoutBanner.tsx` (+ `.css`, new): the block lockout, inline: each waiting label with Recut and Void, then Continue without them and Stay on this block. `HardwarePrintPanel.tsx`: the modes offered come in as `modes` (the Microtome adds Block, with its hint and Print the block's labels); `SlideGridPanel.tsx`: Block mode shows the per-row Print as On-Demand does.

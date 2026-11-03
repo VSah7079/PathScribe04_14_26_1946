@@ -14,6 +14,12 @@ const h = vi.hoisted(() => ({
   /** PS-71: runs before a save lands, so a test can slip in someone else's save. */
   beforeSave: [] as Array<(id: string) => void>,
   saves: [] as Array<[string, number | undefined]>,
+  /** Batch 763: the scanner's image QC mode, and the images held for QC. */
+  qcMode: { current: 'autoAccept' as string },
+  held: [] as unknown[][],
+}));
+vi.mock('../stainQc/stainQcServiceInstance', () => ({
+  stainQcSystem: { scannerMode: async () => h.qcMode.current, queueImages: async (items: unknown[]) => { h.held.push(items); } },
 }));
 vi.mock('../authorization/defaultAuthorizationService', () => ({
   authorizationService: {
@@ -102,6 +108,22 @@ describe('wsiScanBatchWorkflow', () => {
     expect((await loadScanQueue()).map(q => q.key)).toEqual(['CW|b|s2']);
     expect(h.audit.map(a => a.event)).toEqual(['WSI scan batch loaded', 'WSI scan batch sent', 'WSI scan batch unloaded']);
     expect(h.asked.map(a => a[0])).toEqual(['wsi:scan-batch:load', 'wsi:scan-batch:send', 'wsi:scan-batch:unload', 'wsi:scan-batch:unload']);
+  });
+
+  it('Batch 763: a scanner signed off in PathScribe holds its scanned images for image QC', async () => {
+    h.qcMode.current = 'pathscribeSignOff'; h.held.length = 0;
+    try {
+      const loaded = await loadScanBatch('APERIO_GT450_01', ['CW|b|s1']);
+      if (loaded.ok === false) throw new Error(loaded.error);
+      await sendScanBatch(loaded.data.id);
+      await mockWsiScanBatchService.updateSlideStatus(loaded.data.id, '1', { scanStatus: 'completed', qcPassed: true, scanCompletedAt: '2026-10-02T10:00:00Z' });
+      const res = await unloadScanBatch(loaded.data.id);
+      expect(res.ok && res.returnedToQueue).toBe(0);
+      expect(stainOf('CW', 's1')).toMatchObject({ distributionStatus: 'Scanned', lastScanOutcome: 'imageQcPending' });
+      expect(h.held).toHaveLength(1);
+      expect(h.held[0][0]).toMatchObject({ stainId: 's1', caseId: 'CW', blockId: 'b', mode: 'pathscribeSignOff', scannerInstrumentId: 'APERIO_GT450_01' });
+      expect(h.audit[h.audit.length - 1].detail).toContain('1 waiting for image QC');
+    } finally { h.qcMode.current = 'autoAccept'; }
   });
 
   it('a failed send keeps the batch loaded with the reason; it can be sent again', async () => {

@@ -23,6 +23,7 @@ El Nivel 6 es en su mayor parte opcional. Un laboratorio que utiliza PathScribe 
 4. [Canal de informes (Power BI)](#screen-bi_feed): permite que una herramienta de informes lea los datos de PathScribe. Necesita los centros ejecutores en el Diccionario de centros.
 5. [Asignaciones de campos de migración](#screen-migration_field_mappings): asigne los nombres de campo de un sistema antiguo, antes de cualquier importación de datos históricos.
 6. [Trabajos de migración de datos históricos](#screen-migration-jobs): importe un archivo antiguo y compruebe el trabajo. Necesita el paso 5.
+7. [Incorporación de volantes](#screen-requisition_ingestion): vincular los volantes en papel escaneados por lotes a su caso mediante el código de barras de cada página. Necesita la carpeta de entrega del escáner (o el sistema que envía los escaneos).
 
 Las pantallas de supervisión ([Registros del sistema: interfaces](#screen-audit-interfaces), [Motores de interfaces](#screen-interface-engines), [DLQ de interfaz saliente](#screen-outbound-interface-dlq), [Envíos de salida](#screen-outbound-dispatches) y la [Cola de salida](#screen-outbound-queue)) y las herramientas de prueba ([Vista previa de mensajes de interfaz salientes](#screen-outbound_message_preview), [Bandeja de salida de correo simulada](#screen-simulated_mail), [Mock Interface Engine](#screen-mock-interface-engine) y [Mock EMR](#screen-mock-emr)) no son pasos de configuración. Cada una indica `Reference, not part of setup` y enumera lo que debe existir para que muestre datos.
 
@@ -802,6 +803,63 @@ La API de lectura devuelve 1000 filas por página de forma predeterminada y 10 0
 **7. Permisos.** Abrir: `screen:configuration:open`. Ajustes: `config:bi-feed:manage`. Crear, sustituir y revocar tokens y Probar una extracción: `config:bi-feed-tokens:manage`. Registrar y retirar la aprobación de datos identificados: `config:bi-feed-identified:approve`. Las tres son de riesgo alto. Admin y Lab Director las tienen de forma predeterminada, de modo que la persona que crea un token identificado y la que lo aprueba pueden ser la misma, salvo que un hospital las separe en el Diccionario de roles.
 
 **Límites conocidos.** El canal todavía no se sirve; en la compilación de demostración solo funcionan los ajustes y los tokens. Mientras se cargan los datos, y en algunos mensajes de problema, la pantalla dice "workstation" cuando se refiere a un token del canal (un error de redacción en el texto). El límite del token de 60 extracciones por minuto y la vigencia de 365 días están fijados en el código.
+### Incorporación de volantes {#screen-requisition_ingestion}
+Breadcrumb: Inicio > Configuración > Sistema > Integraciones > Incorporación de volantes
+
+**Estado:** Parcial
+
+**1. Navegación:** pestaña de Configuración **Sistema** > grupo **Integraciones**
+**2. Elemento de mantenimiento:** Incorporación de volantes
+
+**3. Finalidad de negocio y alcance.** El escáner del servicio escanea por lotes los volantes en papel en una carpeta de la red del hospital o en un sistema documental de terceros (un gestor documental, el almacén de documentos del LIS, un servicio de digitalización), o bien otro sistema los envía a la API de PathScribe. Cada carpeta o sistema es un origen, configurado por su dirección; puede haber tantos como hagan falta. PathScribe lee el código de barras de registro de cada página y vincula el escaneo a su caso, solo por referencia: el caso conserva un vínculo al archivo donde está, las páginas que le corresponden, el código de barras, la hora y el origen, y PathScribe no guarda ninguna copia. Una página sin código de barras se une al volante anterior; una hoja separadora cierra un volante y no pertenece a ningún caso. Un escaneo que no corresponde a ningún caso espera en la cola de volantes sin asignar, en Registro > **📥 Bandeja de volantes**, donde el personal lo vincula escaneando o escribiendo el número de registro, o lo descarta con un motivo.
+
+**Qué está construido y qué no.** Construido: este ajuste, las reglas de asignación y agrupación de páginas, la bandeja de volantes, el botón **📄 Volante** del caso en la pantalla del informe y la pista de auditoría. En la versión de demostración, el navegador lee una carpeta de PDF ficticios cuando alguien pulsa **Ejecutar ahora**. No construido: la tarea programada del servidor que lee su recurso compartido (`requisition.ingest`), la lectura de un número impreso cuando no hay código de barras (OCR) y la API a la que un sistema emisor envía los escaneos. Solo se leen PDF; cualquier otro archivo se rechaza y se nombra en el resumen de la ejecución.
+
+**Varios centros ejecutores.** Cada origen pertenece a un centro ejecutor (el campo **Centro ejecutor**), o a **Todos los centros** para un escáner que comparten todos los laboratorios. Los escaneos de un origen esperan en la cola de ese centro, y cada permiso siguiente se comprueba para ese centro: una persona asignada a un solo laboratorio (Personal → sus centros) solo ve, ejecuta y resuelve los escáneres y escaneos de ese laboratorio, y solo quien trabaja para todos los centros puede añadir o cambiar un origen común. **＋ Añadir origen** añade otro escáner; los botones sobre el formulario cambian entre ellos. La asignación abarca toda la organización: un número de registro designa un único caso, así que un volante escaneado en un laboratorio encuentra también un caso ejecutado en otro.
+
+**Funcionamiento (sin servidor).** Cada origen lo lee una tarea programada que procesa un lote y termina; nada se ejecuta de forma permanente en la nube de PathScribe. Un sistema documental de terceros se lee en su dirección https y un sistema emisor envía a la API de PathScribe. Una carpeta de la red del hospital la lee el **agente de sitio** de PathScribe ya instalado allí para impresoras y recursos compartidos ([Agentes de sitio](#screen-site_agents)): lee los códigos de barras en la red del hospital y envía a PathScribe solo la referencia del archivo, las páginas y los códigos, de modo que el PDF nunca sale del hospital. La recogida de volantes por el agente de sitio aún no está construida. La comprobación de volantes ausentes se ejecuta cada hora.
+
+**4. Requisitos previos y dependencias.** El escáner guarda PDF (un archivo puede contener muchos volantes) en una carpeta que el servidor de la API puede leer, y las etiquetas de registro de los volantes llevan el número de registro como código de barras Code 128 o Code 39.
+
+Setup step: Tier 6, step 7
+Requires: Ninguno, es un punto de partida.
+Unlocks: Ninguno.
+
+**5. Pantalla.**
+
+[SCREENSHOT PLACEHOLDER: system-requisition_ingestion - the requisition source, schedule and separator barcode]
+
+**6. Referencia de campos.**
+
+| Nombre del campo | Tipo / formato | Obligatorio/Opcional | Descripción y lógica de negocio | Valor predeterminado |
+|---|---|---|---|---|
+| Leer este origen | Interruptor Sí/No | Opcional | Mientras está desactivado, la tarea no lee este origen. | Activado |
+| Nombre | Texto | Obligatorio | Se muestra en la bandeja de volantes. | Requisition scanner drop folder |
+| Centro ejecutor | Elección: **Todos los centros** o un centro con laboratorio ejecutor | Obligatorio | De quién es este escáner: sus escaneos esperan en la cola de ese centro y los permisos se comprueban para él. | El origen de demostración: Desert Valley Medical Center; un origen nuevo: el primer laboratorio ejecutor |
+| Origen de los escaneos | Elección entre **Una carpeta de la red del hospital donde guarda el escáner**, **Un sistema documental de terceros que PathScribe lee en su dirección** y **Un sistema que envía escaneos a la API de PathScribe** | Obligatorio | Determina el contenido del campo siguiente. Añada un origen por cada carpeta o sistema; puede haber tantos como hagan falta. | Una carpeta de la red del hospital donde guarda el escáner |
+| Dirección de la carpeta / Dirección del sistema (https) / Sistema emisor | Texto | Obligatorio | Una carpeta: una ruta de red (por ejemplo `\\server\requisitions\inbox`) o una dirección smb://, nfs://, file:// o https://. Un sistema de terceros (un gestor documental, el almacén de documentos del LIS, un servicio de digitalización): su dirección https; el servidor lee allí los escaneos nuevos con credenciales configuradas en el servidor de la API, nunca en el navegador. Un sistema emisor: su nombre, tal como se identifica ante la API. Una dirección con forma incorrecta se marca en rojo y no puede guardarse. | `\\lab-scan01\requisitions\inbox` (demostración) |
+| Leer cada (minutos) | Número entero, de 1 a 1440 | Obligatorio | Cada cuánto lee la tarea el origen. | 15 |
+| Código de barras de la hoja separadora | Texto | Obligatorio | El código de barras impreso en la hoja que se coloca entre volantes de un mismo escaneo por lotes. | `PATHSCRIBE-SEPARATOR` |
+| Guardar | Botón | No aplicable | Desactivado mientras nada cambie o un campo no sea válido. Muestra «Guardado por última vez» con la hora y la persona. | No aplicable |
+
+**Volantes esperados.** La segunda tarjeta de esta pantalla decide qué casos deberían tener un volante escaneado, para la organización (**Valor predeterminado de la organización**) o para un centro ejecutor (un centro sigue el valor predeterminado hasta que se guarda su propio ajuste).
+
+| Nombre del campo | Tipo / formato | Obligatorio/Opcional | Descripción y lógica de negocio | Valor predeterminado |
+|---|---|---|---|---|
+| Se aplica a | Elección: **Valor predeterminado de la organización** o un centro con laboratorio ejecutor | Obligatorio | El ajuste que se edita. | Valor predeterminado de la organización |
+| Se espera un volante escaneado para | Casillas: **Petición electrónica HIS/LIS**, **Introducido en Registro, sin petición importada**, **Caso externo / por contrato**, **Registro en contingencia**, **Entrega en lockbox** | Opcional | Un caso debe tenerlo cuando su petición llegó de una forma marcada. Una petición electrónica HIS/LIS es la solicitud registrada (su mensaje de petición), así que por defecto no necesita papel. Un caso registrado a partir de una petición importada cuenta como electrónico. | Todo marcado salvo Petición electrónica HIS/LIS |
+| Marcar un caso tras (horas) | Número entero, de 0 a 720 | Obligatorio | Horas tras el registro sin volante vinculado antes de marcar el caso. 0 lo marca enseguida. Nunca bloquea el trabajo. | 24 |
+| Marcar un escaneo sin caso tras (horas) | Número entero, de 0 a 720 | Obligatorio | Horas que un escaneo puede esperar en la cola sin asignar antes de marcarse en rojo «Aún sin caso» y pasar al principio: quizá una muestra no recibida, perdida o no registrada. | 24 |
+| Guardar expectativas | Botón | No aplicable | Guarda el ajuste mostrado. Auditado (Requisition Expectation Saved). | No aplicable |
+
+Un caso marcado aparece en **Casos a la espera de un volante** en la bandeja de volantes, muestra **⚠ Falta el volante** en la pantalla del informe y recibe una deficiencia de caso **Missing Requisition** (abierta por System), seguida en el flujo de deficiencias y en los informes de calidad. Vincular su escaneo cierra la marca y la deficiencia (resolución **Requisition Received or Not Required**); también **Sin volante en papel** con un motivo (Petición electrónica registrada, Petición verbal, documentada, Petición en otro registro, Otro). La comprobación se ejecuta con la incorporación: en el servidor como tarea programada y, en la demostración, cada vez que se abre la bandeja o se pulsa **Ejecutar ahora**. Eventos de auditoría: Requisition Missing, Requisition Received, Requisition Waived, Requisition Without Case.
+
+**La cola de volantes sin asignar (cuarentena).** Un escaneo cuyo código de barras no corresponde a ningún caso, o no se puede leer, entra en ella automáticamente (Requisition Quarantined). El personal abre **Ver** para revisar las páginas y luego lo vincula: escaneando o escribiendo el número de registro, escribiendo un nombre de paciente o un NHC para buscar (la lista **Casos encontrados**, dentro de su propio acceso), o con **Caso nuevo a partir de este escaneo**, que abre Registro con el escaneo adjunto; al guardar se vincula al caso nuevo (requiere `case:accession:create`). Cada vinculación queda auditada (Requisition Re-associated), indicando si se escribió, se encontró por búsqueda o se creó el caso.
+
+**7. Permisos.** Abrir: `screen:configuration:open`. Cambiar el origen: `config:requisition-ingestion:manage` (riesgo alto, auditado; Admin por defecto). En la bandeja de volantes: `requisition:inbox:review` (abrirla y ver un escaneo en cola), `requisition:inbox:resolve` (vincular o descartar), `requisition:ingestion:run` (Ejecutar ahora); los roles que abren Registro tienen los tres por defecto. Desde el caso: `case:requisition:view` (los roles con acceso a casos). El registro de auditoría muestra Requisition Matched, Requisition Quarantined, Requisition Re-associated, Requisition Discarded, Requisition Viewed y Requisition Source Saved, sin nombre de archivo ni de paciente. Las órdenes de la bandeja de volantes están en la lista de acciones (Configuración → Registro de acciones y Personal → Roles, grupo **Requisition Inbox**): ir a la bandeja, ejecutar la incorporación ahora (Alt+G o por voz en la bandeja), ver un volante escaneado, vincular un volante sin asignar, descartarlo, mostrar el volante del caso. El personal de registro las tiene todas por defecto; los roles con acceso a casos, mostrar el volante del caso. Conceder una orden nunca amplía lo que permiten los permisos anteriores.
+
+**Limitaciones conocidas.** Aún no hay una hoja separadora imprimible: imprima el código de barras con cualquier herramienta de etiquetas. Si un archivo se mueve o se elimina donde está guardado, el volante del caso ya no puede abrirse, porque PathScribe no guarda ninguna copia.
+
 ### Asignaciones de campos de migración {#screen-migration_field_mappings}
 Breadcrumb: Inicio > Configuración > Sistema > Materiales y flujos de trabajo del laboratorio > Asignaciones de campos de migración
 

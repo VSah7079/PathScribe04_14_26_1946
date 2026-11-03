@@ -185,3 +185,5 @@ The print queue service now has an API-server version, `http<Name>Service.ts`, c
 ## Batch 652 (defect fixes)
 
 `reportBarcodePrintCss.guard.test.ts`: the report footer barcode CSS stays solid black (the PDF side is tested in `functions/test_main.py`).
+
+Batch 756: `simulatedPrint.ts` shows one toast per burst of simulated sends of the same kind to the same place (`nextSimulatedToastCount`, 6 s), counting them ("Site agent print × 12"); printing a case's 12 cassettes used to raise 24 toasts. New keys `simulatedPrint.toastRepeated`, `toastFailedRepeated`.

@@ -58,7 +58,7 @@ export async function processInboundStainingInstrumentStatusEvent(
     return { messageId: payload.messageId, outcome: 'wrong-node', batchId: batch.id, reason: `Batch ${batch.masterBarcode} is a '${batch.processingNode}' batch, not 'Staining' — instrument status events only apply to a Staining batch.` };
   }
 
-  const updateRes = await batchService.setStainingInstrumentStatus(batch.id, payload.status);
+  const updateRes = await batchService.setStainingInstrumentStatus(batch.id, payload.status, payload.instrumentCode);
   if (!updateRes.ok) {
     return { messageId: payload.messageId, outcome: 'invalid-payload', batchId: batch.id, reason: 'error' in updateRes ? updateRes.error : 'Unknown error.' };
   }

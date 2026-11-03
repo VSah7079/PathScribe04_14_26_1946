@@ -71,8 +71,8 @@ async function show() {
 describe('CytologyWorklistPage (Batch 566): a row that holds buttons is not itself a button', () => {
   it('the title is a button that opens the case once; the row has no role or tab stop', async () => {
     await show();
-    const open = screen.getByRole('button', { name: 'Ann Mine' });
-    expect(open.getAttribute('data-phi')).toBe('name');
+    const open = screen.getByRole('button', { name: 'C-1' });
+    expect(open.getAttribute('data-phi')).toBe('accession');
     const rowEl = open.closest('.ps-cytoworklist-row') as HTMLElement;
     expect(rowEl.getAttribute('role')).toBeNull();
     expect(rowEl.getAttribute('tabindex')).toBeNull();
@@ -84,7 +84,7 @@ describe('CytologyWorklistPage (Batch 566): a row that holds buttons is not itse
 
   it('clicking elsewhere on the row still opens the case (mouse shortcut)', async () => {
     await show();
-    const rowEl = screen.getByRole('button', { name: 'Ann Mine' }).closest('.ps-cytoworklist-row') as HTMLElement;
+    const rowEl = screen.getByRole('button', { name: 'C-1' }).closest('.ps-cytoworklist-row') as HTMLElement;
     fireEvent.click(rowEl.querySelector('.ps-cytoworklist-row-subtitle')!);
     expect(openCase).toHaveBeenCalledWith('C-1', 'cytology');
   });
@@ -93,7 +93,7 @@ describe('CytologyWorklistPage (Batch 566): a row that holds buttons is not itse
     await show();
     fireEvent.click(screen.getByText(/cytologyWorklist\.tabs\.pool|cytologyWorklist\.tiles\.pool/, { selector: 'button, button *' }));
     await act(async () => {});
-    expect(screen.queryByRole('button', { name: 'Ann Pooled' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'C-2' })).toBeNull();
     const title = document.querySelector('.ps-cytoworklist-row-title') as HTMLElement;
     expect(title.tagName).toBe('DIV');
     fireEvent.click(title);
@@ -104,8 +104,13 @@ describe('CytologyWorklistPage (Batch 566): a row that holds buttons is not itse
     await show();
     fireEvent.click(screen.getByText('cytologyWorklist.tiles.csmsQa'));
     await act(async () => {});
-    expect(screen.getByRole('button', { name: 'Ann Flagged' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'C-3' })).toBeTruthy();
     fireEvent.click(screen.getByText('cytologyWorklist.actions.manageFlags'));
     expect(openCase).not.toHaveBeenCalled();
+  });
+
+  it('Batch 760 (Cytology spec §2.1): the rows name the case by accession, never by the patient', async () => {
+    await show();
+    expect(screen.queryByText(/Ann|MRN-C-1/)).toBeNull();
   });
 });

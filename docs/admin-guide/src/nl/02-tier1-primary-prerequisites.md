@@ -813,6 +813,7 @@ Unlocks: [Printerprofielen](#screen-printer_profiles), [Macroscopie-apparatuur](
 | Onderhoud elke (dagen) | Geheel getal, 1 tot 3650 | Optioneel | Dezelfde regel. | Leeg |
 | Laagste temperatuur (°C), Hoogste temperatuur (°C) | Getallen, laagste onder hoogste; beide mogen leeg zijn | Optioneel | Batch 730: het bereik voor een temperatuurcontrole in het apparatuurlogboek. Een meting erbuiten is afgekeurd; het bereik wordt bij elke registratie overgenomen. | Leeg |
 | Neemt grootformaatcoupes | Selectievakje, alleen kleurautomaten en coupescanners | Optioneel | Batch 732: het apparaat neemt grootformaatcoupes (megablokken). Coupedistributie stuurt een grootformaatcoupe alleen naar een scanner waarbij dit is aangevinkt. | Niet aangevinkt |
+| QC-aftekening | Keuzelijst, alleen kleurautomaten en preparaatscanners: Standaard van het lab, Automatisch accepteren, Aftekening door het instrument (interface-engine), Aftekening in PathScribe | Optioneel | Batch 763: hoe de uitvoer van dit instrument wordt afgetekend voordat de preparaten worden uitgegeven (kleurautomaat) of de beelden worden geopend (scanner). Zie [Kleur- en scan-QC](#screen-stain_qc). | Standaard van het lab |
 | Status | Actief / Inactief | Optioneel | | Actief |
 | Deckindeling | Rijen, alleen analysers | Optioneel | De posities op het deck van de analyser. Elke rij: Deck of bay, Positie-ID (letters, cijfers, "_", geen twee gelijke) en Neemt op (Extractieplaat, Reagenscartridge, Monsterbuizenrek; minstens één). Rekken laden biedt alleen posities aan die passen. Het positie-ID wordt op de barcode van de decklocatie afgedrukt. | Geen |
 
@@ -831,8 +832,44 @@ Unlocks: [Printerprofielen](#screen-printer_profiles), [Macroscopie-apparatuur](
 
 Batch 737. Getoond onder het register wanneer het lab herbruikbare kleuringsrekken heeft (gegraveerde RACK-id's). Elke rij is een rek met het vakje **Neemt grootformaatglaasjes**, direct opgeslagen (vereist `config:equipment:manage`). Batchbeheer weigert een grootformaatglaasje (gesneden uit een megablok) dat gescand wordt op een kleuringsdrager die geen grootformaatglaasjes neemt; een wegwerpdrager neemt ze wanneer **Neemt grootformaatglaasjes (megablokken)** is aangevinkt in Nieuwe container. De demo heeft één zo'n rek, RACK-STAIN-LF-01.
 
+Batch 761: een rek wordt run na run hergebruikt. Bij de microtoom start het scannen van een geregistreerd rek waarvan de laatste run gesloten is een nieuwe run, zonder formulier; Chargebeheer opent het als nieuwe run (Nieuwe container, vooraf ingevuld). Een rek waarvan de laatste run verzegeld of op de kleurautomaat gezet maar nooit gesloten is, wordt tegengehouden met een waarschuwing. Die run sluiten bij de microtoom is een afstemmingsoverride (`batch:reconciliation:override`), vastgelegd met de reden "Reusable rack scanned for a new run; the last run on it was never closed."
+
 **7. Machtigingen.** Openen: `screen:configuration:open`. Toevoegen, bewerken, deactiveren: `config:equipment:manage`. Een vermelding in het servicelogboek vastleggen: `equipment:maintenance:record`. Beide hoog risico. Admin en Lab Director hebben beide. De rollen Histotechnologist, Cytotechnologist en Molecular Technologist hebben ook de machtiging voor het logboek.
 **Bekende beperkingen.** Vervaldatums van service worden berekend in de tijdzone van de faciliteit op de instellingen van het Bijdragedashboard.
+### Kleur- en scan-QC {#screen-stain_qc}
+Breadcrumb: Start > Configuratie > Systeem > Werkstation & hardware > Kleur- en scan-QC
+
+**Status:** Gedeeltelijk
+
+**1. Navigatie:** Configuratietabblad **Systeem** > groep **Werkstation & hardware** > **Kleur- en scan-QC**
+**2. Onderhoudsonderdeel:** Kleur- en scan-QC
+
+**3. Zakelijk doel en bereik.** Batch 763, het QC-controlepunt na het kleuren en vóór de verdeling. Als een kleurrun klaar is, wachten de preparaten op QC: het rek kan niet worden uitgecheckt en de preparaten worden bij Preparaatverdeling niet uitgegeven tot de run is afgetekend. Een gescand beeld kan op dezelfde manier wachten voordat de Patholoog het kan openen. Elke kleurautomaat en scanner wordt op een van drie manieren afgetekend: **Automatisch accepteren** (direct vrijgegeven, gelogd als automatisch geaccepteerd), **Aftekening door het instrument (interface-engine)** (optie A: het eigen QC-resultaat van het instrument, verzonden via de interface-engine, geeft de run vrij of houdt hem vast; bij een scanner zijn eigen beeldcontrole) of **Aftekening in PathScribe** (optie B: een analist tekent af bij het QC-controlepunt van Preparaatverdeling). Dit scherm stelt de standaarden in; de eigen modus van een instrument wordt ingesteld bij [Apparatuur](#screen-equipment) (QC-aftekening) en gaat voor op de standaard.
+
+**4. Voorwaarden en afhankelijkheden.** De lijst met instrumenten leest [Apparatuur](#screen-equipment): kleurautomaten en preparaatscanners. Aftekening door het instrument vraagt de interface van de kleurautomaat (zijn aftekenbericht via de interface-engine); zonder die interface tekent een supervisor in plaats daarvan af.
+
+Setup step: Tier 1, step 22
+Requires: [Apparatuur](#screen-equipment)
+Unlocks: None.
+
+**5. Scherm.**
+
+[SCREENSHOT PLACEHOLDER: system-stain-qc - De QC-standaarden en de lijst met kleurautomaten en scanners met hun modus]
+
+**6. Veldreferentie.**
+
+| Veldnaam | Gegevenstype / indeling | Verplicht/Optioneel | Beschrijving en bedrijfslogica | Systeemstandaard |
+|---|---|---|---|---|
+| Kleurautomaten | Keuzelijst: Automatisch accepteren, Aftekening door het instrument (interface-engine), Aftekening in PathScribe | Verplicht | De standaard voor een kleurautomaat zonder eigen modus. | Aftekening in PathScribe |
+| Preparaatscanners | Dezelfde keuzelijst | Verplicht | De standaard voor een scanner zonder eigen modus. Bij aftekening door het instrument wordt een beeld dat de eigen controle van de scanner doorstond vrijgegeven; elk ander beeld wordt vastgehouden. | Automatisch accepteren |
+| QC-standaarden opslaan | Knop | Niet van toepassing | Gelogd als Stain QC Settings Saved. | Niet van toepassing |
+| Kleurautomaten en scanners | Tabel: Instrument, Soort, QC-aftekening | Niet van toepassing | De modus van elk instrument, met "standaard" als het er zelf geen heeft. | Niet van toepassing |
+
+Bij het controlepunt wordt een afgekeurd preparaat gemarkeerd met **Opnieuw kleuren** (status QC Failed) of **Opnieuw snijden** (Recut Requested) en een reden: Zwakke kleuring, Overkleuring, Ongelijkmatige kleuring, Controle afgekeurd, Luchtbel onder dekglas, Gevouwen weefsel, Anders. Een beeld wordt vrijgegeven of met een reden teruggestuurd om opnieuw te scannen: Onscherp, Weefsel gemist, Fout bij samenvoegen, Vuil op het preparaat, Anders. Het auditlogboek toont Stain QC Pending, Passed, Failed, Instrument Result Ignored; Image QC Pending, Passed, Failed.
+
+**7. Machtigingen.** Openen: `screen:configuration:open`. Standaarden opslaan: `config:stain-qc:manage` (Beheerder, Laboratoriumdirecteur). Bij het controlepunt: `stain:qc:sign-off` en `scan:image-qc:sign-off` (de rollen die Preparaatverdeling openen, Laboratoriumdirecteur); `stain:qc:override` om een run af te tekenen die wacht op aftekening door zijn kleurautomaat (Laboratoriumdirecteur). Alle met hoog risico.
+**Bekende beperkingen.** De afkeurredenen zijn een vaste lijst; QC-criteria per kleuring zijn niet gerealiseerd. De serverroutes en het aftekenkanaal van de interface-engine zijn gepland.
+
 ### Printerprofielen {#screen-printer_profiles}
 Breadcrumb: Start > Configuratie > Systeem > Werkstation & hardware > Printerprofielen
 
@@ -1031,7 +1068,8 @@ Unlocks: [Labelontwerper](#screen-label_designer)
 
 | Veldnaam | Gegevenstype / indeling | Verplicht/Optioneel | Beschrijving en bedrijfslogica | Systeemstandaard |
 |---|---|---|---|---|
-| Standaard afdrukgedrag | Keuze: Op aanvraag (per blok/container), Batch (per zaak/order) | Verplicht | Op aanvraag drukt elk cassettelabel af zodra het tijdens de macroscopie wordt geregistreerd. Batch stelt het afdrukken uit tot één actie per casus. | Op aanvraag |
+| Afdrukgedrag bij uitsnijden | Keuze: Op aanvraag (per blok/container), Batch (per zaak/order) | Verplicht | Op aanvraag drukt elk cassettelabel af zodra het tijdens de macroscopie wordt geregistreerd. Batch stelt het afdrukken uit tot één actie per casus. | Op aanvraag |
+| Afdrukgedrag bij de microtoom | Keuze: Op aanvraag, Blok, Batch | Optioneel | Batch 758. Hoe de microtoom objectglaasetiketten afdrukt, los van het uitsnijden. Op aanvraag: één etiket tegelijk, elk op zijn objectglaasje gescand voordat het volgende wordt afgedrukt. Blok: bij het scannen van een blok worden alle etiketten afgedrukt en in willekeurige volgorde teruggescand. Batch: de analist vinkt de objectglaasjes aan en drukt ze samen af. In elke modus wordt doorgaan naar het volgende blok tegengehouden zolang etiketten van dit blok niet gescand zijn, tot elk gescand, opnieuw gesneden of ongeldig gemaakt is, of de analist doorgaat (vastgelegd). Zolang hier niets is gekozen, volgt de microtoom de instelling van het uitsnijden. | Zoals uitsnijden |
 | Op-aanvraag-waarborgen afdwingen | Ja/nee-schakelaar | Optioneel | Als dit aan staat, ligt de standaard voor het hele lab vast en kunnen medewerkers die registreren een casus niet op Batch zetten. | Uit |
 | Scanverificatie vereisen | Ja/nee-schakelaar | Optioneel | Vereist dat de barcode van de nieuwe cassette of container wordt gescand voordat naar het volgende blok wordt gegaan. | Uit |
 | Om een reden vragen wanneer een verslag opnieuw wordt afgedrukt | Ja/nee-schakelaar | Optioneel | Een herafdruk van een afgedrukt verslag vereist een reden, die samen met de afdruk in het auditlogboek wordt bewaard. | Uit |

@@ -113,3 +113,9 @@ Test files here no longer set their own time limit below the suite's 60 s (`vite
 ## Batch 731
 
 - `mockBatchService.ts`: completing an External Referral batch records every item's end state "sent out".
+
+Batch 757: `stationCarrierRules.ts` adds `carrierItemRows`, `outputTrayRescan`, `isSlideScanLevel`, `blockForOutputTray`, `MANUAL_CHECK_OFF_REASONS`; Embedding's output tray is a Microtome / Sectioning carrier (`WORKSTATION_OUTPUT_NODES`).
+
+**Batch 758:** `benchSlideBuffer.ts` (new): slides confirmed at a Microtome station before a staining rack was scanned, kept per station through `dataStorage` (Scan-Last); a server-side bench is Planned (`docs/architecture/STATION_TRACKING_API.md`). `stationCarrierRules.outputScanPlan`: the output tray scanned again closes it; another rack with slides on the bench takes them all; otherwise it becomes the output tray.
+
+**Batch 761:** `rackRuns.ts` (new): reusable staining racks: the run a barcode scan means (`currentRunForBarcode`, used by `mockBatchService.getByMasterBarcode`; before, the rack's oldest run was found), whether the last run was closed (`rackRunState`), a new run on scan (`rackStartsNewRun`, `rackRunDraft`) and the reason recorded when a supervisor closes a forgotten run.

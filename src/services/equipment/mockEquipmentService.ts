@@ -45,6 +45,10 @@ export const SEED_EQUIPMENT: readonly Equipment[] = [
   // WsiScanBatch.scannerInstrumentId and StainOrder.scannerAssignment.scannerInstrumentId).
   { id: 'eq-aperio-gt450-01', code: 'APERIO_GT450_01', name: 'Leica Aperio GT450 #1', kind: 'slide_scanner', make: 'Leica', model: 'Aperio GT450', facilityId: 'c-ent-dvmc', status: 'Active' },
   { id: 'eq-aperio-gt450-02', code: 'APERIO_GT450_02', name: 'Leica Aperio GT450 #2', kind: 'slide_scanner', make: 'Leica', model: 'Aperio GT450', facilityId: 'c-ent-dvmc', status: 'Active' },
+  // Batch 763: Desert Valley's stainers, one per QC option (the H&E stainer signs off its own runs through the interface
+  // engine; the special-stains stainer's runs are signed off in PathScribe at the Slide Distribution checkpoint).
+  { id: 'eq-ventana-he600-01', code: 'VENTANA_HE600_01', name: 'Roche Ventana HE 600 #1', kind: 'stainer', make: 'Roche', model: 'Ventana HE 600', facilityId: 'c-ent-dvmc', status: 'Active', qcMode: 'vendorSignOff' },
+  { id: 'eq-leica-st5020-01', code: 'LEICA_ST5020_01', name: 'Leica ST5020 #1', kind: 'stainer', make: 'Leica', model: 'ST5020', facilityId: 'c-ent-dvmc', status: 'Active', qcMode: 'pathscribeSignOff' },
   { id: 'eq-genius-01', code: 'GENIUS_01', name: 'Hologic Genius Digital Diagnostics System', kind: 'slide_scanner', make: 'Hologic', model: 'Genius', facilityId: 'c-ent-dvmc', status: 'Active' },
   // Batch 739 (fluid decision 4): the liquid-based cytology processors a Liquid-Based Cytology Processing batch is
   // made for. Which one is chosen goes on the instrument order; no vendor is assumed.

@@ -35,7 +35,9 @@ import { useTranslation } from 'react-i18next';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { useNavigate } from 'react-router';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
-import { formatDisplayNameForLanguage } from '@/utils/personName';
+import { ForeignIdTag, TypedEntryCheck } from '@/components/Workstation/BenchIdentity';
+import { useTypedEntryCheck } from '@/hooks/useTypedEntryCheck';
+import { specimenSources } from '@/services/material/benchIdentity';
 import { actionRegistryService } from '@/services';
 import { VOICE_CONTEXT } from '@/constants/systemActions';
 import { CASE_STATUS_LABEL_KEY } from '@/utils/search/caseSearchLabels';
@@ -64,6 +66,8 @@ const AddOnOrderPage: React.FC = () => {
   useEffect(() => { pushCrumb(t('addOnOrder.pageTitle'), '/add-on-orders'); }, [pushCrumb, t]);
 
   const w = useAddOnOrderStation();
+  // Batch 759 (spec §2.2, §3): after a typed entry, the identifiers to check against the containers.
+  const typedEntry = useTypedEntryCheck([w.caseData?.accession?.fullAccession, w.caseData?.id]);
   // Batch 736: joins a picked bench reason and its note into the saved text.
   const addOnReasons = useBenchReasons('BENCH_ADDON_EXHAUSTED');
   const { has } = useCapabilities();
@@ -196,12 +200,6 @@ const AddOnOrderPage: React.FC = () => {
   }
 
   const caseData = w.caseData;
-  const patientName = formatDisplayNameForLanguage({
-    namePrefix: caseData.patient.namePrefix,
-    givenNames: caseData.patient.givenNames ?? caseData.patient.firstName,
-    familyNames: caseData.patient.familyNames ?? caseData.patient.lastName,
-    nameSuffix: caseData.patient.nameSuffix,
-  }, i18n.language);
   const fullAccession = caseData.accession.fullAccession ?? caseData.accession.accessionNumber;
 
   return (
@@ -213,7 +211,8 @@ const AddOnOrderPage: React.FC = () => {
 
       <div className="ps-addon-context-bar">
         <span><strong data-phi="accession">{fullAccession}</strong></span>
-        <span data-phi="name">{patientName}</span>
+        {/* Batch 759 (Patient Verification spec §1): no patient name at the bench; an outside case shows its Foreign Identifier. */}
+        <ForeignIdTag order={caseData.order} />
         <span>{t('addOnOrder.context.caseStatusLine', { status: CASE_STATUS_LABEL_KEY[caseData.status] ? t(CASE_STATUS_LABEL_KEY[caseData.status]) : caseData.status })}</span>
         {w.primaryPathologistName && <span>{t('addOnOrder.context.primaryPathologistLine', { name: w.primaryPathologistName })}</span>}
         {!w.performingLabFacilityId && <span className="ps-addon-warning-inline">{t('addOnOrder.context.noPerformingLab')}</span>}
@@ -221,6 +220,7 @@ const AddOnOrderPage: React.FC = () => {
           placeholder={t('addOnOrder.search.placeholder') as string} submitLabel={t('addOnOrder.search.open')} /></span>
       </div>
 
+      {typedEntry && <TypedEntryCheck accession={fullAccession} source={specimenSources(caseData.specimens).map(p => t('benchIdentity.specimenSource', { label: p.label, description: p.description })).join('; ')} />}
       {submitNotice && <div className="ps-addon-notice-banner">{submitNotice}</div>}
       {submitError && <div className="ps-addon-warning-banner">{submitError}</div>}
 

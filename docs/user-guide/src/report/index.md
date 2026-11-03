@@ -333,6 +333,7 @@ These small items appear on the Report screen. Hover over a button to see its to
 
 - **Show full patient header** (tooltip) expands the compact header back to the full patient details.
 - **Overall case status** (tooltip) is the status badge at the top right of the header.
+- **📄 Requisition** (or **📄 Requisitions (2)** when there are more) under the accession shows the scanned requisition linked to the case: its pages, **Open PDF** and **Close**; with more than one, a tab for each (**Requisition 1**, **Requisition 2**). It appears only when a scan is linked and your role may view it. A case that should have a requisition and has none shows **⚠ Requisition missing** there instead; the Requisition Inbox lists it. See [Accession](help:accession#top) for how scans reach the case.
 - The block list in the header shows, for each block, its stains (or "no stains yet"), its status, and the case priority. When a block has its own priority a small tooltip reads **Priority override**.
 - In the AI summary, **Review Pending** means a required field was flagged for a closer look; the chip carries no percentage. **No required fields below threshold** means no required field the AI filled in was flagged under your laboratory's review limit.
 

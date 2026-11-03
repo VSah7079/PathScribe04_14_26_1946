@@ -1,3 +1,5 @@
+**Batch 758:** `PrintSettingsConfig.microtomePrintBehavior` (On-Demand, Block, Batch; `MICROTOME_PRINT_BEHAVIORS`) and `microtomePrintMode.ts` (new): the Microtome's mode, apart from Grossing's `defaultPrintBehavior`; settings saved before this batch follow Grossing's.
+
 **Batch 738:** the demo (`mockPrintSettingsService.ts`) starts with `DEMO_RESTRICTED_CIRCULATION_GTIN` (0299990000101, GS1 prefix 02, internal use only) so labels print; the product default (`DEFAULT_PRINT_SETTINGS_CONFIG.gs1Gtin`) stays empty.
 
 **Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.

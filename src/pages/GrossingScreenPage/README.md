@@ -1,3 +1,5 @@
+**Batch 759:** the Foreign case ID beside the accession in the header; after a typed accession, the parts to check.
+
 **Batch 741:** Divide specimen under each specimen (`components/Material/DivideSpecimenPanel.tsx`, `hooks/useSpecimenDivision.ts`).
 
 **Batch 735:** in the station touch layout; its windows are `role="dialog"`/`alertdialog` with `aria-modal`. An accession scanned here with nothing focused opens that case's grossing screen (scanRoutePolicy).
@@ -134,3 +136,5 @@ The bench tools' decal bench became **Load into carrier**: open, unsealed Decal 
 ## Batch 732
 
 - Batch 732 (spec §11.1, §11.2): `components/BlockPieceMapEditor.tsx` (+ `.css`, new): the block's type and piece map under the piece description; `hooks/useGrossingScreen.ts`: `handleSetBlockPieceMap`. `GrossingScreenPage.tsx` 805 lines.
+
+Batch 756: `GrossingBlockTable.css` (new) gives the block table's piece description its dark field style (it had no rule, so it showed as a white box).

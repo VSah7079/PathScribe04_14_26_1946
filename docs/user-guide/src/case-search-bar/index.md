@@ -20,6 +20,8 @@ status: Draft
 
 **Where it fits.** It is on every screen. For filtering by date, status, flags and more, use the full [Search](help:search) screen instead.
 
+**Typed searches (Batch 759).** A case opened from a search you typed (not a scanned label) is recorded quietly as a manual entry on the audit trail and, at a bench, in the case's scan history, with the time, the workstation and your name. Nothing is asked and nothing slows you down. At the bench and on the grossing screen a line then shows the identifiers to check against the container.
+
 ## Screen Tour
 
 ![The case search bar with a results window listing several matches](capture:case-search-bar-results)

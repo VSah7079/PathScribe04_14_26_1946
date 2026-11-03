@@ -4,6 +4,7 @@ export interface UserGuideRoute { route: string; slug: string }
 
 export const USER_GUIDE_ROUTES: readonly UserGuideRoute[] = [
   { route: "/accession", slug: "accession" },
+  { route: "/accession/requisitions", slug: "accession" },
   { route: "/add-on-orders", slug: "add-on-orders" },
   { route: "/audit", slug: "audit-log" },
   { route: "/autopsy-dashboards", slug: "autopsy" },

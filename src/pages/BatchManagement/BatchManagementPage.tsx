@@ -11,6 +11,7 @@
 // pattern exactly.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { rackRunState } from '@/services/batches/rackRuns';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
@@ -122,7 +123,11 @@ const BatchManagementPage: React.FC = () => {
     const value = raw.trim();
     if (!value) return;
     const batchRes = await batchService.getByMasterBarcode(value);
-    if ('ok' in batchRes && batchRes.ok) {
+    // Batch 761: a reusable rack's last run is closed: the scan starts a new run on it (below), not the old run again.
+    const lastRun = 'ok' in batchRes && batchRes.ok ? rackRunState(batchRes.data) : 'none';
+    if ('ok' in batchRes && batchRes.ok && !(lastRun === 'closed' && batchRes.data.identifierMode === 'semi_permanent')) {
+      // Batch 761: a rack whose last run was sealed or put on the stainer but never closed opens with a warning.
+      if (lastRun === 'notClosed' && batchRes.data.identifierMode === 'semi_permanent') toast.warning(t('batchManagement.rackLastRunNotClosed', { value: batchRes.data.masterBarcode }));
       let opened = batchRes.data;
       // Batch 726: an open carrier with no Target Workstation records this station when it is scanned here.
       if (stationId && !opened.stationId && (opened.status === 'active' || opened.status === 'reconciling')) {

@@ -156,16 +156,28 @@ export async function unloadScanBatch(batchId: string): Promise<{ ok: true; data
   const batch = unloaded.data;
   const at = new Date().toISOString();
   let returned = 0;
+  // Batch 763: the scanner's image QC mode (services/stainQc/): images that wait for QC are held from the pathologist.
+  const { stainQcSystem } = await import('../stainQc/stainQcServiceInstance');
+  const { imageQcAtUnload } = await import('../stainQc/stainQcRules');
+  const mode = await stainQcSystem.scannerMode(batch.scannerInstrumentId).catch(() => 'autoAccept' as const);
+  const held: Parameters<typeof stainQcSystem.queueImages>[0] = [];
   for (const caseId of new Set(batch.slides.map(s => s.caseId))) {
     const slides = batch.slides.filter(s => s.caseId === caseId && s.stainId);
     const changed = await updateStains(d, caseId, (st, blockId) => {
       const slide = slides.find(s => s.stainId === st.id && s.blockId === blockId);
       if (!slide || st.wsiScanBatchId !== batch.id) return null;
-      return stainUnloaded(st, batch, slide, me.id, at);
+      return stainUnloaded(st, batch, slide, me.id, at, imageQcAtUnload(mode, slide.qcPassed));
     });
+    for (const st of changed ?? []) {
+      const slide = slides.find(s => s.stainId === st.id);
+      if (st.lastScanOutcome === 'imageQcPending' && slide?.blockId) {
+        held.push({ stainId: st.id, caseId, blockId: slide.blockId, slideLabel: st.displayId ?? slide.slideLabel ?? st.id, caseAccession: st.displayId?.match(/^[A-Z]+\d{2}-\d+/i)?.[0] ?? caseId, scanBatchId: batch.id, scanBatchBarcode: batch.batchBarcode, scannerInstrumentId: batch.scannerInstrumentId, mode });
+      }
+    }
     // Counted from the save that landed (a retried save rebuilds the change).
     returned += (changed ?? []).filter(st => st.distributionStatus === 'In Scanning Queue').length;
   }
-  await audit(d, 'WSI scan batch unloaded', `${batch.batchBarcode}: ${batch.slides.length} slide(s) unloaded, ${returned} back in the scanning queue`, me.name);
+  await stainQcSystem.queueImages(held).catch(() => undefined);
+  await audit(d, 'WSI scan batch unloaded', `${batch.batchBarcode}: ${batch.slides.length} slide(s) unloaded, ${returned} back in the scanning queue${held.length ? `, ${held.length} waiting for image QC` : ''}`, me.name);
   return { ok: true, data: batch, returnedToQueue: returned };
 }

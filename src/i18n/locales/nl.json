@@ -497,6 +497,10 @@
       "memberCardId": "Lidmaatschaps-/kaartnummer",
       "orderingProvider": "Aanvragende zorgverlener",
       "orderingProviderPlaceholder": "(invoeren op Case & patiënt)",
+      "originatingCase": "Oorspronkelijke casus",
+      "originatingCaseNumber": "Nummer van de oorspronkelijke casus",
+      "originatingCaseNumberPlaceholder": "bijv. S-24-9842",
+      "originatingInstitution": "Instelling van herkomst",
       "patientJurisdiction": "Patiënt- en jurisdictie-identificatie",
       "paymentCategory": "Betalingscategorie / -regeling",
       "primaryJurisdiction": "Primaire jurisdictie",
@@ -2384,6 +2388,7 @@
       "rackNotRegistered": "Rek {{rackId}} is niet geregistreerd. Controleer de ID of registreer het rek eerst.",
       "sameBatch": "Het item zit al in deze batch. Kies een andere batch.",
       "sourceNotActive": "Items kunnen alleen uit een actieve batch worden verplaatst.",
+      "stainQcPending": "De gekleurde preparaten van dit rek wachten op QC. Teken de run eerst af bij het QC-controlepunt van Preparaatverdeling.",
       "stationRequired": "Stel eerst de werkplek van deze computer in.",
       "unexpectedScans_one": "{{count}} item dat niet bij deze batch hoort is gescand. Los het op of gebruik een overschrijving door een supervisor.",
       "unexpectedScans_other": "{{count}} items die niet bij deze batch horen zijn gescand. Los ze op of gebruik een overschrijving door een supervisor."
@@ -2437,9 +2442,10 @@
     "remainingOfTarget": "{{remaining}} resterend van doel {{target}}",
     "removeTitle": "Uit charge verwijderen",
     "removedToast": "{{displayId}} verwijderd uit charge.",
-    "scanHintActive": "Scan de barcode van een cassette of objectglaasje om het aan deze charge toe te voegen. Handsfree — geen klik in een veld nodig.",
+    "scanHintActive": "Scan de barcode van een cassette of objectglaasje om het aan deze batch toe te voegen, of typ hem in het veld hieronder.",
     "scanHintReconcile": "Verificatie buiten proces: scan elk fysiek item terwijl u het van de drager verwijdert.",
     "scanHintSealed": "Het manifest is verzegeld. Start de verificatie om items uit te scannen.",
+    "scanPlaceholder": "Scan of typ de barcode van een cassette of objectglaasje…",
     "scanRejected": {
       "alreadyInBatch": "{{displayId}} zit al in deze batch.",
       "inOtherActiveBatch": "{{displayId}} zit al in actieve batch {{barcode}}.",
@@ -2448,6 +2454,7 @@
       "sealed": "{{barcode}} is verzegeld: er kunnen geen items meer worden toegevoegd.",
       "slideTooLarge": "{{displayId}} is een grootformaatglaasje en {{barcode}} neemt geen grootformaatglaasjes. Gebruik een grootformaat kleuringsrek."
     },
+    "scanSubmit": "Invoeren",
     "startReconciliation": "Afstemming starten",
     "supervisorOverrideLink": "Supervisor-override…",
     "transferToProcessing": "Overdragen naar verwerking",
@@ -2508,6 +2515,7 @@
     "pendingLoadTile": "In afwachting",
     "pendingLoadTitle": "Batch nog te laden — afgedrukte items die nog in geen enkele batch zijn gescand",
     "rackCheckedOutError": "Rek \"{{value}}\" is al uitgecheckt naar een andere actieve batch.",
+    "rackLastRunNotClosed": "De laatste run op {{value}} is nooit gesloten. Sluit deze voordat het rek opnieuw wordt gebruikt.",
     "retentionHoldsTile": "Bewaarblokkades",
     "retentionHoldsTitle": "Wachtrij met bewaarblokkades openen",
     "status": {
@@ -2698,6 +2706,14 @@
     },
     "title": "Werkplekbijdragen",
     "windowLabel": "Laatste {{days}} dagen"
+  },
+  "benchIdentity": {
+    "foreignCase": "Externe casus-ID",
+    "foreignItem": "Externe ID",
+    "foreignSource": "van {{source}}",
+    "specimenSource": "Monster {{label}} – {{description}}",
+    "typedCheck": "Getypt, niet gescand: controleer of de container {{accession}} en {{source}} toont.",
+    "typedCheckAccession": "Getypt, niet gescand: controleer of de container {{accession}} toont."
   },
   "benchReasons": {
     "AE_DIAGNOSIS_NEEDED": "Nodig om de diagnose af te ronden",
@@ -4225,6 +4241,10 @@
         "description": "Een pool-casus doorgeven zodat hij voor iemand anders in de pool blijft.",
         "label": "Pool-casus doorgeven"
       },
+      "caseRequisitionView": {
+        "description": "De aan een casus gekoppelde gescande aanvraagbon vanuit de casus openen. Elke weergave wordt vastgelegd.",
+        "label": "Gescande aanvraagbon van een casus bekijken"
+      },
       "caseRetentionHoldPlace": {
         "description": "Voorkomen dat materiaal van een dossier wordt vernietigd (verzoek patiënt, rechtszaak, onderzoek), met reden en notitie.",
         "label": "Bewaarblokkade plaatsen"
@@ -4689,6 +4709,10 @@
         "description": "Een verslagindeling of onderdeel in gebruik nemen. Geauditeerd.",
         "label": "Verslagsjablonen en -onderdelen publiceren"
       },
+      "configRequisitionIngestionManage": {
+        "description": "Instellen waar gescande aanvraagbonnen vandaan komen (een bewaakte map of een verzendend systeem), hoe vaak ze worden gelezen en de barcode van het scheidingsblad. Vastgelegd.",
+        "label": "Inlezen van aanvraagbonnen beheren"
+      },
       "configResearchCasesManage": {
         "description": "Instellen hoe onderzoekscasussen worden herkend, welke financiële klasse zonder facturatie wordt verstuurd en hoe lang hun materiaal wordt bewaard. Deze casussen ontbreken in klinische werklijsten en statistieken en worden nooit als resultaat of verrichting verstuurd.",
         "label": "Instellingen voor onderzoekscasussen beheren"
@@ -4756,6 +4780,10 @@
       "configStainDictionaryManage": {
         "description": "Kleuringen, snijprotocollen, aanvraagmacro's en moleculaire targets toevoegen en bewerken. Geauditeerd.",
         "label": "Kleuringswoordenlijst beheren"
+      },
+      "configStainQcManage": {
+        "description": "Instellen hoe kleurautomaten en scanners standaard worden afgetekend: automatisch, door het instrument of in PathScribe. Gelogd.",
+        "label": "Instellingen kleur- en scan-QC beheren"
       },
       "configSubspecialtiesManage": {
         "description": "Subspecialismen en de eraan toegewezen specimentypen toevoegen en bewerken. Geauditeerd.",
@@ -5305,6 +5333,18 @@
         "description": "Alleen totalen uit stationsscans, casussen en dragers; onderzoekscasussen worden uitgesloten.",
         "label": "Rapport labworkflow bekijken: de doorlooptijd per stap"
       },
+      "requisitionInboxResolve": {
+        "description": "Een niet-gekoppelde scan aan een casus koppelen door het accessienummer te scannen of te typen, of hem met een reden verwerpen. Het bestand zelf blijft onaangeroerd. Vastgelegd.",
+        "label": "Niet-gekoppelde aanvraagbonnen koppelen of verwerpen"
+      },
+      "requisitionInboxReview": {
+        "description": "De inbox aanvraagbonnen openen: de wachtrij met niet-gekoppelde aanvraagbonnen, recente koppelingen en runs, en een niet-gekoppelde scan bekijken. Bekijken wordt vastgelegd.",
+        "label": "Inbox aanvraagbonnen bekijken"
+      },
+      "requisitionIngestionRun": {
+        "description": "De aflevermap van de scanner nu lezen en elke gescande aanvraagbon aan zijn casus koppelen (de server doet dit ook volgens schema).",
+        "label": "Aanvraagbonnen nu inlezen"
+      },
       "retentionDisposalReportExport": {
         "description": "Het afvoerrapport van afgevoerd materiaal downloaden, met de aanvraagnummers van de casussen.",
         "label": "Afvoerrapport exporteren"
@@ -5316,6 +5356,10 @@
       "retentionMaterialDispose": {
         "description": "Nat weefsel, blokjes of coupes scannen in de afvoerlijst om ze als afgevoerd te markeren zodra de bewaartermijn verstreken is.",
         "label": "Bewaard materiaal afvoeren"
+      },
+      "scanImageQcSignOff": {
+        "description": "Een gescand beeld vrijgeven aan de Patholoog, of met reden terugsturen om opnieuw te scannen. Gelogd.",
+        "label": "Beeld-QC aftekenen"
       },
       "screenAccessionOpen": {
         "description": "Het scherm „Opname” en de tegel op de startpagina zien.",
@@ -5432,6 +5476,14 @@
       "searchReportScheduleManage": {
         "description": "Een planning instellen, wijzigen, pauzeren of verwijderen die een opgeslagen rapport uitvoert en als CSV naar gekozen gebruikers verstuurt. Elke wijziging wordt vastgelegd in het auditlogboek.",
         "label": "Rapporten van zoekopdrachten naar casussen plannen"
+      },
+      "stainQcOverride": {
+        "description": "Een run aftekenen die wacht op aftekening door zijn kleurautomaat via de interface-engine, als dat resultaat niet komt. Gelogd als overschrijving.",
+        "label": "Aftekenen in plaats van een kleurautomaat"
+      },
+      "stainQcSignOff": {
+        "description": "Een kleurrun aftekenen bij het QC-controlepunt: alle preparaten goedgekeurd, of een afgekeurd preparaat gaat met reden opnieuw kleuren of snijden. Gelogd.",
+        "label": "Kleur-QC aftekenen"
       },
       "stationScanHistoryView": {
         "description": "Zien welk item op welke werkplek door wie en wanneer is gescand.",
@@ -7383,6 +7435,9 @@
       "sys-qa-trend-policy": {
         "description": "Wanneer een patroon van grote discrepanties wordt gemeld voor een patholoog of een preparaattype: periode, minimum beoordelingen, drempels en routering, per locatie."
       },
+      "sys-requisition-ingestion": {
+        "description": "Waar gescande aanvraagbonnen vandaan komen, hoe vaak ze worden gelezen, en de barcode van het scheidingsblad voor batchscans."
+      },
       "sys-research-cases": {
         "description": "Hoe onderzoekscasussen worden herkend, bewaard en buiten klinische werklijsten, resultaten en facturatie gehouden; en de mogelijke doelen van een drager."
       },
@@ -7403,6 +7458,9 @@
       },
       "sys-specimens": {
         "description": "Het monsterwoordenboek dat de automatische aanvulling in dossierzoekopdrachten en dossieraanmaak aandrijft."
+      },
+      "sys-stain-qc": {
+        "description": "Hoe gekleurde preparaten en gescande beelden worden afgetekend voordat ze worden uitgegeven of geopend: automatisch, door het instrument of in PathScribe."
       },
       "sys-subspecialties": {
         "description": "Subspecialismepools voor de delegatieworkflow."
@@ -8228,6 +8286,11 @@
     "title": "Venster voor cyto-histologische correlatie",
     "windowDaysLabel": "Venster (dagen)"
   },
+  "cytologyIdentity": {
+    "vial": "{{label}}: {{description}}",
+    "vialWithPlatform": "{{label}}: {{platform}} – {{description}}",
+    "withSlides": "{{vials}} · Objectglaasjes {{slides}}"
+  },
   "cytologyInstrumentationSection": {
     "facility": {
       "emptyState": "Geen faciliteitsoverrides — elke faciliteit gebruikt de bedrijfsstandaard.",
@@ -8358,7 +8421,6 @@
       "waiting": "Wacht op overdracht"
     },
     "pageTitle": "Cytologische preparatie",
-    "patientName": "{{given}} {{family}}",
     "scanPlaceholder": "Scan een barcode van container of decant",
     "scanPrompt": "Scan een vloeistof, aliquot of celblok om het voor te bereiden."
   },
@@ -9070,8 +9132,6 @@
       "title": "Cyto-/histo-voorgeschiedenis patient",
       "viewCase": "Bekijk zaak"
     },
-    "patientLine": "{{name}} · MRN {{mrn}}",
-    "patientUnknown": "Onbekende patiënt",
     "printBtn": "Afdrukken",
     "printCaseReportBtn": "Casusverslag afdrukken",
     "printFailed": "De pdf van het verslag kon niet worden gemaakt. Probeer het opnieuw; lukt het nog steeds niet, meld het dan aan uw beheerder.",
@@ -9526,7 +9586,6 @@
         }
       }
     },
-    "rowSubtitle": "Dossier {{caseId}} · patiëntnr. {{mrn}}",
     "screeningHours": {
       "cancel": "Annuleren",
       "change": "Wijzigen",
@@ -9580,7 +9639,6 @@
       "unassignedPool": "Niet-toegewezen pool"
     },
     "title": "Cytologiewerklijst",
-    "unknownPatient": "Onbekende patiënt",
     "workload": {
       "leftFullDay": "Nog {{left}} preparaten op een volledige dag van 8 uur",
       "leftNow": "Nu nog {{left}} preparaten (grens tot nu toe {{limit}}, {{hours}} u gescreend)",
@@ -10703,14 +10761,12 @@
         "biopsy": "Biopsie",
         "needleCore": "Naaldbiopt"
       },
-      "dob": "Geboortedatum:",
       "flag": {
         "fragile": "Fragiel",
         "requiresDecal": "Decalcificatie vereist",
         "tinyTissue": "Minuscuul weefsel"
       },
       "matrixBlockOf": "Matrixblok van preparaten {{specimens}}",
-      "patient": "Patiënt:",
       "scanNext": "Volgende cassette scannen →",
       "specimenBlock": "Preparaat/Blok:",
       "specimenType": "Type:",
@@ -11110,6 +11166,10 @@
       "modelPlaceholder": "bijv. Panther",
       "nameLabel": "Naam",
       "namePlaceholder": "bijv. Panther 4",
+      "qcModeDefault": "Standaard van het lab (Kleur- en scan-QC)",
+      "qcModeHintScanner": "Hoe een beeld van deze scanner wordt gecontroleerd voordat de Patholoog het kan openen.",
+      "qcModeHintStainer": "Hoe een run van deze kleurautomaat wordt afgetekend voordat de preparaten worden uitgegeven.",
+      "qcModeLabel": "QC-aftekening",
       "saveButton": "Wijzigingen opslaan",
       "serialLabel": "Serienummer",
       "serialPlaceholder": "Optioneel",
@@ -11717,6 +11777,7 @@
       "runFailed": "Mislukte instrumentruns",
       "scanFailed": "Scan mislukt",
       "scanning": "Wordt gescand",
+      "stainQcPending": "Wacht op QC",
       "stainingActive": "Actieve kleuringscharges",
       "statBatches": "STAT-charges",
       "statPending": "STAT wachtend",
@@ -15341,6 +15402,7 @@
       "cutAndPlaced": "Gesneden en geplaatst",
       "pendingCut": "Snede in behandeling",
       "qcFailed": "KC mislukt",
+      "qcPending": "Wacht op QC",
       "readyForReview": "Gereed voor beoordeling",
       "recutRequested": "Nasnede aangevraagd",
       "staining": "Kleuring bezig"
@@ -15475,7 +15537,6 @@
     "context": {
       "accession": "Accessie:",
       "blockComments": "Blokopmerkingen",
-      "dob": "Geboortedatum:",
       "flag": {
         "fragile": "Breekbaar",
         "requiresDecal": "Decalcificatie vereist",
@@ -15485,7 +15546,6 @@
       "matrixPosition": "Positie {{n}}",
       "matrixSpecimen": "Staal {{label}}",
       "noHistory": "Nog geen objectglaasjes afgedrukt voor dit blok.",
-      "patient": "Patiënt:",
       "pieceCount": "Aantal stukken: ",
       "priorHistory": "Geschiedenis objectglaasjes",
       "scanNext": "Volgend blok/decantatie scannen →",
@@ -15541,6 +15601,8 @@
     "hardware": {
       "allPrinted": "Alle objectglaasjes van dit blok zijn afgedrukt.",
       "batch": "Batch",
+      "blockMode": "Blok",
+      "blockModeHint": "Bij het scannen van een blok worden alle etiketten ervan in één keer afgedrukt. Scan ze daarna in willekeurige volgorde op de objectglaasjes.",
       "couldNotStart": "Het afdrukken kon niet worden gestart.",
       "deviceStatus": "Apparaatstatus",
       "fit": {
@@ -15556,6 +15618,8 @@
       "notConfigured": "Dit station is niet geconfigureerd voor echt afdrukken van objectglaasjesetiketten.",
       "onDemand": "Op aanvraag",
       "printBatch": "Batch afdrukken",
+      "printBlock_one": "{{count}} etiket van het blok afdrukken",
+      "printBlock_other": "{{count}} etiketten van het blok afdrukken",
       "printMode": "Afdrukmodus",
       "printNext": "Volgende afdrukken/etsen",
       "profileMissing": "Het geconfigureerde printerprofiel bestaat niet meer.",
@@ -15566,6 +15630,23 @@
         "offline": "Offline",
         "ready": "Gereed"
       }
+    },
+    "labelScan": {
+      "awaiting": "Scan het etiket van {{slide}} op het glaasje om de snede te bevestigen (of typ het als de scanner niet werkt).",
+      "awaitingMany": "Scan deze etiketten op de objectglaasjes, in willekeurige volgorde (of typ ze in als de scanner niet werkt): {{slides}}",
+      "blocked": "Scan het etiket van {{slide}} voordat u het volgende glaasje afdrukt.",
+      "confirmed": "{{slide}} bevestigd: van dit blok gesneden en vastgelegd.",
+      "notPrinted": "{{slide}} is nog niet afgedrukt: druk het eerst af."
+    },
+    "lockout": {
+      "body": "Scan de resterende etiketten, of snijd elk objectglaasje opnieuw of maak het ongeldig, voordat u naar het volgende blok gaat.",
+      "continue": "Doorgaan zonder ze (vastgelegd)",
+      "held": "Rond eerst de etiketten van dit blok af.",
+      "recut": "Opnieuw snijden (nieuw etiket)",
+      "stay": "Bij dit blok blijven",
+      "title_one": "{{count}} etiket van blok {{block}} is nog niet gescand",
+      "title_other": "{{count}} etiketten van blok {{block}} zijn nog niet gescand",
+      "void": "Objectglaasje ongeldig maken"
     },
     "pageTitle": "Microtomie-werkstation",
     "printStatus": {
@@ -19598,7 +19679,7 @@
       "batchOption": "Batch (per zaak/order)",
       "description": "Op aanvraag drukt elk cassette-label af zodra het tijdens het grossing wordt geregistreerd. Batch stelt alle afdrukken uit tot een expliciete, per-zaak bulkactie.",
       "onDemandOption": "Op aanvraag (per blok/container)",
-      "title": "Standaard afdrukgedrag"
+      "title": "Afdrukgedrag bij uitsnijden"
     },
     "enabledLabel": "Ingeschakeld",
     "gs1Gtin": {
@@ -19611,6 +19692,15 @@
       "title": "Op-aanvraag-waarborgen afdwingen"
     },
     "loading": "Afdrukinstellingen laden…",
+    "microtomeBehavior": {
+      "description": "Hoe de microtoom objectglaasetiketten afdrukt, los van het uitsnijden. Elk etiket wordt op het objectglaasje gescand om de coupe te bevestigen. Zolang hier niets is gekozen, volgt de microtoom de instelling van het uitsnijden.",
+      "options": {
+        "batch": "Batch: de analist vinkt de objectglaasjes aan en drukt ze samen af",
+        "block": "Blok: bij het scannen van een blok worden alle etiketten afgedrukt; ze worden in willekeurige volgorde teruggescand",
+        "on_demand": "Op aanvraag: één etiket tegelijk; elk wordt gescand voordat het volgende wordt afgedrukt"
+      },
+      "title": "Afdrukgedrag bij de microtoom"
+    },
     "molecularPrinterProfile": {
       "description": "Dezelfde echte hardwarebridge-keuze als hierboven, voor de eigen plaat-, rek-, specimen- en dekpositielabels van de Moleculaire Testuitvoeringsmodule.",
       "title": "Moleculair label-printerprofiel"
@@ -21516,6 +21606,162 @@
     "sentToCodeReview": "Casus verzonden naar codebeoordeling",
     "title": "Beoordeling door collega aanvragen"
   },
+  "requisitionIngestion": {
+    "addSource": "＋ Bron toevoegen",
+    "enabled": "Deze bron lezen",
+    "expected": {
+      "graceHint": "Uren na accessie zonder gekoppelde bon. 0 markeert meteen. Blokkeert het werk nooit.",
+      "graceHours": "Casus markeren na (uren)",
+      "hint": "Welke casussen een gescande aanvraagbon zouden moeten hebben. Een casus zonder tijdig gekoppelde bon wordt gemarkeerd in de inbox aanvraagbonnen, toont ‘Aanvraagbon ontbreekt’ en krijgt een afwijking ‘Ontbrekende aanvraagbon’. Een elektronische ZIS-aanvraag heeft er standaard geen nodig: het aanvraagbericht is de aanvraag.",
+      "organisationDefault": "Standaard van de organisatie",
+      "origins": "Een gescande aanvraagbon wordt verwacht voor",
+      "save": "Verwachtingen opslaan",
+      "scope": "Geldt voor",
+      "title": "Verwachte aanvraagbonnen",
+      "unmatchedHint": "Een aanvraagbon die zo lang bij geen casus past, kan wijzen op een specimen dat niet is ontvangen, kwijt is of niet is geaccessioneerd: hij wordt rood gemarkeerd en bovenaan de wachtrij gezet.",
+      "unmatchedHours": "Scan zonder casus markeren na (uren)",
+      "usesDefault": "Deze faciliteit volgt de standaard van de organisatie tot u een eigen instelling opslaat."
+    },
+    "facility": "Uitvoerende faciliteit",
+    "facilityHint": "Het laboratorium van deze scanner. Zijn scans wachten in de wachtrij van die faciliteit, en alleen medewerkers van die faciliteit kunnen ze zien en afhandelen. Alle faciliteiten: voor een scanner die alle laboratoria delen.",
+    "kind": "Herkomst van de scans",
+    "kinds": {
+      "api": "Een systeem dat scans naar de PathScribe-API stuurt",
+      "documentSystem": "Een documentsysteem van derden dat PathScribe op zijn adres leest",
+      "fileShare": "Een map op het ziekenhuisnetwerk waarin de scanner opslaat"
+    },
+    "lastSaved": "Laatst opgeslagen {{when}} door {{name}}",
+    "loading": "Inlezen aanvraagbonnen wordt geladen…",
+    "location": {
+      "api": "Verzendend systeem",
+      "documentSystem": "Adres van het systeem (https)",
+      "fileShare": "Adres van de map"
+    },
+    "locationHint": {
+      "api": "De naam van het systeem, zoals het zich bij de API identificeert.",
+      "documentSystem": "Het https-adres van het systeem waarnaar de scanner stuurt (een ECM, de documentopslag van het LIS, een scandienst). De server leest daar nieuwe scans met de toegangsgegevens die op de API-server zijn ingesteld; PathScribe bewaart alleen de koppeling naar elk bestand.",
+      "fileShare": "Waar de scanner zijn pdf’s opslaat: een netwerkpad zoals \\\\server\\requisitions\\inbox, of een smb://-, nfs://-, file://- of https://-adres. De server leest het, de browser nooit."
+    },
+    "name": "Naam",
+    "newSource": "Nieuwe bron: nog niet opgeslagen",
+    "problem": "De instellingen konden niet worden opgeslagen. Controleer de rood gemarkeerde velden.",
+    "referenceOnly": "PathScribe bewaart geen kopie van een scan: elke casus houdt een koppeling naar het bestand op zijn locatie, de bijbehorende pagina’s, de barcode waarop gekoppeld is, wanneer en vanuit welke bron.",
+    "saved": "Opgeslagen.",
+    "schedule": "Lezen elke (minuten)",
+    "scheduleHint": "Van 1 tot 1.440 minuten. De server voert het uit als geplande taak.",
+    "separator": "Barcode van het scheidingsblad",
+    "separatorHint": "Druk een blad met deze barcode af en leg het in één batchscan tussen de aanvraagbonnen. Die pagina sluit de voorgaande aanvraagbon af en hoort bij geen enkele casus.",
+    "sources": "Bronnen",
+    "subtitle": "Waar gescande aanvraagbonnen vandaan komen, hoe vaak ze worden gelezen, en het scheidingsblad tussen aanvraagbonnen in één batchscan.",
+    "title": "Inlezen aanvraagbonnen"
+  },
+  "requisitions": {
+    "accession": {
+      "creating": "Nieuwe casus voor de gescande aanvraagbon:",
+      "linkFailed": "De scan kon niet worden gekoppeld: koppel hem vanuit de inbox aanvraagbonnen.",
+      "linked": "De gescande aanvraagbon is gekoppeld aan de nieuwe casus"
+    },
+    "allFacilities": "Alle faciliteiten",
+    "caseButton_one": "📄 Aanvraagbon",
+    "caseButton_other": "📄 Aanvraagbonnen ({{count}})",
+    "caseTab": "Aanvraagbon {{n}}",
+    "discardReasons": {
+      "duplicateScan": "Dubbele scan",
+      "notARequisition": "Geen aanvraagbon",
+      "other": "Anders",
+      "unreadable": "Onleesbare scan"
+    },
+    "errors": {
+      "alreadyClosed": "Deze scan is al gekoppeld of verworpen.",
+      "noSuchCase": "Geen casus gevonden voor {{accession}}.",
+      "notPermitted": "U hebt hiervoor geen toestemming.",
+      "runFailed": "Inlezen kon niet worden uitgevoerd. Probeer het opnieuw."
+    },
+    "inbox": {
+      "backToAccession": "← Accessie",
+      "discard": "Verwerpen",
+      "discardReason": "Reden voor verwerpen",
+      "everyFacility": "Al mijn faciliteiten",
+      "facilityFilter": "Faciliteit",
+      "foundNone": "Geen casus gevonden. Controleer het accessienummer, de patiëntnaam of het patiëntnummer op de scan, of maak er een nieuwe casus van.",
+      "foundTitle": "Gevonden casussen",
+      "ingestion": "Inlezen aanvraagbonnen",
+      "lastRun": "Laatste run {{when}}: {{files}} bestanden, {{matched}} aan casussen gekoppeld, {{unmatched}} naar de wachtrij Niet gekoppeld, {{rejected}} geweigerd.",
+      "link": "Koppelen",
+      "linkPlaceholder": "Accessienummer, patiëntnaam of patiëntnummer",
+      "newCase": "Nieuwe casus uit deze scan",
+      "noRunYet": "Nog geen run.",
+      "noSources": "Voor uw faciliteiten is geen scanner ingesteld. Een beheerder voegt er een toe via Configuratie → Systeem → Integraties → Inlezen aanvraagbonnen.",
+      "notRun": "Niet uitgevoerd, omdat uw rol voor die faciliteit niet mag inlezen: {{names}}",
+      "recentEmpty": "Nog geen aanvraagbonnen gekoppeld.",
+      "recentTitle": "Recent gekoppeld",
+      "runNow": "Nu inlezen",
+      "running": "Scans worden gelezen…",
+      "serverRuns": "De server leest volgens zijn schema in.",
+      "sourceLine": "{{name}} · {{location}} · elke {{minutes}} min",
+      "sourceOff": "wordt niet gelezen (uitgeschakeld)",
+      "subtitle": "Gescande aanvraagbonnen worden via de accessiebarcode op de pagina aan hun casus gekoppeld, niet gekopieerd. Een scan die bij geen casus past, wacht hier tot iemand hem aan een casus koppelt of verwerpt.",
+      "title": "Inbox aanvraagbonnen",
+      "unmatchedEmpty": "Niets in de wachtrij: elke scan is aan een casus gekoppeld.",
+      "unmatchedTitle_one": "Niet-gekoppelde aanvraagbonnen ({{count}})",
+      "unmatchedTitle_other": "Niet-gekoppelde aanvraagbonnen ({{count}})"
+    },
+    "inboxLink": "📥 Inbox aanvraagbonnen",
+    "matchedAutomatically": "Gekoppeld via de barcode",
+    "matchedByHand": "Gekoppeld door {{name}}",
+    "missing": {
+      "accessioned": "Geaccessioneerd {{when}}",
+      "deficiencyRaised": "Voor deze casus is een afwijking ‘Ontbrekende aanvraagbon’ geregistreerd.",
+      "flagged": "Gemarkeerd: geen aanvraagbon gekoppeld.",
+      "hint": "Deze casussen zouden een gescande aanvraagbon moeten hebben en er is er op tijd geen gekoppeld. Scan of typ het accessienummer bij een wachtende scan om hem te koppelen, of leg vast waarom er geen papieren aanvraagbon komt.",
+      "linkHint": "Het koppelen van de scan heft dit op.",
+      "reason": "Waarom geen papieren aanvraagbon",
+      "title_one": "Casussen zonder aanvraagbon ({{count}})",
+      "title_other": "Casussen zonder aanvraagbon ({{count}})",
+      "waive": "Geen papieren aanvraagbon"
+    },
+    "missingChip": "⚠ Aanvraagbon ontbreekt",
+    "origins": {
+      "downtime": "Accessie bij storing",
+      "electronic": "Elektronische ZIS-/LIS-aanvraag",
+      "lockbox": "Lockbox-afgifte",
+      "manual": "Ingevoerd bij accessie, zonder geïmporteerde aanvraag",
+      "outside": "Externe casus / contractcasus"
+    },
+    "pageRange": "Pagina’s {{from}}–{{to}}",
+    "pageSingle": "Pagina {{page}}",
+    "preview": {
+      "errors": {
+        "notPermitted": "U hebt geen toestemming om deze aanvraagbon te bekijken.",
+        "unreadable": "De scan is op zijn opslaglocatie niet bereikbaar. Gebruik PDF openen, of controleer of het bestand er nog staat."
+      },
+      "loading": "Scan wordt gelezen…",
+      "openPdf": "PDF openen",
+      "pageAlt": "Aanvraagbon, pagina {{page}}",
+      "title": "Gescande aanvraagbon"
+    },
+    "reason": {
+      "noBarcode": "Op deze pagina kon geen barcode worden gelezen",
+      "noMatch": "Deze barcode past bij geen casus"
+    },
+    "rejected": {
+      "notPdf": "Geweigerd: geen pdf (alleen pdf’s worden gelezen)",
+      "unreadable": "Geweigerd: het bestand kon niet worden gelezen"
+    },
+    "toast": {
+      "discarded": "Scan verworpen. Het bestand zelf blijft onaangeroerd.",
+      "linked": "Aanvraagbon gekoppeld aan {{accession}}.",
+      "waived": "Vastgelegd: geen papieren aanvraagbon. De afwijking ‘Ontbrekende aanvraagbon’ is gesloten."
+    },
+    "view": "Bekijken",
+    "waiverReasons": {
+      "electronicOrder": "Elektronische aanvraag aanwezig",
+      "other": "Anders",
+      "requestInAnotherRecord": "Aanvraag in een ander dossier",
+      "verbalOrderDocumented": "Mondelinge aanvraag, gedocumenteerd"
+    },
+    "withoutCase": "Nog geen casus: controleer of een specimen niet is ontvangen, kwijt is of niet is geaccessioneerd"
+  },
   "researchCases": {
     "accessionPrefixes": "Voorvoegsels van het registratienummer",
     "active": "Actief",
@@ -22253,6 +22499,8 @@
       "missing": "Ontbrekend",
       "printed": "Etiket afgedrukt",
       "received": "Ontvangen",
+      "sectioned": "Gesneden, etiket bevestigd",
+      "typed": "Getypt, niet gescand",
       "unexpected": "Onverwacht",
       "unloaded": "Uit drager gehaald"
     },
@@ -22996,6 +23244,10 @@
       "release": {
         "dueSweep": "Vervallen vastgehouden vrijgaven"
       },
+      "requisition": {
+        "ingest": "Inlezen aanvraagbonnen",
+        "missingSweep": "Controle ontbrekende aanvraagbonnen"
+      },
       "supportAccess": {
         "expire": "Verloop van supporttoegang"
       }
@@ -23381,6 +23633,8 @@
     "title": "Logboek gesimuleerde afdrukken",
     "toast": "Gesimuleerd: {{kind}} naar {{destination}} verzonden. Er is niets afgedrukt.",
     "toastFailed": "Gesimuleerde fout: {{kind}} heeft {{destination}} niet bereikt.",
+    "toastFailedRepeated": "Gesimuleerde fout: {{kind}} × {{count}} heeft {{destination}} niet bereikt.",
+    "toastRepeated": "Gesimuleerd: {{kind}} × {{count}} naar {{destination}} verzonden. Er is niets afgedrukt.",
     "transport": "Verzonden via",
     "when": "Wanneer"
   },
@@ -23663,9 +23917,13 @@
       "title": "Reden vereist"
     },
     "scanErrors": {
+      "blockHeldByQc": "Alle preparaten van blok {{block}} worden door QC vastgehouden ({{count}}). Teken eerst de run af bij het QC-controlepunt.",
       "blockNotFound": "Blok {{block}} is niet gevonden.",
       "noSlides": "Blok {{block}} heeft geen glaasjes om te verdelen.",
       "notResolved": "Deze scan komt niet overeen met een casus, blok of glaasje. Controleer de barcode en probeer het opnieuw.",
+      "qcFailed": "Preparaat {{slide}} is afgekeurd bij QC en wacht op opnieuw kleuren.",
+      "qcPending": "Preparaat {{slide}} wacht op QC-aftekening en kan nog niet worden uitgegeven.",
+      "recutRequested": "Preparaat {{slide}} is afgekeurd bij QC en er is opnieuw snijden aangevraagd.",
       "slideNotFound": "Glaasje {{slide}} is niet gevonden.",
       "specimenNotFound": "Het specimen is niet gevonden in deze casus.",
       "unsupportedTarget": "Dit station accepteert blok-, matrixblok- en glaasjesbarcodes. Celblokcassettes, decanteringen en specimenbarcodes worden nog niet ondersteund."
@@ -23704,6 +23962,7 @@
     "referenceNote": "Referentievoorbeeld. Niet voor diagnose.",
     "state": {
       "available": "Beeld beschikbaar",
+      "awaitingImageQc": "Wacht op beeld-QC",
       "failedImageQuality": "Beeldkwaliteit afgekeurd",
       "noImageYet": "Nog geen beeld",
       "queued": "In de wachtrij",
@@ -24526,6 +24785,59 @@
       "vendorPlaceholder": "bijv. Ventana"
     }
   },
+  "stainQc": {
+    "actions": {
+      "recut": "Opnieuw snijden",
+      "restain": "Opnieuw kleuren"
+    },
+    "errors": {
+      "failed": "Deze QC-beslissing kon niet worden opgeslagen. Laad opnieuw en probeer het nog eens.",
+      "invalid": "Geef voor elk afgekeurd preparaat een vervolgactie en een reden op.",
+      "notPermitted": "U hebt geen toestemming voor deze QC-beslissing. Neem contact op met uw beheerder."
+    },
+    "fail": "Afgekeurd",
+    "followUp": "Vervolgactie",
+    "hint": "Gekleurde preparaten en gescande beelden wachten hier tot hun QC is afgetekend. Een rek dat op QC wacht, kan niet worden uitgecheckt en de preparaten ervan worden niet uitgegeven.",
+    "imageLine": "Scanner {{scanner}} · scanbatch {{batch}}",
+    "imageReasons": {
+      "debris": "Vuil op het preparaat",
+      "other": "Anders",
+      "outOfFocus": "Onscherp",
+      "stitching": "Fout bij samenvoegen",
+      "tissueMissed": "Weefsel gemist"
+    },
+    "imagesTitle_one": "Gescand beeld wacht op QC ({{count}})",
+    "imagesTitle_other": "Gescande beelden wachten op QC ({{count}})",
+    "modes": {
+      "autoAccept": "Automatisch accepteren",
+      "pathscribeSignOff": "Aftekening in PathScribe",
+      "vendorSignOff": "Aftekening door het instrument (interface-engine)"
+    },
+    "outcome": "QC-resultaat",
+    "pass": "Goedgekeurd",
+    "reason": "Reden",
+    "reasons": {
+      "controlFailed": "Controle afgekeurd",
+      "coverslipBubble": "Luchtbel onder dekglas",
+      "other": "Anders",
+      "overStaining": "Overkleuring",
+      "tissueFolded": "Gevouwen weefsel",
+      "uneven": "Ongelijkmatige kleuring",
+      "weakStaining": "Zwakke kleuring"
+    },
+    "releaseImage": "Vrijgeven aan de Patholoog",
+    "rescan": "Opnieuw scannen",
+    "runLine_one": "{{count}} preparaat · wacht sinds {{when}}",
+    "runLine_other": "{{count}} preparaten · wachten sinds {{when}}",
+    "signOffAllPassed": "Aftekenen: alle preparaten goedgekeurd",
+    "signOffInstead": "Aftekenen in plaats van de kleurautomaat",
+    "signOffWithFailures_one": "Aftekenen: {{count}} preparaat afgekeurd",
+    "signOffWithFailures_other": "Aftekenen: {{count}} preparaten afgekeurd",
+    "stainer": "Kleurautomaat",
+    "stainerUnknown": "Niet vastgelegd",
+    "title": "QC-controlepunt",
+    "waitingForInstrument": "Deze kleurautomaat tekent zijn eigen runs af via de interface-engine. De run wordt vrijgegeven zodra het resultaat binnenkomt; een supervisor kan hem hier in plaats daarvan aftekenen."
+  },
   "stainQcGateModal": {
     "confirmButton": "Bevestig dat de checklist voor visuele aflezing volledig is",
     "confirmedBadge": "Visuele aflezing bevestigd door {{name}}.",
@@ -24535,18 +24847,61 @@
     "intro": "De onderstaande kleuringsbatch(es) moeten worden opgelost voordat deze zaak kan worden ondertekend.",
     "rowTitle": "Batch {{batchBarcode}} — {{specimenList}}"
   },
+  "stainQcSection": {
+    "columns": {
+      "instrument": "Instrument",
+      "kind": "Soort",
+      "mode": "QC-aftekening"
+    },
+    "defaults": "Standaarden",
+    "explain": {
+      "autoAccept": "de run of het beeld wordt direct na afloop vrijgegeven, zonder aftekening (gelogd als automatisch geaccepteerd).",
+      "pathscribeSignOff": "een analist tekent af bij het QC-controlepunt van Preparaatverdeling (optie B).",
+      "vendorSignOff": "het eigen QC-resultaat van het instrument, verzonden via de interface-engine, geeft vrij of houdt vast (optie A)."
+    },
+    "fromDefault": "standaard",
+    "instruments": "Kleurautomaten en scanners",
+    "instrumentsHint": "De modus van elk instrument. Wijzig dit via Configuratie → Systeem → Apparatuur (QC-aftekening).",
+    "loading": "QC-instellingen laden…",
+    "noInstruments": "Er staat nog geen kleurautomaat of preparaatscanner in het apparatuurregister.",
+    "save": "QC-standaarden opslaan",
+    "saved": "QC-standaarden opgeslagen.",
+    "scannerDefault": "Preparaatscanners",
+    "stainerDefault": "Kleurautomaten",
+    "subtitle": "Het QC-controlepunt na het kleuren en vóór de verdeling. Elke kleurautomaat en scanner kan op het scherm Apparatuur een eigen modus hebben; de rest gebruikt deze standaarden.",
+    "title": "Kleur- en scan-QC"
+  },
   "stationCarrier": {
-    "addToOutput": "Afgedrukte coupes aan de bak toevoegen ({{count}})",
-    "andMore": "en nog {{count}}",
+    "bench": {
+      "counter": "Niet-toegewezen objectglaasjes op de werkplek: {{count}}",
+      "hint": "Scan een open kleuringsrek om ze er allemaal in te plaatsen en het te verzegelen.",
+      "leaveWarning_one": "{{count}} objectglaasje op deze werkplek zit nog niet in een kleuringsrek. Het blijft op de werkplek van dit station tot er een rek wordt gescand. Toch afsluiten?",
+      "leaveWarning_other": "{{count}} objectglaasjes op deze werkplek zitten nog niet in een kleuringsrek. Ze blijven op de werkplek van dit station tot er een rek wordt gescand. Toch afsluiten?",
+      "noneAdded": "Geen van de objectglaasjes op de werkplek kon in {{barcode}}; {{count}} nog op de werkplek.",
+      "slideOnBench": "{{item}} bevestigd en op de werkplek gelegd ({{count}} wachten op een rek).",
+      "someLeft_one": "{{count}} objectglaasje kon niet in {{barcode}} en ligt nog op de werkplek.",
+      "someLeft_other": "{{count}} objectglaasjes konden niet in {{barcode}} en liggen nog op de werkplek."
+    },
+    "checkOffPrompt": "{{item}} met de hand afvinken. Waarom?",
+    "checkOffReasons": {
+      "labelDamaged": "Etiket beschadigd",
+      "labelUnreadable": "Etiket onleesbaar",
+      "scannerDown": "Scanner werkt niet"
+    },
+    "checkOffTitle": "Etiket scant niet? Met de hand afvinken",
     "chooseStation": "Werkplek van deze computer",
     "close": "Sluiten",
     "dismiss": "Melding sluiten",
     "finish": "Uitladen afronden",
+    "itemArrived": "✓ Aangekomen",
+    "itemWaiting": "Te scannen",
+    "itemsLabel": "Items in deze drager",
     "listLabel": "Open dragers voor deze werkplek",
     "noStation": "Voor deze computer is geen scanwerkplek ingesteld. Scans worden hier niet vastgelegd en dragers kunnen hier niet worden geopend. Kies de werkplek van deze computer.",
     "noneHere": "Geen open dragers voor deze werkplek.",
     "notice": {
-      "addedToOutput": "Coupes toegevoegd aan {{barcode}}: {{count}}.",
+      "blockIntoTray": "{{item}} in {{barcode}} geplaatst.",
+      "checkedOffByHand": "{{item}} met de hand afgevinkt in {{barcode}}; de reden wordt vastgelegd.",
       "closedAborted": "{{barcode}} is gesloten: afgebroken op {{at}}.",
       "closedComplete": "{{barcode}} is gesloten: voltooid op {{at}}.",
       "finished": "Uitladen van {{barcode}} afgerond.",
@@ -24556,13 +24911,21 @@
       "opened": "{{barcode}} hier geopend. Items: {{count}}.",
       "openedAdHoc": "{{barcode}} hier geopend; deze werkplek is als zijn werkplek vastgelegd. Items: {{count}}.",
       "openedMismatch": "{{barcode}} hier geopend, hoewel hij bij een andere stap hoort. Dit is vastgelegd.",
+      "outputClosedWithLoaded_one": "{{barcode}} verzegeld met {{count}} item en doorgestuurd. {{loaded}} is voltooid.",
+      "outputClosedWithLoaded_other": "{{barcode}} verzegeld met {{count}} items en doorgestuurd. {{loaded}} is voltooid.",
+      "outputClosed_one": "{{barcode}} verzegeld met {{count}} item en doorgestuurd.",
+      "outputClosed_other": "{{barcode}} verzegeld met {{count}} items en doorgestuurd.",
       "outputSet": "{{barcode}} is nu de uitvoerbak.",
       "sealed": "{{barcode}} verzegeld. Items: {{count}}.",
+      "slideIntoRack": "{{item}} bevestigd en in {{barcode}} geplaatst.",
       "unexpectedKept": "{{item}} behouden en als onverwacht vastgelegd in {{barcode}}.",
       "unknown": "Geen drager heeft de barcode {{barcode}}."
     },
     "openInBatchManagement": "Openen in Chargebeheer",
     "outputHint": "Scan een open {{node}}-drager om die als uitvoerbak voor gesneden coupes te gebruiken.",
+    "outputHintEmbedding": "Scan een open drager voor {{node}} om de ingebedde blokken erin te verzamelen voor de microtoom.",
+    "outputHintMicrotomy": "Scan eerst een open {{node}}-rek om het glaasje voor glaasje te vullen, of snijd eerst en scan het rek aan het eind: alle objectglaasjes op de werkplek gaan erin en het wordt verzegeld.",
+    "outputRescanHint": "Als {{barcode}} vol is, scan hem opnieuw om hem te verzegelen en door te sturen.",
     "outputTray": "Uitvoerbak",
     "pending": {
       "continueAnyway": "Toch doorgaan",
@@ -24571,12 +24934,17 @@
       "wrongItem": "{{item}} zit niet in drager {{barcode}}. Toch doorgaan? Het wordt als onverwacht vastgelegd."
     },
     "progress": "{{matched}} van {{total}} afgescand",
+    "rack": {
+      "closeLastRun": "Laatste run sluiten en een nieuwe starten",
+      "newRun": "{{barcode}} is hier aan een nieuwe kleuringsrun begonnen. Laad de objectglaasjes en scan het rek opnieuw als het vol is om het te sluiten.",
+      "notClosed_one": "De laatste run op {{barcode}} ({{count}} objectglaasje, {{at}}) is nooit gesloten. Sluit deze voordat u het rek opnieuw gebruikt, of open deze in Chargebeheer.",
+      "notClosed_other": "De laatste run op {{barcode}} ({{count}} objectglaasjes, {{at}}) is nooit gesloten. Sluit deze voordat u het rek opnieuw gebruikt, of open deze in Chargebeheer."
+    },
     "routedHere": "Hierheen gestuurd",
     "scanToUnload": "Scan elk item terwijl u het uit de drager haalt.",
     "seal": "Manifest verzegelen",
     "sealed": "Verzegeld",
     "stationLine": "Werkplek: {{station}}",
-    "stillToScan": "Nog te scannen: {{items}}",
     "title": "Dragers op deze werkplek",
     "unexpectedCount_one": "{{count}} onverwacht item gescand",
     "unexpectedCount_other": "{{count}} onverwachte items gescand",
@@ -24584,9 +24952,9 @@
   },
   "stationScan": {
     "backToScanning": "Terug naar scannen (toetsenbord verbergen)",
-    "backToScanningShort": "⌨ Scannen",
+    "backToScanningShort": "⌨ Toetsenbord verbergen",
     "typeAnId": "Een ID typen met het schermtoetsenbord",
-    "typeAnIdShort": "⌨ Typen"
+    "typeAnIdShort": "⌨ Toetsenbord"
   },
   "stationSwitch": {
     "discardedAndSwitched": "📍 Wijzigingen verworpen en gewisseld naar {{station}}.",
@@ -25881,6 +26249,7 @@
       "qaTrendPolicy": "Beleid voor discrepantietrends",
       "reagentLots": "Reagens- en oplossingslots",
       "releaseBuffer": "Vrijgavebuffer na ondertekening",
+      "requisitionIngestion": "Inlezen aanvraagbonnen",
       "researchCases": "Onderzoekscasussen en doelen van charges",
       "researchFeed": "Onderzoeksfeed",
       "retention": "Gegevensbewaring",
@@ -25895,6 +26264,7 @@
       "siteAgents": "Site-agents",
       "smartCapture": "Smart Capture",
       "specimens": "Specimenwoordenboek",
+      "stainQc": "Kleur- en scan-QC",
       "stains": "Diagnostische catalogus",
       "subspecialties": "Subspecialismen",
       "supportAccess": "Supporttoegang",

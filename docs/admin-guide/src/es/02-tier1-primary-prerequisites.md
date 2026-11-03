@@ -814,6 +814,7 @@ Unlocks: [Perfiles de impresora](#screen-printer_profiles), [Hardware de tallado
 | Mantenimiento cada (días) | Número entero, de 1 a 3650 | Opcional | La misma regla. | En blanco |
 | Temperatura mínima (°C), Temperatura máxima (°C) | Números, mínimo por debajo del máximo; cualquiera puede quedar en blanco | Opcional | Lote 730: el intervalo de un control de temperatura del registro de equipos. Una lectura fuera de él es un fallo; el intervalo se copia en cada entrada. | En blanco |
 | Admite portaobjetos de gran formato | Casilla, solo teñidores y escáneres de portaobjetos | Opcional | Lote 732: el equipo admite portaobjetos de gran formato (megabloques). La distribución de portaobjetos envía un portaobjetos de gran formato solo a un escáner con esta casilla marcada. | Sin marcar |
+| Firma del control de calidad | Lista, solo teñidores y escáneres de portaobjetos: Valor predeterminado del laboratorio, Aceptación automática, Firma del instrumento (motor de interfaz), Firma en PathScribe | Opcional | Lote 763: cómo se firma la producción de este instrumento antes de repartir sus portaobjetos (teñidor) o abrir sus imágenes (escáner). Véase [Control de tinción y escaneo](#screen-stain_qc). | Valor predeterminado del laboratorio |
 | Estado | Activo / Inactivo | Opcional | | Activo |
 | Disposición de la plataforma | Filas, solo analizadores | Opcional | Las posiciones de la plataforma del analizador. Cada fila: Plataforma o bahía, ID de posición (letras, dígitos, "_", sin repetirse) y Admite (Placa de extracción, Cartucho de reactivo, Gradilla de tubos de muestra; al menos uno). La carga de gradillas ofrece solo las posiciones adecuadas. El ID de posición se imprime en el código de barras de la posición de la plataforma. | Ninguna |
 
@@ -832,8 +833,44 @@ Unlocks: [Perfiles de impresora](#screen-printer_profiles), [Hardware de tallado
 
 Lote 737. Se muestra bajo el registro cuando el laboratorio tiene gradillas de tinción reutilizables (identificadores RACK- grabados). Cada fila es una gradilla con la casilla **Admite portaobjetos de gran formato**, que se guarda al instante (requiere `config:equipment:manage`). Gestión de lotes rechaza un portaobjetos de gran formato (cortado de un megabloque) escaneado en un soporte de tinción que no los admite; un soporte de tinción desechable los admite cuando se marca **Admite portaobjetos de gran formato (megabloques)** en Nuevo contenedor. La demo tiene una gradilla así, RACK-STAIN-LF-01.
 
+Batch 761: una gradilla se reutiliza tanda tras tanda. En el micrótomo, escanear una gradilla registrada cuya última tanda está cerrada inicia una tanda nueva, sin formulario; Gestión de lotes la abre como tanda nueva (Nuevo contenedor, rellenado). Una gradilla cuya última tanda se selló o se puso en el teñidor pero nunca se cerró queda retenida con un aviso. Cerrar esa tanda desde el micrótomo es una anulación de conciliación (`batch:reconciliation:override`), registrada con el motivo «Reusable rack scanned for a new run; the last run on it was never closed.»
+
 **7. Permisos.** Abrir: `screen:configuration:open`. Añadir, editar, desactivar: `config:equipment:manage`. Registrar una entrada del registro de servicio: `equipment:maintenance:record`. Ambas de riesgo alto. Administrador y Director de laboratorio tienen las dos. Los roles Histotecnólogo, Citotécnico y Técnico molecular también tienen el permiso del registro.
 **Límites conocidos.** Las fechas de vencimiento del servicio se calculan en la zona horaria del centro definida en los ajustes del Panel de contribución.
+
+### Control de tinción y escaneo {#screen-stain_qc}
+Breadcrumb: Inicio > Configuración > Sistema > Puesto de trabajo y equipos > Control de tinción y escaneo
+
+**Estado:** Parcial
+
+**1. Navegación:** Pestaña de Configuración **Sistema** > grupo **Puesto de trabajo y equipos** > **Control de tinción y escaneo**
+**2. Elemento de mantenimiento:** Control de tinción y escaneo
+
+**3. Finalidad y alcance.** Lote 763, el punto de control de calidad tras la tinción y antes de la distribución. Cuando termina una serie de tinción, sus portaobjetos esperan el control: la gradilla no puede darse de salida y sus portaobjetos no se reparten en Distribución de portaobjetos hasta que se firma la serie. Una imagen escaneada puede esperar del mismo modo antes de que el Patólogo pueda abrirla. Cada teñidor y escáner se firma de una de tres maneras: **Aceptación automática** (se libera al momento, auditado como aceptación automática), **Firma del instrumento (motor de interfaz)** (opción A: el resultado de control del propio instrumento, enviado por el motor de interfaz, libera o retiene la serie; en un escáner, su propia revisión de imagen) o **Firma en PathScribe** (opción B: un técnico firma en el punto de control de Distribución de portaobjetos). Esta pantalla fija los valores predeterminados; el modo propio de un instrumento se fija en [Equipos](#screen-equipment) (Firma del control de calidad) y prevalece sobre el predeterminado.
+
+**4. Requisitos previos y dependencias.** La lista de instrumentos lee [Equipos](#screen-equipment): teñidores y escáneres de portaobjetos. La firma del instrumento necesita la interfaz del teñidor (su mensaje de firma por el motor de interfaz); sin ella, un supervisor firma en su lugar.
+
+Setup step: Tier 1, step 22
+Requires: [Equipos](#screen-equipment)
+Unlocks: None.
+
+**5. Pantalla.**
+
+[SCREENSHOT PLACEHOLDER: system-stain-qc - Los valores predeterminados y la lista de teñidores y escáneres con su modo]
+
+**6. Referencia de campos.**
+
+| Nombre del campo | Tipo de dato / formato | Obligatorio/Opcional | Descripción y lógica de negocio | Valor predeterminado del sistema |
+|---|---|---|---|---|
+| Teñidores | Lista: Aceptación automática, Firma del instrumento (motor de interfaz), Firma en PathScribe | Obligatorio | El valor predeterminado de un teñidor sin modo propio. | Firma en PathScribe |
+| Escáneres de portaobjetos | La misma lista | Obligatorio | El valor predeterminado de un escáner sin modo propio. Con la firma del instrumento, se libera la imagen que superó la revisión del propio escáner; las demás se retienen. | Aceptación automática |
+| Guardar los valores predeterminados | Botón | No aplicable | Auditado como Stain QC Settings Saved. | No aplicable |
+| Teñidores y escáneres | Tabla: Instrumento, Tipo, Firma del control | No aplicable | El modo de cada instrumento, con «predeterminado» cuando no tiene uno propio. | No aplicable |
+
+En el punto de control, un portaobjetos no conforme se marca **Volver a teñir** (estado QC Failed) o **Volver a cortar** (Recut Requested) con un motivo: Tinción débil, Tinción excesiva, Tinción irregular, Control no conforme, Burbuja bajo el cubreobjetos, Tejido plegado, Otro. Una imagen se libera o se devuelve para escanearla de nuevo con un motivo: Desenfocada, Tejido no capturado, Error de unión, Suciedad en el portaobjetos, Otro. El registro de auditoría muestra Stain QC Pending, Passed, Failed, Instrument Result Ignored; Image QC Pending, Passed, Failed.
+
+**7. Permisos.** Abrir: `screen:configuration:open`. Guardar los valores predeterminados: `config:stain-qc:manage` (Administrador, Director de laboratorio). En el punto de control: `stain:qc:sign-off` y `scan:image-qc:sign-off` (los roles que abren Distribución de portaobjetos, Director de laboratorio); `stain:qc:override` para firmar una serie que espera la firma de su teñidor (Director de laboratorio). Todos de alto riesgo.
+**Límites conocidos.** Los motivos de no conformidad son una lista fija; los criterios de control por tinción no están construidos. Las rutas del servidor y el canal de firma del motor de interfaz están previstos.
 
 ### Perfiles de impresora {#screen-printer_profiles}
 Breadcrumb: Inicio > Configuración > Sistema > Puesto de trabajo y equipos > Perfiles de impresora
@@ -1033,7 +1070,8 @@ Unlocks: [Diseñador de etiquetas](#screen-label_designer)
 
 | Nombre del campo | Tipo de dato / formato | Obligatorio/Opcional | Descripción y lógica de negocio | Valor predeterminado del sistema |
 |---|---|---|---|---|
-| Comportamiento de impresión predeterminado | Opción: Bajo demanda (por bloque o contenedor), Lote (por caso o petición) | Obligatorio | Bajo demanda imprime cada etiqueta de casete al registrarla durante el tallado. Lote aplaza la impresión a una única acción por caso. | Bajo demanda |
+| Modo de impresión en macroscopía | Opción: Bajo demanda (por bloque o contenedor), Lote (por caso o petición) | Obligatorio | Bajo demanda imprime cada etiqueta de casete al registrarla durante el tallado. Lote aplaza la impresión a una única acción por caso. | Bajo demanda |
+| Modo de impresión en el micrótomo | Opción: A demanda, Bloque, Lote | Opcional | Batch 758. Cómo imprime el micrótomo las etiquetas de portaobjetos, aparte de la macroscopía. A demanda: una etiqueta cada vez, cada una escaneada en su portaobjetos antes de imprimir la siguiente. Bloque: al escanear un bloque se imprimen todas sus etiquetas, que se escanean en cualquier orden. Lote: el técnico marca los portaobjetos y los imprime juntos. En todos los modos, pasar al bloque siguiente con etiquetas de este bloque sin escanear queda retenido hasta que cada una se escanee, se vuelva a cortar o se anule, o el técnico continúe (queda registrado). Mientras no se elija, el micrótomo sigue el ajuste de macroscopía. | Como macroscopía |
 | Imponer las salvaguardas de «A demanda» | Interruptor Sí/No | Opcional | Si está activado, el valor predeterminado queda fijado en todo el laboratorio y el personal de registro no puede cambiar un caso a Lote. | Desactivado |
 | Exigir verificación por escaneo | Interruptor Sí/No | Opcional | Exige escanear el código de barras del casete o contenedor nuevo antes de pasar al bloque siguiente. | Desactivado |
 | Pedir un motivo al reimprimir un informe | Interruptor Sí/No | Opcional | La reimpresión de un informe impreso necesita un motivo, que se guarda en el registro de auditoría junto con la impresión. | Desactivado |

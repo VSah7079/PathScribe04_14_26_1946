@@ -41,7 +41,7 @@ import { useAccessionTwoColumn } from '@/hooks/useAccessionTwoColumn';
 import { resolveAccessionPanels, type AccessionTab } from '@/services/accessioning/resolveAccessionPanels';
 import { useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
-import { PhiToastMessage } from '@/components/Common/PhiToastMessage';
+import { PhiToastMessage } from '@/components/Common/PhiToastMessage'; import { RequisitionInboxLink } from '@/components/Requisitions/RequisitionInboxLink'; import { AccessionFromRequisition } from '@/components/Requisitions/AccessionFromRequisition'; // Batch 762
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { createAccessionedCase } from '@/services/accessioning/createAccessionedCase';
 import { linkLockboxReceiptAtAccession } from '@/services/accessioning/linkLockboxReceipt';
@@ -152,6 +152,8 @@ import { BREAK_GLASS_REASON_CODES } from '@/types/patients/BreakGlassReasonCode'
 import type { OutsidePatientFinancialData } from '@/types/billing/OutsidePatientFinancialData';
 import type { MasterPaymentType } from '@/types/billing/MasterPaymentType';
 import type { JurisdictionPaymentMapping } from '@/types/billing/JurisdictionPaymentMapping';
+import OutsideCaseCard, { type OriginatingCaseDraft } from './OutsideCaseCard';
+import { originatingCaseOf } from '@/services/cases/originatingCase';
 import { resolveAutopsyIntakeFormValidation, type AutopsyIntakeFormState } from '@/services/autopsy/resolveAutopsyIntakeFormValidation';
 import { buildAutopsyCaseDetailsFromIntakeForm } from '@/services/autopsy/buildAutopsyCaseDetailsFromIntakeForm';
 import { JURISDICTION_LABELS, type Jurisdiction as AutopsyJurisdiction } from '@/types/systemConfig';
@@ -661,6 +663,7 @@ const AccessionPage: React.FC = () => {
   // for the full, field-by-field account of what each one means and
   // why it isn't just a duplicate of a Case & Patient tab field.
   const [outsidePatientData, setOutsidePatientData] = useState<OutsidePatientFinancialData>({});
+  const [originatingCase, setOriginatingCase] = useState<OriginatingCaseDraft>({ caseNumber: '' }); // Batch 759 (§2.1)
 
   // Real, per direct guidance: the two Financial Class dictionaries
   // (Step 1 of the Outside Client Support & International Financial
@@ -2356,8 +2359,9 @@ const AccessionPage: React.FC = () => {
           receivedDate: nowIso,
           assignedTo: assignedTo || undefined,
           assignedParticipationTypeId: assignedTo ? 'primary' : undefined,
-          intakeType,
+          intakeType, externalOrderId: sourceOrderId ?? undefined, // Batch 762: the imported HIS order (an electronic request on record)
           outsidePatientData: intakeType === 'outside' ? outsidePatientData : undefined,
+          originatingCase: intakeType === 'outside' ? originatingCaseOf(originatingCase) : undefined, // Batch 759
           // Real, per direct guidance's own real OBR-31/reasonCode
           // work — captured here, at real accessioning, only for a
           // real cytology/FNA case.
@@ -2734,7 +2738,7 @@ const AccessionPage: React.FC = () => {
       // claiming a specific AI outcome that hasn't happened yet. A
       // separate, later toast reports the real refinement outcome once
       // it completes.
-      toast.success(<PhiToastMessage>{t('accessionPage.toast.accessioned', { caseId, count: specimens.length })}</PhiToastMessage>);
+      toast.success(<PhiToastMessage>{t('accessionPage.toast.accessioned', { caseId: fullAccession, count: specimens.length })}</PhiToastMessage>);
 
       // Closes the loop described in the original Intraop spec — "when
       // the formal order finally arrives from the LIS, PathScribe
@@ -2778,7 +2782,7 @@ const AccessionPage: React.FC = () => {
     // financial-class data into the next, genuinely unrelated
     // accession, unless the accessioner happened to manually switch
     // back to Standard first.
-    setIntakeType('standard'); setDowntimeReasonCode(''); setOutsidePatientData({});
+    setIntakeType('standard'); setDowntimeReasonCode(''); setOutsidePatientData({}); setOriginatingCase({ caseNumber: '' });
     setSamePersonLinkConfirmed(null);
     loadPendingOrders();
     setTab('case');
@@ -2796,9 +2800,8 @@ const AccessionPage: React.FC = () => {
 
         <div className="ps-accession-header">
           <h1 className="ps-accession-title">{t('accessionPage.page.title')}</h1>
-          <p className="ps-accession-subtitle">
-            {t('accessionPage.page.subtitle')}
-          </p>
+          <p className="ps-accession-subtitle">{t('accessionPage.page.subtitle')}</p>
+          <RequisitionInboxLink /><AccessionFromRequisition savedAccession={justAccessionedCase?.caseData.accession?.fullAccession} />
         </div>
 
         <AccessionTabBar tab={tab} twoColumn={twoColumn} showOutsideTab={intakeType === 'outside'}
@@ -3891,172 +3894,8 @@ const AccessionPage: React.FC = () => {
         )}
 
         {panels.showOutside && (
-          <div className="ps-card-dark ps-accession-card">
-            <div className="ps-accession-outside-header">
-              <h3 className="ps-accession-outside-title">{t('accessionPage.outsidePatient.title')}</h3>
-              <p className="ps-accession-outside-subtitle">
-                {t('accessionPage.outsidePatient.subtitle')}
-              </p>
-            </div>
-
-            {/* SECTION 1: CLIENT & ORIGIN — real, per direct guidance:
-                Client Account and Ordering Provider reuse the existing
-                Case & Patient tab's own clientId/requestingProvider
-                selections directly rather than duplicating a second
-                picker — confirmed there's no separate outside-client
-                directory to build. Account Billing Type is the one
-                genuinely new field here. */}
-            <div className="ps-accession-outside-section">
-              <div className="ps-accession-outside-section-title">{t('accessionPage.outsidePatient.facilityOrigin')}</div>
-              <div className="ps-accession-grid">
-                <div>
-                  <label className="ps-label">{t('accessionPage.outsidePatient.facilityAccount')}</label>
-                  <input aria-label={t('accessionPage.outsidePatient.facilityAccount')} className="ps-input-dark" disabled value={selectedFacility?.name ?? t('accessionPage.outsidePatient.facilityAccountPlaceholder')} />
-                </div>
-                <div>
-                  <label className="ps-label">{t('accessionPage.outsidePatient.orderingProvider')}</label>
-                  <input aria-label={t('accessionPage.outsidePatient.orderingProvider')} className="ps-input-dark" disabled value={requestingProvider || t('accessionPage.outsidePatient.orderingProviderPlaceholder')} />
-                </div>
-                <div>
-                  <label className="ps-label">{t('accessionPage.outsidePatient.billingType')}</label>
-                  <input aria-label={t('accessionPage.outsidePatient.billingType')} className="ps-input-dark" value={outsidePatientData.accountBillingType ?? ''}
-                    onChange={e => setOutsidePatientData(d => ({ ...d, accountBillingType: e.target.value }))}
-                    placeholder={t('accessionPage.outsidePatient.billingTypePlaceholder')} />
-                </div>
-              </div>
-            </div>
-
-            {/* SECTION 2: PATIENT & JURISDICTION IDENTIFICATION — real,
-                per direct guidance dynamic-behavior rule 2: changing
-                Primary Jurisdiction updates the real Local ID Number
-                label. Options are the real, distinct country codes
-                actually present in the Jurisdiction Payment Mapping
-                dictionary (services/billing/), not a separate,
-                hardcoded country list that could drift from it. */}
-            <div className="ps-accession-outside-section">
-              <div className="ps-accession-outside-section-title">{t('accessionPage.outsidePatient.patientJurisdiction')}</div>
-              <div className="ps-accession-grid">
-                <div>
-                  <label className="ps-label">{t('accessionPage.outsidePatient.primaryJurisdiction')}</label>
-                  <select aria-label={t('accessionPage.outsidePatient.primaryJurisdiction')} className="ps-input-dark" value={outsidePatientData.primaryJurisdictionCountryCode ?? ''}
-                    onChange={e => setOutsidePatientData(d => ({ ...d, primaryJurisdictionCountryCode: e.target.value, primaryJurisdictionMappingId: undefined }))}>
-                    <option value="">{t('accessionPage.outsidePatient.select')}</option>
-                    {Array.from(new Set(jurisdictionMappings.map(m => m.countryCode))).sort().map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="ps-label">
-                    {(() => {
-                      // Real, per direct guidance: the real, dynamic
-                      // local-ID label now comes from the SPECIFIC
-                      // scheme actually selected below, not just "the
-                      // first scheme found in this jurisdiction" — a
-                      // real, deliberate correction made alongside the
-                      // precise-mapping-id fix, since the earlier,
-                      // approximate label had the same real ambiguity
-                      // risk this whole fix addresses.
-                      const selected = jurisdictionMappings.find(m => m.id === outsidePatientData.primaryJurisdictionMappingId);
-                      return selected ? t('accessionPage.outsidePatient.localIdNumberWithScheme', { scheme: selected.localSchemeCode }) : t('accessionPage.outsidePatient.localIdNumber');
-                    })()}
-                  </label>
-                  <input className="ps-input-dark" value={outsidePatientData.localIdNumber ?? ''}
-                    onChange={e => setOutsidePatientData(d => ({ ...d, localIdNumber: e.target.value }))}
-                    placeholder={outsidePatientData.primaryJurisdictionMappingId ? '' : t('accessionPage.outsidePatient.localIdPlaceholder')} />
-                </div>
-              </div>
-            </div>
-
-            {/* Real, per direct follow-up: the "Check for Existing
-                Patient" search that used to live here moved to the
-                Case & Patient tab, generalized to every intake type —
-                it's a same_person question, not something specific to
-                Outside/Contract Case. See that tab's own comment for
-                the full account. */}
-
-            {/* SECTION 3: FINANCIAL CLASS & COVERAGE ROUTING — real,
-                per direct guidance: the Payment Category picker now
-                selects the SPECIFIC JurisdictionPaymentMapping row, not
-                a deduplicated Master Payment Type — a real, confirmed
-                fix. A bare master category (e.g.
-                STATUTORY_SOCIAL_HEALTH) is genuinely ambiguous the
-                moment a country has more than one real local scheme
-                mapping to it; nothing in the dictionary schema
-                prevents that, even though today's 13 seed rows happen
-                not to have a case of it. A downstream financial engine
-                needs to know EXACTLY which real scheme applied to pick
-                the right outbound claims format — see
-                buildFinancialClassPayload.ts for the full account.
-                Primary Payer/Fund is deliberately free text —
-                confirmed directly no payer/fund registry exists in
-                this app; see OutsidePatientFinancialData.ts's own
-                header for why. */}
-            <div className="ps-accession-outside-section">
-              <div className="ps-accession-outside-section-title">{t('accessionPage.outsidePatient.financialClass')}</div>
-              <div className="ps-accession-grid">
-                <div>
-                  <label className="ps-label">{t('accessionPage.outsidePatient.paymentCategory')}</label>
-                  <select aria-label={t('accessionPage.outsidePatient.paymentCategory')} className="ps-input-dark" value={outsidePatientData.primaryJurisdictionMappingId ?? ''}
-                    onChange={e => setOutsidePatientData(d => ({ ...d, primaryJurisdictionMappingId: e.target.value }))}
-                    disabled={!outsidePatientData.primaryJurisdictionCountryCode}>
-                    <option value="">{t('accessionPage.outsidePatient.select')}</option>
-                    {jurisdictionMappings.filter(m => m.countryCode === outsidePatientData.primaryJurisdictionCountryCode).map(m => {
-                      const departmentName = masterPaymentTypes.find(mpt => mpt.id === m.masterPaymentTypeId)?.displayName ?? m.masterPaymentTypeId;
-                      return <option key={m.id} value={m.id}>{departmentName} — {m.localDisplayTerminology}</option>;
-                    })}
-                  </select>
-                </div>
-                <div>
-                  <label className="ps-label">{t('accessionPage.outsidePatient.primaryPayer')}</label>
-                  <input aria-label={t('accessionPage.outsidePatient.primaryPayer')} className="ps-input-dark" value={outsidePatientData.primaryPayerName ?? ''}
-                    onChange={e => setOutsidePatientData(d => ({ ...d, primaryPayerName: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="ps-label">{t('accessionPage.outsidePatient.coveragePolicy')}</label>
-                  <input aria-label={t('accessionPage.outsidePatient.coveragePolicy')} className="ps-input-dark" value={outsidePatientData.coveragePolicyNumber ?? ''}
-                    onChange={e => setOutsidePatientData(d => ({ ...d, coveragePolicyNumber: e.target.value }))} />
-                </div>
-              </div>
-
-              <label className="ps-accession-checkbox-row ps-accession-checkbox-row--spaced">
-                <input type="checkbox" checked={!!outsidePatientData.hasSecondaryCoverage}
-                  onChange={e => setOutsidePatientData(d => ({ ...d, hasSecondaryCoverage: e.target.checked }))} />
-                {t('accessionPage.outsidePatient.applySecondary')}
-              </label>
-
-              {outsidePatientData.hasSecondaryCoverage && (
-                <div className="ps-accession-outside-secondary-box">
-                  <div className="ps-accession-grid">
-                    <div>
-                      <label className="ps-label">{t('accessionPage.outsidePatient.secondaryCategory')}</label>
-                      <select aria-label={t('accessionPage.outsidePatient.secondaryCategory')} className="ps-input-dark" value={outsidePatientData.secondaryJurisdictionMappingId ?? ''}
-                        onChange={e => setOutsidePatientData(d => ({ ...d, secondaryJurisdictionMappingId: e.target.value }))}>
-                        <option value="">{t('accessionPage.outsidePatient.select')}</option>
-                        {jurisdictionMappings
-                          .filter(m => m.countryCode === outsidePatientData.primaryJurisdictionCountryCode)
-                          .filter(m => masterPaymentTypes.find(mpt => mpt.id === m.masterPaymentTypeId)?.supportsSplitBilling)
-                          .map(m => {
-                            const departmentName = masterPaymentTypes.find(mpt => mpt.id === m.masterPaymentTypeId)?.displayName ?? m.masterPaymentTypeId;
-                            return <option key={m.id} value={m.id}>{departmentName} — {m.localDisplayTerminology}</option>;
-                          })}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="ps-label">{t('accessionPage.outsidePatient.secondaryPayer')}</label>
-                      <input aria-label={t('accessionPage.outsidePatient.secondaryPayer')} className="ps-input-dark" value={outsidePatientData.secondaryPayerName ?? ''}
-                        onChange={e => setOutsidePatientData(d => ({ ...d, secondaryPayerName: e.target.value }))} />
-                    </div>
-                    <div>
-                      <label className="ps-label">{t('accessionPage.outsidePatient.memberCardId')}</label>
-                      <input aria-label={t('accessionPage.outsidePatient.memberCardId')} className="ps-input-dark" value={outsidePatientData.secondaryMemberId ?? ''}
-                        onChange={e => setOutsidePatientData(d => ({ ...d, secondaryMemberId: e.target.value }))} />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <OutsideCaseCard outsidePatientData={outsidePatientData} setOutsidePatientData={setOutsidePatientData} jurisdictionMappings={jurisdictionMappings} masterPaymentTypes={masterPaymentTypes}
+            selectedFacilityName={selectedFacility?.name} requestingProvider={requestingProvider} originating={originatingCase} onOriginatingChange={setOriginatingCase} />
         )}
         </div>
       </div>

@@ -15,7 +15,7 @@ import '../../pathscribe.css';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { LoadingState } from '@/components/Common/LoadingState';
 import { useOpenCase } from '@/hooks/useOpenCase';
-import { caseService } from '@/services';
+import { caseRouter } from '@/services/cases/CaseRouter';
 import type { Case } from '@/types/case/Case';
 import { waitingToGross, findByAccession } from './grossingQueue';
 import { StationScanField } from '@/components/Workstation/StationScanField';
@@ -33,7 +33,8 @@ export default function GrossingWorkspacePage() {
 
   const load = useCallback(async () => {
     setFailed(false);
-    const res = await caseService.getAll();
+    // Batch 756: cases made on Accession are Orchestration cases, so the queue reads both stores.
+    const res = await caseRouter.getAll(undefined, { includeOrchestration: true });
     if (res.ok) setCases(res.data); else { setCases([]); setFailed(true); }
   }, []);
   useEffect(() => { void load(); }, [load]);

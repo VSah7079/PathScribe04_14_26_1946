@@ -57,7 +57,7 @@ export async function computeStainingIhcSummary(facilityId: string | undefined, 
     };
   }).sort((a, b) => (b.ageMinutes ?? 0) - (a.ageMinutes ?? 0));
 
-  let readyForReview = 0, qcFailed = 0, recutRequested = 0, staining = 0;
+  let readyForReview = 0, qcFailed = 0, recutRequested = 0, staining = 0, stainQcWaiting = 0;
   for (const c of maps.casesById.values()) {
     if (facilityId && maps.caseFacilityById.get(c.id) !== facilityId) continue;
     for (const specimen of c.specimens ?? []) {
@@ -79,6 +79,7 @@ export async function computeStainingIhcSummary(facilityId: string | undefined, 
               detailKey: 'facilityOpsDashboard.details.blockStain', detailValues: { block: `${specimen.label}${block.label}`, stain: stain.stainName },
             });
           } else if (stain.status === 'Staining') staining++;
+          else if (stain.status === 'QC Pending') stainQcWaiting++; // Batch 763: stained, waiting for QC sign-off
         }
       }
     }
@@ -91,6 +92,7 @@ export async function computeStainingIhcSummary(facilityId: string | undefined, 
       { id: 'staining-active', label: 'Active Staining Batches', labelKey: 'facilityOpsDashboard.stats.stainingActive', value: batches.filter(b => b.processingNode === 'Staining').length },
       { id: 'cytology-staining-active', label: 'Cytology Staining Batches', labelKey: 'facilityOpsDashboard.stats.cytologyStainingActive', value: batches.filter(b => b.processingNode === 'Cytology Staining').length },
       { id: 'in-staining', label: 'Slides In Staining', labelKey: 'facilityOpsDashboard.stats.inStaining', value: staining },
+      { id: 'stain-qc-pending', label: 'Waiting for QC', labelKey: 'facilityOpsDashboard.stats.stainQcPending', value: stainQcWaiting, state: stainQcWaiting > 0 ? 'warning' : 'normal' }, // Batch 763
       { id: 'ready-for-review', label: 'Ready for Review', labelKey: 'facilityOpsDashboard.stats.readyForReview', value: readyForReview },
       { id: 'recut-requested', label: 'Recut Requested', labelKey: 'facilityOpsDashboard.stats.recutRequested', value: recutRequested, state: recutRequested > 0 ? 'warning' : 'normal' },
       { id: 'qc-failed', label: 'QC Failed', labelKey: 'facilityOpsDashboard.stats.qcFailed', value: qcFailed, state: qcFailed > 0 ? 'overdue' : 'normal' },

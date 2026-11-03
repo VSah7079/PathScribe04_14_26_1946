@@ -663,3 +663,35 @@ The Home footer's system status: one check when the page loads and one when the 
 
 - `useSlideImage.ts` (new): loads a slide's preview, its case's facility and the WSI Viewers list, and opens the slide in the laboratory's application (permission, remembered window, audit).
 - `useCompanionWindow.ts`: a remembered position on a screen that is gone moves to the primary screen (Chrome and Edge, once window placement is allowed; `services/windowPlacement/`); exports `saveCompanionGeometry` and `requestScreenPlacement`.
+
+## Batch 756
+
+`useDraftCache`: the autosave writes a browser draft only once the state differs from the page's first settled state (`utils/draftCacheBaseline.ts`), so opening a report and leaving it unchanged leaves no draft behind (it used to, and after the benches changed the case the next visit showed "Unsaved Draft Found").
+
+## Batch 757
+
+`useStationCarrier`: one scan at a time, in order (the carrier is re-read before each unload); an Embedding output tray; a slide label at the Microtome goes to the page's dual-scan check and, confirmed, into the staining rack; a full output tray scanned again is sealed and closes the carrier unloaded here; `checkOffByHand` with a reason. `addToOutput` removed (it skipped the label scan).
+
+## Batch 758
+
+`useStationCarrier`: a confirmed slide with no staining rack open goes on the station's bench (`services/batches/benchSlideBuffer.ts`); a rack scanned with slides on the bench takes them all and is sealed (Scan-Last); a rack made after the page opened is added to the list when it becomes the output tray (before, it was not used); while slides are on the bench, closing the tab or signing out asks first. `useLogout`: asks first when a screen registered something that would be left behind (`utils/leaveGuards.ts`).
+
+## Batch 759
+
+`useManualEntryRecorder` (new): records the Manual Entry flag for a typed id, with the case it resolves to, the module, the workstation and the user (`services/scanEntry/manualEntryLog.ts`). `useTypedEntryCheck` (new): true while the last entry was typed and named the case on screen.
+
+## Batch 761
+
+`useStationCarrier`: at the Microtome a registered staining rack whose last run is closed starts a new run when scanned; one never closed is held (`pending.kind === 'rackNotClosed'`), and `closeLastRun` (reconciliation override) closes it and starts the new run.
+
+## Batch 762
+
+`useRequisitionInbox` (the Requisition Inbox: queue, links, runs, run now, link, discard), `useRequisitionPreview` (a requisition's page images, read from where the PDF lives; released on close), `useCaseRequisitions` (a case's linked requisitions), `useRequisitionSources` (Configuration → Requisition ingestion).
+
+`useRequisitionActionEvents` (Batch 762): the Requisition Inbox's voice context and its Run ingestion now command.
+
+Batch 762 (continued): `useRequisitionExpectations` (Configuration: which cases expect a requisition, per facility), `useRequisitionForAccession` (Accession opened from a queued scan: link it to the case on submit); `useRequisitionInbox` also holds the cases waiting for a requisition, the search for a case to link, and the waiver; `useCaseRequisitions` the case's Missing flag.
+
+## Batch 763
+
+`useQcCheckpoint` (the QC checkpoint: pending runs and images, the sign-off being filled in, the stainer list), `useStainQcSettings` (Configuration → Stain & scan QC).

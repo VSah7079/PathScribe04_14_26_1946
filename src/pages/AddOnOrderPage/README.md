@@ -1,3 +1,5 @@
+**Batch 759:** no patient name in the context bar; the Foreign case ID of an outside case; after a typed accession, the parts to check.
+
 **Batch 737:** `components/BlockContextPanel.tsx` lists a case's matrix blocks under **Shared (matrix) blocks** with a tick box per part (`matrixBlocks` prop from `AddOnOrderPage.tsx`); `hooks/useAddOnOrderStation.ts` saves matrix blocks with the specimens and tracks orders on matrix blocks. Rules in `services/addOnOrders/addOnOrderActions.ts`.
 
 **Batch 736:** the builder's exhausted-block reason and the dashboard's answer take the lab's reasons and an optional note; the code goes with the order or answer.

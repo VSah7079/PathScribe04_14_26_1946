@@ -139,6 +139,19 @@ export const PERMISSION_ONLY_ACTIONS: Readonly<Record<string, PermissionOnlyEntr
   // Batch 645: a folder row is picked first, and each adds a permanent entry; the placeholder link needs the real number typed.
   'lockbox.markAccessioned': RISKY,
   'lockbox.resolvePlaceholder': CHOICE,
+  // Batch 762: Requisition Inbox. Run now has its phrase and Alt+R; the rest need a row (or the case) picked first, and
+  // Discard cannot be undone.
+  'requisition.openInbox': SCREEN,
+  'requisition.view': CHOICE,
+  'requisition.link': CHOICE,
+  'requisition.discard': RISKY,
+  'requisition.openFromCase': SCREEN,
+  // Batch 763: the QC checkpoint on Slide Distribution, each on a run or an image picked first.
+  'stainQc.signOffRun': CHOICE,
+  'stainQc.failSlide': CHOICE,
+  'stainQc.overrideVendor': RISKY,
+  'stainQc.releaseImage': CHOICE,
+  'stainQc.rescanImage': CHOICE,
   'searchReport.schedule': CHOICE,
   'followUp.expect': CHOICE,
   'followUp.recordOutcome': CHOICE,

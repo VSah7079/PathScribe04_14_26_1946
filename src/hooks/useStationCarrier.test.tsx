@@ -10,7 +10,7 @@ const h = vi.hoisted(() => ({
   batches: [] as Batch[],
   svc: {
     getAll: vi.fn(), getByMasterBarcode: vi.fn(), recordCarrierScan: vi.fn(), advanceToNode: vi.fn(), startReconciliation: vi.fn(),
-    scanItemOut: vi.fn(), completeReconciliation: vi.fn(), sealManifest: vi.fn(), addItemByScan: vi.fn(),
+    scanItemOut: vi.fn(), completeReconciliation: vi.fn(), sealManifest: vi.fn(), addItemByScan: vi.fn(), getById: vi.fn(),
   },
   record: vi.fn(async () => ({ ok: true, data: [] })),
 }));
@@ -43,6 +43,8 @@ beforeEach(() => {
   for (const f of Object.values(h.svc)) f.mockReset();
   h.record.mockClear();
   h.svc.getAll.mockImplementation(async () => ({ ok: true, data: h.batches }));
+  // Batch 757: the carrier is read again before an unload.
+  h.svc.getById.mockImplementation(async (id: string) => { const b = h.batches.find(x => x.id === id); return b ? { ok: true, data: b } : { ok: false, error: 'batchNotFound' }; });
 });
 
 async function mount() {

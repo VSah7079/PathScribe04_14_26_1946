@@ -472,3 +472,4 @@ Werk voor een routinebeoordeling van een steekproefperiode deze stappen af.
 5. Open het tabblad **Foutenlogboek**, filter op **Alleen open** en controleer dat er niets belangrijks onopgelost is.
 6. Open [Supporttoegang](#screen-support_access) en bevestig dat de ketenregel intact meldt; lees de vermeldingen over de periode.
 7. Exporteer de CSV van het Auditlogboek voor de periode en bewaar het bestand bij uw beoordelingsnotities. De export wordt zelf vastgelegd.
+8. Zoek op `Manual Entry` om id's te zien die zijn getypt in plaats van gescand (Batch 759). Elke vermelding noemt de module, wat er is getypt, de gebruiker en de werkplek, en verwijst naar de casus. Veel vermeldingen op één werkplek kunnen wijzen op een defecte scanner of beschadigde etiketten.

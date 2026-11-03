@@ -93,10 +93,11 @@ export function screenGranted(screen: ScreenId, has: (capability: string) => boo
  * and not in a hub, so it has no `screen:<name>:open` capability (CLAUDE.md rule 7 asks for one only for a new screen
  * reached from Home or a hub); the sub-screen is named here so ScreenGate and the Molecular button share one decision.
  */
-export type SubScreenId = 'molecularControlRules';
+export type SubScreenId = 'molecularControlRules' | 'requisitionInbox';
 
 export const SUB_SCREEN_CAPABILITIES: Readonly<Record<SubScreenId, readonly CapabilityKey[]>> = {
   molecularControlRules: ['config:molecular-control-rules:view', 'config:molecular-control-rules:manage'],
+  requisitionInbox: ['requisition:inbox:review'], // Batch 762: from the Accession screen
 };
 
 /** Whether `has` grants the sub-screen: any one of its capabilities (pure). */
@@ -214,6 +215,7 @@ export function createScreenAccessService(deps: { authorization: Pick<IAuthoriza
       const view = await a.enforce('config:molecular-control-rules:view');
       return view.allowed ? view : a.evaluate('config:molecular-control-rules:manage');
     },
+    requisitionInbox: () => a.enforce('requisition:inbox:review'),
   };
   return {
     /** Whether the signed-in user may open this tile (any of its screens) or screen. */

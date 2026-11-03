@@ -497,6 +497,10 @@
       "memberCardId": "N° de membre / de carte",
       "orderingProvider": "Médecin prescripteur",
       "orderingProviderPlaceholder": "(saisir dans Cas et patient)",
+      "originatingCase": "Dossier d’origine",
+      "originatingCaseNumber": "Numéro du dossier d’origine",
+      "originatingCaseNumberPlaceholder": "p. ex. S-24-9842",
+      "originatingInstitution": "Établissement d’origine",
       "patientJurisdiction": "Identification du patient et de la juridiction",
       "paymentCategory": "Catégorie / régime de paiement",
       "primaryJurisdiction": "Juridiction principale",
@@ -2384,6 +2388,7 @@
       "rackNotRegistered": "Le portoir {{rackId}} n'est pas enregistré. Vérifiez l'identifiant ou enregistrez d'abord le portoir.",
       "sameBatch": "L'élément est déjà dans ce lot. Choisissez-en un autre.",
       "sourceNotActive": "Les éléments ne peuvent être retirés que d'un lot actif.",
+      "stainQcPending": "Les lames colorées de ce portoir attendent leur contrôle qualité. Validez d’abord la série au point de contrôle de la Distribution des lames.",
       "stationRequired": "Définissez d'abord le poste de cet ordinateur.",
       "unexpectedScans_one": "{{count}} élément n'appartenant pas à ce lot a été scanné. Traitez-le ou utilisez une dérogation superviseur.",
       "unexpectedScans_other": "{{count}} éléments n'appartenant pas à ce lot ont été scannés. Traitez-les ou utilisez une dérogation superviseur."
@@ -2437,9 +2442,10 @@
     "remainingOfTarget": "{{remaining}} restant sur une cible de {{target}}",
     "removeTitle": "Retirer du lot",
     "removedToast": "{{displayId}} retiré du lot.",
-    "scanHintActive": "Scannez le code-barres d'une cassette ou d'une lame pour l'ajouter à ce lot. Mains libres — pas besoin de cliquer d'abord dans un champ.",
+    "scanHintActive": "Scannez le code-barres d’une cassette ou d’une lame pour l’ajouter à ce lot, ou saisissez-le dans le champ ci-dessous.",
     "scanHintReconcile": "Vérification hors processus : scannez chaque élément physique au moment où vous le retirez du porteur.",
     "scanHintSealed": "Le manifeste est scellé. Lancez la vérification pour scanner les éléments en sortie.",
+    "scanPlaceholder": "Scannez ou saisissez le code-barres d’une cassette ou d’une lame…",
     "scanRejected": {
       "alreadyInBatch": "{{displayId}} est déjà dans ce lot.",
       "inOtherActiveBatch": "{{displayId}} est déjà dans le lot actif {{barcode}}.",
@@ -2448,6 +2454,7 @@
       "sealed": "{{barcode}} est scellé : plus aucun élément ne peut être ajouté.",
       "slideTooLarge": "{{displayId}} est une lame grand format et {{barcode}} ne prend pas les lames grand format. Utilisez un portoir de coloration grand format."
     },
+    "scanSubmit": "Valider",
     "startReconciliation": "Démarrer la réconciliation",
     "supervisorOverrideLink": "Forçage superviseur…",
     "transferToProcessing": "Transférer vers le traitement",
@@ -2508,6 +2515,7 @@
     "pendingLoadTile": "Chargement en attente",
     "pendingLoadTitle": "Chargement de lot en attente — éléments imprimés non encore scannés dans un lot",
     "rackCheckedOutError": "Le portoir « {{value}} » est déjà affecté à un autre lot actif.",
+    "rackLastRunNotClosed": "La dernière série sur {{value}} n’a jamais été fermée. Fermez-la avant de réutiliser le portoir.",
     "retentionHoldsTile": "Conservations en attente",
     "retentionHoldsTitle": "Ouvrir la file des conservations",
     "status": {
@@ -2698,6 +2706,14 @@
     },
     "title": "Contributions au poste de travail",
     "windowLabel": "Derniers {{days}} jours"
+  },
+  "benchIdentity": {
+    "foreignCase": "ID de dossier externe",
+    "foreignItem": "ID externe",
+    "foreignSource": "de {{source}}",
+    "specimenSource": "Prélèvement {{label}} – {{description}}",
+    "typedCheck": "Saisi, non scanné : vérifiez que le contenant indique {{accession}} et {{source}}.",
+    "typedCheckAccession": "Saisi, non scanné : vérifiez que le contenant indique {{accession}}."
   },
   "benchReasons": {
     "AE_DIAGNOSIS_NEEDED": "Nécessaire pour compléter le diagnostic",
@@ -4225,6 +4241,10 @@
         "description": "Passer un cas d'un pool pour qu'il reste disponible pour quelqu'un d'autre.",
         "label": "Passer un cas d'un pool"
       },
+      "caseRequisitionView": {
+        "description": "Ouvrir depuis le dossier le bon de demande scanné qui lui est lié. Chaque consultation est tracée.",
+        "label": "Afficher le bon de demande scanné d’un dossier"
+      },
       "caseRetentionHoldPlace": {
         "description": "Empêcher l'élimination du matériel d'un dossier (demande du patient, litige, recherche), avec un motif et une note.",
         "label": "Placer un blocage de conservation"
@@ -4689,6 +4709,10 @@
         "description": "Mettre en service une mise en page ou une partie de compte rendu. Audité.",
         "label": "Publier des modèles et parties de compte rendu"
       },
+      "configRequisitionIngestionManage": {
+        "description": "Définir la provenance des bons de demande scannés (un dossier surveillé ou un système émetteur), la fréquence de lecture et le code-barres de la feuille de séparation. Tracé.",
+        "label": "Gérer l’intégration des bons de demande"
+      },
       "configResearchCasesManage": {
         "description": "Définir comment les cas de recherche sont reconnus, la classe financière sans facturation transmise et la durée de conservation de leur matériel. Ces cas sont exclus des listes de travail et statistiques cliniques et ne sont jamais transmis comme résultats ni comme actes.",
         "label": "Gérer les paramètres des cas de recherche"
@@ -4756,6 +4780,10 @@
       "configStainDictionaryManage": {
         "description": "Ajouter et modifier les colorations, protocoles de coupe, macros de commande et cibles moléculaires. Audité.",
         "label": "Gérer le dictionnaire des colorations"
+      },
+      "configStainQcManage": {
+        "description": "Définir la validation par défaut des automates et scanners : acceptation automatique, validation par l’instrument ou dans PathScribe. Tracé.",
+        "label": "Gérer les paramètres du contrôle coloration et numérisation"
       },
       "configSubspecialtiesManage": {
         "description": "Ajouter et modifier les surspécialités et les types de prélèvement qui leur sont attribués. Audité.",
@@ -5305,6 +5333,18 @@
         "description": "Totaux uniquement, à partir des scans de poste, des cas et des porteurs ; les cas de recherche sont exclus.",
         "label": "Voir le rapport de flux : le délai par étape"
       },
+      "requisitionInboxResolve": {
+        "description": "Lier un scan non rapproché à un dossier en scannant ou en saisissant son numéro d’enregistrement, ou l’écarter avec un motif. Le fichier lui-même n’est jamais modifié. Tracé.",
+        "label": "Lier ou écarter les bons de demande non rapprochés"
+      },
+      "requisitionInboxReview": {
+        "description": "Ouvrir la boîte des bons de demande : la file des bons non rapprochés, les liens et exécutions récents, et afficher un scan non rapproché. La consultation est tracée.",
+        "label": "Consulter la boîte des bons de demande"
+      },
+      "requisitionIngestionRun": {
+        "description": "Lire maintenant le dossier de dépôt du scanner et lier chaque bon de demande scanné à son dossier (le serveur le fait aussi selon un calendrier).",
+        "label": "Lancer maintenant l’intégration des bons de demande"
+      },
       "retentionDisposalReportExport": {
         "description": "Télécharger le rapport de suivi des éliminations, qui liste les numéros d'accession des cas.",
         "label": "Exporter le rapport d'élimination"
@@ -5316,6 +5356,10 @@
       "retentionMaterialDispose": {
         "description": "Scanner des tissus frais, des blocs ou des lames dans la file d'élimination pour les marquer comme éliminés une fois leur durée de conservation écoulée.",
         "label": "Éliminer le matériel conservé"
+      },
+      "scanImageQcSignOff": {
+        "description": "Transmettre une image numérisée au Pathologiste, ou la renvoyer en numérisation avec un motif. Tracé.",
+        "label": "Valider le contrôle des images numérisées"
       },
       "screenAccessionOpen": {
         "description": "Voir l'écran « Accession » et sa tuile sur la page d'accueil.",
@@ -5432,6 +5476,14 @@
       "searchReportScheduleManage": {
         "description": "Créer, modifier, suspendre ou supprimer une planification qui exécute un rapport enregistré et l’envoie en CSV aux utilisateurs choisis. Chaque modification est enregistrée dans le journal d’audit.",
         "label": "Planifier les rapports de recherche de cas"
+      },
+      "stainQcOverride": {
+        "description": "Valider une série qui attend la validation de son automate par le moteur d’interface, lorsque ce résultat n’arrive pas. Tracé comme dérogation.",
+        "label": "Valider à la place d’un automate"
+      },
+      "stainQcSignOff": {
+        "description": "Valider une série au point de contrôle : toutes les lames sont conformes, ou une lame en échec est envoyée en recoloration ou en recoupe avec un motif. Tracé.",
+        "label": "Valider le contrôle qualité de coloration"
       },
       "stationScanHistoryView": {
         "description": "Voir quel élément a été scanné, à quel poste, par qui et quand.",
@@ -7383,6 +7435,9 @@
       "sys-qa-trend-policy": {
         "description": "Quand une tendance de discordances majeures est signalée pour un pathologiste ou un type de prélèvement : période, relectures minimales, seuils et acheminement, par site."
       },
+      "sys-requisition-ingestion": {
+        "description": "La provenance des bons de demande scannés, la fréquence de lecture et le code-barres de la feuille de séparation pour les scans par lots."
+      },
       "sys-research-cases": {
         "description": "Comment les cas de recherche sont reconnus, conservés et tenus hors des listes de travail cliniques, des résultats et de la facturation ; et les objets possibles d'un porteur."
       },
@@ -7403,6 +7458,9 @@
       },
       "sys-specimens": {
         "description": "Le dictionnaire des prélèvements qui alimente l’autocomplétion dans la recherche de dossiers et la création de dossiers."
+      },
+      "sys-stain-qc": {
+        "description": "Comment les lames colorées et les images numérisées sont validées avant d’être distribuées ou ouvertes : acceptation automatique, validation par l’instrument ou validation dans PathScribe."
       },
       "sys-subspecialties": {
         "description": "Bassins de sous-spécialités pour le flux de délégation."
@@ -8228,6 +8286,11 @@
     "title": "Fenêtre de corrélation cyto-histologique",
     "windowDaysLabel": "Fenêtre (jours)"
   },
+  "cytologyIdentity": {
+    "vial": "{{label}} : {{description}}",
+    "vialWithPlatform": "{{label}} : {{platform}} – {{description}}",
+    "withSlides": "{{vials}} · Lames {{slides}}"
+  },
   "cytologyInstrumentationSection": {
     "facility": {
       "emptyState": "Aucune substitution d'établissement — tous les établissements utilisent la valeur par défaut de l'entreprise.",
@@ -8358,7 +8421,6 @@
       "waiting": "En attente de remise"
     },
     "pageTitle": "Préparation cytologique",
-    "patientName": "{{given}} {{family}}",
     "scanPlaceholder": "Scannez un code-barres de récipient ou de décantation",
     "scanPrompt": "Scannez un liquide, une aliquote ou un cytobloc pour le préparer."
   },
@@ -9070,8 +9132,6 @@
       "title": "Antécédents cyto/histo du patient",
       "viewCase": "Voir le dossier"
     },
-    "patientLine": "{{name}} · IPP {{mrn}}",
-    "patientUnknown": "Patient inconnu",
     "printBtn": "Imprimer",
     "printCaseReportBtn": "Imprimer le rapport du cas",
     "printFailed": "Le PDF du compte rendu n’a pas pu être créé. Réessayez ; si le problème persiste, prévenez votre administrateur.",
@@ -9526,7 +9586,6 @@
         }
       }
     },
-    "rowSubtitle": "Dossier {{caseId}} · IPP {{mrn}}",
     "screeningHours": {
       "cancel": "Annuler",
       "change": "Modifier",
@@ -9580,7 +9639,6 @@
       "unassignedPool": "Pool non attribué"
     },
     "title": "Liste de travail cytologie",
-    "unknownPatient": "Patient inconnu",
     "workload": {
       "leftFullDay": "{{left}} lames restantes sur une journée complète de 8 heures",
       "leftNow": "{{left}} lames restantes maintenant (limite actuelle {{limit}}, {{hours}} h de lecture)",
@@ -10703,14 +10761,12 @@
         "biopsy": "Biopsie",
         "needleCore": "Carotte biopsique"
       },
-      "dob": "Naissance :",
       "flag": {
         "fragile": "Fragile",
         "requiresDecal": "Décalcification requise",
         "tinyTissue": "Tissu minuscule"
       },
       "matrixBlockOf": "Bloc matriciel des prélèvements {{specimens}}",
-      "patient": "Patient :",
       "scanNext": "Scanner la cassette suivante →",
       "specimenBlock": "Prélèvement/Bloc :",
       "specimenType": "Type :",
@@ -11110,6 +11166,10 @@
       "modelPlaceholder": "ex. Panther",
       "nameLabel": "Nom",
       "namePlaceholder": "ex. Panther 4",
+      "qcModeDefault": "Valeur par défaut du laboratoire (Contrôle coloration et numérisation)",
+      "qcModeHintScanner": "Comment une image de ce scanner est contrôlée avant que le Pathologiste puisse l’ouvrir.",
+      "qcModeHintStainer": "Comment une série de cet automate est validée avant la distribution de ses lames.",
+      "qcModeLabel": "Validation du contrôle qualité",
       "saveButton": "Enregistrer les modifications",
       "serialLabel": "Numéro de série",
       "serialPlaceholder": "Facultatif",
@@ -11717,6 +11777,7 @@
       "runFailed": "Cycles d'instrument en échec",
       "scanFailed": "Échec de numérisation",
       "scanning": "Numérisation",
+      "stainQcPending": "En attente de contrôle",
       "stainingActive": "Lots de coloration actifs",
       "statBatches": "Lots STAT",
       "statPending": "STAT en attente",
@@ -15341,6 +15402,7 @@
       "cutAndPlaced": "Coupée et posée",
       "pendingCut": "Coupe en attente",
       "qcFailed": "CQ échoué",
+      "qcPending": "En attente de contrôle",
       "readyForReview": "Prête pour relecture",
       "recutRequested": "Recoupe demandée",
       "staining": "Coloration en cours"
@@ -15475,7 +15537,6 @@
     "context": {
       "accession": "Accession :",
       "blockComments": "Commentaires du bloc",
-      "dob": "Date de naissance :",
       "flag": {
         "fragile": "Fragile",
         "requiresDecal": "Décalcification requise",
@@ -15485,7 +15546,6 @@
       "matrixPosition": "Position {{n}}",
       "matrixSpecimen": "Prélèvement {{label}}",
       "noHistory": "Aucune lame encore imprimée pour ce bloc.",
-      "patient": "Patient :",
       "pieceCount": "Nombre de fragments : ",
       "priorHistory": "Historique des lames",
       "scanNext": "Scanner le bloc/décantation suivant →",
@@ -15541,6 +15601,8 @@
     "hardware": {
       "allPrinted": "Toutes les lames de ce bloc ont été imprimées.",
       "batch": "Par lot",
+      "blockMode": "Bloc",
+      "blockModeHint": "La lecture d’un bloc imprime toutes ses étiquettes en une fois. Scannez-les ensuite sur les lames, dans n’importe quel ordre.",
       "couldNotStart": "L’impression n’a pas pu démarrer.",
       "deviceStatus": "État de l'appareil",
       "fit": {
@@ -15556,6 +15618,8 @@
       "notConfigured": "Ce poste n'est pas configuré pour l'impression réelle d'étiquettes de lames.",
       "onDemand": "À la demande",
       "printBatch": "Imprimer le lot",
+      "printBlock_one": "Imprimer {{count}} étiquette du bloc",
+      "printBlock_other": "Imprimer les {{count}} étiquettes du bloc",
       "printMode": "Mode d'impression",
       "printNext": "Imprimer/Graver la suivante",
       "profileMissing": "Le profil d'imprimante configuré n'existe plus.",
@@ -15566,6 +15630,23 @@
         "offline": "Hors ligne",
         "ready": "Prêt"
       }
+    },
+    "labelScan": {
+      "awaiting": "Scannez l’étiquette de {{slide}} sur la lame pour confirmer la coupe (ou saisissez-la si le scanner est en panne).",
+      "awaitingMany": "Scannez ces étiquettes sur les lames, dans n’importe quel ordre (ou saisissez-les si le lecteur est en panne) : {{slides}}",
+      "blocked": "Scannez l’étiquette de {{slide}} avant d’imprimer la lame suivante.",
+      "confirmed": "{{slide}} confirmée : coupée à partir de ce bloc et enregistrée.",
+      "notPrinted": "{{slide}} n’a pas encore été imprimée : imprimez-la d’abord."
+    },
+    "lockout": {
+      "body": "Scannez les étiquettes restantes, ou recoupez ou annulez chaque lame, avant de passer au bloc suivant.",
+      "continue": "Continuer sans elles (consigné)",
+      "held": "Terminez d’abord les étiquettes de ce bloc.",
+      "recut": "Recouper (nouvelle étiquette)",
+      "stay": "Rester sur ce bloc",
+      "title_one": "{{count}} étiquette du bloc {{block}} n’a pas encore été scannée",
+      "title_other": "{{count}} étiquettes du bloc {{block}} n’ont pas encore été scannées",
+      "void": "Annuler la lame"
     },
     "pageTitle": "Poste de microtomie",
     "printStatus": {
@@ -19598,7 +19679,7 @@
       "batchOption": "Par lot (par dossier/commande)",
       "description": "À la demande imprime chaque étiquette de cassette au moment de son enregistrement pendant l'examen macroscopique. Par lot reporte toute l'impression à une action groupée explicite, par dossier.",
       "onDemandOption": "À la demande (par bloc/contenant)",
-      "title": "Comportement d'impression par défaut"
+      "title": "Mode d’impression en macroscopie"
     },
     "enabledLabel": "Activé",
     "gs1Gtin": {
@@ -19611,6 +19692,15 @@
       "title": "Appliquer les garde-fous à la demande"
     },
     "loading": "Chargement des paramètres d'impression…",
+    "microtomeBehavior": {
+      "description": "Comment le microtome imprime les étiquettes de lames, indépendamment de la macroscopie. Chaque étiquette est scannée sur sa lame pour confirmer la coupe. Tant que rien n’est choisi ici, le microtome suit le réglage de la macroscopie.",
+      "options": {
+        "batch": "Lot : le technicien coche les lames et les imprime ensemble",
+        "block": "Bloc : la lecture d’un bloc imprime toutes ses étiquettes ; elles sont scannées dans n’importe quel ordre",
+        "on_demand": "À la demande : une étiquette à la fois ; chacune est scannée avant l’impression de la suivante"
+      },
+      "title": "Mode d’impression au microtome"
+    },
     "molecularPrinterProfile": {
       "description": "Même choix réel de pont matériel que ci-dessus, pour les étiquettes de plaque, de portoir, de spécimen et d'emplacement de plateau propres au module d'exécution des tests moléculaires.",
       "title": "Profil d'imprimante d'étiquette moléculaire"
@@ -21516,6 +21606,162 @@
     "sentToCodeReview": "Dossier envoyé en révision de codage",
     "title": "Demander une révision par un collègue"
   },
+  "requisitionIngestion": {
+    "addSource": "＋ Ajouter une source",
+    "enabled": "Lire cette source",
+    "expected": {
+      "graceHint": "Heures après l’enregistrement sans bon lié. 0 le signale tout de suite. Ne bloque jamais le travail.",
+      "graceHours": "Signaler un dossier après (heures)",
+      "hint": "Les dossiers qui devraient avoir un bon de demande scanné. Un dossier sans bon lié à temps est signalé dans la boîte des bons de demande, affiche « Bon de demande manquant » et reçoit une non-conformité « Bon de demande manquant ». Une demande électronique du SIH n’en exige pas par défaut : son message de demande fait foi.",
+      "organisationDefault": "Valeur par défaut de l’organisation",
+      "origins": "Un bon de demande scanné est attendu pour",
+      "save": "Enregistrer les attentes",
+      "scope": "S’applique à",
+      "title": "Bons de demande attendus",
+      "unmatchedHint": "Un bon qui ne correspond à aucun dossier pendant ce délai peut signaler un prélèvement non reçu, perdu ou non enregistré : il est marqué en rouge et placé en tête de la file des non rapprochés.",
+      "unmatchedHours": "Signaler un scan sans dossier après (heures)",
+      "usesDefault": "Cet établissement suit la valeur par défaut de l’organisation jusqu’à ce que vous enregistriez la sienne."
+    },
+    "facility": "Établissement exécutant",
+    "facilityHint": "Le laboratoire auquel appartient ce scanner. Ses scans attendent dans la file de cet établissement, et seul le personnel qui y travaille peut les voir et les traiter. Tous les établissements : pour un scanner partagé par tous les laboratoires.",
+    "kind": "Provenance des scans",
+    "kinds": {
+      "api": "Un système qui envoie les scans à l’API PathScribe",
+      "documentSystem": "Un système documentaire tiers que PathScribe lit à son adresse",
+      "fileShare": "Un dossier du réseau hospitalier où le scanner enregistre"
+    },
+    "lastSaved": "Dernier enregistrement {{when}} par {{name}}",
+    "loading": "Chargement de l’intégration des bons de demande…",
+    "location": {
+      "api": "Système émetteur",
+      "documentSystem": "Adresse du système (https)",
+      "fileShare": "Adresse du dossier"
+    },
+    "locationHint": {
+      "api": "Le nom du système, tel qu’il s’identifie auprès de l’API.",
+      "documentSystem": "L’adresse https du système auquel le scanner envoie (une GED, l’entrepôt documentaire du SIL, un service de numérisation). Le serveur y lit les nouveaux scans avec les identifiants configurés sur le serveur d’API ; PathScribe ne garde que le lien vers chaque fichier.",
+      "fileShare": "Où le scanner enregistre ses PDF : un chemin réseau tel que \\\\server\\requisitions\\inbox, ou une adresse smb://, nfs://, file:// ou https://. Le serveur le lit ; le navigateur, jamais."
+    },
+    "name": "Nom",
+    "newSource": "Nouvelle source : pas encore enregistrée",
+    "problem": "Les paramètres n’ont pas pu être enregistrés. Vérifiez les champs signalés en rouge.",
+    "referenceOnly": "PathScribe ne conserve aucune copie d’un scan : chaque dossier garde un lien vers le fichier à son emplacement, les pages qui lui appartiennent, le code-barres de rapprochement, la date et la source.",
+    "saved": "Enregistré.",
+    "schedule": "Lire toutes les (minutes)",
+    "scheduleHint": "De 1 à 1 440 minutes. Le serveur l’exécute comme tâche planifiée.",
+    "separator": "Code-barres de la feuille de séparation",
+    "separatorHint": "Imprimez une feuille portant ce code-barres et placez-la entre les bons d’un même scan par lots. Cette page termine le bon qui la précède et n’est rattachée à aucun dossier.",
+    "sources": "Sources",
+    "subtitle": "La provenance des bons de demande scannés, la fréquence de lecture et la feuille de séparation entre les bons d’un même scan par lots.",
+    "title": "Intégration des bons de demande"
+  },
+  "requisitions": {
+    "accession": {
+      "creating": "Création d’un dossier pour le bon de demande scanné :",
+      "linkFailed": "Le scan n’a pas pu être lié : liez-le depuis la boîte des bons de demande.",
+      "linked": "Le bon de demande scanné est lié au nouveau dossier"
+    },
+    "allFacilities": "Tous les établissements",
+    "caseButton_one": "📄 Bon de demande",
+    "caseButton_other": "📄 Bons de demande ({{count}})",
+    "caseTab": "Bon {{n}}",
+    "discardReasons": {
+      "duplicateScan": "Scan en double",
+      "notARequisition": "Pas un bon de demande",
+      "other": "Autre",
+      "unreadable": "Scan illisible"
+    },
+    "errors": {
+      "alreadyClosed": "Ce scan a déjà été lié ou écarté.",
+      "noSuchCase": "Aucun dossier trouvé pour {{accession}}.",
+      "notPermitted": "Vous n’avez pas l’autorisation pour cette action.",
+      "runFailed": "L’intégration n’a pas pu s’exécuter. Réessayez."
+    },
+    "inbox": {
+      "backToAccession": "← Enregistrement",
+      "discard": "Écarter",
+      "discardReason": "Motif de l’écart",
+      "everyFacility": "Tous mes établissements",
+      "facilityFilter": "Établissement",
+      "foundNone": "Aucun dossier trouvé. Vérifiez le numéro d’enregistrement, le nom du patient ou l’IPP sur le scan, ou créez un nouveau dossier à partir de celui-ci.",
+      "foundTitle": "Dossiers trouvés",
+      "ingestion": "Intégration des bons de demande",
+      "lastRun": "Dernière exécution {{when}} : {{files}} fichiers, {{matched}} liés à des dossiers, {{unmatched}} vers la file des non rapprochés, {{rejected}} refusés.",
+      "link": "Lier",
+      "linkPlaceholder": "N° d’enregistrement, nom du patient ou IPP",
+      "newCase": "Nouveau dossier à partir de ce scan",
+      "noRunYet": "Aucune exécution pour l’instant.",
+      "noSources": "Aucun scanner n’est configuré pour vos établissements. Un administrateur en ajoute un dans Configuration → Système → Intégrations → Intégration des bons de demande.",
+      "notRun": "Non exécuté, car votre rôle ne peut pas lancer l’intégration pour son établissement : {{names}}",
+      "recentEmpty": "Aucun bon de demande lié pour l’instant.",
+      "recentTitle": "Liés récemment",
+      "runNow": "Lancer maintenant",
+      "running": "Lecture des scans…",
+      "serverRuns": "Le serveur exécute l’intégration selon son calendrier.",
+      "sourceLine": "{{name}} · {{location}} · toutes les {{minutes}} min",
+      "sourceOff": "non lu (désactivé)",
+      "subtitle": "Les bons de demande scannés sont rapprochés de leur dossier grâce au code-barres d’enregistrement de la page, puis liés et non copiés. Un scan qui ne correspond à aucun dossier attend ici qu’on le lie à un dossier ou qu’on l’écarte.",
+      "title": "Boîte des bons de demande",
+      "unmatchedEmpty": "Rien en attente : chaque scan est lié à un dossier.",
+      "unmatchedTitle_one": "Bons de demande non rapprochés ({{count}})",
+      "unmatchedTitle_other": "Bons de demande non rapprochés ({{count}})"
+    },
+    "inboxLink": "📥 Boîte des bons de demande",
+    "matchedAutomatically": "Rapproché par son code-barres",
+    "matchedByHand": "Lié par {{name}}",
+    "missing": {
+      "accessioned": "Enregistré le {{when}}",
+      "deficiencyRaised": "Une non-conformité « Bon de demande manquant » a été ouverte pour ce dossier.",
+      "flagged": "Signalé : aucun bon de demande lié.",
+      "hint": "Ces dossiers devraient avoir un bon de demande scanné et aucun n’a été lié à temps. Scannez ou saisissez le numéro d’enregistrement sur un scan en file pour le lier, ou indiquez pourquoi aucun bon papier n’arrivera.",
+      "linkHint": "Lier son scan lève ce signalement.",
+      "reason": "Pourquoi pas de bon papier",
+      "title_one": "Dossiers en attente d’un bon de demande ({{count}})",
+      "title_other": "Dossiers en attente d’un bon de demande ({{count}})",
+      "waive": "Pas de bon papier"
+    },
+    "missingChip": "⚠ Bon de demande manquant",
+    "origins": {
+      "downtime": "Enregistrement en mode dégradé",
+      "electronic": "Demande électronique SIH/SIL",
+      "lockbox": "Dépôt lockbox",
+      "manual": "Saisi à l’enregistrement, sans demande importée",
+      "outside": "Dossier externe / sous contrat"
+    },
+    "pageRange": "Pages {{from}} à {{to}}",
+    "pageSingle": "Page {{page}}",
+    "preview": {
+      "errors": {
+        "notPermitted": "Vous n’avez pas l’autorisation d’afficher ce bon de demande.",
+        "unreadable": "Le scan est inaccessible à son emplacement. Utilisez Ouvrir le PDF, ou vérifiez que le fichier s’y trouve toujours."
+      },
+      "loading": "Lecture du scan…",
+      "openPdf": "Ouvrir le PDF",
+      "pageAlt": "Page {{page}} du bon de demande",
+      "title": "Bon de demande scanné"
+    },
+    "reason": {
+      "noBarcode": "Aucun code-barres lisible sur cette page",
+      "noMatch": "Ce code-barres ne correspond à aucun dossier"
+    },
+    "rejected": {
+      "notPdf": "Refusé : pas un PDF (seuls les PDF sont lus)",
+      "unreadable": "Refusé : le fichier est illisible"
+    },
+    "toast": {
+      "discarded": "Scan écarté. Le fichier lui-même n’est pas modifié.",
+      "linked": "Bon de demande lié à {{accession}}.",
+      "waived": "Enregistré : pas de bon papier. La non-conformité « Bon de demande manquant » est clôturée."
+    },
+    "view": "Afficher",
+    "waiverReasons": {
+      "electronicOrder": "Demande électronique enregistrée",
+      "other": "Autre",
+      "requestInAnotherRecord": "Demande conservée dans un autre dossier",
+      "verbalOrderDocumented": "Demande verbale, documentée"
+    },
+    "withoutCase": "Toujours aucun dossier : vérifiez si un prélèvement n’a pas été reçu, a été perdu ou n’a pas été enregistré"
+  },
   "researchCases": {
     "accessionPrefixes": "Préfixes de numéro de cas",
     "active": "Actif",
@@ -22253,6 +22499,8 @@
       "missing": "Manquant",
       "printed": "Étiquette imprimée",
       "received": "Reçu",
+      "sectioned": "Coupée, étiquette confirmée",
+      "typed": "Saisi, non scanné",
       "unexpected": "Inattendu",
       "unloaded": "Retiré du porteur"
     },
@@ -22996,6 +23244,10 @@
       "release": {
         "dueSweep": "Publications retenues échues"
       },
+      "requisition": {
+        "ingest": "Intégration des bons de demande",
+        "missingSweep": "Vérification des bons de demande manquants"
+      },
       "supportAccess": {
         "expire": "Expiration des accès support"
       }
@@ -23381,6 +23633,8 @@
     "title": "Journal des impressions simulées",
     "toast": "Simulé : {{kind}} envoyé à {{destination}}. Rien n’a été imprimé.",
     "toastFailed": "Échec simulé : {{kind}} n’a pas atteint {{destination}}.",
+    "toastFailedRepeated": "Échec simulé : {{kind}} × {{count}} n’a pas atteint {{destination}}.",
+    "toastRepeated": "Simulé : {{kind}} × {{count}} envoyé à {{destination}}. Rien n’a été imprimé.",
     "transport": "Envoyé par",
     "when": "Quand"
   },
@@ -23663,9 +23917,13 @@
       "title": "Motif requis"
     },
     "scanErrors": {
+      "blockHeldByQc": "Toutes les lames du bloc {{block}} sont retenues par le contrôle qualité ({{count}}). Validez d’abord la série au point de contrôle.",
       "blockNotFound": "Le bloc {{block}} est introuvable.",
       "noSlides": "Le bloc {{block}} n’a aucune lame à distribuer.",
       "notResolved": "Ce scan ne correspond à aucun cas, bloc ou lame. Vérifiez le code-barres et réessayez.",
+      "qcFailed": "La lame {{slide}} a échoué au contrôle qualité et attend d’être recolorée.",
+      "qcPending": "La lame {{slide}} attend la validation du contrôle qualité et ne peut pas encore être distribuée.",
+      "recutRequested": "La lame {{slide}} a échoué au contrôle qualité et une recoupe a été demandée.",
       "slideNotFound": "La lame {{slide}} est introuvable.",
       "specimenNotFound": "Le prélèvement est introuvable dans ce cas.",
       "unsupportedTarget": "Ce poste accepte les codes-barres de bloc, de bloc matriciel et de lame. Les cassettes de cytobloc, les décantations et les codes-barres de prélèvement ne sont pas encore pris en charge."
@@ -23704,6 +23962,7 @@
     "referenceNote": "Aperçu de référence. Pas pour le diagnostic.",
     "state": {
       "available": "Image disponible",
+      "awaitingImageQc": "En attente du contrôle de l’image",
       "failedImageQuality": "Qualité d’image insuffisante",
       "noImageYet": "Pas encore d’image",
       "queued": "En file d’attente",
@@ -24526,6 +24785,59 @@
       "vendorPlaceholder": "p. ex. Ventana"
     }
   },
+  "stainQc": {
+    "actions": {
+      "recut": "Recouper",
+      "restain": "Recolorer"
+    },
+    "errors": {
+      "failed": "Cette décision qualité n’a pas pu être enregistrée. Rechargez et réessayez.",
+      "invalid": "Indiquez une suite et un motif pour chaque lame en échec.",
+      "notPermitted": "Vous n’avez pas l’autorisation de prendre cette décision qualité. Contactez votre administrateur."
+    },
+    "fail": "Échec",
+    "followUp": "Suite",
+    "hint": "Les lames colorées et les images numérisées attendent ici la validation de leur contrôle qualité. Un portoir en attente ne peut pas être sorti et ses lames ne sont pas distribuées.",
+    "imageLine": "Scanner {{scanner}} · lot de numérisation {{batch}}",
+    "imageReasons": {
+      "debris": "Débris sur la lame",
+      "other": "Autre",
+      "outOfFocus": "Flou",
+      "stitching": "Erreur d’assemblage",
+      "tissueMissed": "Tissu non capturé"
+    },
+    "imagesTitle_one": "Image numérisée en attente de contrôle ({{count}})",
+    "imagesTitle_other": "Images numérisées en attente de contrôle ({{count}})",
+    "modes": {
+      "autoAccept": "Acceptation automatique",
+      "pathscribeSignOff": "Validation dans PathScribe",
+      "vendorSignOff": "Validation par l’instrument (moteur d’interface)"
+    },
+    "outcome": "Résultat du contrôle",
+    "pass": "Conforme",
+    "reason": "Motif",
+    "reasons": {
+      "controlFailed": "Témoin non conforme",
+      "coverslipBubble": "Bulle sous la lamelle",
+      "other": "Autre",
+      "overStaining": "Surcoloration",
+      "tissueFolded": "Tissu plié",
+      "uneven": "Coloration irrégulière",
+      "weakStaining": "Coloration faible"
+    },
+    "releaseImage": "Transmettre au Pathologiste",
+    "rescan": "Numériser à nouveau",
+    "runLine_one": "{{count}} lame · en attente depuis le {{when}}",
+    "runLine_other": "{{count}} lames · en attente depuis le {{when}}",
+    "signOffAllPassed": "Valider : toutes les lames conformes",
+    "signOffInstead": "Valider à la place de l’automate",
+    "signOffWithFailures_one": "Valider : {{count}} lame en échec",
+    "signOffWithFailures_other": "Valider : {{count}} lames en échec",
+    "stainer": "Automate de coloration",
+    "stainerUnknown": "Non enregistré",
+    "title": "Point de contrôle qualité",
+    "waitingForInstrument": "Cet automate valide ses propres séries par le moteur d’interface. La série est libérée à l’arrivée de son résultat ; un superviseur peut la valider ici à sa place."
+  },
   "stainQcGateModal": {
     "confirmButton": "Confirmer que la liste de contrôle de lecture visuelle est complète",
     "confirmedBadge": "Lecture visuelle confirmée par {{name}}.",
@@ -24535,18 +24847,61 @@
     "intro": "Le(s) lot(s) de coloration ci-dessous doivent être résolus avant que ce dossier puisse être signé.",
     "rowTitle": "Lot {{batchBarcode}} — {{specimenList}}"
   },
+  "stainQcSection": {
+    "columns": {
+      "instrument": "Instrument",
+      "kind": "Type",
+      "mode": "Validation"
+    },
+    "defaults": "Valeurs par défaut",
+    "explain": {
+      "autoAccept": "la série ou l’image est libérée dès qu’elle est terminée, sans validation (tracée comme acceptée automatiquement).",
+      "pathscribeSignOff": "un technicien la valide au point de contrôle de la Distribution des lames (option B).",
+      "vendorSignOff": "le résultat de contrôle de l’instrument, envoyé par le moteur d’interface, la libère ou la retient (option A)."
+    },
+    "fromDefault": "par défaut",
+    "instruments": "Automates et scanners",
+    "instrumentsHint": "Le mode de chaque instrument. Modifiez-le dans Configuration → Système → Équipement (Validation du contrôle qualité).",
+    "loading": "Chargement des paramètres de contrôle…",
+    "noInstruments": "Aucun automate de coloration ni scanner de lames n’est encore dans le registre.",
+    "save": "Enregistrer les valeurs par défaut",
+    "saved": "Valeurs par défaut enregistrées.",
+    "scannerDefault": "Scanners de lames",
+    "stainerDefault": "Automates de coloration",
+    "subtitle": "Le point de contrôle qualité après coloration et avant distribution. Chaque automate et chaque scanner peut avoir son propre mode dans l’écran Équipement ; les autres utilisent ces valeurs par défaut.",
+    "title": "Contrôle coloration et numérisation"
+  },
   "stationCarrier": {
-    "addToOutput": "Ajouter les lames imprimées au plateau ({{count}})",
-    "andMore": "et {{count}} de plus",
+    "bench": {
+      "counter": "Lames non affectées sur la paillasse : {{count}}",
+      "hint": "Scannez un portoir de coloration ouvert pour toutes les y placer et le sceller.",
+      "leaveWarning_one": "{{count}} lame de cette paillasse n’est pas encore dans un portoir de coloration. Elle reste sur la paillasse de ce poste jusqu’à la lecture d’un portoir. Quitter quand même ?",
+      "leaveWarning_other": "{{count}} lames de cette paillasse ne sont pas encore dans un portoir de coloration. Elles restent sur la paillasse de ce poste jusqu’à la lecture d’un portoir. Quitter quand même ?",
+      "noneAdded": "Aucune lame de la paillasse n’a pu être placée dans {{barcode}} ; {{count}} toujours sur la paillasse.",
+      "slideOnBench": "{{item}} confirmée et posée sur la paillasse ({{count}} en attente d’un portoir).",
+      "someLeft_one": "{{count}} lame n’a pas pu être placée dans {{barcode}} et reste sur la paillasse.",
+      "someLeft_other": "{{count}} lames n’ont pas pu être placées dans {{barcode}} et restent sur la paillasse."
+    },
+    "checkOffPrompt": "Pointer {{item}} à la main. Pourquoi ?",
+    "checkOffReasons": {
+      "labelDamaged": "Étiquette abîmée",
+      "labelUnreadable": "Étiquette illisible",
+      "scannerDown": "Scanner en panne"
+    },
+    "checkOffTitle": "L’étiquette ne se scanne pas ? Pointez-la à la main",
     "chooseStation": "Poste de cet ordinateur",
     "close": "Fermer",
     "dismiss": "Fermer le message",
     "finish": "Terminer le déchargement",
+    "itemArrived": "✓ Arrivé",
+    "itemWaiting": "À scanner",
+    "itemsLabel": "Éléments de ce support",
     "listLabel": "Porteurs ouverts pour ce poste",
     "noStation": "Aucun poste de scan n'est défini pour cet ordinateur : les scans effectués ici ne sont pas enregistrés et les porteurs ne peuvent pas être ouverts ici. Choisissez le poste de cet ordinateur.",
     "noneHere": "Aucun porteur ouvert pour ce poste.",
     "notice": {
-      "addedToOutput": "Lames ajoutées à {{barcode}} : {{count}}.",
+      "blockIntoTray": "{{item}} placé dans {{barcode}}.",
+      "checkedOffByHand": "{{item}} pointé à la main dans {{barcode}} ; le motif est enregistré.",
       "closedAborted": "{{barcode}} est clos : il a été annulé le {{at}}.",
       "closedComplete": "{{barcode}} est clos : il a été terminé le {{at}}.",
       "finished": "Déchargement de {{barcode}} terminé.",
@@ -24556,13 +24911,21 @@
       "opened": "{{barcode}} ouvert ici. Éléments : {{count}}.",
       "openedAdHoc": "{{barcode}} ouvert ici ; ce poste a été enregistré comme son poste de travail. Éléments : {{count}}.",
       "openedMismatch": "{{barcode}} ouvert ici bien qu'il relève d'une autre étape. Cela a été enregistré.",
+      "outputClosedWithLoaded_one": "{{barcode}} scellé avec {{count}} élément et envoyé. {{loaded}} est terminé.",
+      "outputClosedWithLoaded_other": "{{barcode}} scellé avec {{count}} éléments et envoyé. {{loaded}} est terminé.",
+      "outputClosed_one": "{{barcode}} scellé avec {{count}} élément et envoyé.",
+      "outputClosed_other": "{{barcode}} scellé avec {{count}} éléments et envoyé.",
       "outputSet": "{{barcode}} est maintenant le plateau de sortie.",
       "sealed": "{{barcode}} scellé. Éléments : {{count}}.",
+      "slideIntoRack": "{{item}} confirmé et placé dans {{barcode}}.",
       "unexpectedKept": "{{item}} conservé et enregistré comme inattendu dans {{barcode}}.",
       "unknown": "Aucun porteur ne porte le code-barres {{barcode}}."
     },
     "openInBatchManagement": "Ouvrir dans la gestion des lots",
     "outputHint": "Scannez un porteur {{node}} ouvert pour l'utiliser comme plateau de sortie des lames coupées.",
+    "outputHintEmbedding": "Scannez un support {{node}} ouvert pour y rassembler les blocs inclus destinés au microtome.",
+    "outputHintMicrotomy": "Scannez d’abord un portoir {{node}} ouvert pour le remplir lame par lame, ou coupez d’abord et scannez le portoir à la fin : toutes les lames de la paillasse y sont placées et il est scellé.",
+    "outputRescanHint": "Lorsque {{barcode}} est plein, scannez-le de nouveau pour le sceller et l’envoyer à l’étape suivante.",
     "outputTray": "Plateau de sortie",
     "pending": {
       "continueAnyway": "Continuer quand même",
@@ -24571,12 +24934,17 @@
       "wrongItem": "{{item}} ne figure pas dans le porteur {{barcode}}. Continuer quand même ? Il sera enregistré comme inattendu."
     },
     "progress": "{{matched}} sur {{total}} pointés",
+    "rack": {
+      "closeLastRun": "Fermer la dernière série et en démarrer une nouvelle",
+      "newRun": "{{barcode}} a démarré une nouvelle série de coloration ici. Chargez les lames, puis scannez de nouveau le portoir quand il est plein pour le fermer.",
+      "notClosed_one": "La dernière série sur {{barcode}} ({{count}} lame, {{at}}) n’a jamais été fermée. Fermez-la avant de réutiliser le portoir, ou ouvrez-la dans la gestion des lots.",
+      "notClosed_other": "La dernière série sur {{barcode}} ({{count}} lames, {{at}}) n’a jamais été fermée. Fermez-la avant de réutiliser le portoir, ou ouvrez-la dans la gestion des lots."
+    },
     "routedHere": "Destiné à ce poste",
     "scanToUnload": "Scannez chaque élément au moment où vous le retirez du porteur.",
     "seal": "Sceller le manifeste",
     "sealed": "Scellé",
     "stationLine": "Poste : {{station}}",
-    "stillToScan": "Encore à scanner : {{items}}",
     "title": "Porteurs à ce poste",
     "unexpectedCount_one": "{{count}} élément inattendu scanné",
     "unexpectedCount_other": "{{count}} éléments inattendus scannés",
@@ -24584,9 +24952,9 @@
   },
   "stationScan": {
     "backToScanning": "Revenir au scan (masquer le clavier)",
-    "backToScanningShort": "⌨ Scanner",
+    "backToScanningShort": "⌨ Masquer le clavier",
     "typeAnId": "Saisir un identifiant avec le clavier à l’écran",
-    "typeAnIdShort": "⌨ Saisir"
+    "typeAnIdShort": "⌨ Clavier"
   },
   "stationSwitch": {
     "discardedAndSwitched": "📍 Modifications abandonnées et passé au poste {{station}}.",
@@ -25881,6 +26249,7 @@
       "qaTrendPolicy": "Politique de tendance de discordance",
       "reagentLots": "Lots de réactifs et de solutions",
       "releaseBuffer": "Tampon de libération après signature",
+      "requisitionIngestion": "Intégration des bons de demande",
       "researchCases": "Cas de recherche et objets des lots",
       "researchFeed": "Flux de recherche",
       "retention": "Conservation des données",
@@ -25895,6 +26264,7 @@
       "siteAgents": "Agents de site",
       "smartCapture": "Smart Capture",
       "specimens": "Dictionnaire des spécimens",
+      "stainQc": "Contrôle coloration et numérisation",
       "stains": "Catalogue diagnostique",
       "subspecialties": "Sous-spécialités",
       "supportAccess": "Accès du support",

@@ -50,7 +50,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { formatDate } from '@/utils/formatDate';
 import { blockStatusLabelKey, hasOpenEmbeddingDiscrepancy } from '@/utils/embeddingOperations';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { printSettingsService, printerProfileService, actionRegistryService } from '@/services';
@@ -71,18 +70,29 @@ import { useStationCarrier } from '@/hooks/useStationCarrier';
 import StationCarrierPanel from '@/components/Workstation/StationCarrierPanel';
 import { StationScanField } from '@/components/Workstation/StationScanField';
 import ScanTrailPanel from '@/components/Workstation/ScanTrailPanel';
+import { ForeignIdTag, TypedEntryCheck } from '@/components/Workstation/BenchIdentity';
+import { useTypedEntryCheck } from '@/hooks/useTypedEntryCheck';
 import ExhaustedBlockBanner from '@/components/Workstation/ExhaustedBlockBanner';
 import BlockPieceMapPanel from '@/components/Workstation/BlockPieceMapPanel';
+import { blockForOutputTray } from '@/services/batches/stationCarrierRules';
+import { cassetteIdentifier } from '@/types/labels/LabelData';
 import '../../pathscribe.css';
 
 const EmbeddingStationPage: React.FC = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('embeddingStation.pageTitle'), '/workstations/embedding'); }, [pushCrumb, t]);
 
   const w = useEmbeddingStation();
   const carrier = useStationCarrier('embedding');
+  // Batch 759 (spec §2.2, §3): after a typed entry, the identifiers to check against the cassette.
+  const typedEntry = useTypedEntryCheck([w.workItem?.caseData.accession?.fullAccession, w.workItem?.caseData.id]);
+
+  // Batch 757 (Pete): an embedded block goes straight into the Microtome tray set as this bench's output tray.
+  const wi = w.workItem;
+  const trayBlock = blockForOutputTray(wi ? { displayId: wi.block.displayId ?? cassetteIdentifier(wi.caseData.accession?.fullAccession ?? wi.caseData.id, wi.specimen.label, wi.block.label), status: wi.block.status } : null, carrier.output);
+  useEffect(() => { if (trayBlock) void carrier.addBlockToOutput(trayBlock); }, [trayBlock]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Batch 401: this page has its own voice/keyboard context ("confirm count", "add comment").
   useEffect(() => {
@@ -186,7 +196,7 @@ const EmbeddingStationPage: React.FC = () => {
         <h1 className="ps-embedding-title">🧊 {t('embeddingStation.pageTitle')}</h1>
       </div>
 
-      <StationCarrierPanel carrier={carrier} />
+      <StationCarrierPanel carrier={carrier} onCheckOff={(id, reason) => carrier.checkOffByHand(id, reason, w.resolveScan)} />
       {/* Batch 729 (spec §7.4): the case's station scan trail. */}
       {w.workItem && <ScanTrailPanel caseAccession={w.workItem.caseData.accession?.fullAccession ?? w.workItem.caseData.id} />}
 
@@ -200,8 +210,8 @@ const EmbeddingStationPage: React.FC = () => {
         <>
           <div className="ps-embedding-context-bar">
             <span>{t('embeddingStation.context.accession')} <strong data-phi="accession">{w.workItem.caseData.accession?.fullAccession ?? w.workItem.caseData.id}</strong></span>
-            <span>{t('embeddingStation.context.patient')} <strong data-phi="name">{`${w.workItem.caseData.patient?.givenNames ?? ''} ${w.workItem.caseData.patient?.familyNames ?? ''}`.trim() || '—'}</strong></span>
-            <span>{t('embeddingStation.context.dob')} <strong data-phi="dob">{formatDate(w.workItem.caseData.patient?.dateOfBirth, i18n.language)}</strong></span>
+            {/* Batch 759 (Patient Verification spec §1): no patient name, date of birth or MRN at the bench; an outside case shows its Foreign Identifier. */}
+            <ForeignIdTag order={w.workItem.caseData.order} items={[w.workItem.matrixBlock ?? w.workItem.block, w.workItem.matrixBlock ? null : w.workItem.specimen]} />
             <span>
               {t('embeddingStation.context.specimenBlock')}{' '}
               <strong>{w.workItem.specimen.label}{w.workItem.block.label}</strong>
@@ -215,6 +225,7 @@ const EmbeddingStationPage: React.FC = () => {
             </button>
           </div>
 
+          {typedEntry && <TypedEntryCheck accession={w.workItem.caseData.accession?.fullAccession ?? w.workItem.caseData.id} source={t('benchIdentity.specimenSource', { label: w.workItem.specimen.label, description: w.workItem.specimen.description ?? '—' })} />}
           {w.saveError && <div className="ps-workstation-save-error" role="alert">{w.saveError}</div>}
           {/* Batch 731 (spec §10.6): an exhausted block's warning; mark it re-embedded to release the orders waiting for it. */}
           <ExhaustedBlockBanner specimen={w.workItem.specimen} block={w.workItem.block} onReembedded={w.workItem.matrixBlock ? undefined : w.handleReembedded} />

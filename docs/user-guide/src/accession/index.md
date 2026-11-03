@@ -3,7 +3,7 @@ module: Accession
 workflow: Specimen Intake
 role: [Accessioner, Laboratory Manager]
 keywords: [accession, new case, log specimen, intake, receive specimen, assign grossing template, import order, labels, requisition, downtime, outside case]
-routes: [/accession]
+routes: [/accession, /accession/requisitions]
 previous: home
 next: grossing
 related: [lockbox-drop-off, intraop-queue, search]
@@ -161,6 +161,8 @@ The screen is titled **Accession** ("Log a new Orchestration case and assign Gro
 
 | Section and field | What it means |
 |---|---|
+| Originating case: Originating case number | The outside institution's own case (or accession) number, as on its paperwork (the empty box shows e.g. S-24-9842). Batch 759: every workspace header (the benches, Grossing and the report screen) then shows it, highlighted as **Foreign case ID**, beside the PathScribe accession number. Optional. |
+| Originating case: Originating institution | The institution that number belongs to, as written on its paperwork. Shown after the number ("from …"). Optional. |
 | Facility & Origin: Facility Account | The Submitting Facility you chose on Case & Patient. It cannot be edited here; until you choose one it says to select it on Case & Patient. |
 | Facility & Origin: Ordering Provider | The Requesting Provider from Case & Patient, shown read-only. Until entered it says "(enter on Case & Patient)". |
 | Facility & Origin: Account Billing Type | How the sending facility's account is billed. You can always type over any value that fills in. |
@@ -187,6 +189,7 @@ The screen is titled **Accession** ("Log a new Orchestration case and assign Gro
 | Print Labels | Labels print by themselves when you save, unless your laboratory has turned that off (Configuration > Print Settings > Print labels when a case is accessioned). The button stays on the card for reprints: it prints one requisition label and one label per container. |
 | Accession Another Case | Clears the form for the next case. |
 | Go to Worklist | Opens the Worklist. |
+| 📥 Requisition Inbox | Under the title. Opens the Requisition Inbox: scanned requisitions that matched no case wait there (see below). Shown when your role may review it. |
 
 ### Icons and status indicators
 
@@ -200,6 +203,26 @@ The screen is titled **Accession** ("Log a new Orchestration case and assign Gro
 | Lightbulb "Suggested from order" | Laterality was guessed from the description. |
 | Warning triangle on Deficiencies | One or more problems are flagged. |
 | Check mark on a comment button | Shows how many comments exist. |
+
+### Requisition Inbox
+
+Paper requisitions are scanned in batches by the department scanner. PathScribe reads the accession barcode on each page and puts the scan on its case: on the report screen the header shows **📄 Requisition**. A page with no barcode of its own (a second page of the same form) stays with the page before it. A **separator sheet** (a page with your laboratory's separator barcode) between two requisitions ends the first one and is not kept with any case. PathScribe keeps a link to the scan where your hospital stores it, never a copy.
+
+The **Requisition Inbox** (Accession, then **📥 Requisition Inbox**; **← Accession** goes back) has three parts:
+
+| Part | What it shows |
+|---|---|
+| Requisition ingestion | Each scanner set up for your facilities, with the laboratory it belongs to, where its scans come from and how often they are read ("not read (switched off)" when an administrator has turned it off), and each scanner's last run: how many files were read, how many scans were linked to cases, how many went to the queue, and any file refused (only PDFs are read: "Refused: not a PDF (only PDFs are read)"). **Run ingestion now** (Alt+G, or say "run ingestion now") reads the scans at once; in a live laboratory the server does this on its schedule and the line reads "The server runs ingestion on its schedule." |
+| Unmatched Requisitions | Scans PathScribe could not place: "This barcode matches no case" (the barcode was read; no case has it yet), or "No barcode could be read on this page". **View** shows the scanned pages beside the list ("Reading the scan…" while they load; each picture is labelled "Requisition page" and its number for screen readers), with **Open PDF** and **Close**. |
+| Recently linked | The scans placed lately, with the case, "Matched on its barcode" or "Linked by" and the person's name, and **View**. Before anything is placed it reads "No requisitions linked yet.", and before the first run the ingestion part reads "No run yet." |
+
+To place a scan from the queue, scan or type the accession into the field (it reads "Accession, patient name or MRN") and press Enter (or **Link** on a touch screen). If what you typed is not an accession, PathScribe searches by accession, patient name or MRN and lists the **Cases found** under the scan, each with **Link**; when nothing is found it says so. If the case has not been accessioned yet, **New case from this scan** opens Accession with a banner naming the scan ("Creating a case for the scanned requisition:", with **View** to read it while you type); when you submit the case, the scan is linked to it and the banner says "The scanned requisition is linked to the new case". To take one out of the queue instead, choose the **Reason for discarding** (**Not a requisition**, **Duplicate scan**, **Unreadable scan** or **Other**) and **Discard**: the scan itself is not deleted where it is stored. A scan that arrives before its case is accessioned waits in the queue and is linked by the next run once the case exists. Every link, discard and view is on the audit log.
+
+**A requisition with no case.** A scan that has waited in the queue too long (24 hours unless your laboratory set otherwise) is marked in red, "No case yet: check for a specimen not received, lost or not accessioned", and moves to the top of the queue. Look for the specimen, then link or discard the scan.
+
+**Cases waiting for a requisition.** Cases that should have a scanned requisition and have none linked in time are listed at the top of the inbox, with the laboratory, how the order came in (for example "Typed at Accession, no imported order", "Outside / contract case", "Downtime accession" or "Lockbox drop") and when the case was accessioned. A Missing Requisition deficiency is raised for each (the row then says so; otherwise it reads "Flagged: no requisition linked."), and the report screen shows **⚠ Requisition missing**. "Linking its scan clears this.": link the scan from the queue as above. If no paper requisition is coming, choose **Why no paper requisition** (**Electronic order on record**, **Verbal order, documented**, **Request held in another record** or **Other**) and **No paper requisition**: the deficiency is closed with your reason. Cases ordered electronically from the HIS do not need a paper requisition unless your laboratory says otherwise.
+
+**Several laboratories.** Each scanner belongs to a performing facility, and each queued scan shows which laboratory's scanner it came from. You see the scans of the facilities you work for: **Every facility I work for** at the top right shows them all, or pick one facility to see only its scans and scanners (**Run ingestion now** then reads only that facility's scanners). A scan is matched to its case wherever the case is performed, because an accession number names one case.
 
 ### Hotkeys
 
@@ -242,6 +265,7 @@ On this screen: **Alt+N** adds a specimen, **Alt+I** goes to Import from Order, 
 6. **Specimen problem found.** Use **Deficiencies (optional)** on the specimen, or **Case-Level Deficiencies** for the whole case. Choose an Issue, add Detail, and **Done**. Each becomes an open record tracked on its own; you need not resolve it now.
 7. **A matching intraoperative entry exists.** After saving, a window "Intraoperative Entry Found" offers **Merge Now**, **Not this case**, or **Review in Intraop Queue**. Merge adds the entry's gross description and photos to the case.
 8. **Leaving with work typed in.** The "Leave Accession?" window warns that the information will be lost. Choose **Leave and Discard** only if you mean it.
+9. **A scanned requisition is not on the case.** Open **📥 Requisition Inbox**. If the scan is under Unmatched Requisitions, **View** it, check the accession on the page, and scan or type that accession to link it. If it is not there, ask whether it was scanned, and check the last run line for a refused file.
 
 ### Error recovery
 

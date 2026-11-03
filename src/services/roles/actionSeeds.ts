@@ -36,12 +36,16 @@ const SEEDED_GROUPS = [
   'report_flow', 'case_flow', 'orders_print', 'intraop', 'cytology', 'workstations', 'dispatch', // Batch 600
   'view_app', 'view_worklist', 'view_search', 'view_contribution', 'view_report', 'view_cytology', // Batch 601
 ];
-/** Every command in the Batch 600-601 groups: what Superadmin is offered. */
+/** Every command in the Batch 600-601 groups. */
 export const SEEDED_ACTION_IDS: readonly ActionId[] = ACTION_GROUPS.filter(g => SEEDED_GROUPS.includes(g.id)).flatMap(g => g.actions.map(a => a.id));
+/** Batch 763 (Pete, Nov 2, 2026, standing rule: "add new actions to super user role"): Superadmin is offered every command in
+ *  the Action list, so a command added in any later batch reaches a stored Superadmin role on its next load. It used to be
+ *  offered the Batch 600-601 groups only, so later groups (Lockbox, Grossing bench, Requisition Inbox...) never reached it. */
+export const ALL_ACTION_IDS: readonly ActionId[] = ACTION_GROUPS.flatMap(g => g.actions.map(a => a.id));
 
 /** The commands a built-in role is offered. */
 export function actionSeedFor(roleId: string): readonly ActionId[] {
-  if (roleId === 'superadmin') return SEEDED_ACTION_IDS;
+  if (roleId === 'superadmin') return ALL_ACTION_IDS;
   const key = GRANT_KEY_BY_ROLE_ID[roleId];
   return key ? (DEFAULT_ACTION_GRANTS[key] ?? []) : [];
 }

@@ -31,6 +31,8 @@ export const RECURRING_JOBS = {
   'print.batchAggregation': null,
   'cytology.roseSlaMonitor': 5,
   'bus.purge': 1440,
+  'requisition.ingest': null, // Batch 762: every scheduleMinutes of each requisition source
+  'requisition.missingSweep': 60, // Batch 762: cases still missing their requisition; scans with no case
 } as const satisfies Record<string, number | null>;
 export type RecurringJobName = keyof typeof RECURRING_JOBS;
 

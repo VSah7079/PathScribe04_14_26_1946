@@ -41,6 +41,17 @@ export const simulationAllowed = (): boolean => dataMayPersistInBrowser();
 
 let _cache: SimulatedPrintRecord[] = storageGet<SimulatedPrintRecord[]>(SIMULATED_PRINT_STORAGE_KEY, []);
 let _seq = 0;
+
+// Batch 756 (found recording Video 1): printing a case's 12 cassettes raised 24 toasts (an engraving and an agent
+// print per cassette) that filled the right of the screen. Sends of the same kind to the same place within a few
+// seconds now share one toast, which counts them.
+export const SIMULATED_TOAST_BURST_MS = 6000;
+export interface SimulatedToastBurst { count: number; last: number }
+/** How many sends this toast now stands for: one more while the burst lasts, else a fresh one. Pure. */
+export function nextSimulatedToastCount(prev: SimulatedToastBurst | undefined, now: number): number {
+  return prev && now - prev.last < SIMULATED_TOAST_BURST_MS ? prev.count + 1 : 1;
+}
+const _bursts = new Map<string, SimulatedToastBurst>();
 const listeners = new Set<() => void>();
 export const subscribeSimulatedPrint = (fn: () => void): (() => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; };
 const notify = () => listeners.forEach(fn => fn());
@@ -61,9 +72,14 @@ export function recordSimulatedPrint(input: { kind: SimulatedPrintKind; transpor
   notify();
   if (typeof window !== 'undefined') {
     try {
-      const key = outcome === 'delivered' ? 'simulatedPrint.toast' : 'simulatedPrint.toastFailed';
-      const text = i18n.t(key, { kind: i18n.t(`simulatedPrint.kinds.${record.kind}`), destination: record.destination });
-      if (outcome === 'delivered') toast.info(text); else toast.warning(text);
+      const toastId = `simulated-print-${outcome}-${record.kind}-${record.destination}`;
+      const now = Date.now();
+      const count = nextSimulatedToastCount(_bursts.get(toastId), now);
+      _bursts.set(toastId, { count, last: now });
+      const key = `simulatedPrint.${outcome === 'delivered' ? 'toast' : 'toastFailed'}${count > 1 ? 'Repeated' : ''}`;
+      const text = i18n.t(key, { kind: i18n.t(`simulatedPrint.kinds.${record.kind}`), destination: record.destination, count });
+      if (toast.isActive(toastId)) toast.update(toastId, { render: text });
+      else if (outcome === 'delivered') toast.info(text, { toastId }); else toast.warning(text, { toastId });
     } catch { /* no toast host */ }
   }
   auditService.logEvent({

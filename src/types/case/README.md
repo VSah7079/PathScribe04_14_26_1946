@@ -1,3 +1,7 @@
+**Batch 759:** `OriginatingCase.ts` (new): an outside case's own number at its institution (`OrderMetadata.originatingCase`). `AiFieldSuggestion.ts` (new): `AiFieldSuggestion` and `AiFieldVerification` moved out of `Case.ts` unchanged and re-exported (Case.ts 1,058 → 1,055 lines).
+
+**Batch 758:** `Specimen.ts`: `StainOrder.lastReprintReason` can be Damaged Section (a recut at the Microtome).
+
 **Batch 741:** `Material.ts`: aliquot volume, destination, status and history, receiving accession; `SpecimenDivision`. `Specimen.ts`: `division`.
 
 **Batch 740:** `Material.ts`: `Decant.handoff` (the cell block hand-off).

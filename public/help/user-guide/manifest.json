@@ -24,7 +24,8 @@
         "outside case"
       ],
       "routes": [
-        "/accession"
+        "/accession",
+        "/accession/requisitions"
       ],
       "previous": "home",
       "next": "grossing",
@@ -2739,6 +2740,12 @@
       ],
       "keywords": [
         "slide distribution",
+        "qc checkpoint",
+        "stain qc",
+        "sign off",
+        "re-stain",
+        "re-cut",
+        "image qc",
         "checkout",
         "route slides",
         "pathologist assignment",

@@ -19,7 +19,7 @@ import type { ReportChangeEntry, ReportFieldChange } from '@/services';
 vi.mock('react-router', async importOriginal => ({ ...(await importOriginal<typeof import('react-router')>()), useNavigate: () => vi.fn() }));
 vi.mock('@/hooks/useOpenCase', () => ({ useOpenCase: () => vi.fn() }));
 vi.mock('@/contexts/MessagingContext', () => ({ useMessaging: () => ({ setPortalOpen: vi.fn() }) }));
-vi.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ loading: false, can: () => false, decide: () => ({ allowed: false }) }) }));
+vi.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ loading: false, can: () => false, has: () => false, decide: () => ({ allowed: false }) }) }));
 
 import HeaderBar from '../components/HeaderBar';
 import { ChangeHistoryModal } from './ChangeHistoryModal';

@@ -233,3 +233,19 @@ Batch 750: slide images (seed row S10). PathScribe has no slide viewer: a slide 
 ## Batch 751
 
 Batch 751: the organ map on Assist cases is a working aid only, and a lab can have it delivered to its laboratory system as text and a PNG or PDF file (Lab Workflow spec section 12); seed row S15.
+
+Batch 756: a case made on Accession reaches every bench: the Grossing queue lists it, and a cassette, block or slide scan finds it by the accession number on its label (S26-0001), not only by its internal id (O26-0031); no false "Unsaved Draft Found" on the report page; station scan fields show their keyboard and submit buttons on touch screens only; one toast per burst of simulated prints. Found while recording demo Video 1.
+
+Batch 757 (Pete's embedding-to-staining flow): carriers list their items at the bench, an Embedding-to-Microtome tray, the Microtome's dual scan into a staining rack, the full rack scanned to seal it, typed entry and check-off by hand everywhere a scan is needed.
+
+Batch 758: the Microtome's own print mode and Block printing, the block lockout (recut, void, continue), Scan-Last staining racks with a per-station bench, and a sign-out prompt while slides are on the bench (`utils/leaveGuards.ts`).
+
+Batch 759 (Pete's patient verification spec): no patient names, dates of birth or MRNs on the bench screens; the Foreign case ID of an outside case beside the accession; a quiet Manual Entry flag for every typed id, with a check line on screen.
+
+Batch 760: cytology screening and its worklist without patient name, date of birth or MRN.
+
+Batch 761: reusable staining racks: scan, load, close, run after run, with a warning for a run never closed.
+
+Batch 762: scanned requisitions filed on their case by barcode, the Requisition Inbox for the ones that match no case, and the case's Requisition button.
+
+Batch 763: the QC gate after staining and before distribution (stainers and scanners), and every action on Superadmin.

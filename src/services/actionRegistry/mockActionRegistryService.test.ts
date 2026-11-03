@@ -60,6 +60,7 @@ const REAL_LIVE_CONTEXTS = new Set([
   'ADD_ON_ORDER', // Batch 403: set by AddOnOrderPage.tsx's own useEffect (add to order, submit order)
   'BATCH_MANAGEMENT', // Batch 404: set by BatchManagementPage.tsx's own useEffect (create container)
   'MOLECULAR', // Batch 405: set by MolecularPlateBuilderPage.tsx's own useEffect (create plate)
+  'REQUISITIONS', // Batch 762: set by RequisitionInboxPage (hooks/useRequisitionActionEvents.ts): run ingestion now
   'LOCKBOX', // Batch 645: set by LockboxDropOffPage.tsx's own useEffect (focus scan field, mark urgent, switch tabs)
 ]);
 

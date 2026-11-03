@@ -494,6 +494,7 @@
 
 <p><strong>Status:</strong> Built.</p>
 <p>When a user sends an Enhancement Request, the app takes a screenshot and covers every element tagged as patient data before the image leaves the browser. Anything that shows a patient name, date of birth, <a class="term" href="#g-mrn" title="Medical record number, the identifier a facility gives a patient.">MRN</a> or national identifier, <a class="term" href="#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a> or <a class="term" href="#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> number, or patient contact or insurance detail is tagged <code>data-phi</code> with its kind. Toasts that name a case are wrapped so they are covered too. Staff names are not treated as patient data. A test reads every source file and fails the build on an untagged place, with no exception list. Limits to plan around: free text that happens to contain an identifier (audit detail, interface exception reasons) cannot be recognised by any code check, so those cells are covered as a whole; and the check reads names, not types, so a value passed through a generic list can be missed (one such case was found and fixed in Batch 368, and twenty screens were then checked in a browser).</p>
+<p><strong>Bench screens (Batches 759 and 760).</strong> The bench screens (Embedding, Microtome, Cytology Preparation, Add-On Order Builder, Margin Exception Review, Molecular Batch Management) and the cytology screening screens show no patient name, date of birth or MRN: only the accession, the <a class="term" href="#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> source (or vial type) and slide ids. An outside case also shows its Foreign case ID, entered at Accession. An id typed instead of scanned is let through and recorded as "Manual Entry" on the <a class="term" href="#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a>. Nothing to configure.</p>
 <h3 id="ch1-ai-policy"><a class="anchor" href="#ch1-ai-policy" aria-label="Link to this section">#</a> AI vendor policy and hosting regions</h3>
 <nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Administrator Guide &gt; System Overview and Architecture &gt; Security model &gt; AI vendor policy and hosting regions"><span>Home</span> <span aria-hidden="true">›</span> <span>Administrator Guide</span> <span aria-hidden="true">›</span> <span>System Overview and Architecture</span> <span aria-hidden="true">›</span> <span>Security model</span> <span aria-hidden="true">›</span> <span><a class="term" href="#g-ai-vendor-policy" title="A per-jurisdiction rule that says which AI services and hosting regions may be used. A call the rule refuses is not sent, and the feature carries on without AI.">AI vendor policy</a> and hosting regions</span></nav>
 
@@ -2838,6 +2839,12 @@
 <td>Batch 732: the device takes large-format (megablock) slides. Slide Distribution sends a large-format slide only to a scanner with this ticked.</td>
 <td>Not ticked</td>
 </tr>
+<tr id="f-equipment-qc-sign-off"><td><a class="term" href="#g-qc" title="Quality control, the checks that confirm a process works as intended, such as a second review of screened slides.">QC</a> sign-off</td>
+<td>Picklist, stainers and slide scanners only: The lab's default, Auto-accept, Instrument sign-off (interface engine), PathScribe sign-off</td>
+<td>Optional</td>
+<td>Batch 763: how this instrument's output is signed off before its slides are handed out (stainer) or its images opened (scanner). See <a href="#screen-stain_qc">Stain &amp; scan QC</a>.</td>
+<td>The lab's default</td>
+</tr>
 <tr id="f-equipment-status"><td>Status</td>
 <td>Active / Inactive</td>
 <td>Optional</td>
@@ -2904,8 +2911,63 @@
 </table>
 <h4>Staining racks</h4>
 <p>Batch 737. Shown below the register when the lab has reusable staining racks (engraved RACK- ids). Each row is a rack with the tick box <strong>Takes large-format slides</strong>, saved at once (needs <code>config:equipment:manage</code>). Batch Management refuses a large-format slide (cut from a megablock) scanned onto a staining carrier that does not take large-format slides; a disposable staining carrier takes them when <strong>Takes large-format slides (megablocks)</strong> is ticked in New Container. The demo has one such rack, RACK-STAIN-LF-01.</p>
+<p>Batch 761: a rack is reused run after run. At the Microtome, scanning a registered rack whose last run is closed starts a new run on it, with no form; Batch Management opens it as a new run (New Container, pre-filled). A rack whose last run was sealed or put on the stainer but never closed is held with a warning. Closing that run from the Microtome is a reconciliation override (<code>batch:reconciliation:override</code>), recorded with the reason "Reusable rack scanned for a new run; the last run on it was never closed."</p>
 <p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Add, edit, deactivate: <code>config:equipment:manage</code>. Record a service log entry: <code>equipment:maintenance:record</code>. Both high risk. Admin and Lab Director hold both. The Histotechnologist, Cytotechnologist and Molecular Technologist roles also hold the log permission.
 <strong>Known limits.</strong> Service due dates are worked out in the <a class="term" href="#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>'s time zone on the Contribution Dashboard settings.</p>
+<h3 id="screen-stain_qc"><a class="anchor" href="#screen-stain_qc" aria-label="Link to this section">#</a> Stain &amp; scan QC</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Workstation &amp; Hardware &gt; Stain &amp; scan QC"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Workstation &amp; Hardware</span> <span aria-hidden="true">›</span> <span>Stain &amp; scan <a class="term" href="#g-qc" title="Quality control, the checks that confirm a process works as intended, such as a second review of screened slides.">QC</a></span></nav>
+
+<p><strong>Status:</strong> Partial</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Workstation &amp; Hardware</strong> &gt; <strong>Stain &amp; scan QC</strong>
+<strong>2. Maintenance item:</strong> Stain &amp; scan QC</p>
+<p><strong>3. Business purpose and scope.</strong> Batch 763, the Post-Stain / Pre-Distribution QC checkpoint. When a staining run finishes, its slides wait for QC: the rack cannot be checked out and its slides are not handed out at Slide Distribution until the run is signed off. A scanned image can wait the same way before the Pathologist can open it. Each stainer and scanner signs off in one of three ways: <strong>Auto-accept</strong> (released at once, audited as auto-accepted), <strong>Instrument sign-off (interface engine)</strong> (Option A: the instrument's own QC result, sent through the interface engine, releases or holds the run; for a scanner, its own image check), or <strong>PathScribe sign-off</strong> (Option B: a technologist signs off at the QC checkpoint on Slide Distribution). This screen sets the defaults; an instrument's own mode is set on <a href="#screen-equipment">Equipment</a> (QC sign-off) and wins over the default.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The instrument list reads <a href="#screen-equipment">Equipment</a>: stainers and slide scanners. Instrument sign-off needs the stainer's interface (its sign-off message through the interface engine); without it, a supervisor signs off instead.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 1, step 22</p><dl><dt>Configure first</dt><dd><a href="#screen-equipment">Equipment</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot missing"><div class="ph">SCREENSHOT PLACEHOLDER: system-stain-qc - The QC defaults and the list of stainers and scanners with their modes</div></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-stain_qc-stainers"><td>Stainers</td>
+<td>Picklist: Auto-accept, Instrument sign-off (interface engine), PathScribe sign-off</td>
+<td>Required</td>
+<td>The default for a stainer with no mode of its own.</td>
+<td>PathScribe sign-off</td>
+</tr>
+<tr id="f-stain_qc-slide-scanners"><td>Slide scanners</td>
+<td>Same picklist</td>
+<td>Required</td>
+<td>The default for a scanner with no mode of its own. With Instrument sign-off, an image the scanner's own check passed is released; any other is held.</td>
+<td>Auto-accept</td>
+</tr>
+<tr id="f-stain_qc-save-qc-defaults"><td>Save QC defaults</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Audited as Stain QC Settings Saved.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-stain_qc-stainers-and-scanners"><td>Stainers and scanners</td>
+<td>Table: Instrument, Kind, QC sign-off</td>
+<td>Not applicable</td>
+<td>Each instrument's mode, with "the default" when it has none of its own.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>At the checkpoint, a failed slide is marked <strong>Re-stain</strong> (status QC Failed) or <strong>Re-cut</strong> (Recut Requested) with a reason: Weak staining, Over-staining, Uneven staining, Control failed, Coverslip bubble, Folded tissue, Other. An image is released or sent back to be scanned again with a reason: Out of focus, Tissue missed, Stitching error, Debris on the slide, Other. The <a class="term" href="#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> shows Stain QC Pending, Passed, Failed, Instrument Result Ignored; Image QC Pending, Passed, Failed.</p>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Save the defaults: <code>config:stain-qc:manage</code> (Admin, Lab Director). At the checkpoint: <code>stain:qc:sign-off</code> and <code>scan:image-qc:sign-off</code> (the roles that open Slide Distribution, Lab Director); <code>stain:qc:override</code> to sign off a run that waits for its stainer's own sign-off (Lab Director). All high risk.
+<strong>Known limits.</strong> The fail reasons are a fixed list; per-stain QC criteria are not built. The server routes and the interface engine's sign-off channel are Planned.</p>
 <h3 id="screen-printer_profiles"><a class="anchor" href="#screen-printer_profiles" aria-label="Link to this section">#</a> Printer Profiles</h3>
 <nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Workstation &amp; Hardware &gt; Printer Profiles"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Workstation &amp; Hardware</span> <span aria-hidden="true">›</span> <span>Printer Profiles</span></nav>
 
@@ -3446,11 +3508,17 @@
 </tr>
 </thead>
 <tbody>
-<tr id="f-print_settings-default-print-behavior"><td>Default Print Behavior</td>
+<tr id="f-print_settings-grossing-print-behavior"><td>Grossing Print Behavior</td>
 <td>Choice: On-Demand (per <a class="term" href="#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> or container), Batch (per <a class="term" href="#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> or order)</td>
 <td>Required</td>
-<td>On-Demand prints each cassette label as it is logged during <a class="term" href="#g-grossing" title="The examination and cutting of a surgical specimen by a pathologist or pathologists&#x27; assistant, describing it and choosing the pieces to process.">grossing</a>. Batch defers printing to one per-case action.</td>
+<td>On-Demand prints each cassette label as it is logged during <a class="term" href="#g-grossing" title="The examination and cutting of a surgical specimen by a pathologist or pathologists&#x27; assistant, describing it and choosing the pieces to process.">grossing</a>. Batch defers printing to one per-case action. (Named Default Print Behavior before Batch 758.)</td>
 <td>On-Demand</td>
+</tr>
+<tr id="f-print_settings-microtome-print-behavior"><td>Microtome Print Behavior</td>
+<td>Choice: On-Demand, Block, Batch</td>
+<td>Optional</td>
+<td>Batch 758. How the Microtome prints slide labels, apart from Grossing. On-Demand: one label at a time, each scanned back on its slide before the next prints. Block: scanning a block prints all of its labels, scanned back in any order. Batch: the technician ticks the slides and prints them together. In every mode, moving on to the next block while labels of this one are not scanned back is held until each is scanned, recut or voided, or the technician continues (logged). Until it is chosen, the Microtome follows the Grossing setting.</td>
+<td>Follows Grossing</td>
 </tr>
 <tr id="f-print_settings-enforce-on-demand-guardrails"><td>Enforce On-Demand Guardrails</td>
 <td>Yes/No switch</td>
@@ -10903,6 +10971,7 @@ The difference between the screen text and the gate is listed for Pete in <code>
 </tr>
 </tbody>
 </table>
+<p><strong>Reusable racks (Batch 761).</strong> A scan of a registered rack (RACK-…) finds its open run, never an earlier finished one. When its last run is closed, the scan starts a new run (New Container is pre-filled with the rack). When the last run was sealed or put on the stainer and never closed, the rack opens with the warning "The last run on … was never closed." Close it (complete it, or Supervisor Override) before the rack is used again.</p>
 <p><strong>7. Permissions.</strong> Open the screen: <code>screen:batch-management:open</code> (Histotechnologist, Cytotechnologist, Molecular Technologist and Admin). Histotechnologist, Cytotechnologist and Molecular Technologist also start with <code>batch:reconciliation:override</code>, <code>batch:run:abort</code>, <code>batch:cold-chain-excursion:acknowledge</code> (all high risk, audited), <code>retention:material:dispose</code>, <code>retention:disposal-report:export</code>, <code>retention:holds-queue:export</code> and the three <code>wsi:scan-batch:*</code> capabilities. Admin opens the screen but holds none of those; Admin does hold <code>label:batch:reprint</code> and <code>equipment:maintenance:record</code>. <code>case:retention-hold:release</code> is held by every <a class="term" href="#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> <a class="term" href="#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> (Pathologist, Fellow, Resident, PA, Accessioner and the three technologist roles).
 <strong>Known limits.</strong> The Engraver Monitor reads a Firebase collection (<code>engraver_devices</code>) when Firebase is configured and shows simulated devices otherwise; Firebase is not the production database and this will be replaced. The <code>README.md</code> in <code>src/pages/BatchManagement/</code> still says the Retention Holds queue is not built; the page and tile exist. Batches are Built (<code>IBatchService</code> in <code>docs/architecture/CASE_WORKFLOWS_API.md</code>).</p>
 <h3 id="screen-embedding-station"><a class="anchor" href="#screen-embedding-station" aria-label="Link to this section">#</a> Embedding Station</h3>
@@ -17517,6 +17586,7 @@ The difference between the screen text and the gate is listed for Pete in <code>
 <li><a href="#screen-bi_feed">Reporting feed (Power BI)</a>: let a reporting tool read PathScribe data. Needs the performing-lab facilities in the Facility Dictionary.</li>
 <li><a href="#screen-migration_field_mappings">Migration Field Mappings</a>: map a legacy system's field names, before any historical import.</li>
 <li><a href="#screen-migration-jobs">Historical Data Migration Jobs</a>: import a legacy file and check the job. Needs step 5.</li>
+<li><a href="#screen-requisition_ingestion">Requisition ingestion</a>: file batch-scanned paper requisitions on their cases by the barcode on each page. Needs the scanner's drop folder (or the system that sends scans).</li>
 </ol>
 <p>The monitoring screens (<a href="#screen-audit-interfaces">System Logs: interfaces</a>, <a href="#screen-interface-engines">Interface Engines</a>, <a href="#screen-outbound-interface-dlq">Outbound Interface DLQ</a>, <a href="#screen-outbound-dispatches">Outbound Dispatches</a> and the <a href="#screen-outbound-queue">Outbound Queue</a>) and the test tools (<a href="#screen-outbound_message_preview">Outbound Interface Message Preview</a>, <a href="#screen-simulated_mail">Simulated mail outbox</a>, <a href="#screen-mock-interface-engine">Mock Interface Engine</a> and <a href="#screen-mock-emr">Mock EMR</a>) are not setup steps. Each says <code>Reference, not part of setup</code> and lists what must exist for it to show data.</p>
 <h2 id="ch7-status"><a class="anchor" href="#ch7-status" aria-label="Link to this section">#</a> What this tier does and does not contain</h2>
@@ -19473,6 +19543,132 @@ The difference between the screen text and the gate is listed for Pete in <code>
 <p>The reading API returns 1,000 rows a page by default and at most 10,000.</p>
 <p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Settings: <code>config:bi-feed:manage</code>. Create, replace and revoke tokens and Test a pull: <code>config:bi-feed-tokens:manage</code>. Record and withdraw the identified approval: <code>config:bi-feed-identified:approve</code>. All three are high risk. Admin and Lab Director hold them by default, so the person who creates an identified token and the person who approves it can be the same person unless a hospital separates them in the Role Dictionary.</p>
 <p><strong>Known limits.</strong> The feed is not served yet; in the demonstration build only the settings and tokens work. While the data loads, and in some problem messages, the screen says "workstation" where it means a feed token (a wording slip in the text). The token's limit of 60 pulls a minute and the 365-day lifetime are fixed in code.</p>
+<h3 id="screen-requisition_ingestion"><a class="anchor" href="#screen-requisition_ingestion" aria-label="Link to this section">#</a> Requisition ingestion</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations &gt; Requisition ingestion"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span> <span aria-hidden="true">›</span> <span>Requisition ingestion</span></nav>
+
+<p><strong>Status:</strong> Partial</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Integrations</strong>
+<strong>2. Maintenance item:</strong> Requisition ingestion</p>
+<p><strong>3. Business purpose and scope.</strong> Paper requisitions are scanned in batches by the <a class="term" href="#g-department" title="The coarse class of a specimen at intake, such as surgical tissue or fluid cytology. It steers the grossing template, the case mask and any retention override.">department</a> scanner into a folder on the hospital network, or into a third-party document system (an ECM, the <a class="term" href="#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a> document store, a scanning service), or are sent to the PathScribe <a class="term" href="#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> by another system. Each folder or system is a source, configured by its address; there can be as many as needed. PathScribe reads the <a class="term" href="#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a> barcode on each page and links the scan to its <a class="term" href="#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>, by reference only: the case keeps a link to the file where it lives, the pages that belong to it, the barcode, the time and the source, and PathScribe keeps no copy. A page with no barcode joins the requisition before it; a separator sheet ends a requisition and belongs to no case. A scan that matches no case waits in the Unmatched Requisitions queue on Accession → <strong>📥 Requisition Inbox</strong>, where staff link it by scanning or typing the accession, or discard it with a reason.</p>
+<p><strong>What is built and what is not.</strong> Built: this setting, the matching and page-grouping rules, the Requisition Inbox, the case's <strong>📄 Requisition</strong> button on the report screen, and the audit trail. In the <a class="term" href="#g-demonstration-build" title="A build of PathScribe that holds its data in the browser and carries demonstration accounts. It never connects to a real API server.">demonstration build</a> the browser reads a demonstration folder of fictional PDFs when someone presses <strong>Run ingestion now</strong>. Not built: the server's scheduled job that reads your share (<code>requisition.ingest</code>), reading a printed number when there is no barcode (OCR), and the API a sending system posts to. Only PDFs are read; any other file is refused and named in the run's summary.</p>
+<p><strong>Several performing facilities.</strong> Each source belongs to one performing <a class="term" href="#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> (the <strong>Performing facility</strong> field), or to <strong>All facilities</strong> for a scanner every laboratory shares. A source's scans wait in that facility's queue, and every permission below is checked for that facility: a person assigned to one laboratory (Staff → their facilities) sees, runs and resolves only that laboratory's scanners and scans, and only someone who works for every facility can add or change an all-facility source. <strong>＋ Add source</strong> adds another scanner; the buttons above the form switch between them. Matching is enterprise-wide: an <a class="term" href="#g-accession-number" title="The permanent identifier of a case, built from the facility&#x27;s case mask. It is treated as a patient identifier on screen: it is shown inside patient-data tags so that screenshots can be redacted.">accession number</a> names one case, so a requisition scanned at one laboratory still finds a case performed at another.</p>
+<p><strong>How it runs (serverless).</strong> Each source is read by a scheduled job that does one batch and ends; nothing runs all the time in PathScribe's cloud. A third-party document system is read at its https address, and a sending system posts to the PathScribe API. A folder on the hospital network is read by the PathScribe <strong><a class="term" href="#g-site-agent" title="A small Windows service installed at a laboratory that prints reports and labels and writes files to shares on the hospital network, on instructions from the API server.">site agent</a></strong> already installed there for printers and shares (<a href="#screen-site_agents">Site agents</a>): it reads the barcodes on the hospital network and sends PathScribe only the file's reference, pages and barcodes, so the <a class="term" href="#g-pdf" title="Portable Document Format, the form in which a signed report is stored and printed.">PDF</a> never leaves the hospital. The site agent's requisition pickup is not built yet. The check for missing requisitions runs hourly.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The scanner saves PDFs (one file may hold many requisitions) to a folder the API server can read, and the accession labels on the requisitions carry the accession number as a Code 128 or Code 39 barcode.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 6, step 7</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot missing"><div class="ph">SCREENSHOT PLACEHOLDER: system-requisition_ingestion - the requisition source, schedule and separator barcode</div></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-requisition_ingestion-read-this-source"><td>Read this source</td>
+<td>Yes/No switch</td>
+<td>Optional</td>
+<td>While it is off, the job does not read this source.</td>
+<td>On</td>
+</tr>
+<tr id="f-requisition_ingestion-name"><td>Name</td>
+<td>Text</td>
+<td>Required</td>
+<td>Shown on the Requisition Inbox.</td>
+<td>Requisition scanner drop folder</td>
+</tr>
+<tr id="f-requisition_ingestion-performing-facility"><td>Performing facility</td>
+<td>Choice: <strong>All facilities</strong> or a performing-lab facility</td>
+<td>Required</td>
+<td>Whose scanner this is: its scans wait in that facility's queue, and the permissions are checked for it.</td>
+<td>The demonstration source: Desert Valley Medical Center; a new source: the first <a class="term" href="#g-performing-lab" title="The facility that does the testing and issues the report, as opposed to a client that only sends specimens.">performing lab</a></td>
+</tr>
+<tr id="f-requisition_ingestion-where-scans-come-from"><td>Where scans come from</td>
+<td>Choice of <strong>A folder on the hospital network the scanner saves to</strong>, <strong>A third-party document system PathScribe reads at its address</strong> or <strong>A system that sends scans to the PathScribe API</strong></td>
+<td>Required</td>
+<td>Decides what the next field holds. Add one source for each folder or system; there can be as many as needed.</td>
+<td>A folder on the hospital network the scanner saves to</td>
+</tr>
+<tr id="f-requisition_ingestion-folder-address-system-address-https-sending-system"><td>Folder address / System address (https) / Sending system</td>
+<td>Text</td>
+<td>Required</td>
+<td>A folder: a network path (for example <code>\\server\requisitions\inbox</code>) or an smb://, nfs://, file:// or https:// address. A third-party system (an ECM, the LIS document store, a scanning service): its https address; the server reads new scans there with credentials set up on the API server, never in the browser. A sending system: its name, as it identifies itself to the API. An address of the wrong form is marked in red and cannot be saved.</td>
+<td><code>\\lab-scan01\requisitions\inbox</code> (demonstration)</td>
+</tr>
+<tr id="f-requisition_ingestion-look-every-minutes"><td>Look every (minutes)</td>
+<td>Whole number, 1 to 1,440</td>
+<td>Required</td>
+<td>How often the job reads the source.</td>
+<td>15</td>
+</tr>
+<tr id="f-requisition_ingestion-separator-sheet-barcode"><td>Separator sheet barcode</td>
+<td>Text</td>
+<td>Required</td>
+<td>The barcode printed on the sheet put between requisitions in one batch scan.</td>
+<td><code>PATHSCRIBE-SEPARATOR</code></td>
+</tr>
+<tr id="f-requisition_ingestion-save"><td>Save</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Disabled until something changes or while a field is invalid. Shows "Last saved" with the time and the person.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Expected requisitions.</strong> The second card on this screen decides which cases should have a scanned requisition, for the organisation (<strong>Organisation default</strong>) or for one performing facility (a facility follows the default until its own setting is saved).</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-requisition_ingestion-applies-to"><td>Applies to</td>
+<td>Choice: <strong>Organisation default</strong> or a performing-lab facility</td>
+<td>Required</td>
+<td>Which setting is being edited.</td>
+<td>Organisation default</td>
+</tr>
+<tr id="f-requisition_ingestion-a-scanned-requisition-is-expected-for"><td>A scanned requisition is expected for</td>
+<td>Checkboxes: <strong>Electronic HIS/LIS order</strong>, <strong>Typed at Accession, no imported order</strong>, <strong>Outside / contract case</strong>, <strong>Downtime accession</strong>, <strong>Lockbox drop</strong></td>
+<td>Optional</td>
+<td>A case is expected to have one when its order came in a ticked way. An electronic HIS/LIS order is the request on record (its order message), so by default it needs no paper. A case accessioned from an imported order counts as electronic.</td>
+<td>All ticked except Electronic HIS/LIS order</td>
+</tr>
+<tr id="f-requisition_ingestion-flag-a-case-after-hours"><td>Flag a case after (hours)</td>
+<td>Whole number, 0 to 720</td>
+<td>Required</td>
+<td>Hours after accession with no requisition linked before the case is flagged. 0 flags it at once. Never blocks the work.</td>
+<td>24</td>
+</tr>
+<tr id="f-requisition_ingestion-flag-a-scan-with-no-case-after-hours"><td>Flag a scan with no case after (hours)</td>
+<td>Whole number, 0 to 720</td>
+<td>Required</td>
+<td>Hours a scan may wait in the Unmatched queue before it is marked "No case yet" in red and moved to the top: possibly a <a class="term" href="#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> not received, lost or not accessioned.</td>
+<td>24</td>
+</tr>
+<tr id="f-requisition_ingestion-save-expectations"><td>Save expectations</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Saves the setting shown. Audited (Requisition Expectation Saved).</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>A flagged case appears under <strong>Cases waiting for a requisition</strong> on the Requisition Inbox, shows <strong>⚠ Requisition missing</strong> on the report screen, and gets a <strong>Missing Requisition</strong> case deficiency (raised by System), tracked in the deficiency workflow and the <a class="term" href="#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> reports. Linking its scan closes the <a class="term" href="#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a> and the deficiency (resolution <strong>Requisition Received or Not Required</strong>); so does <strong>No paper requisition</strong> with a reason (Electronic order on record, Verbal order, documented, Request held in another record, Other). The check runs with ingestion: on the server as a scheduled job, in the demonstration each time the inbox opens or <strong>Run ingestion now</strong> is pressed. Audit events: Requisition Missing, Requisition Received, Requisition Waived, Requisition Without Case.</p>
+<p><strong>The Unmatched Requisitions queue (quarantine).</strong> A scan whose barcode matches no case, or whose barcode cannot be read, goes to the queue automatically (Requisition Quarantined). Staff open <strong>View</strong> to inspect the pages, then link it: scan or type the accession, or type a patient name or <a class="term" href="#g-mrn" title="Medical record number, the identifier a facility gives a patient.">MRN</a> to search (the <strong>Cases found</strong> list, within their own case access), or press <strong>New case from this scan</strong> to open Accession with the scan attached; it is linked to the new case on submit (needs <code>case:accession:create</code>). Every link is audited as Requisition Re-associated, saying whether it was typed, found by search or a new case.</p>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Change the source: <code>config:requisition-ingestion:manage</code> (high risk, audited; Admin by default). On the Requisition Inbox: <code>requisition:inbox:review</code> (open it and view a queued scan), <code>requisition:inbox:resolve</code> (link or discard), <code>requisition:ingestion:run</code> (Run ingestion now); the roles that open Accession hold all three by default. From the case: <code>case:requisition:view</code> (the roles with case access). The <a class="term" href="#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> shows Requisition Matched, Requisition Quarantined, Requisition Re-associated, Requisition Discarded, Requisition Viewed and Requisition Source Saved, with no file name and no patient name. The Requisition Inbox's commands are in the Action list (Configuration → <a class="term" href="#g-action-registry" title="The list of voice and keyboard commands PathScribe knows. The commands are not access control; capabilities are.">Action Registry</a> and Staff → Roles, group <strong>Requisition Inbox</strong>): Go to the Requisition Inbox, Run Requisition Ingestion Now (Alt+G or by voice on the inbox), View a Scanned Requisition, Link an Unmatched Requisition to a Case, Discard an Unmatched Requisition, Show the Case's Requisition. Accessioners hold them all by default; the roles with case access hold Show the Case's Requisition. A command grant never widens what the permissions above allow.</p>
+<p><strong>Known limits.</strong> There is no printable separator sheet yet: print the barcode from any label tool. When a file is moved or deleted where it is stored, the case's requisition can no longer be opened, because PathScribe keeps no copy.</p>
 <h3 id="screen-migration_field_mappings"><a class="anchor" href="#screen-migration_field_mappings" aria-label="Link to this section">#</a> Migration Field Mappings</h3>
 <nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Lab Materials &amp; Workflows &gt; Migration Field Mappings"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Lab Materials &amp; Workflows</span> <span aria-hidden="true">›</span> <span>Migration Field Mappings</span></nav>
 
@@ -23426,6 +23622,7 @@ The difference between the screen text and the gate is listed for Pete in <code>
 <li>Open the <strong>Error Log</strong> tab, filter <strong>Open Only</strong>, and check that nothing important is unresolved.</li>
 <li>Open <a href="#screen-support_access">Support Access</a> and confirm the chain line reads intact; read the entries for the period.</li>
 <li>Export the Audit Log <a class="term" href="#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a> for the period and keep the file with your review notes. The export is itself recorded.</li>
+<li>Search <code>Manual Entry</code> to see ids typed instead of scanned (Batch 759). Each entry names the module, what was typed, the user and the <a class="term" href="#g-workstation" title="A registered computer at a facility, with its discipline, area and bound printers.">workstation</a>, and links to the <a class="term" href="#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>. Many from one workstation can mean a failing scanner or damaged labels.</li>
 </ol></article><article class="chapter"><h1 id="ch10"><a class="anchor" href="#ch10" aria-label="Link to this section">#</a> Step-by-step procedures: report templates, synoptic templates, JSON files and scheduled reports</h1>
 <p>This chapter is a set of numbered procedures. The screen chapters (<a href="#ch6">Chapter 6</a> for templates, the Synoptic Library and delivery) say what each field means; this chapter says what to click, in what order, what you should see, and how to undo it. Each procedure names the screen it uses, so you can jump to the field reference. Labels, billing and registries are in <a href="11-procedures-labels-billing.html#ch11">Chapter 11</a>.</p>
 <p>Read these points first.</p>

@@ -233,6 +233,8 @@ Recurring jobs (the timers of `DEPLOYMENT_READINESS_REVIEW.md` §7; each run doe
 | `print.batchAggregation` | per batch schedule (PS-279) | none today (manual only) |
 | `cytology.roseSlaMonitor` | every 5 min (optional) | display only today |
 | `bus.purge` | daily | — (§3.3) |
+| `requisition.ingest` | every `scheduleMinutes` of each requisition source (Batch 762) | the demonstration's Run ingestion now (`REQUISITION_INGESTION_API.md`) |
+| `requisition.missingSweep` | hourly (Batch 762) | the demonstration runs it when the Requisition Inbox opens and after Run ingestion now |
 
 ## 6. What the browser stops doing
 

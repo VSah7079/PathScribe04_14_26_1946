@@ -591,7 +591,7 @@ export interface IBatchService {
    *  automated stainer reports a real status transition for the
    *  batch it's currently running. Fails honestly if the batch isn't
    *  genuinely a 'Staining' batch. */
-  setStainingInstrumentStatus(batchId: ID, status: StainingInstrumentStatus): Promise<ServiceResult<Batch>>;
+  setStainingInstrumentStatus(batchId: ID, status: StainingInstrumentStatus, instrumentCode?: string): Promise<ServiceResult<Batch>>;
   /** Real, per PS-289/PS-292's own Gating Strategy research — records
    *  a human's completion of the visual read checklist for this
    *  batch. Fails honestly if the batch isn't genuinely a 'Staining'
@@ -694,6 +694,8 @@ export const BATCH_ERRORS = {
   batchSealed: 'batchSealed',
   alreadySealed: 'alreadySealed',
   cannotAdvance: 'cannotAdvance',
+  /** Batch 763: a staining run's QC is not signed off yet (services/stainQc/). */
+  stainQcPending: 'stainQcPending',
   stationRequired: 'stationRequired',
 } as const;
 export type BatchErrorCode = typeof BATCH_ERRORS[keyof typeof BATCH_ERRORS];

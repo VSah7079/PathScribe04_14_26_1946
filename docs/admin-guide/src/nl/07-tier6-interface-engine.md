@@ -23,6 +23,7 @@ Niveau 6 is grotendeels optioneel. Een laboratorium dat PathScribe zelfstandig g
 4. [Rapportagefeed (Power BI)](#screen-bi_feed): laat een rapportagetool PathScribe-gegevens lezen. Vereist de faciliteiten met uitvoerend laboratorium in het Faciliteitenwoordenboek.
 5. [Migratie-veldkoppelingen](#screen-migration_field_mappings): koppel de veldnamen van een legacysysteem, vóór elke import van historische gegevens.
 6. [Historische gegevensmigratietaken](#screen-migration-jobs): importeer een legacybestand en controleer de taak. Vereist stap 5.
+7. [Inlezen aanvraagbonnen](#screen-requisition_ingestion): in batches gescande papieren aanvraagbonnen via de barcode op elke pagina aan hun casus koppelen. Vereist de aflevermap van de scanner (of het systeem dat scans stuurt).
 
 De bewakingsschermen ([Systeemlogboeken: interfaces](#screen-audit-interfaces), [Interface-engines](#screen-interface-engines), [Uitgaande interface-DLQ](#screen-outbound-interface-dlq), [Uitgaande verzendingen](#screen-outbound-dispatches) en de [Uitgaande wachtrij](#screen-outbound-queue)) en de testtools ([Voorbeeld van uitgaande interfaceberichten](#screen-outbound_message_preview), [Gesimuleerde postvak-uit](#screen-simulated_mail), [Gesimuleerde interface-engine](#screen-mock-interface-engine) en [Mock EMR](#screen-mock-emr)) zijn geen inrichtingsstappen. Elk scherm vermeldt `Reference, not part of setup` en noemt wat er moet bestaan om gegevens te tonen.
 
@@ -802,6 +803,63 @@ De lees-API geeft standaard 1.000 rijen per pagina terug en hoogstens 10.000.
 **7. Machtigingen.** Openen: `screen:configuration:open`. Instellingen: `config:bi-feed:manage`. Tokens aanmaken, vervangen en intrekken en Ophaalactie testen: `config:bi-feed-tokens:manage`. De goedkeuring voor geïdentificeerde gegevens vastleggen en intrekken: `config:bi-feed-identified:approve`. Alle drie zijn hoog risico. Beheerder en Laboratoriumdirecteur hebben ze standaard, dus de persoon die een geïdentificeerd token aanmaakt en de persoon die het goedkeurt kunnen dezelfde persoon zijn, tenzij een ziekenhuis ze scheidt in het Rollenwoordenboek.
 
 **Bekende beperkingen.** De feed wordt nog niet geleverd; in de demonstratiebuild werken alleen de instellingen en tokens. Terwijl de gegevens laden, en in sommige probleemmeldingen, zegt het scherm "werkstation" waar een feedtoken wordt bedoeld (een formuleringsfout in de tekst). De limiet van 60 keer ophalen per minuut en de levensduur van 365 dagen liggen vast in de code.
+### Inlezen aanvraagbonnen {#screen-requisition_ingestion}
+Breadcrumb: Start > Configuratie > Systeem > Integraties > Inlezen aanvraagbonnen
+
+**Status:** Gedeeltelijk
+
+**1. Navigatie:** tabblad Configuratie **Systeem** > groep **Integraties**
+**2. Onderhoudsonderdeel:** Inlezen aanvraagbonnen
+
+**3. Doel en bereik.** Papieren aanvraagbonnen worden door de afdelingsscanner in batches naar een map op het ziekenhuisnetwerk of naar een documentsysteem van derden (een ECM, de documentopslag van het LIS, een scandienst) gescand, of door een ander systeem naar de PathScribe-API gestuurd. Elke map of elk systeem is een bron, ingesteld via zijn adres; er kunnen er zoveel zijn als nodig. PathScribe leest de accessiebarcode op elke pagina en koppelt de scan aan zijn casus, alleen als verwijzing: de casus houdt een koppeling naar het bestand op zijn locatie, de bijbehorende pagina's, de barcode, het tijdstip en de bron, en PathScribe bewaart geen kopie. Een pagina zonder barcode hoort bij de aanvraagbon ervoor; een scheidingsblad sluit een aanvraagbon af en hoort bij geen enkele casus. Een scan die bij geen casus past, wacht in de wachtrij met niet-gekoppelde aanvraagbonnen onder Accessie > **📥 Inbox aanvraagbonnen**, waar medewerkers hem koppelen door het accessienummer te scannen of te typen, of hem met een reden verwerpen.
+
+**Wat gebouwd is en wat niet.** Gebouwd: deze instelling, de regels voor koppelen en groeperen van pagina's, de inbox aanvraagbonnen, de knop **📄 Aanvraagbon** van de casus op het verslagscherm en het audittrail. In de demonstratieversie leest de browser een map met fictieve pdf's wanneer iemand op **Nu inlezen** drukt. Niet gebouwd: de geplande servertaak die uw share leest (`requisition.ingest`), het lezen van een gedrukt nummer zonder barcode (OCR) en de API waarnaar een verzendend systeem scans stuurt. Alleen pdf's worden gelezen; elk ander bestand wordt geweigerd en in de samenvatting van de run genoemd.
+
+**Meerdere uitvoerende faciliteiten.** Elke bron hoort bij één uitvoerende faciliteit (het veld **Uitvoerende faciliteit**), of bij **Alle faciliteiten** voor een scanner die alle laboratoria delen. De scans van een bron wachten in de wachtrij van die faciliteit, en elke machtiging hieronder wordt voor die faciliteit gecontroleerd: wie aan één laboratorium is toegewezen (Personeel → zijn faciliteiten), ziet, start en behandelt alleen de scanners en scans van dat laboratorium, en alleen wie voor alle faciliteiten werkt, kan een gedeelde bron toevoegen of wijzigen. **＋ Bron toevoegen** voegt een scanner toe; met de knoppen boven het formulier wisselt u tussen de bronnen. Koppelen gebeurt organisatiebreed: een accessienummer staat voor één casus, dus een aanvraagbon die in het ene laboratorium is gescand, vindt ook een casus die in een ander wordt uitgevoerd.
+
+**Werking (serverloos).** Elke bron wordt gelezen door een geplande taak die één batch verwerkt en stopt; in de cloud van PathScribe draait niets voortdurend. Een documentsysteem van derden wordt op zijn https-adres gelezen, een verzendend systeem stuurt naar de PathScribe-API. Een map op het ziekenhuisnetwerk wordt gelezen door de PathScribe-**site-agent** die daar al voor printers en shares is geïnstalleerd ([Site-agents](#screen-site_agents)): die leest de barcodes op het ziekenhuisnetwerk en stuurt PathScribe alleen de bestandsverwijzing, pagina's en barcodes, zodat de pdf het ziekenhuis nooit verlaat. Het ophalen van aanvraagbonnen door de site-agent is nog niet gebouwd. De controle op ontbrekende aanvraagbonnen draait elk uur.
+
+**4. Vereisten en afhankelijkheden.** De scanner slaat pdf's (één bestand kan veel aanvraagbonnen bevatten) op in een map die de API-server kan lezen, en de accessie-etiketten op de aanvraagbonnen dragen het accessienummer als Code 128- of Code 39-barcode.
+
+Setup step: Tier 6, step 7
+Requires: Geen, dit is een startpunt.
+Unlocks: Geen.
+
+**5. Scherm.**
+
+[SCREENSHOT PLACEHOLDER: system-requisition_ingestion - the requisition source, schedule and separator barcode]
+
+**6. Veldreferentie.**
+
+| Veldnaam | Gegevenstype / formaat | Verplicht/Optioneel | Beschrijving en bedrijfslogica | Systeemstandaard |
+|---|---|---|---|---|
+| Deze bron lezen | Ja/Nee-schakelaar | Optioneel | Zolang hij uit staat, leest de taak deze bron niet. | Aan |
+| Naam | Tekst | Verplicht | Getoond in de inbox aanvraagbonnen. | Requisition scanner drop folder |
+| Uitvoerende faciliteit | Keuze: **Alle faciliteiten** of een uitvoerend laboratorium | Verplicht | Van wie deze scanner is: zijn scans wachten in de wachtrij van die faciliteit, en de machtigingen worden ervoor gecontroleerd. | De demonstratiebron: Desert Valley Medical Center; een nieuwe bron: het eerste uitvoerende laboratorium |
+| Herkomst van de scans | Keuze uit **Een map op het ziekenhuisnetwerk waarin de scanner opslaat**, **Een documentsysteem van derden dat PathScribe op zijn adres leest** of **Een systeem dat scans naar de PathScribe-API stuurt** | Verplicht | Bepaalt wat het volgende veld bevat. Voeg per map of systeem een bron toe; er kunnen er zoveel zijn als nodig. | Een map op het ziekenhuisnetwerk waarin de scanner opslaat |
+| Adres van de map / Adres van het systeem (https) / Verzendend systeem | Tekst | Verplicht | Een map: een netwerkpad (bijvoorbeeld `\\server\requisitions\inbox`) of een smb://-, nfs://-, file://- of https://-adres. Een systeem van derden (een ECM, de documentopslag van het LIS, een scandienst): zijn https-adres; de server leest daar nieuwe scans met toegangsgegevens die op de API-server zijn ingesteld, nooit in de browser. Een verzendend systeem: zijn naam, zoals het zich bij de API identificeert. Een adres van de verkeerde vorm wordt rood gemarkeerd en kan niet worden opgeslagen. | `\\lab-scan01\requisitions\inbox` (demonstratie) |
+| Lezen elke (minuten) | Geheel getal, 1 tot 1.440 | Verplicht | Hoe vaak de taak de bron leest. | 15 |
+| Barcode van het scheidingsblad | Tekst | Verplicht | De barcode op het blad tussen aanvraagbonnen in één batchscan. | `PATHSCRIBE-SEPARATOR` |
+| Opslaan | Knop | Niet van toepassing | Uitgeschakeld zolang er niets verandert of een veld ongeldig is. Toont "Laatst opgeslagen" met het tijdstip en de persoon. | Niet van toepassing |
+
+**Verwachte aanvraagbonnen.** De tweede kaart van dit scherm bepaalt welke casussen een gescande aanvraagbon zouden moeten hebben, voor de organisatie (**Standaard van de organisatie**) of voor één uitvoerende faciliteit (een faciliteit volgt de standaard tot haar eigen instelling is opgeslagen).
+
+| Veldnaam | Gegevenstype / formaat | Verplicht/Optioneel | Beschrijving en bedrijfslogica | Systeemstandaard |
+|---|---|---|---|---|
+| Geldt voor | Keuze: **Standaard van de organisatie** of een uitvoerend laboratorium | Verplicht | Welke instelling wordt bewerkt. | Standaard van de organisatie |
+| Een gescande aanvraagbon wordt verwacht voor | Selectievakjes: **Elektronische ZIS-/LIS-aanvraag**, **Ingevoerd bij accessie, zonder geïmporteerde aanvraag**, **Externe casus / contractcasus**, **Accessie bij storing**, **Lockbox-afgifte** | Optioneel | Een casus moet er een hebben als de aanvraag op een aangevinkte manier binnenkwam. Een elektronische ZIS-/LIS-aanvraag is de aanvraag (het aanvraagbericht) en heeft standaard geen papier nodig. Een casus die vanuit een geïmporteerde aanvraag is geaccessioneerd, telt als elektronisch. | Alles aangevinkt behalve Elektronische ZIS-/LIS-aanvraag |
+| Casus markeren na (uren) | Geheel getal, 0 tot 720 | Verplicht | Uren na accessie zonder gekoppelde bon voordat de casus wordt gemarkeerd. 0 markeert meteen. Blokkeert het werk nooit. | 24 |
+| Scan zonder casus markeren na (uren) | Geheel getal, 0 tot 720 | Verplicht | Uren dat een scan in de wachtrij mag wachten voordat hij rood ‘Nog geen casus’ wordt gemarkeerd en bovenaan komt: mogelijk een specimen dat niet is ontvangen, kwijt is of niet is geaccessioneerd. | 24 |
+| Verwachtingen opslaan | Knop | Niet van toepassing | Slaat de getoonde instelling op. Vastgelegd (Requisition Expectation Saved). | Niet van toepassing |
+
+Een gemarkeerde casus verschijnt onder **Casussen zonder aanvraagbon** in de inbox aanvraagbonnen, toont **⚠ Aanvraagbon ontbreekt** op het verslagscherm en krijgt een casusafwijking **Missing Requisition** (geregistreerd door System), gevolgd in de afwijkingenstroom en de kwaliteitsrapporten. De scan koppelen sluit de markering en de afwijking (oplossing **Requisition Received or Not Required**); net als **Geen papieren aanvraagbon** met een reden (Elektronische aanvraag aanwezig, Mondelinge aanvraag, gedocumenteerd, Aanvraag in een ander dossier, Anders). De controle loopt mee met het inlezen: op de server als geplande taak, in de demonstratie telkens wanneer de inbox opent of op **Nu inlezen** wordt gedrukt. Auditgebeurtenissen: Requisition Missing, Requisition Received, Requisition Waived, Requisition Without Case.
+
+**De wachtrij met niet-gekoppelde aanvraagbonnen (quarantaine).** Een scan waarvan de barcode bij geen casus past of onleesbaar is, komt er automatisch in (Requisition Quarantined). Medewerkers openen **Bekijken** om de pagina's te bekijken en koppelen hem dan: door het accessienummer te scannen of te typen, door een patiëntnaam of patiëntnummer te typen om te zoeken (de lijst **Gevonden casussen**, binnen hun eigen toegang), of met **Nieuwe casus uit deze scan**, dat Accessie opent met de scan erbij; bij het opslaan wordt hij aan de nieuwe casus gekoppeld (vereist `case:accession:create`). Elke koppeling wordt vastgelegd (Requisition Re-associated), met de vermelding of ze getypt, via zoeken gevonden of nieuw aangemaakt is.
+
+**7. Machtigingen.** Openen: `screen:configuration:open`. De bron wijzigen: `config:requisition-ingestion:manage` (hoog risico, vastgelegd; standaard Admin). In de inbox aanvraagbonnen: `requisition:inbox:review` (openen en een wachtende scan bekijken), `requisition:inbox:resolve` (koppelen of verwerpen), `requisition:ingestion:run` (Nu inlezen); de rollen die Accessie openen, hebben standaard alle drie. Vanuit de casus: `case:requisition:view` (de rollen met toegang tot casussen). Het auditlogboek toont Requisition Matched, Requisition Quarantined, Requisition Re-associated, Requisition Discarded, Requisition Viewed en Requisition Source Saved, zonder bestandsnaam en zonder patiëntnaam. De opdrachten van de inbox aanvraagbonnen staan in de lijst met acties (Configuratie → Actieregister en Personeel → Rollen, groep **Requisition Inbox**): naar de inbox gaan, nu inlezen (Alt+G of met de stem in de inbox), een gescande aanvraagbon bekijken, een niet-gekoppelde aanvraagbon koppelen, verwerpen, de aanvraagbon van de casus tonen. Accessiemedewerkers hebben ze standaard allemaal; de rollen met toegang tot casussen het tonen van de aanvraagbon. Een toegekende opdracht verruimt nooit wat de machtigingen hierboven toestaan.
+
+**Bekende beperkingen.** Er is nog geen afdrukbaar scheidingsblad: druk de barcode af met een willekeurig etikettenprogramma. Wordt een bestand op zijn locatie verplaatst of verwijderd, dan kan de aanvraagbon van de casus niet meer worden geopend, omdat PathScribe geen kopie bewaart.
+
 ### Migratie-veldkoppelingen {#screen-migration_field_mappings}
 Breadcrumb: Start > Configuratie > Systeem > Labmaterialen & workflows > Migratie-veldkoppelingen
 

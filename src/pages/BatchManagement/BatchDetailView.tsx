@@ -50,6 +50,7 @@ import type { ReagentLot } from '@/services/reagentLots/IReagentLotService';
 import { nextManualTransitStatuses } from '@/services/referral/referralTransitRules';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { BatchCarrierStepPanel } from './BatchCarrierStepPanel';
+import { StationScanField } from '@/components/Workstation/StationScanField';
 import { batchPurposeBadge } from '@/services/batches/batchPurposes';
 import type { BatchProcessingNode } from '@/services/batches/IBatchService';
 
@@ -496,6 +497,11 @@ const BatchDetailView: React.FC<Props> = ({ batch, onBack, onBatchUpdated, userI
           )}
           {batch.status === 'reconciling' && (
             <div className="ps-batch-scan-hint ps-batch-scan-hint--reconcile">📷 {t('batchDetail.scanHintReconcile')}</div>
+          )}
+          {/* Batch 757 (Pete: "we always need to be able to type in a field in case the scanner breaks"): a field for the
+              scanner or a typed barcode, beside the hands-free scan. */}
+          {(batch.status === 'active' || batch.status === 'reconciling') && (
+            <StationScanField onScan={raw => { void handleScan(raw); }} placeholder={t('batchDetail.scanPlaceholder')} submitLabel={t('batchDetail.scanSubmit')} phiKind="accession" />
           )}
 
           <div className="ps-batch-section-label">

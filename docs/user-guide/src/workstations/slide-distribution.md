@@ -3,7 +3,7 @@ module: Workstations
 screen: Slide Distribution
 workflow: Bench and Workstation Work
 role: [Histotechnologist, Laboratory Manager]
-keywords: [slide distribution, checkout, route slides, pathologist assignment, subspecialty pool, slide folder, tray, courier bag, digital scanner, scanner rack, chain of custody, missing glass, replacement label, split destination]
+keywords: [slide distribution, qc checkpoint, stain qc, sign off, re-stain, re-cut, image qc, checkout, route slides, pathologist assignment, subspecialty pool, slide folder, tray, courier bag, digital scanner, scanner rack, chain of custody, missing glass, replacement label, split destination]
 routes: [/workstations/slide-distribution]
 previous: workstations/microtomy
 next: batch-management
@@ -44,6 +44,18 @@ A card at the top of the screen, **Carriers at this station**, links this bench 
 - **Seal manifest** stops anything being added to or removed from the carrier.
 
 Every scan here is recorded with this station, the time and your name, which is what the scan trail and the turnaround reports are built from. A slide sent to a pathologist or loaded on a scanner is recorded as completed here. Slides cut from a matrix block (for example M1) are queued the same way: scan the matrix block for all its slides, or one of its slides.
+
+### QC checkpoint
+
+Batch 763. Stained slides wait for quality control before they are handed out. When a staining run finishes, its rack appears in the **QC checkpoint** card, just below the carrier card, with "Stained slides and scanned images wait here until their QC is signed off. A rack waiting for QC cannot be checked out, and its slides are not handed out." The card is shown only while something is waiting.
+
+- **A rack waiting for QC.** Each rack shows its barcode, the number of slides and how long it has been waiting, and how it is signed off: **PathScribe sign-off** (you sign it off here), **Instrument sign-off (interface engine)** (the stainer signs off its own runs) or **Auto-accept** (released at once; you rarely see these). Select the rack to open it.
+- **Signing off.** Every slide starts as **Pass**. Look at the slides; for one that is not good enough select **Fail**, then choose the follow-up, **Re-stain** or **Re-cut**, and a reason (Weak staining, Over-staining, Uneven staining, Control failed, Coverslip bubble, Folded tissue, Other). Select **Sign off: all slides passed**, or **Sign off: 1 slide failed** when you failed some. The rack can then be checked out. A failed slide shows **QC Failed** (re-stain) or **Recut Requested** (re-cut) on its case and stays out of distribution.
+- **Stainer.** When the stainer was not recorded with the run, pick it from the **Stainer** list (or leave **Not recorded**).
+- **A stainer that signs off its own runs.** The card says "This stainer signs off its own runs through the interface engine. The run is released when its result arrives; a supervisor can sign it off here instead." A supervisor can select **Sign off instead of the stainer**; this is recorded as an override.
+- **Scanned images waiting for QC.** When the lab checks scanned images before the Pathologist sees them, the card lists them under **Scanned images waiting for QC**, with the scanner and the scan batch. **Release to the Pathologist** makes the image available; to send it back choose a reason (Out of focus, Tissue missed, Stitching error, Debris on the slide, Other) and select **Scan again**: the slide goes back in the scanning queue. Until then the slide's image reads "Waiting for image QC".
+
+Scanning a rack that waits for QC, to check it out, is refused with "This rack’s stained slides wait for QC. Sign off the run at the QC checkpoint on Slide Distribution first." Scanning a held slide says it "waits for QC sign-off and can’t be handed out yet", "failed QC and is waiting to be re-stained" or "failed QC and a re-cut has been requested"; scanning a block whose slides are all held says "Every slide of block … is held by QC". Signing off needs the permission to sign off stain QC (and, for images, scanned image QC); the roles with this station have both by default. Without it the button is grey and the card says "You don’t have permission for this QC decision. Ask your administrator."
 
 ### Scan history
 

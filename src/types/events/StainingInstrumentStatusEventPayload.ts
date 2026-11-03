@@ -33,4 +33,7 @@ export interface StainingInstrumentStatusEventPayload {
    *  reported inbound by the instrument. Same real convention as
    *  CytologyInstrumentStatusEventPayload's own status field. */
   status: Exclude<StainingInstrumentStatus, 'Loaded to Instrument'>;
+  /** Batch 763: the stainer's code in the Equipment register (e.g. VENTANA_HE600_01), when the instrument sends it: its
+   *  QC mode decides the run's QC checkpoint (services/stainQc/). */
+  instrumentCode?: string;
 }

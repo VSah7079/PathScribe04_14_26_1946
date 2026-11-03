@@ -80,6 +80,7 @@ PathScribe must deploy to public or private cloud, so the UI never assumes where
 - No bypass for any role, Superadmin included: Superadmin is a role granted capabilities like any other. It is reserved for ForMedrixAI support staff; hospitals can't change or assign it (Pete, Batch 371). A capability only ForMedrixAI support should have is `platformOnly: true` (`platform:` domain).
 - Built-in role grants go in `capabilitySeeds.ts`; least privilege (Pathologist gets nothing by default).
 - The voice/keyboard commands in `constants/systemActions.ts` are not access control; don't gate on them.
+- **Every new action reaches the Superadmin role (Pete, Nov 2, 2026).** A command added to the Action list (`ACTION_GROUPS`, Configuration → Action Registry and Staff → Roles) is granted to Superadmin as well as to the roles that use it: Superadmin is offered every command (`services/roles/actionSeeds.ts`, `ALL_ACTION_IDS`), so a stored Superadmin role picks it up on its next load. Enforced by `services/roles/actionSeeds.test.ts`. (Superadmin already holds every capability, Batch 371.)
 - **A new screen reached from Home or a hub** gets a `screen:<name>:open` capability, a seed for the roles that use it, a tile id in `services/screens/screenAccess.ts`, and a `ScreenGate` on its route (Batch 374).
 - **Enforced by** `src/services/authorization/capabilities.guard.test.ts`: every catalog capability has a check, every key used is in the catalog, and every capability has its locale text. Server contract: `docs/architecture/AUTHORIZATION_API.md`.
 

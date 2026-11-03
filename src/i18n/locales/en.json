@@ -497,6 +497,10 @@
       "memberCardId": "Member / Card ID",
       "orderingProvider": "Ordering Provider",
       "orderingProviderPlaceholder": "(enter on Case & Patient)",
+      "originatingCase": "Originating case",
+      "originatingCaseNumber": "Originating case number",
+      "originatingCaseNumberPlaceholder": "e.g. S-24-9842",
+      "originatingInstitution": "Originating institution",
       "patientJurisdiction": "Patient & Jurisdiction Identification",
       "paymentCategory": "Payment Category / Scheme",
       "primaryJurisdiction": "Primary Jurisdiction",
@@ -2384,6 +2388,7 @@
       "rackNotRegistered": "Rack {{rackId}} isn't registered. Check the ID or register the rack first.",
       "sameBatch": "That's the batch the item is already in. Choose another batch.",
       "sourceNotActive": "Items can only be moved out of an active batch.",
+      "stainQcPending": "This rack’s stained slides wait for QC. Sign off the run at the QC checkpoint on Slide Distribution first.",
       "stationRequired": "Set this computer's station first.",
       "unexpectedScans_one": "{{count}} item that doesn't belong to this batch was scanned. Resolve it, or use a supervisor override.",
       "unexpectedScans_other": "{{count}} items that don't belong to this batch were scanned. Resolve them, or use a supervisor override."
@@ -2437,9 +2442,10 @@
     "remainingOfTarget": "{{remaining}} remaining of {{target}} target",
     "removeTitle": "Remove from batch",
     "removedToast": "{{displayId}} removed from batch.",
-    "scanHintActive": "Scan a cassette or slide barcode to add it to this batch. Hands-free — no need to click into a field first.",
+    "scanHintActive": "Scan a cassette or slide barcode to add it to this batch, or type it in the field below.",
     "scanHintReconcile": "Out-of-Process Verification: scan each physical item as you remove it from the carrier.",
     "scanHintSealed": "The manifest is sealed. Start the verification to scan items out.",
+    "scanPlaceholder": "Scan or type a cassette or slide barcode…",
     "scanRejected": {
       "alreadyInBatch": "{{displayId}} is already in this batch.",
       "inOtherActiveBatch": "{{displayId}} is already in active batch {{barcode}}.",
@@ -2448,6 +2454,7 @@
       "sealed": "{{barcode}} is sealed: no more items can be added.",
       "slideTooLarge": "{{displayId}} is a large-format slide, and {{barcode}} does not take large-format slides. Use a large-format staining rack."
     },
+    "scanSubmit": "Enter",
     "startReconciliation": "Start Reconciliation",
     "supervisorOverrideLink": "Supervisor Override…",
     "transferToProcessing": "Transfer to Processing",
@@ -2508,6 +2515,7 @@
     "pendingLoadTile": "Pending Load",
     "pendingLoadTitle": "Pending Batch Load — printed items not yet scanned into any batch",
     "rackCheckedOutError": "Rack \"{{value}}\" is already checked out to another active batch.",
+    "rackLastRunNotClosed": "The last run on {{value}} was never closed. Close it before the rack is used again.",
     "retentionHoldsTile": "Retention Holds",
     "retentionHoldsTitle": "Open the Retention Holds queue",
     "status": {
@@ -2698,6 +2706,14 @@
     },
     "title": "Bench Contributions",
     "windowLabel": "Last {{days}} days"
+  },
+  "benchIdentity": {
+    "foreignCase": "Foreign case ID",
+    "foreignItem": "Foreign ID",
+    "foreignSource": "from {{source}}",
+    "specimenSource": "Specimen {{label}} – {{description}}",
+    "typedCheck": "Typed, not scanned: check the container shows {{accession}} and {{source}}.",
+    "typedCheckAccession": "Typed, not scanned: check the container shows {{accession}}."
   },
   "benchReasons": {
     "AE_DIAGNOSIS_NEEDED": "Needed to complete the diagnosis",
@@ -4225,6 +4241,10 @@
         "description": "Pass on a pool case so it stays in the pool for someone else.",
         "label": "Pass a pool case"
       },
+      "caseRequisitionView": {
+        "description": "Open the scanned requisition linked to a case, from the case. Each view is audited.",
+        "label": "View a case’s scanned requisition"
+      },
       "caseRetentionHoldPlace": {
         "description": "Stop a case's material from being disposed of (patient request, litigation, research), with a reason and a note.",
         "label": "Place a retention hold"
@@ -4689,6 +4709,10 @@
         "description": "Put a report layout or part into use. Audited.",
         "label": "Publish report templates and parts"
       },
+      "configRequisitionIngestionManage": {
+        "description": "Set where scanned requisitions come from (a watched folder or a sending system), how often they are read, and the separator-sheet barcode. Audited.",
+        "label": "Manage requisition ingestion"
+      },
       "configResearchCasesManage": {
         "description": "Set how research cases are recognised, the no-charge financial class sent for them, and how long their material is kept. These cases are left off clinical worklists and statistics and are never sent as results or charges.",
         "label": "Manage research case settings"
@@ -4756,6 +4780,10 @@
       "configStainDictionaryManage": {
         "description": "Add and edit stains, sectioning protocols, order macros and molecular targets. Audited.",
         "label": "Manage the stain dictionary"
+      },
+      "configStainQcManage": {
+        "description": "Set how stainers and scanners are signed off by default: auto-accept, the instrument’s own sign-off, or a PathScribe sign-off. Audited.",
+        "label": "Manage stain & scan QC settings"
       },
       "configSubspecialtiesManage": {
         "description": "Add and edit subspecialties and the specimen types assigned to them. Audited.",
@@ -5305,6 +5333,18 @@
         "description": "Totals only, from the station scans, cases and carriers; research cases are left out.",
         "label": "View the lab workflow report: turnaround by step"
       },
+      "requisitionInboxResolve": {
+        "description": "Link an unmatched scan to a case by scanning or typing its accession, or discard it with a reason. The file itself is never touched. Audited.",
+        "label": "Link or discard unmatched requisitions"
+      },
+      "requisitionInboxReview": {
+        "description": "Open the Requisition Inbox: the Unmatched Requisitions queue, recent links and runs, and view an unmatched scan. Viewing is audited.",
+        "label": "Review the Requisition Inbox"
+      },
+      "requisitionIngestionRun": {
+        "description": "Read the scanner’s drop folder now and link each scanned requisition to its case (the server also runs it on a schedule).",
+        "label": "Run requisition ingestion now"
+      },
       "retentionDisposalReportExport": {
         "description": "Download the waste-tracking report of disposed material, which lists case accessions.",
         "label": "Export the disposal report"
@@ -5316,6 +5356,10 @@
       "retentionMaterialDispose": {
         "description": "Scan wet tissue, blocks or slides on the Disposal Queue to mark them disposed once their retention period has passed.",
         "label": "Dispose of retained material"
+      },
+      "scanImageQcSignOff": {
+        "description": "Release a scanned image to the Pathologist, or send it back to be scanned again with a reason. Audited.",
+        "label": "Sign off scanned image QC"
       },
       "screenAccessionOpen": {
         "description": "See the Accession screen and its tile on the Home page.",
@@ -5432,6 +5476,14 @@
       "searchReportScheduleManage": {
         "description": "Set up, change, pause or delete a schedule that runs a saved report and sends it to chosen users as CSV. Every change is recorded in the audit log.",
         "label": "Schedule case search reports"
+      },
+      "stainQcOverride": {
+        "description": "Sign off a run that waits for its stainer’s own sign-off through the interface engine, when that result does not come. Audited as an override.",
+        "label": "Sign off instead of a stainer"
+      },
+      "stainQcSignOff": {
+        "description": "Sign off a staining run at the QC checkpoint: every slide passes, or a failed slide is sent for re-stain or re-cut with a reason. Audited.",
+        "label": "Sign off stain QC"
       },
       "stationScanHistoryView": {
         "description": "See which item was scanned, at which station, by whom and when.",
@@ -7383,6 +7435,9 @@
       "sys-qa-trend-policy": {
         "description": "When a pattern of major discordances is flagged for a pathologist or a specimen type: window, minimum reviews, thresholds and routing, per site."
       },
+      "sys-requisition-ingestion": {
+        "description": "Where scanned requisitions come from, how often they are read, and the separator-sheet barcode for batch scans."
+      },
       "sys-research-cases": {
         "description": "How research cases are recognised, kept and kept off clinical worklists, results and billing; and the purposes a carrier can have."
       },
@@ -7403,6 +7458,9 @@
       },
       "sys-specimens": {
         "description": "The specimen dictionary that drives autocomplete in Case Search and case creation."
+      },
+      "sys-stain-qc": {
+        "description": "How stained slides and scanned images are signed off before they are handed out or opened: auto-accept, the instrument’s own sign-off, or a PathScribe sign-off."
       },
       "sys-subspecialties": {
         "description": "Subspecialty pools for the delegation workflow."
@@ -8228,6 +8286,11 @@
     "title": "Cyto-histology correlation window",
     "windowDaysLabel": "Window (days)"
   },
+  "cytologyIdentity": {
+    "vial": "{{label}}: {{description}}",
+    "vialWithPlatform": "{{label}}: {{platform}} – {{description}}",
+    "withSlides": "{{vials}} · Slides {{slides}}"
+  },
   "cytologyInstrumentationSection": {
     "facility": {
       "emptyState": "No facility overrides — every facility uses the Enterprise default.",
@@ -8358,7 +8421,6 @@
       "waiting": "Waiting for hand-off"
     },
     "pageTitle": "Cytology Preparation",
-    "patientName": "{{given}} {{family}}",
     "scanPlaceholder": "Scan a container or decant barcode",
     "scanPrompt": "Scan a fluid, aliquot or cell block to prepare it."
   },
@@ -9070,8 +9132,6 @@
       "title": "Patient Cyto/Histo History",
       "viewCase": "View Case"
     },
-    "patientLine": "{{name}} · MRN {{mrn}}",
-    "patientUnknown": "Unknown Patient",
     "printBtn": "Print",
     "printCaseReportBtn": "Print case report",
     "printFailed": "The report PDF could not be made. Try again; if it keeps failing, tell your administrator.",
@@ -9526,7 +9586,6 @@
         }
       }
     },
-    "rowSubtitle": "Case {{caseId}} · MRN {{mrn}}",
     "screeningHours": {
       "cancel": "Cancel",
       "change": "Change",
@@ -9580,7 +9639,6 @@
       "unassignedPool": "Unassigned Pool"
     },
     "title": "Cytology Worklist",
-    "unknownPatient": "Unknown patient",
     "workload": {
       "leftFullDay": "{{left}} slides left in a full 8-hour day",
       "leftNow": "{{left}} slides left now (limit so far {{limit}}, {{hours}} h screened)",
@@ -10703,14 +10761,12 @@
         "biopsy": "Biopsy",
         "needleCore": "Needle Core"
       },
-      "dob": "DOB:",
       "flag": {
         "fragile": "Fragile",
         "requiresDecal": "Decal Required",
         "tinyTissue": "Tiny Tissue"
       },
       "matrixBlockOf": "Matrix block of specimens {{specimens}}",
-      "patient": "Patient:",
       "scanNext": "Scan next cassette →",
       "specimenBlock": "Specimen/Block:",
       "specimenType": "Type:",
@@ -11110,6 +11166,10 @@
       "modelPlaceholder": "e.g. Panther",
       "nameLabel": "Name",
       "namePlaceholder": "e.g. Panther 4",
+      "qcModeDefault": "The lab’s default (Stain & scan QC)",
+      "qcModeHintScanner": "How an image from this scanner is checked before the Pathologist can open it.",
+      "qcModeHintStainer": "How a run from this stainer is signed off before its slides are handed out.",
+      "qcModeLabel": "QC sign-off",
       "saveButton": "Save Changes",
       "serialLabel": "Serial Number",
       "serialPlaceholder": "Optional",
@@ -11717,6 +11777,7 @@
       "runFailed": "Instrument runs failed",
       "scanFailed": "Scan Failed",
       "scanning": "Scanning",
+      "stainQcPending": "Waiting for QC",
       "stainingActive": "Active Staining Batches",
       "statBatches": "STAT Batches",
       "statPending": "STAT Pending",
@@ -15341,6 +15402,7 @@
       "cutAndPlaced": "Cut & Placed",
       "pendingCut": "Pending Cut",
       "qcFailed": "QC Failed",
+      "qcPending": "Waiting for QC",
       "readyForReview": "Ready for Review",
       "recutRequested": "Recut Requested",
       "staining": "Staining"
@@ -15475,7 +15537,6 @@
     "context": {
       "accession": "Accession:",
       "blockComments": "Block comments",
-      "dob": "DOB:",
       "flag": {
         "fragile": "Fragile",
         "requiresDecal": "Decal Required",
@@ -15485,7 +15546,6 @@
       "matrixPosition": "Position {{n}}",
       "matrixSpecimen": "Specimen {{label}}",
       "noHistory": "No slides printed yet for this block.",
-      "patient": "Patient:",
       "pieceCount": "Piece count: ",
       "priorHistory": "Prior Slide History",
       "scanNext": "Scan next block/decant →",
@@ -15541,6 +15601,8 @@
     "hardware": {
       "allPrinted": "Every slide on this block has been printed.",
       "batch": "Batch",
+      "blockMode": "Block",
+      "blockModeHint": "Scanning a block prints all of its labels at once. Scan them back on the slides in any order.",
       "couldNotStart": "The print couldn't be started.",
       "deviceStatus": "Device Status",
       "fit": {
@@ -15556,6 +15618,8 @@
       "notConfigured": "This station isn't configured for real slide-label printing.",
       "onDemand": "On-Demand",
       "printBatch": "Print Batch",
+      "printBlock_one": "Print the block’s {{count}} label",
+      "printBlock_other": "Print the block’s {{count}} labels",
       "printMode": "Print Mode",
       "printNext": "Print/Etch Next",
       "profileMissing": "The configured printer profile no longer exists.",
@@ -15566,6 +15630,23 @@
         "offline": "Offline",
         "ready": "Ready"
       }
+    },
+    "labelScan": {
+      "awaiting": "Scan the label of {{slide}} on the slide to confirm the cut (or type it if the scanner is down).",
+      "awaitingMany": "Scan these labels on the slides, in any order (or type them if the scanner is down): {{slides}}",
+      "blocked": "Scan the label of {{slide}} before printing the next slide.",
+      "confirmed": "{{slide}} confirmed: cut from this block and recorded.",
+      "notPrinted": "{{slide}} has not been printed yet: print it first."
+    },
+    "lockout": {
+      "body": "Scan the remaining labels, or recut or void each slide, before going on to the next block.",
+      "continue": "Continue without them (logged)",
+      "held": "Finish this block’s labels first.",
+      "recut": "Recut (new label)",
+      "stay": "Stay on this block",
+      "title_one": "{{count}} label of block {{block}} has not been scanned yet",
+      "title_other": "{{count}} labels of block {{block}} have not been scanned yet",
+      "void": "Void slide"
     },
     "pageTitle": "Microtome Workstation",
     "printStatus": {
@@ -19598,7 +19679,7 @@
       "batchOption": "Batch (per case/order)",
       "description": "On-Demand prints each cassette label as it's logged during grossing. Batch defers all printing to an explicit, per-case bulk action.",
       "onDemandOption": "On-Demand (per block/container)",
-      "title": "Default Print Behavior"
+      "title": "Grossing Print Behavior"
     },
     "enabledLabel": "Enabled",
     "gs1Gtin": {
@@ -19611,6 +19692,15 @@
       "title": "Enforce On-Demand Guardrails"
     },
     "loading": "Loading print settings…",
+    "microtomeBehavior": {
+      "description": "How the Microtome prints slide labels, apart from Grossing. Every label is scanned back on its slide to confirm the cut. Until it is chosen here, the Microtome follows the Grossing setting.",
+      "options": {
+        "batch": "Batch: the technician ticks the slides and prints them together",
+        "block": "Block: scanning a block prints all of its labels; they are scanned back in any order",
+        "on_demand": "On-Demand: one label at a time; each is scanned before the next prints"
+      },
+      "title": "Microtome Print Behavior"
+    },
     "molecularPrinterProfile": {
       "description": "Same real hardware-bridge choice as above, for the Molecular Testing Execution Module's own plate, rack, specimen, and deck location labels.",
       "title": "Molecular Label Printer Profile"
@@ -21516,6 +21606,162 @@
     "sentToCodeReview": "Case sent to Code Review",
     "title": "Request Colleague Review"
   },
+  "requisitionIngestion": {
+    "addSource": "＋ Add source",
+    "enabled": "Read this source",
+    "expected": {
+      "graceHint": "Hours after accession with no requisition linked. 0 flags it at once. Never blocks the work.",
+      "graceHours": "Flag a case after (hours)",
+      "hint": "Which cases should have a scanned requisition. A case with none linked in time is flagged in the Requisition Inbox, shows “Requisition missing” on the case, and gets a Missing Requisition case deficiency. An electronic HIS order needs none by default: its order message is the request on record.",
+      "organisationDefault": "Organisation default",
+      "origins": "A scanned requisition is expected for",
+      "save": "Save expectations",
+      "scope": "Applies to",
+      "title": "Expected requisitions",
+      "unmatchedHint": "A requisition that matches no case for this long may mean a specimen not received, lost or not accessioned: it is marked in red and moved to the top of the Unmatched queue.",
+      "unmatchedHours": "Flag a scan with no case after (hours)",
+      "usesDefault": "This facility follows the organisation default until you save its own."
+    },
+    "facility": "Performing facility",
+    "facilityHint": "The laboratory whose scanner this is. Its scans wait in that facility’s queue, and only staff who work for it can see and resolve them. All facilities: for a scanner shared by every laboratory.",
+    "kind": "Where scans come from",
+    "kinds": {
+      "api": "A system that sends scans to the PathScribe API",
+      "documentSystem": "A third-party document system PathScribe reads at its address",
+      "fileShare": "A folder on the hospital network the scanner saves to"
+    },
+    "lastSaved": "Last saved {{when}} by {{name}}",
+    "loading": "Loading requisition ingestion…",
+    "location": {
+      "api": "Sending system",
+      "documentSystem": "System address (https)",
+      "fileShare": "Folder address"
+    },
+    "locationHint": {
+      "api": "The system’s name, as it identifies itself to the API.",
+      "documentSystem": "The https address of the system the scanner sends to (an ECM, the LIS document store, a scanning service). The server reads new scans there with the credentials set up on the API server; PathScribe keeps only the link to each file.",
+      "fileShare": "Where the scanner saves its PDFs: a network path such as \\\\server\\requisitions\\inbox, or an smb://, nfs://, file:// or https:// address. The server reads it; the browser never does."
+    },
+    "name": "Name",
+    "newSource": "New source: not saved yet",
+    "problem": "The settings could not be saved. Check the fields marked in red.",
+    "referenceOnly": "PathScribe keeps no copy of a scan: each case keeps a link to the file where it lives, the pages that belong to it, the barcode it was matched on, when, and from which source.",
+    "saved": "Saved.",
+    "schedule": "Look every (minutes)",
+    "scheduleHint": "From 1 to 1,440 minutes. The server runs it as a scheduled job.",
+    "separator": "Separator sheet barcode",
+    "separatorHint": "Print a sheet with this barcode and put it between requisitions in one batch scan. That page ends the requisition before it and is not kept with any case.",
+    "sources": "Sources",
+    "subtitle": "Where scanned requisitions come from, how often they are read, and the separator sheet between requisitions in one batch scan.",
+    "title": "Requisition ingestion"
+  },
+  "requisitions": {
+    "accession": {
+      "creating": "Creating a case for the scanned requisition:",
+      "linkFailed": "The scan could not be linked: link it from the Requisition Inbox.",
+      "linked": "The scanned requisition is linked to the new case"
+    },
+    "allFacilities": "All facilities",
+    "caseButton_one": "📄 Requisition",
+    "caseButton_other": "📄 Requisitions ({{count}})",
+    "caseTab": "Requisition {{n}}",
+    "discardReasons": {
+      "duplicateScan": "Duplicate scan",
+      "notARequisition": "Not a requisition",
+      "other": "Other",
+      "unreadable": "Unreadable scan"
+    },
+    "errors": {
+      "alreadyClosed": "This scan has already been linked or discarded.",
+      "noSuchCase": "No case found for {{accession}}.",
+      "notPermitted": "You don’t have permission for this.",
+      "runFailed": "Ingestion could not run. Try again."
+    },
+    "inbox": {
+      "backToAccession": "← Accession",
+      "discard": "Discard",
+      "discardReason": "Reason for discarding",
+      "everyFacility": "Every facility I work for",
+      "facilityFilter": "Facility",
+      "foundNone": "No case found. Check the accession, patient name or MRN on the scan, or create a new case from it.",
+      "foundTitle": "Cases found",
+      "ingestion": "Requisition ingestion",
+      "lastRun": "Last run {{when}}: {{files}} files, {{matched}} linked to cases, {{unmatched}} to the Unmatched queue, {{rejected}} refused.",
+      "link": "Link",
+      "linkPlaceholder": "Accession, patient name or MRN",
+      "newCase": "New case from this scan",
+      "noRunYet": "No run yet.",
+      "noSources": "No scanner is set up for your facilities. An administrator adds one in Configuration → System → Integrations → Requisition ingestion.",
+      "notRun": "Not run, as your role may not run ingestion for its facility: {{names}}",
+      "recentEmpty": "No requisitions linked yet.",
+      "recentTitle": "Recently linked",
+      "runNow": "Run ingestion now",
+      "running": "Reading scans…",
+      "serverRuns": "The server runs ingestion on its schedule.",
+      "sourceLine": "{{name}} · {{location}} · every {{minutes}} min",
+      "sourceOff": "not read (switched off)",
+      "subtitle": "Scanned requisitions are matched to their case by the accession barcode on the page and linked, not copied. A scan that matches no case waits here until someone links it to a case or discards it.",
+      "title": "Requisition Inbox",
+      "unmatchedEmpty": "Nothing waiting: every scan is linked to a case.",
+      "unmatchedTitle_one": "Unmatched Requisitions ({{count}})",
+      "unmatchedTitle_other": "Unmatched Requisitions ({{count}})"
+    },
+    "inboxLink": "📥 Requisition Inbox",
+    "matchedAutomatically": "Matched on its barcode",
+    "matchedByHand": "Linked by {{name}}",
+    "missing": {
+      "accessioned": "Accessioned {{when}}",
+      "deficiencyRaised": "A Missing Requisition deficiency has been raised for this case.",
+      "flagged": "Flagged: no requisition linked.",
+      "hint": "These cases should have a scanned requisition and none has been linked in time. Scan or type the accession on a queued scan to link it, or record why no paper requisition is coming.",
+      "linkHint": "Linking its scan clears this.",
+      "reason": "Why no paper requisition",
+      "title_one": "Cases waiting for a requisition ({{count}})",
+      "title_other": "Cases waiting for a requisition ({{count}})",
+      "waive": "No paper requisition"
+    },
+    "missingChip": "⚠ Requisition missing",
+    "origins": {
+      "downtime": "Downtime accession",
+      "electronic": "Electronic HIS/LIS order",
+      "lockbox": "Lockbox drop",
+      "manual": "Typed at Accession, no imported order",
+      "outside": "Outside / contract case"
+    },
+    "pageRange": "Pages {{from}}–{{to}}",
+    "pageSingle": "Page {{page}}",
+    "preview": {
+      "errors": {
+        "notPermitted": "You don’t have permission to view this requisition.",
+        "unreadable": "The scan can’t be reached where it is stored. Use Open PDF, or check the file is still there."
+      },
+      "loading": "Reading the scan…",
+      "openPdf": "Open PDF",
+      "pageAlt": "Requisition page {{page}}",
+      "title": "Scanned requisition"
+    },
+    "reason": {
+      "noBarcode": "No barcode could be read on this page",
+      "noMatch": "This barcode matches no case"
+    },
+    "rejected": {
+      "notPdf": "Refused: not a PDF (only PDFs are read)",
+      "unreadable": "Refused: the file could not be read"
+    },
+    "toast": {
+      "discarded": "Scan discarded. The file itself is not touched.",
+      "linked": "Requisition linked to {{accession}}.",
+      "waived": "Recorded: no paper requisition. The Missing Requisition deficiency is closed."
+    },
+    "view": "View",
+    "waiverReasons": {
+      "electronicOrder": "Electronic order on record",
+      "other": "Other",
+      "requestInAnotherRecord": "Request held in another record",
+      "verbalOrderDocumented": "Verbal order, documented"
+    },
+    "withoutCase": "No case yet: check for a specimen not received, lost or not accessioned"
+  },
   "researchCases": {
     "accessionPrefixes": "Accession prefixes",
     "active": "Active",
@@ -22253,6 +22499,8 @@
       "missing": "Missing",
       "printed": "Label printed",
       "received": "Received",
+      "sectioned": "Cut, label confirmed",
+      "typed": "Typed, not scanned",
       "unexpected": "Unexpected",
       "unloaded": "Taken out of carrier"
     },
@@ -22996,6 +23244,10 @@
       "release": {
         "dueSweep": "Held releases due"
       },
+      "requisition": {
+        "ingest": "Requisition ingestion",
+        "missingSweep": "Missing requisitions check"
+      },
       "supportAccess": {
         "expire": "Support access expiry"
       }
@@ -23381,6 +23633,8 @@
     "title": "Simulated print log",
     "toast": "Simulated: {{kind}} sent to {{destination}}. Nothing was printed.",
     "toastFailed": "Simulated failure: {{kind}} did not reach {{destination}}.",
+    "toastFailedRepeated": "Simulated failure: {{kind}} × {{count}} did not reach {{destination}}.",
+    "toastRepeated": "Simulated: {{kind}} × {{count}} sent to {{destination}}. Nothing was printed.",
     "transport": "Sent by",
     "when": "When"
   },
@@ -23663,9 +23917,13 @@
       "title": "Reason required"
     },
     "scanErrors": {
+      "blockHeldByQc": "Every slide of block {{block}} is held by QC ({{count}}). Sign off the run at the QC checkpoint first.",
       "blockNotFound": "Block {{block}} wasn’t found.",
       "noSlides": "Block {{block}} has no slides to distribute.",
       "notResolved": "That scan didn’t match a case, block or slide. Check the barcode and try again.",
+      "qcFailed": "Slide {{slide}} failed QC and is waiting to be re-stained.",
+      "qcPending": "Slide {{slide}} waits for QC sign-off and can’t be handed out yet.",
+      "recutRequested": "Slide {{slide}} failed QC and a re-cut has been requested.",
       "slideNotFound": "Slide {{slide}} wasn’t found.",
       "specimenNotFound": "The specimen wasn’t found on that case.",
       "unsupportedTarget": "This station takes block, matrix block and slide barcodes. Cell-block cassettes, decants and specimen barcodes aren’t supported yet."
@@ -23704,6 +23962,7 @@
     "referenceNote": "Reference preview. Not for diagnosis.",
     "state": {
       "available": "Image available",
+      "awaitingImageQc": "Waiting for image QC",
       "failedImageQuality": "Failed image quality",
       "noImageYet": "No image yet",
       "queued": "Queued",
@@ -24526,6 +24785,59 @@
       "vendorPlaceholder": "e.g. Ventana"
     }
   },
+  "stainQc": {
+    "actions": {
+      "recut": "Re-cut",
+      "restain": "Re-stain"
+    },
+    "errors": {
+      "failed": "That QC decision could not be saved. Reload and try again.",
+      "invalid": "Give every failed slide a follow-up and a reason.",
+      "notPermitted": "You don’t have permission for this QC decision. Ask your administrator."
+    },
+    "fail": "Fail",
+    "followUp": "Follow-up",
+    "hint": "Stained slides and scanned images wait here until their QC is signed off. A rack waiting for QC cannot be checked out, and its slides are not handed out.",
+    "imageLine": "Scanner {{scanner}} · scan batch {{batch}}",
+    "imageReasons": {
+      "debris": "Debris on the slide",
+      "other": "Other",
+      "outOfFocus": "Out of focus",
+      "stitching": "Stitching error",
+      "tissueMissed": "Tissue missed"
+    },
+    "imagesTitle_one": "Scanned image waiting for QC ({{count}})",
+    "imagesTitle_other": "Scanned images waiting for QC ({{count}})",
+    "modes": {
+      "autoAccept": "Auto-accept",
+      "pathscribeSignOff": "PathScribe sign-off",
+      "vendorSignOff": "Instrument sign-off (interface engine)"
+    },
+    "outcome": "QC result",
+    "pass": "Pass",
+    "reason": "Reason",
+    "reasons": {
+      "controlFailed": "Control failed",
+      "coverslipBubble": "Coverslip bubble",
+      "other": "Other",
+      "overStaining": "Over-staining",
+      "tissueFolded": "Folded tissue",
+      "uneven": "Uneven staining",
+      "weakStaining": "Weak staining"
+    },
+    "releaseImage": "Release to the Pathologist",
+    "rescan": "Scan again",
+    "runLine_one": "{{count}} slide · waiting since {{when}}",
+    "runLine_other": "{{count}} slides · waiting since {{when}}",
+    "signOffAllPassed": "Sign off: all slides passed",
+    "signOffInstead": "Sign off instead of the stainer",
+    "signOffWithFailures_one": "Sign off: {{count}} slide failed",
+    "signOffWithFailures_other": "Sign off: {{count}} slides failed",
+    "stainer": "Stainer",
+    "stainerUnknown": "Not recorded",
+    "title": "QC checkpoint",
+    "waitingForInstrument": "This stainer signs off its own runs through the interface engine. The run is released when its result arrives; a supervisor can sign it off here instead."
+  },
   "stainQcGateModal": {
     "confirmButton": "Confirm visual read checklist complete",
     "confirmedBadge": "Visual read confirmed by {{name}}.",
@@ -24535,18 +24847,61 @@
     "intro": "The stain batch(es) below require resolution before this case can be signed out.",
     "rowTitle": "Batch {{batchBarcode}} — {{specimenList}}"
   },
+  "stainQcSection": {
+    "columns": {
+      "instrument": "Instrument",
+      "kind": "Kind",
+      "mode": "QC sign-off"
+    },
+    "defaults": "Defaults",
+    "explain": {
+      "autoAccept": "the run or image is released as soon as it is done, with no sign-off (audited as auto-accepted).",
+      "pathscribeSignOff": "a technologist signs it off at the QC checkpoint on Slide Distribution (Option B).",
+      "vendorSignOff": "the instrument’s own QC result, sent through the interface engine, releases or holds it (Option A)."
+    },
+    "fromDefault": "the default",
+    "instruments": "Stainers and scanners",
+    "instrumentsHint": "Each instrument’s mode. Change one on Configuration → System → Equipment (QC sign-off).",
+    "loading": "Loading the QC settings…",
+    "noInstruments": "No stainer or slide scanner is in the equipment register yet.",
+    "save": "Save QC defaults",
+    "saved": "QC defaults saved.",
+    "scannerDefault": "Slide scanners",
+    "stainerDefault": "Stainers",
+    "subtitle": "The Post-Stain / Pre-Distribution QC checkpoint. Each stainer and scanner can have its own mode on the Equipment screen; the rest use these defaults.",
+    "title": "Stain & scan QC"
+  },
   "stationCarrier": {
-    "addToOutput": "Add printed slides to tray ({{count}})",
-    "andMore": "and {{count}} more",
+    "bench": {
+      "counter": "Unassigned slides on bench: {{count}}",
+      "hint": "Scan an open staining rack to put them all in it and seal it.",
+      "leaveWarning_one": "{{count}} slide on this bench is not in a staining rack yet. It stays on this station’s bench until a rack is scanned. Leave anyway?",
+      "leaveWarning_other": "{{count}} slides on this bench are not in a staining rack yet. They stay on this station’s bench until a rack is scanned. Leave anyway?",
+      "noneAdded": "None of the slides on the bench could go into {{barcode}}; {{count}} still on the bench.",
+      "slideOnBench": "{{item}} confirmed and placed on the bench ({{count}} waiting for a rack).",
+      "someLeft_one": "{{count}} slide could not go into {{barcode}} and is still on the bench.",
+      "someLeft_other": "{{count}} slides could not go into {{barcode}} and are still on the bench."
+    },
+    "checkOffPrompt": "Check off {{item}} by hand. Why?",
+    "checkOffReasons": {
+      "labelDamaged": "Label damaged",
+      "labelUnreadable": "Label unreadable",
+      "scannerDown": "Scanner not working"
+    },
+    "checkOffTitle": "Label won’t scan? Check it off by hand",
     "chooseStation": "This computer's station",
     "close": "Close",
     "dismiss": "Dismiss",
     "finish": "Finish unloading",
+    "itemArrived": "✓ Arrived",
+    "itemWaiting": "To scan",
+    "itemsLabel": "Items in this carrier",
     "listLabel": "Open carriers for this station",
     "noStation": "This computer has no scan station set, so scans here are not recorded and carriers can't be opened here. Choose this computer's station.",
     "noneHere": "No open carriers for this station.",
     "notice": {
-      "addedToOutput": "Slides added to {{barcode}}: {{count}}.",
+      "blockIntoTray": "{{item}} placed in {{barcode}}.",
+      "checkedOffByHand": "{{item}} checked off {{barcode}} by hand; the reason is recorded.",
       "closedAborted": "{{barcode}} is closed: it was aborted on {{at}}.",
       "closedComplete": "{{barcode}} is closed: it was completed on {{at}}.",
       "finished": "Unloading of {{barcode}} finished.",
@@ -24556,13 +24911,21 @@
       "opened": "{{barcode}} opened here. Items in it: {{count}}.",
       "openedAdHoc": "{{barcode}} opened here, and this station was recorded as its workstation. Items in it: {{count}}.",
       "openedMismatch": "{{barcode}} opened here although it belongs to another step. This was recorded.",
+      "outputClosedWithLoaded_one": "{{barcode}} sealed with {{count}} item and sent on. {{loaded}} is complete.",
+      "outputClosedWithLoaded_other": "{{barcode}} sealed with {{count}} items and sent on. {{loaded}} is complete.",
+      "outputClosed_one": "{{barcode}} sealed with {{count}} item and sent on.",
+      "outputClosed_other": "{{barcode}} sealed with {{count}} items and sent on.",
       "outputSet": "{{barcode}} is now the output tray.",
       "sealed": "{{barcode}} sealed. Items in it: {{count}}.",
+      "slideIntoRack": "{{item}} confirmed and placed in {{barcode}}.",
       "unexpectedKept": "{{item}} kept, and recorded as unexpected in {{barcode}}.",
       "unknown": "No carrier has the barcode {{barcode}}."
     },
     "openInBatchManagement": "Open in Batch Management",
     "outputHint": "Scan an open {{node}} carrier to use it as the output tray for cut slides.",
+    "outputHintEmbedding": "Scan an open {{node}} carrier to collect the embedded blocks in it for the Microtome.",
+    "outputHintMicrotomy": "Scan an open {{node}} rack first to fill it slide by slide, or cut first and scan the rack at the end: every slide on the bench goes into it and it is sealed.",
+    "outputRescanHint": "When {{barcode}} is full, scan it again to seal it and send it on.",
     "outputTray": "Output tray",
     "pending": {
       "continueAnyway": "Continue anyway",
@@ -24571,12 +24934,17 @@
       "wrongItem": "{{item}} is not in carrier {{barcode}}. Continue anyway? It will be recorded as unexpected."
     },
     "progress": "{{matched}} of {{total}} scanned off",
+    "rack": {
+      "closeLastRun": "Close last run and start a new one",
+      "newRun": "{{barcode}} started a new staining run here. Load the slides, then scan the rack again when it is full to close it.",
+      "notClosed_one": "The last run on {{barcode}} ({{count}} slide, {{at}}) was never closed. Close it before using the rack again, or open it in Batch Management.",
+      "notClosed_other": "The last run on {{barcode}} ({{count}} slides, {{at}}) was never closed. Close it before using the rack again, or open it in Batch Management."
+    },
     "routedHere": "Routed here",
     "scanToUnload": "Scan each item as you take it out of the carrier.",
     "seal": "Seal manifest",
     "sealed": "Sealed",
     "stationLine": "Station: {{station}}",
-    "stillToScan": "Still to scan: {{items}}",
     "title": "Carriers at this station",
     "unexpectedCount_one": "{{count}} unexpected item scanned",
     "unexpectedCount_other": "{{count}} unexpected items scanned",
@@ -24584,9 +24952,9 @@
   },
   "stationScan": {
     "backToScanning": "Back to scanning (hide the keyboard)",
-    "backToScanningShort": "⌨ Scan",
+    "backToScanningShort": "⌨ Hide keyboard",
     "typeAnId": "Type an ID with the on-screen keyboard",
-    "typeAnIdShort": "⌨ Type"
+    "typeAnIdShort": "⌨ Keyboard"
   },
   "stationSwitch": {
     "discardedAndSwitched": "📍 Discarded changes and switched to {{station}}.",
@@ -25881,6 +26249,7 @@
       "qaTrendPolicy": "Discordance Trend Policy",
       "reagentLots": "Reagent & Solution Lots",
       "releaseBuffer": "Post-Sign-Out Release Buffer",
+      "requisitionIngestion": "Requisition ingestion",
       "researchCases": "Research Cases & Batch Purposes",
       "researchFeed": "Research Feed",
       "retention": "Data Retention",
@@ -25895,6 +26264,7 @@
       "siteAgents": "Site agents",
       "smartCapture": "Smart Capture",
       "specimens": "Specimen Dictionary",
+      "stainQc": "Stain & scan QC",
       "stains": "Diagnostic Catalog",
       "subspecialties": "Subspecialties",
       "supportAccess": "Support Access",

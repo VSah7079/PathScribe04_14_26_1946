@@ -563,3 +563,15 @@ Batch 750: `SLIDE_IMAGES.md` (new): no viewer in PathScribe; the slide image set
 ## Batch 751
 
 Batch 751: `ORGAN_MAPPING_API.md` ("Assist cases": no map in an Assist report; organ map delivery to the laboratory system, the `organ_map` LIS message, the setting's route and `config:organ-map-delivery:manage`), `SYNOPTIC_RESULT_API.md` (4a, the map in the Assist result), `AUTHORIZATION_API.md`.
+
+Batch 757: `STATION_TRACKING_API.md` adds the `sectioned` action.
+
+Batch 758: `STATION_TRACKING_API.md`: the `missing` note for a label left unscanned past the block lockout, and the Microtome bench per station (Planned).
+
+Batch 759: `STATION_TRACKING_API.md` adds the `typed` action (the Manual Entry flag).
+
+Batch 761: `CASE_WORKFLOWS_API.md`: `getByMasterBarcode` returns a reusable rack's open run.
+
+Batch 762: `REQUISITION_INGESTION_API.md` (new: the requisition ingestion job, calls and audit); `AUTHORIZATION_API.md` (five requisition capabilities); `MESSAGE_BUS_API.md` (`requisition.ingest`).
+
+Batch 763: `STAIN_QC_API.md` (new: the stain and scanner QC gate, its calls, the stainer's sign-off event and audit); `AUTHORIZATION_API.md` (four QC capabilities); `INTERFACE_TRANSACTIONS.md` (the stainer's sign-off).

@@ -56,13 +56,10 @@ import { hpvSpecimenOf, useManualHpvResult } from './hooks/useManualHpvResult';
 import CsmsEligibilityActions from './components/CsmsEligibilityActions';
 import { hpvTriageRowStatus } from '@/services/cytology/hpvTriageRowStatus';
 import type { Case } from '@/types/case/Case';
-import { formatDisplayNameForLanguage, resolvePatientNameValue } from '@/utils/personName';
-// Batch 744: a row's name from either name shape (seeded patients carry firstName/lastName, not givenNames/familyNames,
-// so every row showed its MRN instead of the name).
-const patientRowName = (patient: unknown, language: string): string => {
-  const name = resolvePatientNameValue(patient as never);
-  return name ? formatDisplayNameForLanguage(name, language) : '';
-};
+// Batch 760 (Cytology spec §2.1): rows name the case by accession, vial type and slides (the patient's name shown
+// here since Batch 744 is gone).
+import CytologyIdentityLine from '@/components/Cytology/CytologyIdentityLine';
+import { cytologyCaseIdentity } from '@/services/cytology/cytologyBenchIdentity';
 import { useSynopticFlags } from '@/pages/Synoptic/useSynopticFlags';
 import FlagManagerModal from '@/components/Flags/FlagManagerModal';
 import { openComposeTo } from '@/utils/openComposeTo';
@@ -125,7 +122,7 @@ const EMPTY_KEY: Record<Tab, string> = {
 const CytologyWorklistPage: React.FC = () => {
   const { user } = useAuth();
   const openCasePage = useOpenCase();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   // Real, per direct guidance's own explicit spec: "Home > Cytology
   // Workspace" breadcrumb navigation across Cytology sub-routes —
   // reuses the app's own real, existing BreadcrumbContext mechanism
@@ -342,8 +339,8 @@ const CytologyWorklistPage: React.FC = () => {
                 {triageRows.map((c, i) => (
                   <div key={c.id} className={`ps-cytoworklist-row ${i === triageRows.length - 1 ? 'ps-cytoworklist-row--last' : ''}`}>
                     <div className="ps-cytoworklist-row-main">
-                      <div className="ps-cytoworklist-row-title" data-phi="name">{patientRowName(c.patient, i18n.language) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
-                      <div className="ps-cytoworklist-row-subtitle" data-phi="true">{t('cytologyWorklist.rowSubtitle', { caseId: c.id, mrn: c.patient?.mrn ?? '—' })}</div>
+                      <div className="ps-cytoworklist-row-title" data-phi="accession">{cytologyCaseIdentity(c).accession}</div>
+                      <CytologyIdentityLine className="ps-cytoworklist-row-subtitle" identity={cytologyCaseIdentity(c)} />
                     </div>
                     <span className="ps-cytoworklist-badge ps-cytoworklist-badge--violet">{t(`cytologyWorklist.badges.${hpvTriageRowStatus(c.specimens)}`)}</span>
                     <div className="ps-cytoworklist-row-actions">
@@ -387,8 +384,8 @@ const CytologyWorklistPage: React.FC = () => {
                 {recallRows.map((c, i) => (
                   <div key={c.id} className={`ps-cytoworklist-row ${i === recallRows.length - 1 ? 'ps-cytoworklist-row--last' : ''}`}>
                     <div className="ps-cytoworklist-row-main">
-                      <div className="ps-cytoworklist-row-title" data-phi="name">{patientRowName(c.patient, i18n.language) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
-                      <div className="ps-cytoworklist-row-subtitle" data-phi="true">{t('cytologyWorklist.rowSubtitle', { caseId: c.id, mrn: c.patient?.mrn ?? '—' })}</div>
+                      <div className="ps-cytoworklist-row-title" data-phi="accession">{cytologyCaseIdentity(c).accession}</div>
+                      <CytologyIdentityLine className="ps-cytoworklist-row-subtitle" identity={cytologyCaseIdentity(c)} />
                       {(() => { const j = recallJurisdictions[c.id] ?? systemConfig.jurisdiction; const recall = selfCollectedRecallOfSpecimens(c.specimens, j, isRecallJurisdiction(j) ? recallWindows[j] : DEFAULT_RECALL_WINDOWS); return recall ? <SelfCollectedRecallDetail recall={recall} wording={recallWording} /> : null; })()}
                     </div>
                     <span className="ps-cytoworklist-badge ps-cytoworklist-badge--red-strong">
@@ -409,8 +406,8 @@ const CytologyWorklistPage: React.FC = () => {
                   <div key={c.id} className={`ps-cytoworklist-row ps-cytoworklist-row--clickable ${i === scansCompletedRows.length - 1 ? 'ps-cytoworklist-row--last' : ''}`}
                     {...pressable(() => void openCasePage(c.id, 'cytology'))}>
                     <div className="ps-cytoworklist-row-main">
-                      <div className="ps-cytoworklist-row-title" data-phi="name">{patientRowName(c.patient, i18n.language) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
-                      <div className="ps-cytoworklist-row-subtitle" data-phi="true">{t('cytologyWorklist.rowSubtitle', { caseId: c.id, mrn: c.patient?.mrn ?? '—' })}</div>
+                      <div className="ps-cytoworklist-row-title" data-phi="accession">{cytologyCaseIdentity(c).accession}</div>
+                      <CytologyIdentityLine className="ps-cytoworklist-row-subtitle" identity={cytologyCaseIdentity(c)} />
                     </div>
                     <span className="ps-cytoworklist-badge ps-cytoworklist-badge--green">{t('cytologyWorklist.badges.scanComplete')}</span>
                   </div>
@@ -430,7 +427,9 @@ const CytologyWorklistPage: React.FC = () => {
               {visible.map((row, i) => {
                 const c = row.caseData;
                 const hasFinalDiagnosis = row.hasFinalDiagnosis;
-                const title = patientRowName(c.patient, i18n.language) || c.patient?.mrn || t('cytologyWorklist.unknownPatient');
+                // Batch 760 (Cytology spec §2.1): the row names the case by accession, vial type and slides, never the patient.
+                const identity = cytologyCaseIdentity(c);
+                const title = identity.accession;
                 return (
                   <div key={c.id}
                     // Batch 565: a pool row isn't clickable. Batch 566: these rows hold buttons of their own (flags,
@@ -440,16 +439,14 @@ const CytologyWorklistPage: React.FC = () => {
                     className={`ps-cytoworklist-row ${activeTab !== 'pool' ? 'ps-cytoworklist-row--clickable' : 'ps-cytoworklist-row--static'} ${i === visible.length - 1 ? 'ps-cytoworklist-row--last' : ''}`}>
                     <div className="ps-cytoworklist-row-main">
                       {activeTab !== 'pool' ? (
-                        <button type="button" className="ps-cytoworklist-row-title ps-cytoworklist-row-open" data-phi="name"
+                        <button type="button" className="ps-cytoworklist-row-title ps-cytoworklist-row-open" data-phi="accession"
                           onClick={e => { e.stopPropagation(); void openCasePage(c.id, 'cytology'); }}>
                           {title}
                         </button>
                       ) : (
-                        <div className="ps-cytoworklist-row-title" data-phi="name">{title}</div>
+                        <div className="ps-cytoworklist-row-title" data-phi="accession">{title}</div>
                       )}
-                      <div className="ps-cytoworklist-row-subtitle" data-phi="true">
-                        {t('cytologyWorklist.rowSubtitle', { caseId: c.id, mrn: c.patient?.mrn ?? '—' })}
-                      </div>
+                      <CytologyIdentityLine className="ps-cytoworklist-row-subtitle" identity={identity} />
                     </div>
                     {activeTab === 'qc' && (
                       <span className="ps-cytoworklist-badge ps-cytoworklist-badge--red">

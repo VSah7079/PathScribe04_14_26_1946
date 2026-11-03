@@ -1,6 +1,8 @@
 // src/pages/SynopticReportPage/components/HeaderBar.tsx
 // Rich case header — white bar with accession, patient info, progress steps.
 
+import { ForeignIdTag } from '@/components/Workstation/BenchIdentity';
+import { CaseRequisitionLink } from '@/components/Requisitions/CaseRequisitionLink';
 import { useOpenCase } from '@/hooks/useOpenCase';
 import { RegistryOptOutBadge } from '@/components/Common/RegistryOptOutBadge';
 import { NhsNumberBadge } from '@/components/Common/NhsNumberBadge';
@@ -363,6 +365,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
         {/* Left: accession + patient + priority */}
         <div className="ps-hb-compact-left">
           <span className="ps-hb-compact-acc" data-phi="accession">{accession}</span>
+          <ForeignIdTag order={caseData?.order} />
           <span className="ps-hb-compact-sep">·</span>
           <span className="ps-hb-compact-patient" data-phi="name">{patient}</span>
           {caseData?.patient?.dateOfBirth && (
@@ -578,6 +581,10 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
           <div className="ps-hb-accession">
             <div className="ps-hb-field-label">{t('headerBar.field.accession')}</div>
             <div className="ps-hb-accession-number" data-phi="accession">{accession}</div>
+            {/* Batch 759 (Patient Verification spec §2.1): an outside case's Foreign Identifier, beside the accession, for good. */}
+            <ForeignIdTag order={caseData?.order} />
+            {/* Batch 762: the scanned requisition linked to this case (case:requisition:view). */}
+            <CaseRequisitionLink caseId={caseData?.id} accession={caseData?.accession?.fullAccession} />
             {hospital && (
               <div className="ps-hb-hospital-sublabel">
                 {hospital.shortName} · {hospital.country === 'UK' ? 'NHS' : hospital.country}

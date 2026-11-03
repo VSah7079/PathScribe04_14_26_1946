@@ -21,7 +21,7 @@ import { SUPPORT_REFERENCE_IN_TEXT } from './supportReferenceRules';
  */
 export const SUPPORT_ROUTE_PATTERNS: readonly string[] = [
   '/', '/login', '/auth/callback/:providerId', '/or-suite-dashboard', '/facility-ops-dashboard', '/window-position',
-  '/consult', '/consult/:token', '/critical-alert/:token', '/accession', '/worklist', '/pathology-workspace',
+  '/consult', '/consult/:token', '/critical-alert/:token', '/accession', '/accession/requisitions', '/worklist', '/pathology-workspace',
   '/quality-compliance', '/cytology-worklist', '/cytology-worklist/:caseId', '/molecular',
   '/molecular-batch/:batchId', '/molecular-rack', '/molecular-rack/:rackId', '/molecular-control-rules',
   '/dev/mock-interface-engine', '/quality-assurance', '/batch-management', '/batch-management/disposal',

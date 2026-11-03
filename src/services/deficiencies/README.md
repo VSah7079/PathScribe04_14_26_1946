@@ -75,3 +75,7 @@ Batch 616 (part D, PS-501): server versions of DeficiencyTypeService, Resolution
 **Batch 655:** a store that fails or throws, or an Engine endpoint that errors, returns `failed`; no audit entry is written.
 
 Batch 659: `submitManagementReview` (capability `qa:management-review:submit`); refusals return an outcome the screen shows inside the window.
+
+## Batch 762
+
+`mockResolutionTypeService.ts`: resolution `res-requisition-received` (Requisition Received or Not Required), used when PathScribe closes a Missing Requisition deficiency it raised; seeds added later are added to a stored list.

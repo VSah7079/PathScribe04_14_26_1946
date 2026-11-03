@@ -1,3 +1,7 @@
+**Batch 759:** `case/OriginatingCase.ts`, `case/AiFieldSuggestion.ts` (new).
+
+**Batch 758:** `case/Specimen.ts`: Damaged Section as a reprint reason.
+
 **Batch 754:** `ProtocolDefinition.ts` deleted with the unused `src/protocols/` editor (`DELETED_FILES.txt`).
 
 **Batch 742:** `caseAttachments/CaseAttachment.ts` (new): a case attachment is a pointer (object key or permanent URL), never a file; Pete's `source_type` enum and the three accepted file types.

@@ -13,12 +13,13 @@ import { useNavigate } from 'react-router';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { useStationSlidePrinter } from '@/hooks/useStationSlidePrinter';
-import { formatDate } from '@/utils/formatDate';
 import { resolveSlideLabelFitWarnings } from '@/utils/labels/resolveSlideLabelFitWarnings';
 import { computeNextUnprintedStain } from '@/utils/microtomyOperations';
 import { decantTypeText } from '@/utils/decantTypeText';
 import { StationScanField } from '@/components/Workstation/StationScanField';
 import ScanTrailPanel from '@/components/Workstation/ScanTrailPanel';
+import { ForeignIdTag, TypedEntryCheck } from '@/components/Workstation/BenchIdentity';
+import { useTypedEntryCheck } from '@/hooks/useTypedEntryCheck';
 import { useMicrotomyWorkstation } from '../MicrotomyWorkstationPage/hooks/useMicrotomyWorkstation';
 import SlideGridPanel from '../MicrotomyWorkstationPage/components/SlideGridPanel';
 import HardwarePrintPanel from '../MicrotomyWorkstationPage/components/HardwarePrintPanel';
@@ -33,7 +34,7 @@ import '../MicrotomyWorkstationPage/MicrotomyWorkstationPage.css';
 import './CytologyPrepStationPage.css';
 
 const CytologyPrepStationPage: React.FC = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const requirements = useFieldRequirements('microtomy');
   const { pushCrumb } = useBreadcrumb();
@@ -68,7 +69,8 @@ const CytologyPrepStationPage: React.FC = () => {
   const nextUnprinted = computeNextUnprintedStain(stains);
   const previewStain = w.printMode === 'on_demand' ? nextUnprinted : stains.find(s => w.batchSelection.has(s.id));
   const cellBlocks = item ? (item.specimen.decants ?? []).filter(d => d.decantType === 'cell_block') : [];
-  const patient = item?.caseData.patient as { givenNames?: string; familyNames?: string; firstName?: string; lastName?: string; dateOfBirth?: string } | undefined;
+  // Batch 759 (spec §2.2, §3): after a typed entry, the identifiers to check against the container.
+  const typedEntry = useTypedEntryCheck([item?.caseData.accession?.fullAccession, item?.caseData.id]);
 
   return (
     <div className="ps-microtomy-page">
@@ -88,13 +90,14 @@ const CytologyPrepStationPage: React.FC = () => {
         <>
           <div className="ps-microtomy-context-bar">
             <span>{t('microtomyWorkstation.context.accession')} <strong data-phi="accession">{item.caseData.accession?.fullAccession ?? item.caseData.id}</strong></span>
-            <span>{t('microtomyWorkstation.context.patient')} <strong data-phi="name">{t('cytologyPrep.patientName', { given: patient?.givenNames ?? patient?.firstName ?? '', family: patient?.familyNames ?? patient?.lastName ?? '' })}</strong></span>
-            <span>{t('microtomyWorkstation.context.dob')} <strong data-phi="dob">{patient?.dateOfBirth ? formatDate(patient.dateOfBirth, i18n.language) : '—'}</strong></span>
+            {/* Batch 759 (Patient Verification spec §1): no patient name, date of birth or MRN at the bench; an outside case shows its Foreign Identifier. */}
+            <ForeignIdTag order={item.caseData.order} items={[item.decant, item.specimen]} />
             <span>{t('cytologyPrep.decant')} <strong>{t('cytologyScreening.materialDrawer.decantHeading', { label: `${item.specimen.label}${item.decant.label}`, type: decantTypeText(t, item.decant) })}</strong></span>
             <span>{t('microtomyWorkstation.context.specimenType')} <strong>{item.specimen.description ?? '—'}</strong></span>
             <span className="ps-ml-auto"><StationScanField compact onScan={handleScan} placeholder={t('cytologyPrep.scanPlaceholder')} submitLabel={t('microtomyWorkstation.scanSubmit')} /></span>
             <button type="button" className="ps-microtomy-row-btn" onClick={() => { w.clearWorkItem(); handoff.clearMessage(); }}>{t('microtomyWorkstation.context.scanNext')}</button>
           </div>
+          {typedEntry && <TypedEntryCheck accession={item.caseData.accession?.fullAccession ?? item.caseData.id} source={t('benchIdentity.specimenSource', { label: item.specimen.label, description: item.specimen.description ?? '—' })} />}
           {w.scanError && <div className="ps-microtomy-scan-error" role="alert">{w.scanError}</div>}
           {w.saveError && <div className="ps-microtomy-save-error" role="alert">{w.saveError}</div>}
           {w.printNotice && <div className="ps-microtomy-save-error" role="alert">{w.printNotice}</div>}

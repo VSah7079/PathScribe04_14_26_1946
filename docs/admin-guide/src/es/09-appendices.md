@@ -472,3 +472,4 @@ Para una revisión rutinaria de un periodo de muestra, siga estos pasos.
 5. Abra la pestaña **Registro de errores**, filtre por **Solo abiertos** y compruebe que no queda sin resolver nada importante.
 6. Abra [Acceso de soporte](#screen-support_access) y confirme que la línea de la cadena indica que está íntegra; lea las entradas del periodo.
 7. Exporte el CSV del Registro de auditoría del periodo y conserve el archivo con sus notas de revisión. La propia exportación queda registrada.
+8. Busque `Manual Entry` para ver los identificadores escritos en lugar de escaneados (Batch 759). Cada entrada indica el módulo, lo escrito, el usuario y el puesto, y enlaza con el caso. Muchas entradas en un mismo puesto pueden indicar un escáner averiado o etiquetas dañadas.

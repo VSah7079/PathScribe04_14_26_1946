@@ -40,7 +40,7 @@ The page has a header (case, patient and a row of buttons), several bars and ban
 | Item | What it means |
 |---|---|
 | Case *number* | The case reference. |
-| Patient name, MRN | The patient. A badge shows the patient's registry opt-outs when there are any. |
+| Vial type, slides | Batch 760 (Cytology Workspace spec): the screen shows no patient name, date of birth or MRN, so nothing of the patient is readable on an open screening monitor. Under the case number it shows each specimen's vial type and description and up to three slide ids, for example "A: ThinPrep – Cervical · Slides …". A badge shows the patient's registry opt-outs when there are any. **Ask a Colleague** names the case by its accession. |
 | LMP | Last menstrual period. Type or pick a date; it saves when you leave the box. Required (marked *) on a GYN specimen if your laboratory requires it for the review. |
 
 **Specimen tabs**
@@ -208,7 +208,7 @@ Sign-out has no key or spoken command on purpose, so a misheard command cannot s
 
 **Screen a GYN case as a cytotechnologist.**
 
-1. Select the case on the Cytology Worklist. The page opens. Check the patient name and MRN against the slide label.
+1. Select the case on the Cytology Worklist. The page opens. Check the accession and the slide id against the slide label.
 2. Read the left column. Note the HPV card, the patient history and any banner above the columns.
 3. Choose your **Review Mode** if you are a cytotechnologist and it is not "Full Manual Screen".
 4. In the form, choose the **Specimen Adequacy**. If it is unsatisfactory, a cytotechnologist cannot sign out this specimen.

@@ -30,6 +30,8 @@ describe('Batch 600 default grants', () => {
     expect(DEFAULT_ROLE_PERMISSIONS['Histotechnologist']['workstation.slideCheckout']).toBe(true);
     expect(DEFAULT_ROLE_PERMISSIONS['Physician']['report.saveDraft']).toBeUndefined();
     expect(SEEDED_ACTION_IDS.filter(id => !DEFAULT_ROLE_PERMISSIONS['Superadmin'][id])).toEqual([]);
+    // Batch 763 rule: Superadmin starts with every command in the Action list, whatever batch added it.
+    expect(ACTION_GROUPS.flatMap(g => g.actions.map(a => a.id)).filter(id => !DEFAULT_ROLE_PERMISSIONS['Superadmin'][id])).toEqual([]);
   });
   it('only Admin may delete a worklist row, and only Admin and Lab Director dispatch', () => {
     const holders = (id: string) => Object.entries(DEFAULT_ACTION_GRANTS).filter(([, ids]) => ids.includes(id as never)).map(([n]) => n).sort();
@@ -67,8 +69,10 @@ describe('applyActionSeeds', () => {
     expect(changed).toBe(false);
     expect(roles[0]).toBe(custom);
   });
-  it('offers Superadmin all 145 and roles with no grants nothing', () => {
-    expect(applyActionSeeds([role('superadmin')]).roles[0].seededActions).toHaveLength(145);
+  it('offers Superadmin every command in the Action list (Batch 763 rule) and roles with no grants nothing', () => {
+    const offered = applyActionSeeds([role('superadmin')]).roles[0].seededActions ?? [];
+    expect(offered).toEqual(ACTION_GROUPS.flatMap(g => g.actions.map(a => a.id)));
+    expect(offered).toEqual(expect.arrayContaining(['requisition.runNow', 'lockbox.open', 'grossing.printCassettes']));
     expect(applyActionSeeds([role('physician')]).changed).toBe(false);
   });
 });

@@ -32,6 +32,8 @@
 // different real event type from the same real molecular-run
 // lifecycle.
 //
+// Batch 759 (Patient Verification spec §1): the MRN column is gone; the bench identifies each specimen by its
+// accession and specimen label.
 // i18n note: `sp.accessionNumber`/`.specimenLabel`/`.patientMrn`,
 // `batch.instrumentId`/`.assayName`/`.reagentLotNumber`/
 // `.totalSamplesRun` are all real, interface-engine-sourced data —
@@ -138,7 +140,6 @@ const MolecularBatchManagementPage: React.FC = () => {
                                       <tr>
                                         <th className="ps-conf-th">{t('cytologyQaTab.headers.accession')}</th>
                                         <th className="ps-conf-th">{t('qualityAssurance.common.specimen')}</th>
-                                        <th className="ps-conf-th">{t('cytologyQaTab.histologyTable.patientMrn')}</th>
                                       </tr>
                                     </thead>
                                     <tbody>
@@ -146,7 +147,6 @@ const MolecularBatchManagementPage: React.FC = () => {
                                         <tr key={sp.specimenId} className="ps-conf-tr">
                                           <td className="ps-conf-td" data-phi="accession">{sp.accessionNumber ?? '—'}</td>
                                           <td className="ps-conf-td">{sp.specimenLabel}</td>
-                                          <td className="ps-conf-td" data-phi="mrn">{sp.patientMrn ?? '—'}</td>
                                         </tr>
                                       ))}
                                     </tbody>

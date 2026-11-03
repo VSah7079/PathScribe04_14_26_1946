@@ -1,3 +1,5 @@
+**Batch 759:** `originatingCase.ts` (new): the originating case typed at Accession as saved on the case (`order.originatingCase`), or nothing without a case number.
+
 **Batch 755b (part 2):** lung (S26-4403, S26-4491, S26-4493, HFHS26-1004; O26-0024 in the orchestrator seed), kidney (S26-4482), melanoma (S26-4420), local excision (MFT26-8803) and prostatectomy (MPA26-1003) cases: answers agree with the reworded checklists and their written findings; written findings in real words.
 
 **Batch 755b (part 1):** the breast demo cases answer "no special type" and carry real stage and DCIS text; MFT26-8801, MFT26-8805 and MFT26-8802 findings and answers agree with the UK-layout wording; PATH-UK-001 is the fictional Dr. Imogen Hartley; fictional patients' NHS numbers are in the NHS test range and their emails `@example.org`.
@@ -446,3 +448,7 @@ Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): grossing-assignment w
 ## Batch 751
 
 Seed row S15: `demoAssistMapCase.ts` (new: S26-5405, an Assist rectal resection with the colon checklist fully answered and its rectal map, finalised, map file delivered; S26-5406, its map file delivery failed), `demoProstatectomyMapCase.ts` with `demoProstatectomyMapFigure.json` (new: S26-5407, Dr. Sarah Johnson's radical prostatectomy with the map already in its report, made by Insert into report). `mockCaseService.ts`: S26-4404 and S26-4463 are Orchestrator cases (Video 9 puts their maps in the report); `MOCK_VERSION` 71. `demoSignOutReadyCase.ts` exports its colon answers (`SIGN_OUT_READY_COLON_ANSWERS`).
+
+## Batch 756
+
+`caseByAccession.ts` (new): `caseByAccessionNumber()`, the one case whose accession number is the entry. `CaseRouter.getCase()` falls back to it in both stores when the id finds nothing, so the Grossing queue lists it, and a cassette, block or slide scan finds it by the accession number on its label (S26-0001), not only by its internal id (O26-0031) (access is still checked by getCase). Test: `caseByAccession.test.ts`.

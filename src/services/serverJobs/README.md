@@ -44,3 +44,7 @@ A job that fails for good is dead-lettered. The **Server jobs** view (System Log
 ## Batch 605
 
 `simulatedServerJobsApi.ts` stands in for the server jobs API in the demo: jobs show a Simulated badge and run against browser stand-ins. `createServerJobsService({api, simulatedApi})` reports `simulated` when only the simulated API is present.
+
+## Batch 762
+
+`RECURRING_JOBS` gains `requisition.ingest` (each source's own schedule; `REQUISITION_INGESTION_API.md` §2).

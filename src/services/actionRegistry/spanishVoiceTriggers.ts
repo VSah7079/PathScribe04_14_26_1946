@@ -36,6 +36,8 @@ export const SPANISH_VOICE_TRIGGERS: Readonly<Record<string, readonly string[]>>
   GROSSING_TAKE_PHOTO: ['tomar una foto', 'foto macroscópica', 'capturar foto'],
   GROSSING_ASSIGN_DECAL: ['enviar a descalcificación', 'asignar a descalcificación', 'banco de descalcificación'],
   GROSSING_ADD_ON_ORDER: ['pedido complementario', 'abrir el generador de complementos', 'pedir complementos'],
+  // Batch 762: Requisition Inbox
+  REQUISITION_RUN_NOW: ['ejecutar la incorporación ahora', 'leer los volantes escaneados', 'buscar volantes nuevos'],
   // Batch 645: Lockbox Drop-Off
   OPEN_LOCKBOX_DROP_OFF: ['abrir entrega en lockbox', 'ir a entrega en lockbox', 'entrega en lockbox'],
   LOCKBOX_FOCUS_SCAN: ['campo de escaneo', 'activar el campo de escaneo', 'listo para escanear'],

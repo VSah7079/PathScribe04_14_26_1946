@@ -1,3 +1,5 @@
+**Batch 758:** System → Print Settings: Microtome Print Behavior, apart from Grossing's.
+
 **Batch 755a:** Synoptic Library: demonstration checklists show the "Demo wording" tag and offer no Duplicate or New Version; Build / Customise leaves them out (see `Protocols/`).
 
 **Batch 754:** `Protocols/`: the Demonstration checklists card (ForMedrixAI support), and the demonstration checklists left out of customer builds.
@@ -684,3 +686,7 @@ Display Profiles: the not-scanned time.
 ## Batch 730
 
 Equipment: temperature range; Equipment Log: temperature checks.
+
+## Batch 762
+
+System → Integrations → Requisition ingestion (`System/RequisitionIngestionSection.tsx`).

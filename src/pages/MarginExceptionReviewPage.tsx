@@ -22,7 +22,7 @@ import { useOpenCase } from '@/hooks/useOpenCase';
 import { useMarginExceptionReview } from '@/hooks/useMarginExceptionReview';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { isServiceOk } from '@/services/types';
-import { formatDisplayNameForLanguage } from '@/utils/personName';
+import { ForeignIdTag } from '@/components/Workstation/BenchIdentity';
 import { formatDateTime } from '@/utils/formatDate';
 
 const MarginExceptionReviewPage: React.FC = () => {
@@ -76,11 +76,12 @@ const MarginExceptionReviewPage: React.FC = () => {
       ))}
 
       <div className="ps-qcqueue-list">
-        {rows.map(({ exception: exc, caseAccession, patientName }) => (
+        {rows.map(({ exception: exc, caseAccession, specimen, order }) => (
           <div key={exc.id} className="ps-qcqueue-row ps-mex-row">
-            <div className="ps-qcqueue-row-patient" data-phi="name">
-              {(patientName && formatDisplayNameForLanguage(patientName, i18n.language)) || exc.caseId}
+            <div className="ps-qcqueue-row-patient">
               <span className="ps-qcqueue-row-accession" data-phi="accession">{caseAccession}</span>
+              {specimen && <span>{t('benchIdentity.specimenSource', { label: specimen.label, description: specimen.description })}</span>}
+              <ForeignIdTag order={order} />
             </div>
             <div className="ps-mex-problem">
               <div className="ps-mex-field-label">{exc.fieldLabel}</div>
@@ -130,11 +131,12 @@ const MarginExceptionReviewPage: React.FC = () => {
 
       <h2 className="ps-mex-history-title">{t('marginExceptionReview.history.title')}</h2>
       <div className="ps-qcqueue-list" data-testid="mex-history">
-        {decidedRows.map(({ exception: exc, caseAccession, patientName }) => (
+        {decidedRows.map(({ exception: exc, caseAccession, specimen, order }) => (
           <div key={exc.id} className="ps-qcqueue-row ps-mex-row ps-mex-history-row">
-            <div className="ps-qcqueue-row-patient" data-phi="name">
-              {(patientName && formatDisplayNameForLanguage(patientName, i18n.language)) || exc.caseId}
+            <div className="ps-qcqueue-row-patient">
               <span className="ps-qcqueue-row-accession" data-phi="accession">{caseAccession}</span>
+              {specimen && <span>{t('benchIdentity.specimenSource', { label: specimen.label, description: specimen.description })}</span>}
+              <ForeignIdTag order={order} />
             </div>
             <div className="ps-mex-problem">
               <div className="ps-mex-field-label">{exc.fieldLabel}</div>

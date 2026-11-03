@@ -332,6 +332,8 @@ Breadcrumb: Home > Administrator Guide > System Overview and Architecture > Secu
 
 When a user sends an Enhancement Request, the app takes a screenshot and covers every element tagged as patient data before the image leaves the browser. Anything that shows a patient name, date of birth, MRN or national identifier, accession or case number, or patient contact or insurance detail is tagged `data-phi` with its kind. Toasts that name a case are wrapped so they are covered too. Staff names are not treated as patient data. A test reads every source file and fails the build on an untagged place, with no exception list. Limits to plan around: free text that happens to contain an identifier (audit detail, interface exception reasons) cannot be recognised by any code check, so those cells are covered as a whole; and the check reads names, not types, so a value passed through a generic list can be missed (one such case was found and fixed in Batch 368, and twenty screens were then checked in a browser).
 
+**Bench screens (Batches 759 and 760).** The bench screens (Embedding, Microtome, Cytology Preparation, Add-On Order Builder, Margin Exception Review, Molecular Batch Management) and the cytology screening screens show no patient name, date of birth or MRN: only the accession, the specimen source (or vial type) and slide ids. An outside case also shows its Foreign case ID, entered at Accession. An id typed instead of scanned is let through and recorded as "Manual Entry" on the audit log. Nothing to configure.
+
 ### AI vendor policy and hosting regions {#ch1-ai-policy}
 Breadcrumb: Home > Administrator Guide > System Overview and Architecture > Security model > AI vendor policy and hosting regions
 

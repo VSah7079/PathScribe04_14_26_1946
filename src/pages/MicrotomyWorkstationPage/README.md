@@ -158,3 +158,9 @@ The **Carriers at this station** card: a tray of blocks from Embedding moves her
 ## Batch 733
 
 - Batch 733: the Block exhausted flag goes on every slide still waiting to be cut (`flagBlockExhaustedOnce`).
+
+Batch 757: the dual scan. A label printed at the Microtome waits for its scan (`labelToScan`, shown above the grid); Print/Etch Next refuses until it is scanned; the scan records `sectioned` and the carrier hook places the slide in the staining rack. `useMicrotomyWorkstation.ts` 695 lines.
+
+Batch 758: the print mode comes from the Microtome's own setting (`microtomePrintModeOf`); Block mode (`HardwarePrintPanel` third button) prints all of a block's labels when it is scanned (`printBlockLabels`, awaited so the label scans queued behind it find them printed) and lists every label still to scan (`labelsToScan`). The block lockout (`lockout`, `components/BlockLockoutBanner.tsx`, inline): another block scanned, or Scan next, while labels of this block are unscanned is held; Recut reprints with reason Damaged Section, Void cancels the slide, Continue logs each label `missing`, Stay closes it; when nothing is waiting the block scanned opens by itself. Reprint reasons gain Damaged Section. Hook: 695 → 795 lines.
+
+Batch 759: no patient name or date of birth in the context bar; the Foreign ID of an outside case or item; the typed-entry check line.

@@ -10,6 +10,7 @@
 // reload.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { currentRunForBarcode } from './rackRuns';
 import { DEFAULT_BATCH_PURPOSE_ID } from './batchPurposes';
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
@@ -40,6 +41,8 @@ import { withMissingSeedRecords } from '../mockSeedMerge';
 export { BATCH_NOT_PERMITTED, BATCH_REASON_REQUIRED };
 import { mockDpVendorService } from '../digitalPathology/mockDpVendorService';
 import { mockAiScreeningResultService } from '../digitalPathology/mockAiScreeningResultService';
+import { stainQcSystem } from '../stainQc/stainQcServiceInstance';
+import { runQcAllowsDistribution } from '../stainQc/stainQcRules';
 import { mockMolecularOrderOutboundQueueService } from '../molecularOrders/mockMolecularOrderOutboundQueueService';
 import type {
   IBatchService, Batch, BatchItem, AddItemOutcome, BatchProcessingNode, CarrierScanResult,
@@ -106,6 +109,9 @@ async function recordStationEvents(events: NewStationScanEvent[]): Promise<void>
 // Fire-and-forget, same real posture as dispatchReferralIfApplicable
 // above — a real failure resolving/persisting this must never block
 // the batch's own, already-successful completion.
+/** Batch 763: a staining rack's run, for its QC checkpoint: the rack, its stainer when known, and its slides. */
+const stainRunOf = (b: Batch, instrumentCode?: string) => ({ batchId: b.id, masterBarcode: b.masterBarcode, stainerIdOrCode: instrumentCode ?? null, slides: b.items.filter(i => i.materialType === 'slide').map(i => ({ slideId: i.displayId, caseAccession: i.caseAccession })) });
+
 export async function transitionSlidesToReadyForScreeningIfApplicable(batch: Batch): Promise<void> {
   if (batch.processingNode !== 'Cytology Staining') return;
   try {
@@ -270,8 +276,8 @@ export const mockBatchService: IBatchService = {
   },
 
   async getByMasterBarcode(barcode: string): Promise<ServiceResult<Batch>> {
-    const normalized = barcode.trim().toUpperCase();
-    const batch = loadBatches().find(b => b.masterBarcode.toUpperCase() === normalized);
+    // Batch 761: a reusable rack has one run per use, all with its barcode; the open run is the one meant.
+    const batch = currentRunForBarcode(loadBatches(), barcode);
     if (!batch) return { ok: false, error: E.notFound };
     return { ok: true, data: batch };
   },
@@ -748,7 +754,7 @@ export const mockBatchService: IBatchService = {
     return { ok: true, data: updatedBatch };
   },
 
-  async setStainingInstrumentStatus(batchId: ID, status): Promise<ServiceResult<Batch>> {
+  async setStainingInstrumentStatus(batchId: ID, status, instrumentCode?: string): Promise<ServiceResult<Batch>> {
     const batches = loadBatches();
     const batch = findBatch(batches, batchId);
     if (!batch) return { ok: false, error: E.notFound };
@@ -762,6 +768,8 @@ export const mockBatchService: IBatchService = {
       detail: `Batch ${batch.masterBarcode} (Staining): instrument reports '${status}'.`,
       user: 'System', caseId: null, confidence: null,
     }).catch(() => {});
+    // Batch 763: a completed run's QC checkpoint opens (its stainer's QC mode decides who signs off).
+    if (status === 'Run Completed') await stainQcSystem.openRun(stainRunOf(updatedBatch, instrumentCode)).catch(() => undefined);
 
     // Real, per the original Stain QC Module spec's own §2.4 — a
     // real, confirmed run failure auto-raises a real deficiency
@@ -887,6 +895,9 @@ export const mockBatchService: IBatchService = {
     if (!batch) return { ok: false, error: E.notFound };
     const problem = advanceProblem(batch, toNode);
     if (problem) return { ok: false, error: problem };
+    // Batch 763: a staining run goes on to distribution only once its QC is decided (the checkpoint opens here if the
+    // stainer never reported Run Completed; an auto-accept stainer passes at once).
+    if (batch.processingNode === 'Staining' && toNode === 'Checkout' && !runQcAllowsDistribution(await stainQcSystem.openRun(stainRunOf(batch)))) return { ok: false, error: E.stainQcPending };
     const updated = advanceBatch(batch, toNode, { id: byUserId, name: byUserName }, new Date().toISOString(), stationId);
     saveBatches(batches.map(b => b.id === batchId ? updated : b));
     mockAuditService.logEvent({ type: 'system', event: 'Batch Carrier Moved', detail: `Carrier ${batch.masterBarcode} moved from ${batch.processingNode} to ${toNode} with ${batch.items.length} item(s).`, user: byUserName, caseId: null, confidence: null }).catch(() => {});

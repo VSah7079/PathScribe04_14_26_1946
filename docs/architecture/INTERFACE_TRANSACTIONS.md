@@ -92,6 +92,10 @@ These don't go through `dispatchInterfaceMessage`, so they aren't in the table a
 
 The full contract is `MOLECULAR_ORDERS_API.md` §7–8.
 
+## Back from the engine: a stainer's own QC sign-off (Batch 763)
+
+Option A of the Post-Stain / Pre-Distribution QC gate. A stainer set to **Instrument sign-off** sends its own QC result for a run (one rack) through the interface engine to `POST /api/v1/events/stain-qc-sign-off` (`StainQcSignOffEventPayload`, `src/types/events/`: `messageId`, `timestamp`, `masterBarcode`, `result` pass or fail, `failedSlideIds`, `vendorRef`, `instrumentCode`). It is processed by `services/hl7/processInboundStainQcSignOffEvent.ts`, idempotent on `messageId`. A run signed off in PathScribe ignores it. The stainer's existing status message (`StainingInstrumentStatusEventPayload`) now carries `instrumentCode`, so the run knows its stainer. Full contract: `STAIN_QC_API.md` §3. **Planned:** the engine channel and the server route.
+
 ## Development receiver
 
 `functions/main.py` → `receive_interface_message` stands in for the engine's receiving side so the JSON can be checked. It accepts every type above (Batch 434: it had stopped at `ORDER_CREATED`, refusing registry, print and alert messages) and checks a `WSI_SCAN_MANIFEST` has its batch, scanner and slides. In the browser demo, the developer tool at `/dev/mock-interface-engine` can answer these messages instead, and simulate the scanner's replies.

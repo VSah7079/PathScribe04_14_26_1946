@@ -2259,3 +2259,19 @@ Batch 750: slide images (no viewer in PathScribe): `digitalPathology/slideImages
 ## Batch 751
 
 Batch 751: organ maps on Assist cases (spec section 12): `organMapping/organMapDelivery*.ts`, the Assist rule in `organMapping/organMapFigures.ts`, the `organ_map` LIS message in `reports/dispatchAssistSynopticResult.ts`, `facilities` (`setOrganMapDelivery`), `authorization/organMapDeliveryCapabilities.ts`, `documentRendering/imagePdf.ts`, the S15 seed cases.
+
+Batch 756: a case made on Accession reaches every bench: the Grossing queue lists it, and a cassette, block or slide scan finds it by the accession number on its label (S26-0001), not only by its internal id (O26-0031) (`cases/caseByAccession.ts`, `cases/CaseRouter.ts`); one toast per burst of simulated prints (`printing/simulatedPrint.ts`).
+
+Batch 757 (Pete's embedding-to-staining flow): `batches/stationCarrierRules.ts`, `material/slideLabelCheck.ts`, station action `sectioned`.
+
+Batch 758: `printSettings/microtomePrintMode.ts` (new; `PrintSettingsConfig.microtomePrintBehavior`), `material/slideLabelCheck.ts` (Block mode and the lockout), `batches/benchSlideBuffer.ts` (new, the Microtome bench per station), `batches/stationCarrierRules.ts` (`outputScanPlan`).
+
+Batch 759 (patient verification spec): `scanEntry/` (new: scan or typed, the Manual Entry flag), `material/benchIdentity.ts` (Foreign ID and specimen source at the bench), `cases/originatingCase.ts`, station action `typed`; `styleRules/fileSizeBaseline.ts` lowered for `AccessionPage.tsx` (4,003) and `Case.ts` (1,056).
+
+Batch 760: `cytology/cytologyBenchIdentity.ts` (cytology screening without patient details).
+
+Batch 761: `batches/rackRuns.ts` (reusable staining racks).
+
+Batch 762: `requisitions/` (new: requisition ingestion, the Unmatched Requisitions queue; `REQUISITION_INGESTION_API.md`), `authorization/requisitionCapabilities.ts`, `screens/screenAccess.ts` (sub-screen `requisitionInbox`), `serverJobs/serverJobsContract.ts` (`requisition.ingest`).
+
+Batch 763: `stainQc/` (new: the Post-Stain / Pre-Distribution QC gate; `STAIN_QC_API.md`), `hl7/processInboundStainQcSignOffEvent.ts`, `authorization/stainQcCapabilities.ts`; `batches/mockBatchService.ts` (Staining → Checkout waits for QC), `digitalPathology/wsiScanQueue.ts` and `wsiScanBatchWorkflow.ts` (an image held for QC at unload), `digitalPathology/slideImages.ts` (`awaitingImageQc`), `equipment/` (`qcMode`, two demo stainers), `roles/actionSeeds.ts` (Superadmin receives every action), `facilityOpsDashboard/computeStainingIhcSummary.ts` (Waiting for QC).

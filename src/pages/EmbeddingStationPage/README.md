@@ -1,3 +1,5 @@
+**Batch 759:** no patient name or date of birth in the context bar; an outside case's Foreign ID (`ForeignIdTag`); after a typed entry, the identifiers to check (`TypedEntryCheck`).
+
 **Batch 737:** `hooks/useEmbeddingStation.ts` passes the block type with each cassette label request (a megablock prints on its own template).
 
 **Batch 735:** the shared `StationScanField` before and during a cassette (in the context bar); windows are dialogs; in the station touch layout.
@@ -96,3 +98,5 @@ The **Carriers at this station** card (`components/Workstation/StationCarrierPan
 ## Batch 732
 
 - Batch 732: `BlockPieceMapPanel` (read-only) for the block at the bench (`pieceView`).
+
+Batch 757: an embedded block goes into the output tray (a Microtome tray scanned at this bench); items can be checked off the basket by hand with a reason.

@@ -1,3 +1,5 @@
+**Batch 759:** no patient name or date of birth in the context bar; Foreign ID; typed-entry check line.
+
 **Batch 741:** Divide specimen and aliquot tracking on the bench.
 
 # pages/CytologyPrepStationPage

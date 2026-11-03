@@ -1,3 +1,5 @@
+**Batch 759:** `OutsideCaseCard.tsx` (new): the Outside Patient Data card moved out of `AccessionPage.tsx` unchanged, with the new **Originating case** section (case number and institution, saved as `order.originatingCase`). `AccessionPage.tsx` 4,162 → 4,002 lines.
+
 **Batch 738:** the received time defaults to local time (`localInputValueFromDate`), not UTC; `AccessionPage.tsx` stays at 4,162 lines.
 
 **Batch 721:** the Accession screen is in two columns on a wide window (1,480 CSS px or more): Case & Patient on the left, Specimens on the right, the Cytology card under the specimens, and no Next or Back button. A narrower window keeps the tabs. New: `AccessionTabBar.tsx` (the tabs, moved out of `AccessionPage.tsx`), `AccessionColumnSlot.tsx` (draws the Cytology card in the right column), `accessionColumns.css`, `AccessionPage.twoColumn.e2e.test.tsx`. `AccessionPage.tsx` 4,165 to 4,163 lines. No new text, so no locale changes.
@@ -1122,3 +1124,5 @@ The box is now `ClinicalIndicationField.tsx`: after Import from Order a note und
 ## Batch 715 — letters or numbers for labels
 
 `useAccessionLabelStyle.ts` resolves the style for the chosen facility (its performing lab over its enterprise), relabels the specimens still on the form when it changes, and the case saves it as `Case.labelStyle`. Specimen labels, default blocks (`generateDefaultMaterial`) and the Remove-specimen renumbering all use it. `AccessionPage.tsx` stays at 4,183 lines.
+
+Batch 756: the "accessioned" message names the accession number on the labels (S26-0001), not the internal case id (O26-0031). One line changed; the page is still 4,162 lines.

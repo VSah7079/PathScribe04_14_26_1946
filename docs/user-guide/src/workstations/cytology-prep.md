@@ -19,6 +19,8 @@ status: Draft
 
 **Intended users.** Cytotechnologists and histotechnologists who prepare fluids. The screen opens for roles with the Cytology Preparation screen switched on; by default the Cytotechnologist and Histotechnologist roles.
 
+**Patient identity and typed entries (Batch 759).** This screen shows no patient name, date of birth or MRN. Check the accession number and the specimen source against the container; an outside case also shows its **Foreign case ID** (and a block or specimen's own **Foreign ID**). A typed id (when the scanner can't read a label) opens at once; a line says "Typed, not scanned: check the container shows … and …", and the typed entry is recorded quietly on the audit trail and in the scan history. See the Microtome page for the full account.
+
 ## Screen Tour {#screen}
 
 Pathology Workspace → **Cytology Preparation**.

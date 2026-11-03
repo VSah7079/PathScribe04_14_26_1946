@@ -1,3 +1,5 @@
+**Batch 759:** `components/HeaderBar.tsx` shows an outside case's Foreign case ID beside the accession (both layouts).
+
 **Batch 755b (part 2):** `components/RightSynopticPanel.tsx` filters the picker with `offeredOnCasePicker()` (1,750 lines, unchanged).
 
 **Batch 755a:** `components/TemplatePicker.tsx` (moved out of `RightSynopticPanel.tsx`, 1,853 → 1,750 lines); the checklist header, sidebar entry and picker show the "Demo wording" tag.

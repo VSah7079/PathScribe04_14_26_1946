@@ -1118,3 +1118,35 @@ Batch 732: `Workstation/BlockPieceMapPanel.tsx` (new); Equipment large-format fl
 ## Batch 751
 
 `OrganMap/OrganMapPanel.tsx` (the Assist note and the map-file line); `FacilityDictionary/FacilityOutboundDocumentsSection.tsx` and `OrganMapDeliverySetting.tsx` (new).
+
+## Batch 756
+
+`Workstation/StationScanField`: keyboard and submit buttons on touch screens only. `Search/CaseSearchBar`: no longer writes match details onto cases.
+
+## Batch 757
+
+`Workstation/StationCarrierPanel` item list and check-off; `Workstation/StationScanField` no longer drops fast scans.
+
+## Batch 758
+
+`Workstation/StationCarrierPanel`: the Microtome's bench counter and the rack-first-or-last hint. `Config/System/PrintSettingsSection`: the Microtome Print Behavior card; the Grossing card renamed.
+
+## Batch 759
+
+`Workstation/BenchIdentity` (Foreign ID tag, typed-entry check); `Workstation/StationScanField` and `Search/CaseSearchBar` flag typed entries.
+
+## Batch 760
+
+`Cytology/CytologyIdentityLine` (new folder): the cytology case's vial type and slide ids.
+
+## Batch 761
+
+`Workstation/StationCarrierPanel`: the unclosed-run warning for a reusable rack.
+
+## Batch 762
+
+`Requisitions/` (new): `RequisitionPreview` (a scanned requisition's pages), `CaseRequisitionLink` (the report header's Requisition button and window), `RequisitionInboxLink` (Accession's way into the inbox), `Requisitions.css`. `Config/System/RequisitionIngestionSection.tsx` (new).
+
+## Batch 763
+
+`StainQc/` (new): `QcCheckpointPanel` (Slide Distribution's QC checkpoint: staining runs and scanned images waiting for QC), `QcCheckpointPanel.css`. `Config/System/StainQcSection.tsx` (new: Stain & scan QC defaults); `Config/System/EquipmentSection.tsx`: QC sign-off for stainers and scanners.

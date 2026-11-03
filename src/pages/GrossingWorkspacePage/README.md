@@ -8,3 +8,5 @@ Batch 720. The **Grossing** tile under Pathology Workspace (`/workstations/gross
 - `grossingQueue.ts` (+ test): `waitingToGross` (status `accessioned`, STAT first, then oldest) and `findByAccession` (ignores case and spaces).
 
 The screen the queue opens is `../GrossingScreenPage/`.
+
+Batch 756: the queue reads both stores (`caseRouter.getAll(..., { includeOrchestration: true })`), so a case made on Accession (an Orchestration case) is listed; before this it never was.
